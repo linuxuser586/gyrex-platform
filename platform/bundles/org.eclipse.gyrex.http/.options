@@ -1,0 +1,5 @@
+# global debug option
+org.eclipse.cloudfree.http/debug=true
+
+# debug roles
+org.eclipse.cloudfree.http/handlerServlet=true

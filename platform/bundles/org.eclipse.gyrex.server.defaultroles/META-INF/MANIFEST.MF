@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.cloudfree.boot.defaultroles;singleton:=true
+Bundle-Version: 0.7.0.qualifier
+Bundle-Name: %bundle.name
+Bundle-Vendor: %provider.name
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: org.eclipse.cloudfree.boot;bundle-version="[0.7.0,1.0.0)"

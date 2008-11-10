@@ -1,0 +1,5 @@
+# global debug option
+org.eclipse.cloudfree.boot/debug=true
+
+# debug roles
+org.eclipse.cloudfree.boot/debugRoles=true

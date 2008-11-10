@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.cloudfree.monitoring
+Bundle-Version: 0.7.0.qualifier
+Bundle-Activator: org.eclipse.cloudfree.monitoring.internal.MonitoringActivator
+Bundle-Name: %bundle.name
+Bundle-Vendor: %provider.name
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.osgi.framework;version="[1.3.0,2.0.0)"
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.cloudfree.common;bundle-version="[0.7.0,1.0.0)"
+Export-Package: org.eclipse.cloudfree.monitoring.internal;x-internal:=true,
+ org.eclipse.cloudfree.monitoring.metrics
