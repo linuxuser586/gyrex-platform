@@ -36,7 +36,6 @@ import org.eclipse.cloudfree.http.internal.application.helpers.ServletUtil;
 import org.eclipse.cloudfree.http.internal.application.registrations.Registration;
 import org.eclipse.cloudfree.http.internal.application.registrations.RegistrationsManager;
 import org.eclipse.cloudfree.http.internal.application.registrations.ServletRegistration;
-import org.eclipse.core.runtime.IAdaptable;
 import org.osgi.framework.Bundle;
 
 /**
@@ -214,18 +213,18 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 		registrationManager.get().registerResource(alias, name, provider, getServletContext());
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport#registerService(java.lang.String, org.eclipse.core.runtime.IAdaptable)
-	 */
-	@Override
-	public void registerService(final String alias, final IAdaptable service) throws ServletException, NamespaceException {
-		// lazy initialize
-		//initRegistrationManager();
-
-		// get service servlet
-
-		// register servlet
-	}
+	//	/* (non-Javadoc)
+	//	 * @see org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport#registerService(java.lang.String, org.eclipse.core.runtime.IAdaptable)
+	//	 */
+	//	@Override
+	//	public void registerService(final String alias, final IAdaptable service) throws ServletException, NamespaceException {
+	//		// lazy initialize
+	//		//initRegistrationManager();
+	//
+	//		// get service servlet
+	//
+	//		// register servlet
+	//	}
 
 	/* (non-Javadoc)
 	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#registerServlet(java.lang.String, javax.servlet.Servlet, java.util.Map)

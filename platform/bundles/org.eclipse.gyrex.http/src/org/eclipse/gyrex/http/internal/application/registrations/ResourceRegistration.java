@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.http.internal.application.registrations;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -48,49 +49,6 @@ public class ResourceRegistration extends Registration {
 	private static final String IF_MODIFIED_SINCE = "If-Modified-Since"; //$NON-NLS-1$
 	private static final String IF_NONE_MATCH = "If-None-Match"; //$NON-NLS-1$
 	private static final String ETAG = "ETag"; //$NON-NLS-1$
-
-	static int writeResourceToOutputStream(final URLConnection connection, final OutputStream os) throws IOException {
-		final InputStream is = connection.getInputStream();
-		try {
-			final byte[] buffer = new byte[8192];
-			int bytesRead = is.read(buffer);
-			int writtenContentLength = 0;
-			while (bytesRead != -1) {
-				os.write(buffer, 0, bytesRead);
-				writtenContentLength += bytesRead;
-				bytesRead = is.read(buffer);
-			}
-			return writtenContentLength;
-		} finally {
-			if (is != null) {
-				is.close();
-			}
-		}
-	}
-
-	static void writeResourceToWriter(final URLConnection connection, final Writer writer) throws IOException {
-		InputStream is = connection.getInputStream();
-		try {
-			final Reader reader = new InputStreamReader(connection.getInputStream());
-			try {
-				final char[] buffer = new char[8192];
-				int charsRead = reader.read(buffer);
-				while (charsRead != -1) {
-					writer.write(buffer, 0, charsRead);
-					charsRead = reader.read(buffer);
-				}
-			} finally {
-				if (reader != null) {
-					reader.close(); // will also close input stream
-					is = null;
-				}
-			}
-		} finally {
-			if (is != null) {
-				is.close();
-			}
-		}
-	}
 
 	private final String name;
 
@@ -150,7 +108,7 @@ public class ResourceRegistration extends Registration {
 
 			final String pathInfo = ServletUtil.getPathInfo(req);
 			final int aliasLength = alias.equals("/") ? 0 : alias.length(); //$NON-NLS-1$
-			final String resourcePath = name + pathInfo.substring(aliasLength);
+			final String resourcePath = name + (null != pathInfo ? pathInfo.substring(aliasLength) : "");
 			final URL resourceURL = provider.getResource(resourcePath);
 			if (resourceURL == null) {
 				return false;
@@ -161,6 +119,17 @@ public class ResourceRegistration extends Registration {
 		resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
 
 		return true;
+	}
+
+	void sendError(final HttpServletResponse resp, final int sc) throws IOException {
+
+		try {
+			// we need to reset headers for 302 and 403
+			resp.reset();
+			resp.sendError(sc);
+		} catch (final IllegalStateException e) {
+			// this could happen if the response has already been committed
+		}
 	}
 
 	private boolean writeResource(final HttpServletRequest req, final HttpServletResponse resp, final String resourcePath, final URL resourceURL, final IResourceProvider resourceProvider) throws IOException {
@@ -221,19 +190,45 @@ public class ResourceRegistration extends Registration {
 					}
 
 					if (contentLength != 0) {
+						// open the input stream
+						InputStream is = null;
 						try {
-							final OutputStream os = resp.getOutputStream();
-							final int writtenContentLength = writeResourceToOutputStream(connection, os);
-							if ((contentLength == -1) || (contentLength != writtenContentLength)) {
-								resp.setContentLength(writtenContentLength);
+							is = connection.getInputStream();
+							// write the resource
+							try {
+								final OutputStream os = resp.getOutputStream();
+								final int writtenContentLength = writeResourceToOutputStream(is, os);
+								if ((contentLength == -1) || (contentLength != writtenContentLength)) {
+									resp.setContentLength(writtenContentLength);
+								}
+							} catch (final IllegalStateException e) { // can occur if the response output is already open as a Writer
+								final Writer writer = resp.getWriter();
+								writeResourceToWriter(is, writer);
+								// Since ContentLength is a measure of the number of bytes contained in the body
+								// of a message when we use a Writer we lose control of the exact byte count and
+								// defer the problem to the Servlet Engine's Writer implementation.
 							}
-						} catch (final IllegalStateException e) { // can occur if the response output is already open as a Writer
-							final Writer writer = resp.getWriter();
-							writeResourceToWriter(connection, writer);
-							// Since ContentLength is a measure of the number of bytes contained in the body
-							// of a message when we use a Writer we lose control of the exact byte count and
-							// defer the problem to the Servlet Engine's Writer implementation.
+						} catch (final FileNotFoundException e) {
+							// FileNotFoundException may indicate the following scenarios
+							// - url is a directory
+							// - url is not accessible
+							sendError(resp, HttpServletResponse.SC_FORBIDDEN);
+						} catch (final SecurityException e) {
+							// SecurityException may indicate the following scenarios
+							// - url is not accessible
+							sendError(resp, HttpServletResponse.SC_FORBIDDEN);
+						} finally {
+							if (is != null) {
+								try {
+									is.close();
+								} catch (final IOException e) {
+									// ignore
+								}
+							}
 						}
+					} else {
+						// zero content ... this might be a directory
+						sendError(resp, HttpServletResponse.SC_FORBIDDEN);
 					}
 					return Boolean.TRUE;
 				}
@@ -244,4 +239,31 @@ public class ResourceRegistration extends Registration {
 		return result.booleanValue();
 	}
 
+	int writeResourceToOutputStream(final InputStream is, final OutputStream os) throws IOException {
+		final byte[] buffer = new byte[8192];
+		int bytesRead = is.read(buffer);
+		int writtenContentLength = 0;
+		while (bytesRead != -1) {
+			os.write(buffer, 0, bytesRead);
+			writtenContentLength += bytesRead;
+			bytesRead = is.read(buffer);
+		}
+		return writtenContentLength;
+	}
+
+	void writeResourceToWriter(final InputStream is, final Writer writer) throws IOException {
+		final Reader reader = new InputStreamReader(is);
+		try {
+			final char[] buffer = new char[8192];
+			int charsRead = reader.read(buffer);
+			while (charsRead != -1) {
+				writer.write(buffer, 0, charsRead);
+				charsRead = reader.read(buffer);
+			}
+		} finally {
+			if (reader != null) {
+				reader.close(); // will also close input stream
+			}
+		}
+	}
 }

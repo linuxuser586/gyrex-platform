@@ -23,11 +23,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-
 import org.eclipse.cloudfree.http.application.Application;
 import org.eclipse.cloudfree.http.application.ApplicationException;
-import org.eclipse.cloudfree.http.services.IHttpService;
-import org.eclipse.core.runtime.IAdaptable;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 
@@ -237,8 +234,8 @@ public interface IApplicationServiceSupport {
 	 * @throws java.lang.IllegalArgumentException
 	 *             if any of the arguments are invalid
 	 */
-	void registerService(final String alias, final IAdaptable service) throws ServletException, NamespaceException;
-
+	//void registerService(final String alias, final IAdaptable service) throws ServletException, NamespaceException;
+	
 	/**
 	 * Registers a servlet into the URI namespace.
 	 * <p>
