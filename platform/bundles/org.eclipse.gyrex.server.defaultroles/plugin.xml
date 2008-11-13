@@ -25,10 +25,7 @@
                symbolicName="org.eclipse.cloudfree.admin">
          </requireBundle>
          <requireBundle
-               symbolicName="org.eclipse.cloudfree.admin.web.gwt.client">
-         </requireBundle>
-         <requireBundle
-               symbolicName="org.eclipse.cloudfree.admin.web">
+               symbolicName="org.eclipse.cloudfree.admin.web.gwt">
          </requireBundle>
       </role>
       <role
