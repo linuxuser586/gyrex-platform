@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+   <extension-point id="org.eclipse.cloudfree.http.applications" name="CloudFree HTTP Applications" schema="schema/org.eclipse.cloudfree.http.applications.exsd"/>
+   <extension
+         point="org.eclipse.cloudfree.http.applications">
+      <application
+            contextPath="/"
+            id="test-app">
+      </application>
+      <resource
+            alias="/"
+            applicationId="test-app"
+            path="test/">
+      </resource>
+      <mount
+            applicationId="test-app"
+            url="http://127.0.0.1:81/test-app">
+      </mount>
+      <mount
+            applicationId="test-app"
+            url="http://127.0.0.1:81/test/app">
+      </mount>
+      <mount
+            applicationId="test-app"
+            url="http://localhost/test-app">
+      </mount>
+      <mount
+            applicationId="test-app"
+            url="http://localhost/test/app">
+      </mount>
+      <mount
+            applicationId="test-app"
+            url="http://fans.eclipse.org/test/app">
+      </mount>
+   </extension>
+
+</plugin>
