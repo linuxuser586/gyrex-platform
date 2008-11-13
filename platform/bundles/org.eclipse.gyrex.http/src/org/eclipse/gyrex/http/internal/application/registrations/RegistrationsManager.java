@@ -207,7 +207,7 @@ public class RegistrationsManager implements SynchronousBundleListener, IShutdow
 			registrations.put(alias, registration);
 
 			// remember registration for provider bundle
-			if (registrationsByBundle.containsKey(providerBundle)) {
+			if (!registrationsByBundle.containsKey(providerBundle)) {
 				registrationsByBundle.put(providerBundle, new HashSet<Registration>(1));
 			}
 			registrationsByBundle.get(providerBundle).add(registration);
