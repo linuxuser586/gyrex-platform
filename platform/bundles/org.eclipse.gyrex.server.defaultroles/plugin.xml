@@ -38,6 +38,9 @@
          <requireBundle
                symbolicName="org.eclipse.cloudfree.http">
          </requireBundle>
+         <requireBundle
+               symbolicName="org.eclipse.cloudfree.http.registry">
+         </requireBundle>
       </role>
    </extension>
 
