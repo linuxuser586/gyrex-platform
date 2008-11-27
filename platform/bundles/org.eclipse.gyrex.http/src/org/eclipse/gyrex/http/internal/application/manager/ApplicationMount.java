@@ -51,4 +51,18 @@ public class ApplicationMount {
 	public URL getMountPoint() {
 		return url;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		final StringBuilder toString = new StringBuilder();
+		toString.append("ApplicationMount[ ");
+		toString.append(url.toExternalForm());
+		toString.append(" -> ");
+		toString.append(applicationId);
+		toString.append(" ]");
+		return toString.toString();
+	}
 }

@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.http.application.manager.ApplicationRegistrationException;
 import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
@@ -37,9 +36,9 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 
 	private final BundleContext context;
 	private final ServiceTracker providerTracker;
-	private final ConcurrentMap<String, ApplicationProviderRegistration> providers = new ConcurrentHashMap<String, ApplicationProviderRegistration>(1);
-	private final ConcurrentMap<String, ApplicationRegistration> applications = new ConcurrentHashMap<String, ApplicationRegistration>(1);
-	private final ConcurrentMap<String, ApplicationMount> mounts = new ConcurrentHashMap<String, ApplicationMount>(1);
+	private final ConcurrentMap<String, ApplicationProviderRegistration> providersById = new ConcurrentHashMap<String, ApplicationProviderRegistration>(1);
+	private final ConcurrentMap<String, ApplicationRegistration> applicationsById = new ConcurrentHashMap<String, ApplicationRegistration>(1);
+	private final ApplicationMountRegistry mountRegistry = new ApplicationMountRegistry();
 	private String defaultApplicationId;
 
 	public ApplicationManager(final BundleContext context) {
@@ -58,7 +57,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 		}
 
 		final ApplicationProviderRegistration registration = new ApplicationProviderRegistration(reference, provider);
-		providers.putIfAbsent(provider.getId(), registration);
+		providersById.putIfAbsent(provider.getId(), registration);
 		return provider;
 	}
 
@@ -77,21 +76,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 * @return the found mount, or <code>null</code> if none could be found
 	 */
 	public ApplicationMount findApplicationMount(final URL url) {
-		String urlLookup = url.toString().intern();
-		ApplicationMount applicationMount;
-		do {
-			applicationMount = mounts.get(urlLookup);
-			if (null == applicationMount) {
-				final int lastSlash = urlLookup.lastIndexOf('/');
-				if (lastSlash != -1) {
-					// one dir up
-					urlLookup = urlLookup.substring(0, lastSlash);
-				} else {
-					// abort
-					urlLookup = null;
-				}
-			}
-		} while ((null == applicationMount) && (null != urlLookup));
+		final ApplicationMount applicationMount = mountRegistry.find(url);
 
 		// fallback to default if we have one
 		if (null == applicationMount) {
@@ -113,7 +98,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 *         application is registered (or the registration has been removed)
 	 */
 	public ApplicationRegistration getApplicationRegistration(final String applicationId) {
-		return applications.get(applicationId);
+		return applicationsById.get(applicationId);
 	}
 
 	/**
@@ -125,7 +110,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 *         provider is registered (or was unregistered meanwhile)
 	 */
 	public ApplicationProviderRegistration getProviderRegistration(final String providerId) {
-		return providers.get(providerId);
+		return providersById.get(providerId);
 	}
 
 	/* (non-Javadoc)
@@ -140,14 +125,9 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 * @see org.eclipse.cloudfree.http.application.registry.IApplicationManager#mount(java.lang.String, java.lang.String)
 	 */
 	@Override
-	public void mount(String url, final String applicationId) throws MountConflictException, MalformedURLException {
+	public void mount(final String url, final String applicationId) throws MountConflictException, MalformedURLException {
 		if (null == url) {
 			throw new IllegalArgumentException("url must not be null");
-		}
-
-		// strip trailing slashes
-		while ((url.length() > 0) && (url.charAt(url.length() - 1) == '/')) {
-			url = url.substring(0, url.length() - 1);
 		}
 
 		// verify protocol
@@ -155,8 +135,14 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 			throw new IllegalArgumentException("url must start with 'http://' or 'https://'");
 		}
 
-		final ApplicationMount mount = new ApplicationMount(new URL(url), applicationId);
-		final ApplicationMount existing = mounts.putIfAbsent(url.intern(), mount);
+		// parse the url
+		final URL parsedUrl = new URL(url);
+
+		// create the mount
+		final ApplicationMount mount = new ApplicationMount(parsedUrl, applicationId);
+
+		// put mount
+		final ApplicationMount existing = mountRegistry.putIfAbsent(parsedUrl, mount);
 		if (null != existing) {
 			throw new MountConflictException(url);
 		}
@@ -184,7 +170,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 			throw new IllegalArgumentException("context must not be null");
 		}
 		final ApplicationRegistration applicationRegistration = new ApplicationRegistration(applicationId, providerId, context, properties, this);
-		final ApplicationRegistration existing = applications.putIfAbsent(applicationId.intern(), applicationRegistration);
+		final ApplicationRegistration existing = applicationsById.putIfAbsent(applicationId.intern(), applicationRegistration);
 		if (null != existing) {
 			throw new ApplicationRegistrationException(applicationId);
 		}
@@ -207,7 +193,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 
 	private void removeProvider(final ApplicationProvider provider) {
 		// remove provider registration
-		final ApplicationProviderRegistration providerRegistration = providers.remove(provider.getId());
+		final ApplicationProviderRegistration providerRegistration = providersById.remove(provider.getId());
 		if (null == providerRegistration) {
 			return;
 		}
@@ -224,7 +210,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 * @see org.eclipse.cloudfree.http.application.registry.IApplicationManager#unmount(java.lang.String)
 	 */
 	@Override
-	public void unmount(String url) {
+	public void unmount(String url) throws MalformedURLException {
 		// strip trailing slashes
 		while ((url.length() > 0) && (url.charAt(url.length() - 1) == '/')) {
 			url = url.substring(0, url.length() - 1);
@@ -235,7 +221,8 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 			throw new IllegalArgumentException("url must start with 'http://' or 'https://'");
 		}
 
-		mounts.remove(url.intern());
+		// remove
+		mountRegistry.remove(new URL(url));
 	}
 
 	/* (non-Javadoc)
@@ -243,7 +230,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 */
 	@Override
 	public void unregister(final String applicationId) {
-		applications.remove(applicationId);
+		applicationsById.remove(applicationId);
 	}
 
 }

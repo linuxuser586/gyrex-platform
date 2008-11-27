@@ -32,11 +32,11 @@ Export-Package: org.eclipse.cloudfree.http.application;
    org.osgi.framework,
    org.osgi.service.http,
    javax.servlet.http",
- org.eclipse.cloudfree.http.internal;x-friends:="org.eclipse.cloudfree.http.errorpagehandler",
- org.eclipse.cloudfree.http.internal.application;x-internal:=true,
- org.eclipse.cloudfree.http.internal.application.helpers;x-internal:=true,
- org.eclipse.cloudfree.http.internal.application.manager;x-internal:=true,
- org.eclipse.cloudfree.http.internal.application.registrations;x-internal:=true,
- org.eclipse.cloudfree.http.internal.apps.dummy;x-internal:=true,
+ org.eclipse.cloudfree.http.internal;x-friends:="org.eclipse.cloudfree.http.errorpagehandler,org.eclipse.cloudfree.http.tests",
+ org.eclipse.cloudfree.http.internal.application;x-friends:="org.eclipse.cloudfree.http.tests",
+ org.eclipse.cloudfree.http.internal.application.helpers;x-friends:="org.eclipse.cloudfree.http.tests",
+ org.eclipse.cloudfree.http.internal.application.manager;x-friends:="org.eclipse.cloudfree.http.tests",
+ org.eclipse.cloudfree.http.internal.application.registrations;x-friends:="org.eclipse.cloudfree.http.tests",
+ org.eclipse.cloudfree.http.internal.apps.dummy;x-friends:="org.eclipse.cloudfree.http.tests",
  org.eclipse.cloudfree.http.services;uses:="org.eclipse.core.runtime"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

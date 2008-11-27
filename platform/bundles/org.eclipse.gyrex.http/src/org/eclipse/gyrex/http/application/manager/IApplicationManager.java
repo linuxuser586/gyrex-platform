@@ -14,7 +14,6 @@ package org.eclipse.cloudfree.http.application.manager;
 import java.net.MalformedURLException;
 import java.util.Map;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.http.application.Application;
 import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
@@ -44,17 +43,36 @@ public interface IApplicationManager {
 	 * Registers an application at the specified URL.
 	 * <p>
 	 * An URL must begin with a protocol (<code>http://</code> or
-	 * <code>https://</code>) followed by a domain name and a path (eg.
-	 * <code>http://shop.cloudfree.net/admin/</code>). The path may be optional.
-	 * Trailing slashes will be removed. If no path is provided the "root" path
-	 * (i.e. "/") will be used. Everything below the specified URL is intended
-	 * to be controlled by the application.
+	 * <code>https://</code>) followed by a domain name with a port and a path
+	 * (eg. <code>http://shop.cloudfree.net/admin/</code>). The domain name,
+	 * port and path may be optional. Everything below the specified URL is
+	 * intended to be controlled by the application.
 	 * </p>
 	 * <p>
 	 * HTTP requests will be mapped to applications similar to how the OSGi Http
-	 * Service maps requests to servlet and resource registrations, i.e. only a
-	 * prefix path matching on the request URL will be performed. The longest
-	 * matching path wins.
+	 * Service maps requests to servlet and resource registrations with the
+	 * addition of adding protocol, domain and port matching to prefix path
+	 * matching.
+	 * </p>
+	 * <p>
+	 * The protocol must match exactly. No substring/prefix/suffix matching will
+	 * be performed with the protocol. Only <code>http</code> or
+	 * <code>https</code> are supported protocols at this time.
+	 * </p>
+	 * <p>
+	 * Domain names will be matched using a suffix name matching. The longest
+	 * matching domain wins. If no domain is provided the application will match
+	 * to all domains after no other application matched the HTTP requests
+	 * domain name.
+	 * </p>
+	 * <p>
+	 * If no port is provided the application will match to all ports the
+	 * underlying HttpService listens to after the protocol and domain matched.
+	 * </p>
+	 * <p>
+	 * If no path is provided the "root" path (i.e. "/") will be used. Trailing
+	 * slashes will be removed. Paths will be match last using a prefix path
+	 * matching. The longest matching path wins.
 	 * </p>
 	 * <p>
 	 * If a URL is already in use a {@link MountConflictException} will be
@@ -66,6 +84,9 @@ public interface IApplicationManager {
 	 *            <code>http://</code> or <code>https://</code> protocol)
 	 * @param applicationId
 	 *            the application id
+	 * @throws IllegalArgumentException
+	 *             if any of the specified arguments are invalid (eg. an
+	 *             unsupported protocol is used)
 	 * @throws MountConflictException
 	 *             if an application for the specified URL is already registered
 	 * @throws MalformedURLException
@@ -73,7 +94,7 @@ public interface IApplicationManager {
 	 * @see Application
 	 * @see ApplicationProvider
 	 */
-	void mount(String url, String applicationId) throws MountConflictException, MalformedURLException;
+	void mount(String url, String applicationId) throws IllegalArgumentException, MountConflictException, MalformedURLException;
 
 	/**
 	 * Registers an application.
@@ -115,8 +136,13 @@ public interface IApplicationManager {
 	 * 
 	 * @param url
 	 *            the mount point
+	 * @throws IllegalArgumentException
+	 *             if any of the specified arguments are invalid (eg. an
+	 *             unsupported protocol is used)
+	 * @throws MalformedURLException
+	 *             if the specified url is invalid
 	 */
-	void unmount(String url);
+	void unmount(String url) throws IllegalArgumentException, MalformedURLException;
 
 	/**
 	 * Unregisters an application.
