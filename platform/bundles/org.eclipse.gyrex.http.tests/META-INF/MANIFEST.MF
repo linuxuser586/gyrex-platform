@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.cloudfree.http.tests
+Bundle-Version: 0.7.0.qualifier
+Bundle-Name: %bundle.name
+Bundle-Vendor: %provider.name
+Bundle-Localization: plugin
+Bundle-Activator: org.eclipse.cloudfree.http.tests.Activator
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.osgi.framework;version="1.3.0"
+Require-Bundle: org.eclipse.cloudfree.http;bundle-version="[0.7.0,1.0.0)"
