@@ -113,7 +113,7 @@
                   the id of the application to contribute the servlet to
                </documentation>
                <appinfo>
-                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/@id"/>
+                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/application/@id"/>
                </appinfo>
             </annotation>
          </attribute>
@@ -187,7 +187,7 @@
                   the id of the application to contribute the resources to
                </documentation>
                <appinfo>
-                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/@id"/>
+                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/application/@id"/>
                </appinfo>
             </annotation>
          </attribute>
@@ -214,10 +214,10 @@
          <attribute name="applicationId" type="string" use="required">
             <annotation>
                <documentation>
-                  the id of the application to contribute the servlet to
+                  the id of the application to mount
                </documentation>
                <appinfo>
-                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/@id"/>
+                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/application/@id"/>
                </appinfo>
             </annotation>
          </attribute>
