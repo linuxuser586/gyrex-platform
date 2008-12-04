@@ -26,6 +26,7 @@ import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Set;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -109,12 +110,29 @@ public class ResourceRegistration extends Registration {
 			final String pathInfo = ServletUtil.getPathInfo(req);
 			final int aliasLength = alias.equals("/") ? 0 : alias.length(); //$NON-NLS-1$
 			final String resourcePath = name + (null != pathInfo ? pathInfo.substring(aliasLength) : "");
-			final URL resourceURL = provider.getResource(resourcePath);
-			if (resourceURL == null) {
+
+			// check if we have a resource
+			URL resourceUrl = provider.getResource(resourcePath);
+			if (resourceUrl == null) {
 				return false;
 			}
 
-			return writeResource(req, resp, resourcePath, resourceURL, provider);
+			// check if we have a directory
+			final Set resourcePaths = provider.getResourcePaths(resourcePath);
+			if (null != resourcePaths) {
+				// test if there is an index.html
+				final String indexResourcePath = resourcePath.endsWith("/") ? resourcePath.concat("index.html") : resourcePath.concat("/index.html");
+				if (resourcePaths.contains(indexResourcePath)) {
+					// use the index file
+					final URL indexResourceUrl = provider.getResource(indexResourcePath);
+					if (null != indexResourceUrl) {
+						resourceUrl = indexResourceUrl;
+					}
+				}
+			}
+
+			// write resource
+			return writeResource(req, resp, resourcePath, resourceUrl, provider);
 		}
 		resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
 
