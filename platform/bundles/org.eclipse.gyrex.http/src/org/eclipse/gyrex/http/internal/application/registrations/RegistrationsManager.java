@@ -28,6 +28,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
 import org.eclipse.cloudfree.common.lifecycle.IShutdownParticipant;
+import org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport;
 import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
 import org.eclipse.cloudfree.http.application.servicesupport.NamespaceException;
 import org.eclipse.cloudfree.http.internal.HttpActivator;
@@ -172,7 +173,8 @@ public class RegistrationsManager implements SynchronousBundleListener, IShutdow
 	}
 
 	/**
-	 * Implementation of InternalApplication#registerResource.
+	 * Implementation of
+	 * {@link IApplicationServiceSupport#registerResources(String, String, IResourceProvider)}
 	 */
 	public void registerResource(String alias, final String name, final IResourceProvider provider, final ServletContext servletContext) throws NamespaceException {
 		checkActive();
