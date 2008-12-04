@@ -14,28 +14,78 @@ package org.eclipse.cloudfree.http.internal.application.manager;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.cloudfree.common.debug.BundleDebug;
 import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
+import org.eclipse.cloudfree.monitoring.metrics.ThroughputMetric;
 
 /**
  * Specialized registry for mapping URLs to application mounts.
  */
 public class ApplicationMountRegistry {
 
+	private static final int LOOKUP_LOOP_LIMIT = 1000;
+
 	public static final String MATCH_ALL_DOMAIN = "";
-	public static final Integer MATCH_ALL_PORT = new Integer(-1);
+
+	private static String getDomain(final URL url) {
+		// domain matching is lower case
+		return url.getHost().toLowerCase();
+	}
+
+	private static String getPath(final URL url) {
+		// remove trailing slashes but preserve case
+		return stripTrailingSlahes(url.getPath());
+	}
+
+	private static int getPort(final URL url) {
+		// note, we always ignore the default port
+		return url.getPort() != url.getDefaultPort() ? url.getPort() : -1;
+	}
+
+	private static String getProtocol(final URL url) {
+		// protocol matching is lower case
+		return url.getProtocol().toLowerCase();
+	}
+
+	private static String stripTrailingSlahes(String path) {
+		// strip trailing slashes from the path
+		while ((path.length() > 0) && (path.charAt(path.length() - 1) == '/')) {
+			path = path.substring(0, path.length() - 1);
+		}
+		return path;
+	}
+
+	private final ConcurrentMap<String, ApplicationMount> mountsByUrl = new ConcurrentHashMap<String, ApplicationMount>();
+	private final ThroughputMetric lookupMetric = new ThroughputMetric(toString());
 
 	/**
-	 * This is the magic structure. It's a set of nested maps.
+	 * Build the lookup url from the specified URL parts.
 	 * 
-	 * <pre>
-	 * protocol | -domain | -port | -path
-	 * </pre>
+	 * @param protocol
+	 * @param domainName
+	 * @param port
+	 * @param path
+	 * @return the internal lookup url
+	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	private final ConcurrentMap<String, ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>>>> mountsByProtocol = new ConcurrentHashMap<String, ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>>>>(2);
-	private final Lock modificationLock = new ReentrantLock();
+	private String buildLookupUrl(final String protocol, final String domainName, final int port, final String path) {
+		final StringBuilder builder = new StringBuilder(256);
+		builder.append(protocol).append(':');
+		if ((domainName != null) && (domainName.length() > 0)) {
+			builder.append("//").append(domainName);
+		}
+		if (port != -1) {
+			if (builder.charAt(builder.length() - 1) == ':') {
+				builder.append("//");
+			}
+			builder.append(':').append(port);
+		}
+		if ((path != null) && (path.length() > 0)) {
+			builder.append(path);
+		}
+		return builder.toString();
+	}
 
 	/**
 	 * Implements application mount lookup as specified in
@@ -47,122 +97,119 @@ public class ApplicationMountRegistry {
 	 *         otherwise
 	 */
 	public ApplicationMount find(final URL url) {
-		// note, we do not intern any lookup string (there are too many)
 
-		// match protocol
-		final ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>>> mountsByDomain = mountsByProtocol.get(url.getProtocol());
-		if (null == mountsByDomain) {
-			return null;
-		}
+		// TODO we should try to cache the lookup somehow
 
-		// match domain
-		final ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>> mountsByPort = matchDomain(url, mountsByDomain);
-		if (null == mountsByPort) {
-			return null;
-		}
+		// protocol matching is exact
+		final String protocol = getProtocol(url);
 
-		// match port
-		final ConcurrentMap<String, ApplicationMount> mountsByPath = matchPort(url, mountsByPort);
-		if (null == mountsByPath) {
-			return null;
-		}
-
-		// match path
-		final ApplicationMount applicationMount = matchPath(url, mountsByPath);
-
-		// return what we have
-		return applicationMount;
-	}
-
-	/**
-	 * Matches the domain portion against string keys in the specified map.
-	 * 
-	 * @param url
-	 * @param mountsByDomain
-	 * @return result map if found, <code>null</code> otherwise
-	 * @noreference This method is not intended to be referenced by clients.
-	 */
-	public ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>> matchDomain(final URL url, final ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>>> mountsByDomain) {
-		// don't intern paths ... can be *many*
 		// domain matching is case-insensitive
-		String domain = url.getHost().toLowerCase();
-		ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>> mountsByPort;
-		do {
-			mountsByPort = mountsByDomain.get(domain);
-			if (null == mountsByPort) {
-				final int firstDot = domain.indexOf('.');
-				if (firstDot != -1) {
-					// one domain up
-					domain = domain.substring(firstDot + 1);
-				} else if (domain.length() > 0) {
-					// default domain
-					domain = MATCH_ALL_DOMAIN;
-				} else {
-					// abort
-					domain = null;
-				}
-			}
-		} while ((null == mountsByPort) && (null != domain));
-		return mountsByPort;
-	}
+		String domainName = getDomain(url);
 
-	/**
-	 * Matches the path against string keys in the specified map.
-	 * 
-	 * @param url
-	 * @param mountsByPath
-	 * @return result map if found, <code>null</code> otherwise
-	 * @noreference This method is not intended to be referenced by clients.
-	 */
-	public ApplicationMount matchPath(final URL url, final ConcurrentMap<String, ApplicationMount> mountsByPath) {
-		// don't intern paths ... can be *many*
-		String path = url.getPath();
-		ApplicationMount applicationMount;
+		// port matching
+		int port = getPort(url);
+
+		// path matching is case-sensitive
+		String path = getPath(url);
+
+		// collect some metrics
+		final long start = lookupMetric.requestStarted();
+		int loopCounter = 0;
+
+		// start the match loop
+		ApplicationMount applicationMount = null;
 		do {
-			applicationMount = mountsByPath.get(path);
-			if (null == applicationMount) {
-				final int lastSlash = path.lastIndexOf('/');
-				if (lastSlash != -1) {
-					// one dir up
-					path = path.substring(0, lastSlash);
+			// note, we do not intern any lookup string (there are too many)
+			final String lookupUrl = buildLookupUrl(protocol, domainName, port, path);
+			applicationMount = mountsByUrl.get(lookupUrl);
+			if (applicationMount == null) {
+				// first, traverse path up
+				if ((path != null) && (path.length() > 0)) {
+					path = nextPath(path);
 				} else {
-					// abort
-					path = null;
+					// second, try with default port
+					if (port != -1) {
+						port = port != url.getDefaultPort() ? url.getDefaultPort() : -1;
+						// reset path to start lookup again
+						path = getPath(url);
+					} else {
+						// last, traverse domain up
+						if ((domainName != null) && (domainName.length() > 0)) {
+							domainName = nextDomainName(domainName);
+							// reset path and port to start lookup again
+							path = getPath(url);
+							port = getPort(url);
+						} else {
+							// path is null, port -1 and domainName too
+							break;
+						}
+					}
 				}
 			}
-		} while ((null == applicationMount) && (null != path));
+		} while ((++loopCounter < 1000) && (applicationMount == null) && ((path != null) || (domainName != null) || (port != -1)));
+
+		// finish metrics
+		if (applicationMount != null) {
+			lookupMetric.requestFinished(loopCounter, System.currentTimeMillis() - start);
+		} else {
+			lookupMetric.requestFailed();
+		}
+
+		// log if limit exceeded
+		if (loopCounter >= LOOKUP_LOOP_LIMIT) {
+			BundleDebug.debug("[ApplicationMountRegistry] loop limit exceeded for url " + url);
+		}
+
+		// return what we have
 		return applicationMount;
 	}
 
 	/**
-	 * Matches the port against integer keys in the specified map.
+	 * Returns the lookupMetric.
 	 * 
-	 * @param url
-	 * @param mountsByPort
-	 * @return result map if found, <code>null</code> otherwise
+	 * @return the lookupMetric
+	 */
+	public ThroughputMetric getLookupMetric() {
+		return lookupMetric;
+	}
+
+	/**
+	 * Calculates the next domain name.
+	 * 
+	 * @param domainName
+	 * @return the next domain name to match
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	public ConcurrentMap<String, ApplicationMount> matchPort(final URL url, final ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>> mountsByPort) {
-		ConcurrentMap<String, ApplicationMount> mountsByPath = null;
-
-		// exact match first
-		if (url.getPort() != -1) {
-			// use specified port
-			mountsByPath = mountsByPort.get(url.getPort());
-		} else {
-			// use default port if available
-			if (url.getDefaultPort() != -1) {
-				mountsByPath = mountsByPort.get(url.getDefaultPort());
-			}
+	private String nextDomainName(final String domainName) {
+		final int firstDot = domainName.indexOf('.');
+		if (firstDot != -1) {
+			// one domain up
+			return domainName.substring(firstDot + 1);
+		} else if (domainName.length() > 0) {
+			// default domain
+			return MATCH_ALL_DOMAIN;
 		}
 
-		// fallback to global port if no exact match
-		if (null == mountsByPath) {
-			mountsByPath = mountsByPort.get(MATCH_ALL_PORT);
+		// abort
+		return null;
+	}
+
+	/**
+	 * Calculates the next path.
+	 * 
+	 * @param path
+	 * @return the next path to match
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	private String nextPath(final String path) {
+		// one dir up if possible
+		final int lastSlash = path.lastIndexOf('/');
+		if (lastSlash != -1) {
+			return path.substring(0, lastSlash);
 		}
 
-		// return what we have
-		return mountsByPath;
+		// abort
+		return null;
 	}
 
 	/**
@@ -175,35 +222,17 @@ public class ApplicationMountRegistry {
 	 *         <code>null</code> if there was no mapping for the url
 	 */
 	public ApplicationMount putIfAbsent(final URL url, final ApplicationMount applicationMount) {
-		modificationLock.lock();
-		try {
+		// get protocol
+		final String protocol = getProtocol(url);
+		// get domain
+		final String domain = getDomain(url);
+		// get port
+		final int port = getPort(url);
+		// get path
+		final String path = getPath(url);
 
-			// get protocol
-			final String protocol = url.getProtocol().toLowerCase().intern();
-			ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>>> mountsByDomain = mountsByProtocol.putIfAbsent(protocol, new ConcurrentHashMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>>>());
-			if (null == mountsByDomain) {
-				mountsByDomain = mountsByProtocol.get(protocol);
-			}
-
-			// get domain
-			final String domain = url.getHost().toLowerCase().intern();
-			ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>> mountsByPort = mountsByDomain.putIfAbsent(domain, new ConcurrentHashMap<Integer, ConcurrentMap<String, ApplicationMount>>(1));
-			if (null == mountsByPort) {
-				mountsByPort = mountsByDomain.get(domain);
-			}
-
-			// get port
-			final Integer port = url.getPort();
-			ConcurrentMap<String, ApplicationMount> mountsByPath = mountsByPort.putIfAbsent(port, new ConcurrentHashMap<String, ApplicationMount>());
-			if (null == mountsByPath) {
-				mountsByPath = mountsByPort.get(port);
-			}
-
-			// add mount if absent
-			return mountsByPath.putIfAbsent(stripTrailingSlahes(url.getPath()).intern(), applicationMount);
-		} finally {
-			modificationLock.unlock();
-		}
+		// add mount if absent
+		return mountsByUrl.putIfAbsent(buildLookupUrl(protocol, domain, port, path).intern(), applicationMount);
 	}
 
 	/**
@@ -214,59 +243,16 @@ public class ApplicationMountRegistry {
 	 *         there was no mapping for the url
 	 */
 	public ApplicationMount remove(final URL url) {
-		modificationLock.lock();
-		try {
-			// get protocol
-			final ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>>> mountsByDomain = mountsByProtocol.get(url.getProtocol().toLowerCase().intern());
-			if (null == mountsByDomain) {
-				return null;
-			}
+		// get protocol
+		final String protocol = getProtocol(url);
+		// get domain
+		final String domain = getDomain(url);
+		// get port
+		final int port = getPort(url);
+		// get path
+		final String path = getPath(url);
 
-			// get domain
-			final ConcurrentMap<Integer, ConcurrentMap<String, ApplicationMount>> mountsByPort = mountsByDomain.get(url.getHost().toLowerCase().intern());
-			if (null == mountsByPort) {
-				return null;
-			}
-
-			// get port
-			final ConcurrentMap<String, ApplicationMount> mountsByPath = mountsByPort.get(url.getPort());
-			if (null == mountsByPath) {
-				return null;
-			}
-
-			// remove mount from path
-			final ApplicationMount applicationMount = mountsByPath.remove(stripTrailingSlahes(url.getPath()));
-			if (null == applicationMount) {
-				return null;
-			}
-
-			// cleanup port
-			if (mountsByPath.isEmpty()) {
-				mountsByPort.remove(url.getPort());
-			}
-
-			// cleanup domain
-			if (mountsByPort.isEmpty()) {
-				mountsByDomain.remove(url.getHost().intern());
-			}
-
-			// cleanup protocol
-			if (mountsByDomain.isEmpty()) {
-				mountsByProtocol.remove(url.getProtocol().intern());
-			}
-
-			// return removed mount
-			return applicationMount;
-		} finally {
-			modificationLock.unlock();
-		}
-	}
-
-	private String stripTrailingSlahes(String path) {
-		// strip trailing slashes from the path
-		while ((path.length() > 0) && (path.charAt(path.length() - 1) == '/')) {
-			path = path.substring(0, path.length() - 1);
-		}
-		return path;
+		// remove mount if present
+		return mountsByUrl.remove(buildLookupUrl(protocol, domain, port, path).intern());
 	}
 }
