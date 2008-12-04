@@ -60,8 +60,12 @@ public class BundleResourceProvider implements IResourceProvider {
 	}
 
 	public Set<String> getResourcePaths(final String path) {
-		final Set<String> result = new HashSet<String>();
 		final Enumeration entryPaths = bundle.getEntryPaths(path);
+		if (entryPaths == null) {
+			return null;
+		}
+
+		final Set<String> result = new HashSet<String>();
 		while (entryPaths.hasMoreElements()) {
 			result.add((String) entryPaths.nextElement());
 		}
