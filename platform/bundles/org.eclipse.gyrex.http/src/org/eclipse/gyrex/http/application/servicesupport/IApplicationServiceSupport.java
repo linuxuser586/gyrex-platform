@@ -12,6 +12,7 @@
 package org.eclipse.cloudfree.http.application.servicesupport;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Dictionary;
 import java.util.Map;
@@ -69,8 +70,10 @@ public interface IApplicationServiceSupport {
 	 *            a <code>String</code> specifying the path to the resource
 	 * @return URL to the resource located at the named path, or
 	 *         <code>null</code> if there is no resource at that path
+	 * @throws MalformedURLException
+	 *             if the pathname is not given in the correct form
 	 */
-	public URL getResource(final String path);
+	public URL getResource(final String path) throws MalformedURLException;
 
 	/**
 	 * Returns a directory-like listing of all the paths to resources within the
@@ -235,7 +238,6 @@ public interface IApplicationServiceSupport {
 	 *             if any of the arguments are invalid
 	 */
 	//void registerService(final String alias, final IAdaptable service) throws ServletException, NamespaceException;
-	
 	/**
 	 * Registers a servlet into the URI namespace.
 	 * <p>

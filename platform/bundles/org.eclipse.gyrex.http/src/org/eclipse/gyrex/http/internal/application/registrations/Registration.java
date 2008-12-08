@@ -113,7 +113,7 @@ public abstract class Registration {
 	 * @return
 	 */
 	public final boolean handleRequest(final HttpServletRequest req, final HttpServletResponse resp, final String alias) throws ServletException, IOException {
-		if (stopped.get()) {
+		if (isClosed()) {
 			return false;
 		}
 
@@ -123,6 +123,16 @@ public abstract class Registration {
 		} finally {
 			referenceCount.decrementAndGet();
 		}
+	}
+
+	/**
+	 * Indicates if the registration has been closed.
+	 * 
+	 * @return <code>true</code> if the registration has been closed,
+	 *         <code>false</code> otherwise
+	 */
+	protected boolean isClosed() {
+		return stopped.get();
 	}
 
 	/**

@@ -20,6 +20,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.AccessControlContext;
@@ -54,7 +55,6 @@ public class ResourceRegistration extends Registration {
 	private final String name;
 
 	private IResourceProvider provider;
-
 	private AccessControlContext acc;
 
 	private final ServletContext servletContext;
@@ -75,6 +75,11 @@ public class ResourceRegistration extends Registration {
 		this.provider = provider;
 		this.servletContext = servletContext;
 		this.acc = acc;
+	}
+
+	private String computeResourcePath(final String requestedPath, final String alias) {
+		final int aliasLength = alias.equals("/") ? 0 : alias.length(); //$NON-NLS-1$
+		return name + (null != requestedPath ? requestedPath.substring(aliasLength) : "");
 	}
 
 	/* (non-Javadoc)
@@ -108,11 +113,10 @@ public class ResourceRegistration extends Registration {
 		if (method.equals("GET") || method.equals("POST") || method.equals("HEAD")) { //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
 
 			final String pathInfo = ServletUtil.getPathInfo(req);
-			final int aliasLength = alias.equals("/") ? 0 : alias.length(); //$NON-NLS-1$
-			final String resourcePath = name + (null != pathInfo ? pathInfo.substring(aliasLength) : "");
+			final String resourcePath = computeResourcePath(pathInfo, alias);
 
 			// check if we have a resource
-			URL resourceUrl = provider.getResource(resourcePath);
+			final URL resourceUrl = provider.getResource(resourcePath);
 			if (resourceUrl == null) {
 				return false;
 			}
@@ -133,17 +137,78 @@ public class ResourceRegistration extends Registration {
 					// use the index file
 					final URL indexResourceUrl = provider.getResource(indexResourcePath);
 					if (null != indexResourceUrl) {
-						resourceUrl = indexResourceUrl;
+						return writeResource(req, resp, indexResourcePath, indexResourceUrl, provider, null != pathInfo ? pathInfo.concat("index.html") : "index.html");
 					}
 				}
 			}
 
 			// write resource
-			return writeResource(req, resp, resourcePath, resourceUrl, provider);
+			return writeResource(req, resp, resourcePath, resourceUrl, provider, pathInfo);
 		}
 		resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
 
 		return true;
+	}
+
+	/**
+	 * Calls {@link IResourceProvider#getMimeType(String)} with the computed
+	 * resource path.
+	 * 
+	 * @param path
+	 *            the resource path
+	 * @param alias
+	 *            the matched alias
+	 * @return whatever {@link IResourceProvider#getMimeType(String)} returned
+	 * @throws MalformedURLException
+	 * @see org.eclipse.cloudfree.http.application.servicesupport.IMimeTypeProvider#getMimeType(java.lang.String)
+	 */
+	public String getMimeType(final String path, final String alias) {
+		final IResourceProvider provider = this.provider;
+		if ((null == provider) || isClosed()) {
+			return null;
+		}
+		return provider.getMimeType(computeResourcePath(path, alias));
+	}
+
+	/**
+	 * Calls {@link IResourceProvider#getResource(String)} with the computed
+	 * resource path.
+	 * 
+	 * @param path
+	 *            the resource path
+	 * @param alias
+	 *            the matched alias
+	 * @return whatever {@link IResourceProvider#getResource(String)} returned
+	 * @throws MalformedURLException
+	 * @see org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider#getResource(java.lang.String)
+	 */
+	public URL getResource(final String path, final String alias) throws MalformedURLException {
+		final IResourceProvider provider = this.provider;
+		if ((null == provider) || isClosed()) {
+			return null;
+		}
+		return provider.getResource(computeResourcePath(path, alias));
+	}
+
+	/**
+	 * Calls {@link IResourceProvider#getResourcePaths(String)} with the
+	 * computed resource path.
+	 * 
+	 * @param path
+	 *            the resource path
+	 * @param alias
+	 *            the matched alias
+	 * @return whatever {@link IResourceProvider#getResourcePaths(String)}
+	 *         returned
+	 * @see org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider#getResourcePaths(java.lang.String)
+	 */
+	public Set getResourcePaths(final String path, final String alias) {
+		final IResourceProvider provider = this.provider;
+		if ((null == provider) || isClosed()) {
+			return null;
+		}
+
+		return provider.getResourcePaths(computeResourcePath(path, alias));
 	}
 
 	void sendError(final HttpServletResponse resp, final int sc) throws IOException {
@@ -157,7 +222,7 @@ public class ResourceRegistration extends Registration {
 		}
 	}
 
-	private boolean writeResource(final HttpServletRequest req, final HttpServletResponse resp, final String resourcePath, final URL resourceURL, final IResourceProvider resourceProvider) throws IOException {
+	private boolean writeResource(final HttpServletRequest req, final HttpServletResponse resp, final String resourcePath, final URL resourceURL, final IResourceProvider resourceProvider, final String pathInfo) throws IOException {
 		final ServletContext servletContext = this.servletContext;
 		Boolean result = Boolean.TRUE;
 		try {
@@ -197,8 +262,10 @@ public class ResourceRegistration extends Registration {
 					String contentType = resourceProvider.getMimeType(resourcePath);
 					if (contentType == null) {
 						// ask container
-						if (null != servletContext) {
-							contentType = servletContext.getMimeType(resourcePath);
+						if ((null != servletContext) && (null != pathInfo)) {
+							// using the path info because we don't want to expose our 
+							// internal path to the container
+							contentType = servletContext.getMimeType(pathInfo);
 						}
 					}
 

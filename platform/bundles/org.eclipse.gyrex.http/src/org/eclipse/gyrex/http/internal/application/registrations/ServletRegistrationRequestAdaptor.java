@@ -79,6 +79,9 @@ class ServletRegistrationRequestAdaptor extends HttpServletRequestWrapper {
 	 */
 	public ServletRegistrationRequestAdaptor(final HttpServletRequest request, final String alias) {
 		super(request);
+		if (null == alias) {
+			throw new IllegalArgumentException("null alias is not allowed here");
+		}
 		this.alias = alias;
 		isIncludedRequest = request.getAttribute(IApplicationServletConstants.REQ_ATTR_INCLUDE_REQUEST_URI) != null;
 	}

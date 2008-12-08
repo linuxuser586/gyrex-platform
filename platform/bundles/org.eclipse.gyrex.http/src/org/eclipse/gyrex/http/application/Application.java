@@ -12,6 +12,7 @@
 package org.eclipse.cloudfree.http.application;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +25,6 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
@@ -290,11 +290,13 @@ public abstract class Application extends PlatformObject {
 	 *            a <code>String</code> specifying the path to the resource
 	 * @return URL to the resource located at the named path, or
 	 *         <code>null</code> if there is no resource at that path
+	 * @throws MalformedURLException
+	 *             if the pathname is not given in the correct form
 	 * @see ServletContext#getResource(String)
 	 * @see HttpContext#getResource(String)
 	 */
 
-	public URL getResource(final String path) {
+	public URL getResource(final String path) throws MalformedURLException {
 		// get application service support
 		final IApplicationServiceSupport serviceSupport = getApplicationServiceSupport();
 		if (null == serviceSupport) {

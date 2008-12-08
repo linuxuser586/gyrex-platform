@@ -14,6 +14,7 @@
 package org.eclipse.cloudfree.http.internal.application;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,7 @@ import org.eclipse.cloudfree.http.internal.application.helpers.ApplicationServle
 import org.eclipse.cloudfree.http.internal.application.helpers.ServletUtil;
 import org.eclipse.cloudfree.http.internal.application.registrations.Registration;
 import org.eclipse.cloudfree.http.internal.application.registrations.RegistrationsManager;
+import org.eclipse.cloudfree.http.internal.application.registrations.ResourceRegistration;
 import org.eclipse.cloudfree.http.internal.application.registrations.ServletRegistration;
 import org.osgi.framework.Bundle;
 
@@ -58,6 +60,12 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 		this.servletContext.set(servletContext);
 	}
 
+	/**
+	 * Determines the extension alias from the specified alias.
+	 * 
+	 * @param alias
+	 * @return the extension alias or <code>null</code>
+	 */
 	private String findExtensionAlias(final String alias) {
 		final String lastSegment = alias.substring(alias.lastIndexOf('/') + 1);
 		final int dot = lastSegment.indexOf('.');
@@ -71,12 +79,79 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 		return "/*." + extension; //$NON-NLS-1$
 	}
 
+	/**
+	 * Finds the resource registration for the specified alias.
+	 * 
+	 * @param alias
+	 * @param extensionAlias
+	 * @return the registration if found or <code>null</code>
+	 */
+	private ResourceRegistration findResourceRegistration(final String alias, final String extensionAlias) {
+		final RegistrationsManager registrations = registrationManager.get();
+		if (null == registrations) {
+			return null;
+		}
+		Registration registration;
+		if (extensionAlias == null) {
+			// alias without extension
+			registration = registrations.get(alias);
+		} else {
+			// try extension alias
+			registration = registrations.get(alias + extensionAlias);
+			if (registration == null) {
+				// fallback to alias without extension
+				registration = registrations.get(alias);
+			}
+		}
+
+		if (registration instanceof ResourceRegistration) {
+			return (ResourceRegistration) registration;
+		}
+
+		return null;
+	}
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#getMimeType(java.lang.String)
 	 */
 	@Override
 	public String getMimeType(final String file) {
-		// ask the registered resource providers
+		// get the alias
+		String alias = file;
+		if ((null == alias) || (alias.length() == 0)) {
+			alias = ROOT_ALIAS;
+		} else if (!alias.startsWith("/")) {
+			alias = "/".concat(alias);
+		}
+
+		// perfect match
+		ResourceRegistration registration = findResourceRegistration(alias, null);
+		if (null != registration) {
+			return registration.getMimeType(file, alias);
+		}
+
+		// get extension alias
+		String extensionAlias = findExtensionAlias(alias);
+		alias = alias.substring(0, alias.lastIndexOf('/'));
+
+		// longest path match
+		while (alias.length() != 0) {
+			registration = findResourceRegistration(alias, extensionAlias);
+			if (null != registration) {
+				return registration.getMimeType(file, alias);
+			}
+			alias = alias.substring(0, alias.lastIndexOf('/'));
+		}
+
+		// default handler match
+		if (extensionAlias != null) {
+			extensionAlias = extensionAlias.substring(1); // remove the leading '/'
+		}
+		registration = findResourceRegistration(ROOT_ALIAS, extensionAlias);
+		if (null != registration) {
+			return registration.getMimeType(file, alias);
+		}
+
 		return null;
 	}
 
@@ -84,8 +159,41 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#getResource(java.lang.String)
 	 */
 	@Override
-	public URL getResource(final String path) {
-		// loop through the registered resource registrations
+	public URL getResource(final String path) throws MalformedURLException {
+		// get the alias
+		String alias = path;
+		if ((null == alias) || (alias.length() == 0)) {
+			alias = ROOT_ALIAS;
+		}
+
+		// perfect match
+		ResourceRegistration registration = findResourceRegistration(alias, null);
+		if (null != registration) {
+			return registration.getResource(path, alias);
+		}
+
+		// get extension alias
+		String extensionAlias = findExtensionAlias(alias);
+		alias = alias.substring(0, alias.lastIndexOf('/'));
+
+		// longest path match
+		while (alias.length() != 0) {
+			registration = findResourceRegistration(alias, extensionAlias);
+			if (null != registration) {
+				return registration.getResource(path, alias);
+			}
+			alias = alias.substring(0, alias.lastIndexOf('/'));
+		}
+
+		// default handler match
+		if (extensionAlias != null) {
+			extensionAlias = extensionAlias.substring(1); // remove the leading '/'
+		}
+		registration = findResourceRegistration(ROOT_ALIAS, extensionAlias);
+		if (null != registration) {
+			return registration.getResource(path, alias);
+		}
+
 		return null;
 	}
 
@@ -94,7 +202,40 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	 */
 	@Override
 	public Set getResourcePaths(final String path) {
-		// collect from the registered resource registrations
+		// get the alias
+		String alias = path;
+		if ((null == alias) || (alias.length() == 0)) {
+			alias = ROOT_ALIAS;
+		}
+
+		// perfect match
+		ResourceRegistration registration = findResourceRegistration(alias, null);
+		if (null != registration) {
+			return registration.getResourcePaths(path, alias);
+		}
+
+		// get extension alias
+		String extensionAlias = findExtensionAlias(alias);
+		alias = alias.substring(0, alias.lastIndexOf('/'));
+
+		// longest path match
+		while (alias.length() != 0) {
+			registration = findResourceRegistration(alias, extensionAlias);
+			if (null != registration) {
+				return registration.getResourcePaths(path, alias);
+			}
+			alias = alias.substring(0, alias.lastIndexOf('/'));
+		}
+
+		// default handler match
+		if (extensionAlias != null) {
+			extensionAlias = extensionAlias.substring(1); // remove the leading '/'
+		}
+		registration = findResourceRegistration(ROOT_ALIAS, extensionAlias);
+		if (null != registration) {
+			return registration.getResourcePaths(path, alias);
+		}
+
 		return null;
 	}
 
@@ -173,14 +314,18 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	 *             if an input or output exception occurs
 	 */
 	private boolean processAlias(final HttpServletRequest req, final HttpServletResponse resp, String alias, final String extensionAlias) throws IOException, ApplicationException {
+		// find registration
 		final RegistrationsManager registrations = registrationManager.get();
 		if (null == registrations) {
 			return false;
 		}
-		Registration registration = null;
+
+		Registration registration;
 		if (extensionAlias == null) {
+			// alias without extension
 			registration = registrations.get(alias);
 		} else {
+			// try extension alias
 			registration = registrations.get(alias + extensionAlias);
 			if (registration != null) {
 				// for ServletRegistrations extensions should be handled on the full alias
@@ -188,6 +333,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 					alias = ServletUtil.getPathInfo(req);
 				}
 			} else {
+				// fallback to alias without extension
 				registration = registrations.get(alias);
 			}
 		}
