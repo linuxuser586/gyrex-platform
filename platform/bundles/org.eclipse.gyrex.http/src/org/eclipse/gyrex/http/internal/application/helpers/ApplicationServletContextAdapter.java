@@ -24,7 +24,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
-
+import org.eclipse.cloudfree.common.debug.BundleDebug;
 import org.eclipse.cloudfree.http.application.Application;
 import org.eclipse.cloudfree.http.internal.application.manager.ApplicationConfiguration;
 
@@ -317,8 +317,8 @@ public class ApplicationServletContextAdapter implements ServletContext {
 	 */
 	@Override
 	public void log(final String message, final Throwable throwable) {
-		// TODO Auto-generated method stub
-
+		// TODO should use application specific logging
+		BundleDebug.debug(message, throwable);
 	}
 
 	/* (non-Javadoc)
