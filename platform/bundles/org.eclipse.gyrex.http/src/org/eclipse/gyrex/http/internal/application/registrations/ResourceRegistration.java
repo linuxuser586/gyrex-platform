@@ -120,8 +120,15 @@ public class ResourceRegistration extends Registration {
 			// check if we have a directory
 			final Set resourcePaths = provider.getResourcePaths(resourcePath);
 			if (null != resourcePaths) {
+				// enforce that all directories are accessed with URLs ending with a slash (like Apache)
+				if ((null == pathInfo) || !pathInfo.endsWith("/")) {
+					// build URL relative to servlet container root 
+					resp.sendRedirect(req.getContextPath().concat(req.getServletPath()).concat(null != pathInfo ? pathInfo.concat("/") : "/"));
+					return true;
+				}
+
 				// test if there is an index.html
-				final String indexResourcePath = resourcePath.endsWith("/") ? resourcePath.concat("index.html") : resourcePath.concat("/index.html");
+				final String indexResourcePath = resourcePath.concat("index.html");
 				if (resourcePaths.contains(indexResourcePath)) {
 					// use the index file
 					final URL indexResourceUrl = provider.getResource(indexResourcePath);
