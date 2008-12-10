@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.cloudfree.common.debug.BundleDebug;
 import org.eclipse.cloudfree.configuration.PlatformConfiguration;
@@ -57,11 +56,18 @@ public class ServerApplication implements IApplication {
 		}
 
 		// make sure that the configuration is initialized
-		final Bundle bundle = AppActivator.getInstance().getBundle("org.eclipse.cloudfree.configuration.impl");
-		if (null == bundle) {
+		final Bundle csImplBundle = AppActivator.getInstance().getBundle("org.eclipse.cloudfree.configuration.impl");
+		if (null == csImplBundle) {
 			throw new IllegalStateException("Bundle 'org.eclipse.cloudfree.configuration.impl' is missing. Please check the installation");
 		}
-		bundle.start(Bundle.START_TRANSIENT);
+		csImplBundle.start(Bundle.START_TRANSIENT);
+
+		// make sure that the declarative services are initialized
+		final Bundle dsImplBundle = AppActivator.getInstance().getBundle("org.eclipse.equinox.ds");
+		if (null == dsImplBundle) {
+			throw new IllegalStateException("Bundle 'org.eclipse.equinox.ds' is missing. Please check the installation");
+		}
+		dsImplBundle.start(Bundle.START_TRANSIENT);
 	}
 
 	/**
