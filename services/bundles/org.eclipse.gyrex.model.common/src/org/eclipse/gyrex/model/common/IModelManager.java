@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.model.common;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.model.common.provider.BaseModelManager;
 import org.eclipse.cloudfree.model.common.provider.ModelProvider;
@@ -20,9 +19,9 @@ import org.eclipse.core.runtime.IAdaptable;
 /**
  * A model manager provides access to {@link IModelObject model objects}.
  * <p>
- * It implements CRUD model operations and query capabilities. The model manager
- * is the lowest possible access to the model. It is intended to be used by a
- * service layer built on top of it which would provide more powerful
+ * It implements CRUD model operations and basic query capabilities. The model
+ * manager is the lowest possible access to the model. It is intended to be used
+ * by a service layer built on top of it which would provide more powerful
  * capabilities such as meaningful business operations.
  * </p>
  * <p>
