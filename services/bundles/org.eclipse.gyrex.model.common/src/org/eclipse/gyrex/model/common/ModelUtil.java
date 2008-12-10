@@ -13,7 +13,6 @@ package org.eclipse.cloudfree.model.common;
 
 import java.text.MessageFormat;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.model.common.internal.ModelActivator;
 
@@ -34,8 +33,8 @@ public final class ModelUtil {
 	}
 
 	/**
-	 * Returns the contributed model manager implementation of the specified
-	 * type for a given context.
+	 * Returns a contributed model manager implementation of the specified type
+	 * for a given context.
 	 * <p>
 	 * This implementation asks the specified context for an adapter of the
 	 * specified manager type. This will ensure that always the correct manager
@@ -51,6 +50,12 @@ public final class ModelUtil {
 	 * system is in an unusable state anyway (because of upgrades or missing
 	 * dependencies) and the current operation should be aborted an re-tried
 	 * later.
+	 * </p>
+	 * <p>
+	 * Callers should not hold onto the returned manager for a longer time. The
+	 * context is allowed to be reconfigured at runtime. Additionally, bundles
+	 * contributing model managers are allowed to come and got at any time in a
+	 * dynamic system.
 	 * </p>
 	 * 
 	 * @param managerType
