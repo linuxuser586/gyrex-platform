@@ -138,6 +138,13 @@
  * However, this style of heavy design is just not developed and promoted initially 
  * in CloudFree <strong>but</strong> it is a supported use-case.
  * </em></p>
+ * <p>
+ * For a more detailed read on the subject of transactions and scalable systems
+ * we recommend reading <a
+ * href="http://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf"
+ * target="blank">Life beyond Distributed Transactions: an Apostate's
+ * Opinion</a>, a position paper by Pat Helland.
+ * </p>
  */
 package org.eclipse.cloudfree.model.common;
 
