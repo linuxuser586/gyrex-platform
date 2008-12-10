@@ -11,19 +11,18 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.services.common;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.services.common.provider.BaseService;
 import org.eclipse.cloudfree.services.common.provider.ServiceProvider;
 import org.eclipse.core.runtime.IAdaptable;
 
 /**
- * A CloudFree services.
+ * A CloudFree service.
  * <p>
- * It implements business operations and query capabilities. The service is the
- * lowest possible access to the service. It is intended to be used by a service
- * layer built on top of it which would provide more powerful capabilities such
- * as meaningful business operations.
+ * In CloudFree services implement business operations and more sophisticated
+ * query capabilities. A service provides more powerful capabilities on top of
+ * the model layer. As such, services might be exposed to a broader group then
+ * the underlying model layer.
  * </p>
  * <p>
  * Service operations - by definition - can be long running, work fully within a
@@ -48,8 +47,9 @@ import org.eclipse.core.runtime.IAdaptable;
  * 
  * @see ServiceUtil#getService(Class, IContext)
  * @see ServiceProvider
- * @noimplement This interface is not intended to be implemented by clients
- *              directly. They must subclass {@link BaseService} instead.
+ * @noimplement This interface is not intended to be implemented by service
+ *              implementors directly. They must subclass {@link BaseService}
+ *              instead.
  */
 public interface IService extends IAdaptable {
 
