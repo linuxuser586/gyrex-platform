@@ -91,7 +91,7 @@
  * the low-level model managers directly but any higher level API available.
  * Typically implementors of the higher level API know how to deal with the
  * issues around transactions, distribution and persistence and will solve
- * them in an easy, mostly transparent way. 
+ * them for you. 
  * </p>
  * <p>
  * Again, let's look at an example which should make it easier to understand.
@@ -102,43 +102,41 @@
  * <p>
  * Let's assume there is an order model manager which allows to create and
  * insert new order objects into the repository and add order items to an 
- * order. In a traditional, <em>single</em> repository environment you would
- * probably have the following logic in place.
+ * order. In a traditional, relational database focused <em>single</em> repository 
+ * environment you would probably have the following logic in place.
  * <ul>
  * <li><em>Begin a transaction</em></li>
  * <li>(1) Create an order</li>
  * <li>(2) Attach order items</li>
- * <li><em>Commit the transaction</em></li>
+ * <li><em>Commit the transaction</em> (or <em>rollback</em> in case of problems)</li>
  * </ul>
  * But now assume a more distributed world where the actual order items would
  * be in a different repository than the order itself. Suddenly you would 
  * have to deal with distributed transactions. However, there are some
  * flaws and pitfalls with distributed transactions especially when it comes
- * to scalability. One way to avoid this would be to move the transaction logic 
+ * to scalability. Thus, it's generally a good idea to avoid distributed transactions
+ * where possible. One way possibility would be to move the transaction logic 
  * into the application logic using states as in the following example.
  * <ul>
- * <li><em>(Begin a transaction)</em></li>
- * <li>(1)Create an order (initial order state will be CREATING)</li>
- * <li><em>(Commit the transaction)</em></li>
- * <li><em>(Begin a transaction)</em></li>
+ * <li>(1) Create an order (initial order state will be CREATING)</li>
  * <li>(2) Attach order items</li>
- * <li><em>(Commit the transaction)</em></li>
- * <li><em>(Begin a transaction)</em></li>
- * <li>(3) Mark order CREATED_SUCCESSFULLY</li>
- * <li><em>(Commit the transaction)</em></li>
+ * <li>(3) Mark order CREATED_SUCCESSFULLY (or leave in CREATING state 
+ *         in case of problems)</li>
  * </ul>
  * The obvious difference is that we have an order in the repository after 
  * step (1) finished whereas in the traditional case we only had an order in the 
  * repository after step (2) finished successfully. If the application
- * is developed right it shouldn't care. Orders in the CREATING state are simply
- * ignored. There could be a clean-up job that purges such broken orders after
- * some time.
+ * is developed right this won't matter. Orders in the CREATING state are simply
+ * ignored. There could be a clean-up job that purges such broken orders and their
+ * left overs after some time.
  * </p>
  * </blockquote>
  * <p><em>
- * Note, of course it is also possible to write a model manager/service which fully 
- * supports and implements two or three phase commits. However, this style
- * of heavy design is just not promoted actively in CloudFree. 
+ * Note, of course it is also possible to write a model manager/service which 
+ * <strong>fully</strong> supports and implements two or three phase commits. 
+ * That's all possible because of the extensibility and flexibility of this API.
+ * However, this style of heavy design is just not developed and promoted initially 
+ * in CloudFree <strong>but</strong> it is a supported use-case.
  * </em></p>
  */
 package org.eclipse.cloudfree.model.common;
