@@ -24,6 +24,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.http.application.Application;
 import org.eclipse.cloudfree.http.application.ApplicationException;
 import org.osgi.service.http.HttpContext;
@@ -49,6 +50,18 @@ import org.osgi.service.http.HttpService;
  * @noimplement This interface is not intended to be implemented by clients.
  */
 public interface IApplicationServiceSupport {
+
+	/**
+	 * A {@link #getServletContext() servlet context} attribute which value is
+	 * the {@link Application} object.
+	 */
+	String SERVLET_CONTEXT_ATTRIBUTE_APPLICATION = "org.eclipse.cloudfree.http.application";
+
+	/**
+	 * A {@link #getServletContext() servlet context} attribute which value is
+	 * the {@link IContext} object.
+	 */
+	String SERVLET_CONTEXT_ATTRIBUTE_CONTEXT = "org.eclipse.cloudfree.common.context";
 
 	/**
 	 * Maps a file to a MIME type by asking all registered mime type providers.
@@ -113,6 +126,8 @@ public interface IApplicationServiceSupport {
 	 * 
 	 * @return the servlet context (maybe <code>null</code> if the application
 	 *         is no longer active)
+	 * @see #SERVLET_CONTEXT_ATTRIBUTE_APPLICATION
+	 * @see #SERVLET_CONTEXT_ATTRIBUTE_CONTEXT
 	 */
 	public ServletContext getServletContext();
 

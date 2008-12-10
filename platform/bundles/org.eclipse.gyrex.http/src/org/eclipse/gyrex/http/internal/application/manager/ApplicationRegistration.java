@@ -19,7 +19,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.servlet.ServletContext;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.common.logging.LogAudience;
 import org.eclipse.cloudfree.common.logging.LogImportance;
@@ -123,7 +122,7 @@ public class ApplicationRegistration {
 			final ServletContext adaptedServletContext = new ApplicationServletContextAdapter(application, getConfiguration(), applicationHandlerServlet.getServletContext());
 
 			// initialize the application service support
-			final ApplicationServiceSupport applicationServiceSupport = new ApplicationServiceSupport(adaptedServletContext);
+			final ApplicationServiceSupport applicationServiceSupport = new ApplicationServiceSupport(adaptedServletContext, application, getContext());
 
 			// initialize the application
 			try {

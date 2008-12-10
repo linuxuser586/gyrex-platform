@@ -27,6 +27,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.eclipse.cloudfree.common.context.IContext;
+import org.eclipse.cloudfree.http.application.Application;
 import org.eclipse.cloudfree.http.application.ApplicationException;
 import org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport;
 import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
@@ -55,9 +57,14 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	 * Creates a new instance.
 	 * 
 	 * @param servletContext
+	 * @param application
 	 */
-	public ApplicationServiceSupport(final ServletContext servletContext) {
+	public ApplicationServiceSupport(final ServletContext servletContext, final Application application, final IContext context) {
 		this.servletContext.set(servletContext);
+
+		// ensure that the context has the required attributes
+		servletContext.setAttribute(SERVLET_CONTEXT_ATTRIBUTE_APPLICATION, application);
+		servletContext.setAttribute(SERVLET_CONTEXT_ATTRIBUTE_CONTEXT, context);
 	}
 
 	/**
