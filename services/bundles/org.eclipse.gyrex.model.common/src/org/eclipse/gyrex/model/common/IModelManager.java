@@ -47,8 +47,9 @@ import org.eclipse.core.runtime.IAdaptable;
  * 
  * @see ModelUtil#getManager(Class, IContext)
  * @see ModelProvider
- * @noimplement This interface is not intended to be implemented by clients
- *              directly. They must subclass {@link BaseModelManager} instead.
+ * @noimplement This interface is not intended to be implemented by model
+ *              implementors directly. They must subclass
+ *              {@link BaseModelManager} instead.
  */
 public interface IModelManager extends IAdaptable {
 
