@@ -24,8 +24,8 @@ import org.eclipse.core.runtime.IAdaptable;
  * extends the {@link IAdaptable} interface.
  * </p>
  * <p>
- * By definition all model objects in the CloudFree platform must implement this
- * interface.
+ * By definition all model objects in the CloudFree platform
+ * <strong>must</strong> implement this interface.
  * </p>
  */
 public interface IModelObject extends IAdaptable {
