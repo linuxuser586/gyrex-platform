@@ -53,13 +53,15 @@ public interface IApplicationServiceSupport {
 
 	/**
 	 * A {@link #getServletContext() servlet context} attribute which value is
-	 * the {@link Application} object.
+	 * the {@link Application} object (constant value
+	 * <code>org.eclipse.cloudfree.http.application</code>).
 	 */
 	String SERVLET_CONTEXT_ATTRIBUTE_APPLICATION = "org.eclipse.cloudfree.http.application";
 
 	/**
 	 * A {@link #getServletContext() servlet context} attribute which value is
-	 * the {@link IContext} object.
+	 * the {@link IContext} object (constant value
+	 * <code>org.eclipse.cloudfree.common.context</code>).
 	 */
 	String SERVLET_CONTEXT_ATTRIBUTE_CONTEXT = "org.eclipse.cloudfree.common.context";
 
