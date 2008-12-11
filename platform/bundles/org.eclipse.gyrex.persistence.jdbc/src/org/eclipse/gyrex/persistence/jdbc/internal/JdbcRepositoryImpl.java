@@ -25,7 +25,6 @@ import javax.sql.ConnectionEventListener;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 
-
 import org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository;
 import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
 
@@ -73,7 +72,7 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 	 *            {@link PooledConnection pooled connections}
 	 */
 	public JdbcRepositoryImpl(final String repositoryId, final RepositoryType repositoryType, final ConnectionPoolDataSource connectionPoolDataSource, final int poolCapacity) {
-		super(repositoryId, repositoryType, new JdbcRepositoryMetrics("org.eclipse.cloudfree.persistence.jdbc.repository." + repositoryId + ".metrics", "open", "repository instance created", poolCapacity, 0));
+		super(repositoryId, repositoryType, new JdbcRepositoryMetrics(createMetricsId(repositoryType, repositoryId), "open", "repository instance created", poolCapacity, 0));
 		this.connectionPoolDataSource = connectionPoolDataSource;
 		maxPoolCapacity = poolCapacity;
 	}
