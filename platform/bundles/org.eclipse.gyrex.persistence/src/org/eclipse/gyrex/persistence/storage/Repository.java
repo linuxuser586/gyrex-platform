@@ -44,17 +44,16 @@ public abstract class Repository extends PlatformObject {
 
 	/**
 	 * Utility method to create a well formated metrics id based on a repository
-	 * type id (eg. a <code>"com.company.xyz.repositry.type"</code>) and a
-	 * specified repository id.
+	 * type and a specified repository id.
 	 * 
-	 * @param repositoryTypeId
-	 *            an identifier for the model implementation
+	 * @param repositoryType
+	 *            the repository type
 	 * @param repositoryId
 	 *            the repository id
 	 * @return a well formatted metrics id
 	 */
-	protected static String createMetricsId(final String repositoryTypeId, final String repositoryId) {
-		return repositoryTypeId + "[" + repositoryId + "].metrics";
+	protected static String createMetricsId(final RepositoryType repositoryType, final String repositoryId) {
+		return repositoryType.getId() + "[" + repositoryId + "].metrics";
 	}
 
 	/**
