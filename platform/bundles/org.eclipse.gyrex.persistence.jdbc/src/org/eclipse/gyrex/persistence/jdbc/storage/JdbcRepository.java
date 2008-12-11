@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-
 import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
 import org.eclipse.cloudfree.persistence.storage.Repository;
 import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
@@ -30,7 +29,7 @@ import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
  * additional features such as connection pooling and schema management.
  * </p>
  * <p>
- * This class must be subclassed by clients that contribute a JDBC repository
+ * This class may be subclassed by clients that contribute a JDBC repository
  * type to the CloudFree Platform.
  * </p>
  */
