@@ -13,7 +13,6 @@ package org.eclipse.cloudfree.persistence.storage;
 
 import java.text.MessageFormat;
 
-
 import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
 import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
 import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
@@ -42,6 +41,21 @@ import org.osgi.framework.ServiceRegistration;
  * </p>
  */
 public abstract class Repository extends PlatformObject {
+
+	/**
+	 * Utility method to create a well formated metrics id based on a repository
+	 * type id (eg. a <code>"com.company.xyz.repositry.type"</code>) and a
+	 * specified repository id.
+	 * 
+	 * @param repositoryTypeId
+	 *            an identifier for the model implementation
+	 * @param repositoryId
+	 *            the repository id
+	 * @return a well formatted metrics id
+	 */
+	protected static String createMetricsId(final String repositoryTypeId, final String repositoryId) {
+		return repositoryTypeId + "[" + repositoryId + "].metrics";
+	}
 
 	/**
 	 * Indicates if the specified id is a valid repository id.

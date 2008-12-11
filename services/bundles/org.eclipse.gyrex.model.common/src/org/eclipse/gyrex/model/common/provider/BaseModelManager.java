@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.model.common.provider;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.model.common.IModelManager;
 import org.eclipse.cloudfree.model.common.internal.ModelActivator;
@@ -38,6 +37,27 @@ import org.osgi.framework.ServiceRegistration;
  *            the repository type the manager expects
  */
 public abstract class BaseModelManager<T extends Repository> extends PlatformObject implements IModelManager {
+
+	/**
+	 * Utility method to create a well formated metrics id based on a model id
+	 * (eg. a <code>"com.company.xyz.model.impl"</code>), a specified context
+	 * and a repository.
+	 * <p>
+	 * Note, the model id should not identify the generic model interface but
+	 * the concrete model implementation.
+	 * </p>
+	 * 
+	 * @param modelImplementationId
+	 *            an identifier for the model implementation
+	 * @param context
+	 *            the context
+	 * @param repository
+	 *            the repository
+	 * @return a well formatted metrics id
+	 */
+	protected static String createMetricsId(final String modelImplementationId, final IContext context, final Repository repository) {
+		return modelImplementationId + "[" + context.getContextPath().toString() + "," + repository.getRepositoryId() + "].metrics";
+	}
 
 	private final IContext context;
 	private final T repository;
