@@ -10,7 +10,7 @@
         Gunnar Wagenknecht - initial API and implementation
  -->
 
-<component immediate="true" name="repository-type">
+<component immediate="false" name="repository-type">
    <implementation class="org.eclipse.cloudfree.persistence.nondurable.map.internal.MapRepositoryType"/>
    <service>
       <provide interface="org.eclipse.cloudfree.persistence.storage.type.RepositoryType"/>

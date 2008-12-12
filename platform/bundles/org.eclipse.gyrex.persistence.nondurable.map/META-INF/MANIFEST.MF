@@ -13,3 +13,4 @@ Import-Package: org.eclipse.cloudfree.monitoring.metrics,
 Export-Package: org.eclipse.cloudfree.persistence.nondurable.map;uses:="org.eclipse.cloudfree.monitoring.metrics,org.eclipse.cloudfree.persistence.storage,org.eclipse.cloudfree.persistence.storage.type",
  org.eclipse.cloudfree.persistence.nondurable.map.internal;x-internal:=true
 Service-Component: OSGI-INF/repository-type-component.xml
+Bundle-ActivationPolicy: lazy
