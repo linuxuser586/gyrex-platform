@@ -13,22 +13,18 @@ package org.eclipse.cloudfree.http.internal;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
-
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
+import org.eclipse.cloudfree.common.services.IServiceProxy;
 import org.eclipse.cloudfree.configuration.constraints.PlatformConfigurationConstraint;
 import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
 import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
 import org.eclipse.cloudfree.http.internal.application.manager.ApplicationManager;
 import org.eclipse.cloudfree.http.internal.apps.dummy.DummyAppProvider;
 import org.eclipse.cloudfree.http.internal.apps.dummy.RootContext;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.equinox.http.jetty.JettyConfigurator;
-import org.eclipse.equinox.http.jetty.JettyConstants;
+import org.eclipse.osgi.service.datalocation.Location;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -83,6 +79,7 @@ public class HttpActivator extends BaseBundleActivator {
 	private ApplicationManager applicationManager;
 	private ServiceTracker packageAdminTracker;
 	private ServiceRegistration dummyProviderRegistration;
+	private final AtomicReference<IServiceProxy<Location>> instanceLocationRef = new AtomicReference<IServiceProxy<Location>>();
 
 	/**
 	 * Creates a new instance.
@@ -95,22 +92,15 @@ public class HttpActivator extends BaseBundleActivator {
 		super(PLUGIN_ID);
 	}
 
-	private Dictionary createDefaultSettings() {
-		final Dictionary<String, Object> settings = new Hashtable<String, Object>(4);
-		settings.put(JettyConstants.OTHER_INFO, TYPE_WEB);
-		settings.put(JettyConstants.HTTP_ENABLED, Boolean.TRUE);
-		settings.put(JettyConstants.HTTP_PORT, new Integer(PlatformConfiguration.getConfigurationService().getInt(PLUGIN_ID, "port", 80, null)));
-		// note, we use the string here to not depend on inofficial API
-		settings.put("customizer.class", "org.eclipse.cloudfree.http.internal.CloudFreeJettyCustomizer");
-		return settings;
-	}
-
 	/* (non-Javadoc)
 	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected synchronized void doStart(final BundleContext context) throws Exception {
 		sharedInstance = this;
+
+		// get instance location
+		instanceLocationRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
 
 		// register configuration checkers
 		getServiceHelper().registerService(PlatformConfigurationConstraint.class.getName(), new JettyDefaultStartDisabledConstraint(context), "CloudFree", "Jetty Auto Start Check", null, null);
@@ -132,18 +122,7 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 
 		// start the default web server
-		new Job("Jetty Start") {
-			@Override
-			protected IStatus run(final IProgressMonitor monitor) {
-				try {
-					JettyConfigurator.startServer("default", createDefaultSettings());
-				} catch (final Exception e) {
-					return getStatusUtil().createError(0, "Failed starting Jetty: " + e.getMessage(), e);
-				}
-				return Status.OK_STATUS;
-			}
-
-		}.schedule();
+		new JettyStarter().schedule();
 
 		// register our dummy app provider
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
@@ -188,6 +167,9 @@ public class HttpActivator extends BaseBundleActivator {
 			packageAdminTracker.close();
 			packageAdminTracker = null;
 		}
+
+		// unset instance location
+		instanceLocationRef.set(null);
 
 		// unset instance
 		sharedInstance = null;
@@ -253,6 +235,15 @@ public class HttpActivator extends BaseBundleActivator {
 	@Override
 	protected Class getDebugOptions() {
 		return HttpDebug.class;
+	}
+
+	public Location getInstanceLocation() {
+		final IServiceProxy<Location> serviceProxy = instanceLocationRef.get();
+		if (null == serviceProxy) {
+			throw createBundleInactiveException();
+		}
+
+		return serviceProxy.getService();
 	}
 
 	private void startApplicationManager(final BundleContext context) {
