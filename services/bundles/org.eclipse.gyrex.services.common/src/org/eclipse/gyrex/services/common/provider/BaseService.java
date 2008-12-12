@@ -11,11 +11,9 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.services.common.provider;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
 import org.eclipse.cloudfree.services.common.IService;
-import org.eclipse.cloudfree.services.common.internal.ServicesActivator;
 import org.eclipse.cloudfree.services.common.status.IStatusMonitor;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.PlatformObject;
@@ -100,7 +98,8 @@ public abstract class BaseService extends PlatformObject implements IService {
 		this.metrics = metrics;
 
 		// register metrics
-		metricsRegistration = ServicesActivator.getInstance().getServiceHelper().registerService(MetricSet.class.getName(), metrics, this.getClass().getSimpleName(), "Metrics for service " + this.getClass().getSimpleName(), null, null);
+		// TODO: implement caching for service instances before we register metrics
+		//metricsRegistration = ServicesActivator.getInstance().getServiceHelper().registerService(MetricSet.class.getName(), metrics, this.getClass().getSimpleName(), "Metrics for service " + this.getClass().getSimpleName(), null, null);
 	}
 
 	/**
@@ -119,8 +118,11 @@ public abstract class BaseService extends PlatformObject implements IService {
 		try {
 			doClose();
 		} finally {
-			metricsRegistration.unregister();
-			metricsRegistration = null;
+			final ServiceRegistration metricsRegistration = this.metricsRegistration;
+			if (null != metricsRegistration) {
+				metricsRegistration.unregister();
+				this.metricsRegistration = null;
+			}
 		}
 	}
 
