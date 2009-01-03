@@ -17,7 +17,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.MessageFormat;
 
-
 import org.eclipse.cloudfree.common.logging.LogAudience;
 import org.eclipse.cloudfree.common.logging.LogImportance;
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
@@ -164,6 +163,19 @@ public abstract class BundleDebug {
 			// unget service
 			context.ungetService(serviceReference);
 		}
+	}
+
+	/**
+	 * Prints the specified debug message to the console.
+	 * 
+	 * @param message
+	 *            the message
+	 */
+	public static void print(final String message) {
+		if (null == message) {
+			return;
+		}
+		System.out.print(message);
 	}
 
 }
