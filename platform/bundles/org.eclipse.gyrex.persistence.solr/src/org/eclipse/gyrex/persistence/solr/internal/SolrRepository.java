@@ -14,7 +14,6 @@ package org.eclipse.cloudfree.persistence.solr.internal;
 import java.io.IOException;
 import java.util.Collection;
 
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;
@@ -48,14 +47,30 @@ public class SolrRepository extends Repository {
 		}
 	}
 
-	public UpdateResponse commit() {
+	public UpdateResponse add(final SolrInputDocument doc) {
 		try {
-			return getSolrServer().commit(false, false);
+			return getSolrServer().add(doc);
 		} catch (final SolrServerException e) {
-			getSolrRepositoryMetrics().recordException("committ()", e);
+			getSolrRepositoryMetrics().recordException("add()", e);
 			throw new RuntimeException(e.getMessage(), e);
 		} catch (final IOException e) {
-			getSolrRepositoryMetrics().recordException("committ()", e);
+			getSolrRepositoryMetrics().recordException("add()", e);
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+
+	public UpdateResponse commit() {
+		return commit(false, false);
+	}
+
+	public UpdateResponse commit(final boolean waitFlush, final boolean waitSearcher) {
+		try {
+			return getSolrServer().commit(waitFlush, waitSearcher);
+		} catch (final SolrServerException e) {
+			getSolrRepositoryMetrics().recordException("commit()", e);
+			throw new RuntimeException(e.getMessage(), e);
+		} catch (final IOException e) {
+			getSolrRepositoryMetrics().recordException("commit()", e);
 			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
@@ -79,6 +94,22 @@ public class SolrRepository extends Repository {
 	 */
 	protected SolrServer getSolrServer() {
 		return solrServer;
+	}
+
+	public UpdateResponse optimize() {
+		return optimize(false, false);
+	}
+
+	public UpdateResponse optimize(final boolean waitFlush, final boolean waitSearcher) {
+		try {
+			return getSolrServer().optimize(waitFlush, waitSearcher);
+		} catch (final SolrServerException e) {
+			getSolrRepositoryMetrics().recordException("optimize()", e);
+			throw new RuntimeException(e.getMessage(), e);
+		} catch (final IOException e) {
+			getSolrRepositoryMetrics().recordException("optimize()", e);
+			throw new RuntimeException(e.getMessage(), e);
+		}
 	}
 
 	public QueryResponse query(final SolrQuery solrQuery) {
