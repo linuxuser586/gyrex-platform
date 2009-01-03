@@ -29,8 +29,8 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
-
 import org.eclipse.cloudfree.http.application.Application;
+import org.eclipse.cloudfree.http.application.IApplicationConstants;
 import org.eclipse.cloudfree.http.internal.application.IApplicationServletConstants;
 import org.eclipse.cloudfree.http.internal.application.manager.ApplicationMount;
 import org.eclipse.cloudfree.http.internal.application.manager.ApplicationRegistration;
@@ -137,6 +137,9 @@ public final class ApplicationRequestAdapter implements IApplicationServletConst
 		request.setAttribute(INTERNAL_ATTR_CONTEXT_PATH, getContextPath());
 		request.setAttribute(INTERNAL_ATTR_PATH_INFO, getPathInfo());
 		request.setAttribute(INTERNAL_ATTR_QUERY_STRING, getQueryString());
+
+		// store public attributes
+		request.setAttribute(IApplicationConstants.REQUEST_ATTRIBUTE_MOUNT_POINT, applicationMount.getMountPoint().toExternalForm());
 	}
 
 	private ApplicationMount getApplicationMount() {
