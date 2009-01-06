@@ -11,7 +11,11 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.http.internal.application.helpers;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
@@ -26,20 +30,22 @@ public class ApplicationSessionAdapter implements HttpSession {
 
 	private final HttpSession session;
 	private final ServletContext servletContext;
+	private final Map<String, Object> attributes;
 
 	public ApplicationSessionAdapter(final HttpSession session, final ServletContext servletContext) {
 		this.session = session;
 		this.servletContext = servletContext;
+		attributes = new ConcurrentHashMap<String, Object>(3);
 	}
 
 	@Override
 	public Object getAttribute(final String name) {
-		return session.getAttribute(name);
+		return attributes.get(name);
 	}
 
 	@Override
 	public Enumeration getAttributeNames() {
-		return session.getAttributeNames();
+		return Collections.enumeration(new ArrayList<String>(attributes.keySet()));
 	}
 
 	@Override
@@ -70,24 +76,28 @@ public class ApplicationSessionAdapter implements HttpSession {
 	@Override
 	@Deprecated
 	public HttpSessionContext getSessionContext() {
-		return session.getSessionContext();
+		throw new IllegalStateException("HttpSession#getSessionContext is deprecated and not supported in CloudFree");
 	}
 
 	@Override
 	@Deprecated
 	public Object getValue(final String name) {
-		return session.getValue(name);
+		return attributes.get(name);
 	}
 
 	@Override
 	@Deprecated
 	public String[] getValueNames() {
-		return session.getValueNames();
+		return new ArrayList<String>(attributes.keySet()).toArray(new String[0]);
 	}
 
 	@Override
 	public void invalidate() {
-		session.invalidate();
+		try {
+			session.invalidate();
+		} finally {
+			attributes.clear();
+		}
 	}
 
 	@Override
@@ -98,23 +108,23 @@ public class ApplicationSessionAdapter implements HttpSession {
 	@Override
 	@Deprecated
 	public void putValue(final String name, final Object value) {
-		session.putValue(name, value);
+		attributes.put(name, value);
 	}
 
 	@Override
 	public void removeAttribute(final String name) {
-		session.removeAttribute(name);
+		attributes.remove(name);
 	}
 
 	@Override
 	@Deprecated
 	public void removeValue(final String name) {
-		session.removeValue(name);
+		attributes.remove(name);
 	}
 
 	@Override
 	public void setAttribute(final String name, final Object value) {
-		session.setAttribute(name, value);
+		attributes.put(name, value);
 	}
 
 	@Override
