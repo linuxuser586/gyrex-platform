@@ -20,5 +20,5 @@ Require-Bundle: org.eclipse.cloudfree.common;bundle-version="[0.7.0,1.0.0)",
 Export-Package: org.eclipse.cloudfree.persistence.derby.tests;
   uses:="org.eclipse.cloudfree.persistence.storage.settings,
    org.eclipse.cloudfree.persistence.storage,
-   org.eclipse.cloudfree.persistence.storage.type,
+   org.eclipse.cloudfree.persistence.storage.provider,
    org.osgi.framework"

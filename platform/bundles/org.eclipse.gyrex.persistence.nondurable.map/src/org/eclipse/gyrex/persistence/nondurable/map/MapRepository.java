@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
 import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 
 /**
  * Base class for non durable repositories backed by an in-memory map.
@@ -42,7 +42,7 @@ public abstract class MapRepository extends Repository {
 	 *            the metrics
 	 * @throws IllegalArgumentException
 	 */
-	protected MapRepository(final String repositoryId, final RepositoryType repositoryType, final MetricSet metrics) throws IllegalArgumentException {
+	protected MapRepository(final String repositoryId, final RepositoryProvider repositoryType, final MetricSet metrics) throws IllegalArgumentException {
 		super(repositoryId, repositoryType, metrics);
 	}
 

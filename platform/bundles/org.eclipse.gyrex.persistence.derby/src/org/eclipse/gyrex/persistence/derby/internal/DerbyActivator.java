@@ -17,7 +17,7 @@ import java.util.Hashtable;
 
 
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 
@@ -58,6 +58,6 @@ public class DerbyActivator extends BaseBundleActivator {
 		final Dictionary<String, Object> serviceProperties = new Hashtable<String, Object>(2);
 		serviceProperties.put(Constants.SERVICE_VENDOR, "CloudFree Platform");
 		serviceProperties.put(Constants.SERVICE_DESCRIPTION, "Embedded Derby JDBC Database Repository Type");
-		context.registerService(RepositoryType.class.getName(), new DerbyRepositoryType(), serviceProperties);
+		context.registerService(RepositoryProvider.class.getName(), new DerbyRepositoryType(), serviceProperties);
 	}
 }

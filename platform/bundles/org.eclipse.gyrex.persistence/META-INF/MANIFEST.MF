@@ -27,7 +27,7 @@ Export-Package: org.eclipse.cloudfree.persistence;uses:="org.eclipse.cloudfree.c
    org.eclipse.cloudfree.persistence.storage.type,
    org.eclipse.cloudfree.persistence.storage.content",
  org.eclipse.cloudfree.persistence.storage.content;uses:="org.eclipse.core.runtime",
+ org.eclipse.cloudfree.persistence.storage.provider;uses:="org.eclipse.core.runtime,org.eclipse.cloudfree.persistence.storage.settings,org.eclipse.cloudfree.persistence.storage",
  org.eclipse.cloudfree.persistence.storage.registry,
- org.eclipse.cloudfree.persistence.storage.settings,
- org.eclipse.cloudfree.persistence.storage.type;uses:="org.eclipse.core.runtime,org.eclipse.cloudfree.persistence.storage.settings,org.eclipse.cloudfree.persistence.storage"
+ org.eclipse.cloudfree.persistence.storage.settings
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

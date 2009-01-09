@@ -24,7 +24,7 @@ import org.apache.solr.core.SolrCore;
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.cloudfree.common.services.IServiceProxy;
 import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.osgi.service.datalocation.Location;
@@ -166,6 +166,6 @@ public class SolrActivator extends BaseBundleActivator {
 		coreContainer.setAdminCore(adminCore);
 
 		// register the embedded repository type
-		getServiceHelper().registerService(RepositoryType.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "CloudFree.net", "Embedded Solr Repository", null, null);
+		getServiceHelper().registerService(RepositoryProvider.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "CloudFree.net", "Embedded Solr Repository", null, null);
 	}
 }

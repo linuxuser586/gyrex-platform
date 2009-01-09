@@ -22,14 +22,6 @@
  * file based stores, etc. There will be no limitation on the repository 
  * type. 
  * </p>
- * <p>
- * </p> 
- * <p>
- * </p> 
- * <p>
- * </p> 
- * <p>
- * </p> 
  */
 package org.eclipse.cloudfree.persistence.storage;
 

@@ -13,12 +13,12 @@ package org.eclipse.cloudfree.persistence.storage;
 
 import java.text.MessageFormat;
 
-
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.configuration.ConfigurationMode;
 import org.eclipse.cloudfree.configuration.PlatformConfiguration;
 import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
-import org.eclipse.cloudfree.persistence.storage.content.ContentType;
+import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
+import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentTypeSupport;
 
 /**
  * The default {@link IRepositoryLookupStrategy repository lookup strategy}.
@@ -81,7 +81,7 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 *      org.eclipse.cloudfree.common.persistence.storage.RepositoryContentType)
 	 */
 	@Override
-	public Repository getRepository(final IContext context, final ContentType contentType) throws IllegalStateException {
+	public Repository getRepository(final IContext context, final RepositoryContentType contentType) throws IllegalStateException {
 		if (null == context) {
 			throw new IllegalArgumentException("context must not be null");
 		}
@@ -114,7 +114,8 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		return PersistenceActivator.getInstance().getRepositoriesManager().getRepository(repositoryId);
 	}
 
-	private String getRepositoryId(final IContext context, final ContentType contentType) {
+	private String getRepositoryId(final IContext context, final RepositoryContentType contentType) {
+		// TODO: incorporate repository type from content type into lookup 
 		// lookup the repository id based on the context from the preferences
 		final String peferenceKey = PREF_PATH_REPORITORIES.concat(contentType.getMediaType());
 		return PlatformConfiguration.getConfigurationService().getString(PersistenceActivator.PLUGIN_ID, peferenceKey, null, context);

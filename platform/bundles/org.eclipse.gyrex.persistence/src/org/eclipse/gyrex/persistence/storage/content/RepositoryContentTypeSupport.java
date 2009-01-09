@@ -9,10 +9,10 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage;
+package org.eclipse.cloudfree.persistence.storage.content;
 
 
-import org.eclipse.cloudfree.persistence.storage.content.ContentType;
+import org.eclipse.cloudfree.persistence.storage.Repository;
 import org.eclipse.core.runtime.IStatus;
 
 /**
@@ -40,7 +40,7 @@ public abstract class RepositoryContentTypeSupport {
 	 * @return <code>true</code> if the content type is supported,
 	 *         <code>false</code> otherwise
 	 */
-	public abstract boolean isSupported(ContentType contentType);
+	public abstract boolean isSupported(RepositoryContentType contentType);
 
 	/**
 	 * Provisions the specified content type for the {@link #getRepository()
@@ -51,7 +51,7 @@ public abstract class RepositoryContentTypeSupport {
 	 * severity} of the status object returned is one of {@link IStatus#OK},
 	 * {@link IStatus#INFO} or {@link IStatus#WARNING} the provisioning
 	 * operation is considered successful, i.e. subsequent calls to
-	 * {@link #isSupported(ContentType)} will return <code>true</code>
+	 * {@link #isSupported(RepositoryContentType)} will return <code>true</code>
 	 * after this method returned. In all other cases the provisioning operation
 	 * must be considered failed.
 	 * </p>
@@ -60,7 +60,7 @@ public abstract class RepositoryContentTypeSupport {
 	 *            the content type (may not be <code>null</code>)
 	 * @return a status indicating the result of the provisioning operation
 	 */
-	public final IStatus provision(final ContentType contentType) {
+	public final IStatus provision(final RepositoryContentType contentType) {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -13,7 +13,7 @@ package org.eclipse.cloudfree.persistence.storage;
 
 
 import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.persistence.storage.content.ContentType;
+import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
 
 /**
  * A strategy for the look up of {@link Repository repositories} from a context.
@@ -46,5 +46,5 @@ public interface IRepositoryLookupStrategy {
 	 * @throws IllegalStateException
 	 *             if no suitable repository is available
 	 */
-	Repository getRepository(IContext context, ContentType repositoryContentType) throws IllegalStateException;
+	Repository getRepository(IContext context, RepositoryContentType repositoryContentType) throws IllegalStateException;
 }

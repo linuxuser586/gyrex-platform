@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.storage.registry;
 
-
 /**
  * The repository registry provides administrative access to repositories
  * defined in the system.
@@ -22,6 +21,7 @@ package org.eclipse.cloudfree.persistence.storage.registry;
  * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
+ * @noextend This interface is not intended to be extended by clients.
  */
 public interface IRepositoryRegistry {
 

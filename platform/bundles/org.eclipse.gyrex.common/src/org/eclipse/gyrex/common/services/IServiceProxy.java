@@ -22,6 +22,7 @@ package org.eclipse.cloudfree.common.services;
  * @param <T>
  *            the service interface of the tracked service
  * @noimplement This interface is not intended to be implemented by clients.
+ * @noextend This interface is not intended to be extended by clients.
  */
 public interface IServiceProxy<T> {
 

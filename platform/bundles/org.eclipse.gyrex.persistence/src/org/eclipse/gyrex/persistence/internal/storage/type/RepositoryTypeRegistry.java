@@ -17,8 +17,7 @@ import java.util.concurrent.ConcurrentMap;
 
 
 import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
-import org.eclipse.cloudfree.persistence.storage.type.RegistrationException;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.osgi.framework.BundleContext;
@@ -35,7 +34,7 @@ import org.osgi.util.tracker.ServiceTracker;
 public final class RepositoryTypeRegistry {
 
 	/** the map with registered repository types by their id */
-	private final ConcurrentMap<String, RepositoryType> registeredRepositoryTypesById = new ConcurrentHashMap<String, RepositoryType>(5);
+	private final ConcurrentMap<String, RepositoryProvider> registeredRepositoryTypesById = new ConcurrentHashMap<String, RepositoryProvider>(5);
 	private ServiceTracker serviceTracker;
 
 	public void close() {
@@ -44,12 +43,12 @@ public final class RepositoryTypeRegistry {
 		registeredRepositoryTypesById.clear();
 	}
 
-	public RepositoryType getRepositoryType(final String repositoryTypeId) {
+	public RepositoryProvider getRepositoryType(final String repositoryTypeId) {
 		if (null == repositoryTypeId) {
 			throw new IllegalArgumentException("repository type id must not be null");
 		}
 
-		final RepositoryType repositoryType = registeredRepositoryTypesById.get(repositoryTypeId);
+		final RepositoryProvider repositoryType = registeredRepositoryTypesById.get(repositoryTypeId);
 		if (null == repositoryType) {
 			throw new IllegalStateException(MessageFormat.format("repository type \"{0}\" not available", repositoryTypeId));
 		}
@@ -69,7 +68,7 @@ public final class RepositoryTypeRegistry {
 	 *             because a repository type is already registered for the
 	 *             repository type id)
 	 */
-	public void registerRepositoryType(final String repositoryTypeId, final RepositoryType type) throws RegistrationException {
+	public void registerRepositoryType(final String repositoryTypeId, final RepositoryProvider type) throws RegistrationException {
 		if (null == repositoryTypeId) {
 			throw new IllegalArgumentException("repository type identifier must not be null");
 		}
@@ -77,23 +76,23 @@ public final class RepositoryTypeRegistry {
 			throw new IllegalArgumentException("repository type must not be null");
 		}
 
-		final RepositoryType existing = registeredRepositoryTypesById.putIfAbsent(repositoryTypeId, type);
+		final RepositoryProvider existing = registeredRepositoryTypesById.putIfAbsent(repositoryTypeId, type);
 		if ((null != existing) && (existing != type)) {
 			throw new RegistrationException(new Status(IStatus.ERROR, PersistenceActivator.PLUGIN_ID, RegistrationException.CONFLICTING_ID, MessageFormat.format("A repository type with id \"{0}\" is already registered!", repositoryTypeId), null));
 		}
 	}
 
 	public void start(final BundleContext context) {
-		serviceTracker = new ServiceTracker(context, RepositoryType.class.getName(), null) {
+		serviceTracker = new ServiceTracker(context, RepositoryProvider.class.getName(), null) {
 			/* (non-Javadoc)
 			 * @see org.osgi.util.tracker.ServiceTracker#addingService(org.osgi.framework.ServiceReference)
 			 */
 			@Override
 			public Object addingService(final ServiceReference reference) {
-				final RepositoryType repositoryType = (RepositoryType) super.addingService(reference);
+				final RepositoryProvider repositoryType = (RepositoryProvider) super.addingService(reference);
 				if (null != repositoryType) {
 					try {
-						registerRepositoryType(repositoryType.getId(), repositoryType);
+						registerRepositoryType(repositoryType.getProviderId(), repositoryType);
 					} catch (final RegistrationException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -107,9 +106,9 @@ public final class RepositoryTypeRegistry {
 			 */
 			@Override
 			public void removedService(final ServiceReference reference, final Object service) {
-				final RepositoryType repositoryType = (RepositoryType) service;
+				final RepositoryProvider repositoryType = (RepositoryProvider) service;
 				if (null != repositoryType) {
-					unregisterRepositoryType(repositoryType.getId());
+					unregisterRepositoryType(repositoryType.getProviderId());
 				}
 				super.removedService(reference, service);
 			}

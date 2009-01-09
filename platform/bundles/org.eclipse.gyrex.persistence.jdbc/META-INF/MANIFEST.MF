@@ -14,4 +14,4 @@ Require-Bundle: org.eclipse.cloudfree.common;bundle-version="[0.7.0,1.0.0)",
  org.eclipse.cloudfree.persistence;bundle-version="[0.7.0,1.0.0)",
  org.eclipse.cloudfree.monitoring;bundle-version="[0.7.0,1.0.0)"
 Export-Package: org.eclipse.cloudfree.persistence.jdbc.internal;x-internal:=true,
- org.eclipse.cloudfree.persistence.jdbc.storage;uses:="org.eclipse.cloudfree.monitoring.metrics,org.eclipse.cloudfree.persistence.storage,org.eclipse.cloudfree.persistence.storage.type"
+ org.eclipse.cloudfree.persistence.jdbc.storage;uses:="org.eclipse.cloudfree.monitoring.metrics,org.eclipse.cloudfree.persistence.storage,org.eclipse.cloudfree.persistence.storage.provider"

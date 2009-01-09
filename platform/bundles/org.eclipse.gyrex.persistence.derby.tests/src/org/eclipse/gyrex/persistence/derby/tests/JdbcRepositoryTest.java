@@ -13,7 +13,6 @@ package org.eclipse.cloudfree.persistence.derby.tests;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
@@ -32,7 +31,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 
 import org.eclipse.cloudfree.persistence.jdbc.internal.JdbcRepositoryImpl;
 import org.eclipse.cloudfree.persistence.storage.Repository;
@@ -127,9 +125,8 @@ public class JdbcRepositoryTest {
 	}
 
 	private JdbcRepositoryImpl createRepository() {
-		final Repository repository = mockRepositoryType.newRepositoryInstance("test", null);
+		final Repository repository = mockRepositoryType.createRepositoryInstance("test", null);
 		assertNotNull("repository must not be null", repository);
-		assertSame("repository type is not the same", mockRepositoryType, repository.getRepositoryType());
 		assertTrue("repository is not a JdbcRepository", repository instanceof JdbcRepositoryImpl);
 		return (JdbcRepositoryImpl) repository;
 	}

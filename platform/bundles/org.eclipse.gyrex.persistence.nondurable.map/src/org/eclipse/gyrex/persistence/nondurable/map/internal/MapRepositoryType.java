@@ -11,14 +11,15 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.nondurable.map.internal;
 
+import org.eclipse.cloudfree.persistence.nondurable.map.MapRepository;
 import org.eclipse.cloudfree.persistence.storage.Repository;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
 
 /**
  * A repository type which stores objects in a map in memory.
  */
-public class MapRepositoryType extends RepositoryType {
+public class MapRepositoryType extends RepositoryProvider {
 
 	/**
 	 * Creates a new instance.
@@ -26,14 +27,14 @@ public class MapRepositoryType extends RepositoryType {
 	 * @param id
 	 */
 	public MapRepositoryType() {
-		super("org.eclipse.cloudfree.persistence.nondurable.map");
+		super("org.eclipse.cloudfree.persistence.nondurable.map", MapRepository.class);
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.type.RepositoryType#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
+	 * @see org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
 	 */
 	@Override
-	public Repository newRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
+	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
 		return new MapRepositoryImpl(repositoryId, this);
 	}
 

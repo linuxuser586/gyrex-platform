@@ -36,6 +36,7 @@ import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
  * @see Application
  * @see ApplicationProvider
  * @noimplement This interface is not intended to be implemented by clients.
+ * @noextend This interface is not intended to be extended by clients.
  */
 public interface IApplicationManager {
 

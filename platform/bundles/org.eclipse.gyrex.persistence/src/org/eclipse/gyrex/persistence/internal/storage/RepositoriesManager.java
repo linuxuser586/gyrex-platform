@@ -23,9 +23,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.eclipse.cloudfree.configuration.preferences.PlatformScope;
 import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
 import org.eclipse.cloudfree.persistence.storage.Repository;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.cloudfree.persistence.storage.registry.IRepositoryRegistry;
 import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
@@ -184,13 +184,13 @@ public class RepositoriesManager implements IRepositoryRegistry {
 		}
 
 		// get repository type
-		final RepositoryType repositoryType = PersistenceActivator.getInstance().getRepositoryTypeRegistry().getRepositoryType(type);
+		final RepositoryProvider repositoryType = PersistenceActivator.getInstance().getRepositoryTypeRegistry().getRepositoryType(type);
 
 		// get repository settings
 		final IRepositoryPreferences repositoryPreferences = repositoryDef.getPreferences();
 
 		// create repository instance
-		final Repository repository = repositoryType.newRepositoryInstance(repositoryDef.repositoryId, repositoryPreferences);
+		final Repository repository = repositoryType.createRepositoryInstance(repositoryDef.repositoryId, repositoryPreferences);
 		if (null == repository) {
 			errorCreatingRepository(repositoryDef, MessageFormat.format("repository type ''{0}'' returned no repository instance", type));
 		}

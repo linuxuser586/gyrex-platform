@@ -22,7 +22,7 @@ import org.eclipse.cloudfree.model.common.provider.ModelProvider;
 import org.eclipse.cloudfree.persistence.PersistenceUtil;
 import org.eclipse.cloudfree.persistence.storage.IRepositoryLookupStrategy;
 import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.content.ContentType;
+import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
 import org.eclipse.core.runtime.IAdapterFactory;
 import org.osgi.framework.Bundle;
 
@@ -80,7 +80,7 @@ public class ManagerRegistration implements IAdapterFactory {
 		}
 
 		// get the content type
-		final ContentType contentType = provider.getContentType();
+		final RepositoryContentType contentType = provider.getContentType();
 
 		// get the repository lookup strategy from the context
 		final IRepositoryLookupStrategy strategy = PersistenceUtil.getRepositoryLookupStrategy(context);

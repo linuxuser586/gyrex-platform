@@ -20,7 +20,7 @@ import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.model.common.IModelManager;
 import org.eclipse.cloudfree.model.common.ModelUtil;
 import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.content.ContentType;
+import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IAdapterManager;
 
@@ -63,7 +63,7 @@ public abstract class ModelProvider {
 	private final List<Class<?>> providedManagers;
 
 	/** the required content type */
-	private final ContentType contentType;
+	private final RepositoryContentType contentType;
 
 	/**
 	 * Creates a new factory.
@@ -96,7 +96,7 @@ public abstract class ModelProvider {
 	 * @throws IllegalArgumentException
 	 *             is any of the provided arguments are invalid
 	 */
-	protected ModelProvider(final ContentType contentType, final Class providedManager, final Class... providedManagers) throws IllegalArgumentException {
+	protected ModelProvider(final RepositoryContentType contentType, final Class providedManager, final Class... providedManagers) throws IllegalArgumentException {
 		if (null == contentType) {
 			throw new IllegalArgumentException("contentType must not be null");
 		}
@@ -156,7 +156,7 @@ public abstract class ModelProvider {
 	 * 
 	 * @return the content type
 	 */
-	public final ContentType getContentType() {
+	public final RepositoryContentType getContentType() {
 		return contentType;
 	}
 

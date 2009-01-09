@@ -19,7 +19,7 @@ import javax.sql.DataSource;
 
 import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
 import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 
 /**
  * Common base class for a repository which can be accessed via JDBC.
@@ -55,7 +55,7 @@ public abstract class JdbcRepository extends Repository {
 	 * @throws IllegalArgumentException
 	 *             if an invalid argument was specified
 	 */
-	protected JdbcRepository(final String repositoryId, final RepositoryType repositoryType, final MetricSet metrics) {
+	protected JdbcRepository(final String repositoryId, final RepositoryProvider repositoryType, final MetricSet metrics) {
 		super(repositoryId, repositoryType, metrics);
 	}
 

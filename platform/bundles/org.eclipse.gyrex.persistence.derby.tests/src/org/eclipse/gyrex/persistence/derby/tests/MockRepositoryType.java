@@ -11,17 +11,17 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.derby.tests;
 
-
 import org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource;
 import org.eclipse.cloudfree.persistence.jdbc.internal.JdbcRepositoryImpl;
+import org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository;
 import org.eclipse.cloudfree.persistence.storage.Repository;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
 
-public class MockRepositoryType extends RepositoryType {
+public class MockRepositoryType extends RepositoryProvider {
 
 	public MockRepositoryType() {
-		super(MockRepositoryType.class.getName());
+		super(MockRepositoryType.class.getName(), JdbcRepository.class);
 	}
 
 	private EmbeddedConnectionPoolDataSource createDataSource(final String databaseName) {
@@ -32,10 +32,10 @@ public class MockRepositoryType extends RepositoryType {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.type.RepositoryType#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
+	 * @see org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
 	 */
 	@Override
-	public Repository newRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
+	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
 		return new JdbcRepositoryImpl(repositoryId, this, createDataSource(repositoryId), 0);
 	}
 }

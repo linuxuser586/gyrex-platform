@@ -13,7 +13,7 @@
 <component immediate="false" name="repository-type">
    <implementation class="org.eclipse.cloudfree.persistence.nondurable.map.internal.MapRepositoryType"/>
    <service>
-      <provide interface="org.eclipse.cloudfree.persistence.storage.type.RepositoryType"/>
+      <provide interface="org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider"/>
    </service>
    <property name="vendor" type="String" value="Eclipse.org"/>
    <property name="description" type="String" value="Non-durable repository storing objects in a concurrent, navigatable map."/>

@@ -15,74 +15,89 @@ import java.text.MessageFormat;
 
 import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
 import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
-import org.eclipse.cloudfree.persistence.storage.type.RepositoryType;
+import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentTypeSupport;
+import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.PlatformObject;
 import org.osgi.framework.ServiceRegistration;
 
 /**
- * A repository is a concrete instance of a repository type. You may think of it
- * as a database. It defines the data store where a particular set of data will
- * be persisted.
+ * A repository is a concrete instance of a data store where a particular set of
+ * data will be persisted.
  * <p>
- * A specific repository may only be accessed using the technology defined by
- * the repository type.
+ * In CloudFree, repositories are an abstraction for an actual data store
+ * accessed using a defined persistence technology (eg. a MySQL database
+ * accessed via JDBC, a flat CSV file, a distributed in-memory hast table,
+ * etc.). A specific repository may only be accessed using the technology
+ * defined by the repository implementation. Typically, they are configured
+ * whitin CloudFree through an administrative interface. Their implementation is
+ * contributed to CloudFree by {@link RepositoryProvider repository providers}.
  * </p>
  * <p>
  * In order to simplify operation of the CloudFree platform repositories will
  * support administrative tasks. For example, it will be possible to transfer a
  * repository into a read-only mode or disabled it completely for maintenance
  * purposes. It will also be possible to dump a repository (or portions of it)
- * into a repository type independent format. The dump may be loaded later into
- * another repository.
+ * into a repository provider independent format. The dump may be loaded later
+ * into another repository.
  * </p>
  * <p>
- * This class must be subclassed by clients that contribute a repository type to
- * the CloudFree Platform.
+ * This class must be subclassed by clients that contribute a repository
+ * implementation to the CloudFree Platform.
  * </p>
  */
 public abstract class Repository extends PlatformObject {
 
 	/**
 	 * Utility method to create a well formated metrics id based on a repository
-	 * type and a specified repository id.
+	 * provider and a specified repository id.
 	 * 
-	 * @param repositoryType
-	 *            the repository type
+	 * @param repositoryProvider
+	 *            the repository provider
 	 * @param repositoryId
 	 *            the repository id
 	 * @return a well formatted metrics id
 	 */
-	protected static String createMetricsId(final RepositoryType repositoryType, final String repositoryId) {
-		return repositoryType.getId() + "[" + repositoryId + "].metrics";
+	protected static String createMetricsId(final RepositoryProvider repositoryProvider, final String repositoryId) {
+		return repositoryProvider.getProviderId() + "[" + repositoryId + "].metrics";
 	}
 
 	/**
-	 * Indicates if the specified id is a valid repository id.
+	 * Indicates if the specified id is a valid repository API id.
 	 * <p>
-	 * By definition, a repository id must not be <code>null</code> or the empty
-	 * string and may only contain lowercase latin characters <code>a..z</code>,
-	 * numbers <code>0..9</code>, <code>'.'</code>, <code>'-'</code> and
-	 * <code>'_'</code>. This method must be used to validate the repository id.
+	 * By definition, a all identifiers used within the repository API must not
+	 * be <code>null</code> or the empty string and may only contain the
+	 * following printable US-ASCII characters.
+	 * <ul>
+	 * <li>lower- and uppercase letters <code>a..z</code> and <code>A..Z</code></li>
+	 * <li>numbers <code>0..9</code></li>
+	 * <li><code>'.'</code></li>
+	 * <li><code>'-'</code></li>
+	 * <li><code>'_'</code></li>
+	 * </ul>
+	 * </p>
+	 * <p>
+	 * This method is used to validate repository identifiers, repository
+	 * provider identifiers and repository type names.
 	 * </p>
 	 * 
-	 * @param repositoryId
-	 *            the repository id
-	 * @return <code>true</code> if the repository id is valid,
-	 *         <code>false</code> otherwise
+	 * @param id
+	 *            the id
+	 * @return <code>true</code> if the id is valid, <code>false</code>
+	 *         otherwise
 	 */
-	public static boolean isValidRepositoryId(final String repositoryId) {
-		if (null == repositoryId) {
+	public static boolean isValidId(final String id) {
+		if (null == id) {
 			return false;
 		}
 
-		if (repositoryId.equals("")) {
+		if (id.equals("")) {
 			return false;
 		}
 
 		// verify chars
-		for (int i = 0; i < repositoryId.length(); i++) {
-			final char c = repositoryId.charAt(i);
-			if (((c >= 'a') && (c <= 'z')) || ((c >= '0') && (c <= '9')) || (c == '.') || (c == '_') || (c == '-')) {
+		for (int i = 0; i < id.length(); i++) {
+			final char c = id.charAt(i);
+			if (((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || ((c >= '0') && (c <= '9')) || (c == '.') || (c == '_') || (c == '-')) {
 				continue;
 			} else {
 				return false;
@@ -95,8 +110,8 @@ public abstract class Repository extends PlatformObject {
 	/** the repository id */
 	private final String repositoryId;
 
-	/** the repository type */
-	private final RepositoryType repositoryType;
+	/** the repository provider */
+	private final RepositoryProvider repositoryProvider;
 
 	/** indicates if the repository has been closed */
 	private volatile boolean closed;
@@ -119,32 +134,32 @@ public abstract class Repository extends PlatformObject {
 	 * 
 	 * @param repositoryId
 	 *            the repository id (may not be <code>null</code>, must conform
-	 *            to {@link #isValidRepositoryId(String)})
-	 * @param repositoryType
-	 *            the repository type (may not be <code>null</code>)
+	 *            to {@link #isValidId(String)})
+	 * @param repositoryProvider
+	 *            the repository provider (may not be <code>null</code>)
 	 * @param metrics
 	 *            the metrics used by this repository (may not be
 	 *            <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if an invalid argument was specified
 	 */
-	protected Repository(final String repositoryId, final RepositoryType repositoryType, final MetricSet metrics) throws IllegalArgumentException {
+	protected Repository(final String repositoryId, final RepositoryProvider repositoryProvider, final MetricSet metrics) throws IllegalArgumentException {
 		if (null == repositoryId) {
 			throw new IllegalArgumentException("repository id must not be null");
 		}
-		if (null == repositoryType) {
-			throw new IllegalArgumentException("repository type must not be null");
+		if (null == repositoryProvider) {
+			throw new IllegalArgumentException("repository provider must not be null");
 		}
 		if (null == metrics) {
 			throw new IllegalArgumentException("metrics must not be null");
 		}
 
-		if (!Repository.isValidRepositoryId(repositoryId)) {
-			throw new IllegalArgumentException(MessageFormat.format("repository id \"{0}\" is invalid", repositoryId));
+		if (!Repository.isValidId(repositoryId)) {
+			throw new IllegalArgumentException(MessageFormat.format("repository id \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", repositoryId));
 		}
 
 		this.repositoryId = repositoryId;
-		this.repositoryType = repositoryType;
+		this.repositoryProvider = repositoryProvider;
 		this.metrics = metrics;
 
 		// register the metrics
@@ -247,16 +262,16 @@ public abstract class Repository extends PlatformObject {
 	}
 
 	/**
-	 * Returns the repository type.
+	 * Returns the repository provider.
 	 * <p>
-	 * The repository type defines the underlying persistence technology. It
+	 * The repository provider defines the underlying persistence technology. It
 	 * gives advices on what is support by this repository and what not.
 	 * </p>
 	 * 
-	 * @return the repository type
+	 * @return the repository provider
 	 */
-	public final RepositoryType getRepositoryType() {
-		return repositoryType;
+	protected final RepositoryProvider getRepositoryProvider() {
+		return repositoryProvider;
 	}
 
 	/**
