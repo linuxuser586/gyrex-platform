@@ -22,12 +22,9 @@ import org.eclipse.core.runtime.IPath;
  * environment and is used in the CloudFree Platform to bind runtime
  * constraints.
  * </p>
- * <p>
- * Clients may implement this interface directly. However, they may also extend
- * {@link AbstractContext} instead.
- * </p>
  * 
- * @see IAdaptable
+ * @noimplement This interface is not intended to be implemented by clients.
+ * @noextend This interface is not intended to be extended by clients.
  */
 public interface IContext extends IAdaptable {
 

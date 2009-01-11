@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.context.ContextUtil;
 import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.cloudfree.common.internal.fixme.RuntimeLogAccess;
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
