@@ -62,12 +62,11 @@ public class ServerApplication implements IApplication {
 		}
 		csImplBundle.start(Bundle.START_TRANSIENT);
 
-		// make sure that the declarative services are initialized
+		// make sure that the declarative services are initialized (if available)
 		final Bundle dsImplBundle = AppActivator.getInstance().getBundle("org.eclipse.equinox.ds");
-		if (null == dsImplBundle) {
-			throw new IllegalStateException("Bundle 'org.eclipse.equinox.ds' is missing. Please check the installation");
+		if (null != dsImplBundle) {
+			dsImplBundle.start(Bundle.START_TRANSIENT);
 		}
-		dsImplBundle.start(Bundle.START_TRANSIENT);
 	}
 
 	/**
