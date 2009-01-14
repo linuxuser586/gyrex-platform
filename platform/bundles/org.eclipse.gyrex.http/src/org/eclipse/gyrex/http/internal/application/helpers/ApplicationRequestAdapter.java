@@ -116,6 +116,7 @@ public final class ApplicationRequestAdapter implements IApplicationServletConst
 
 	private String pathInfo;
 	private final ApplicationMount applicationMount;
+	private ApplicationSessionAdapter sessionAdapter;
 
 	public ApplicationRequestAdapter(final HttpServletRequest request, final URL requestUrl, final ApplicationRegistration applicationRegistration, final ApplicationMount applicationMount, final ServletContext servletContext, final String clientAddress, final int clientPort) {
 		this.request = request;
@@ -592,13 +593,16 @@ public final class ApplicationRequestAdapter implements IApplicationServletConst
 	 */
 	@Override
 	public HttpSession getSession() {
+		if (null != sessionAdapter) {
+			return sessionAdapter;
+		}
+
 		final HttpSession session = getRequest().getSession();
 		if (session != null) {
-			return new ApplicationSessionAdapter(session, servletContext);
+			return sessionAdapter = new ApplicationSessionAdapter(session, servletContext, getApplicationRegistration());
 		}
 
 		return null;
-
 	}
 
 	/* (non-Javadoc)
@@ -606,9 +610,13 @@ public final class ApplicationRequestAdapter implements IApplicationServletConst
 	 */
 	@Override
 	public HttpSession getSession(final boolean create) {
+		if (null != sessionAdapter) {
+			return sessionAdapter;
+		}
+
 		final HttpSession session = getRequest().getSession(create);
 		if (session != null) {
-			return new ApplicationSessionAdapter(session, servletContext);
+			return sessionAdapter = new ApplicationSessionAdapter(session, servletContext, getApplicationRegistration());
 		}
 
 		return null;

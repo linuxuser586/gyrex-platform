@@ -21,6 +21,8 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionContext;
 
+import org.eclipse.cloudfree.http.internal.application.manager.ApplicationRegistration;
+
 /**
  * Adapts a {@link HttpSession} so that the correct application specific
  * {@link ServletContext} is returned.
@@ -31,11 +33,20 @@ public class ApplicationSessionAdapter implements HttpSession {
 	private final HttpSession session;
 	private final ServletContext servletContext;
 	private final Map<String, Object> attributes;
+	private final String applicationAttributesKey;
 
-	public ApplicationSessionAdapter(final HttpSession session, final ServletContext servletContext) {
+	@SuppressWarnings("unchecked")
+	public ApplicationSessionAdapter(final HttpSession session, final ServletContext servletContext, final ApplicationRegistration applicationRegistration) {
 		this.session = session;
 		this.servletContext = servletContext;
-		attributes = new ConcurrentHashMap<String, Object>(3);
+		applicationAttributesKey = ApplicationSessionAdapter.class.getName().concat(applicationRegistration.getApplicationId());
+		final Object existingApplicationAttribute = session.getAttribute(applicationAttributesKey);
+		if (existingApplicationAttribute instanceof Map) {
+			attributes = (Map<String, Object>) existingApplicationAttribute;
+		} else {
+			attributes = new ConcurrentHashMap<String, Object>(3);
+			session.setAttribute(applicationAttributesKey, attributes);
+		}
 	}
 
 	@Override
@@ -108,23 +119,29 @@ public class ApplicationSessionAdapter implements HttpSession {
 	@Override
 	@Deprecated
 	public void putValue(final String name, final Object value) {
-		attributes.put(name, value);
+		setAttribute(name, value);
 	}
 
 	@Override
 	public void removeAttribute(final String name) {
 		attributes.remove(name);
+
+		// touch session
+		session.setAttribute(applicationAttributesKey, attributes);
 	}
 
 	@Override
 	@Deprecated
 	public void removeValue(final String name) {
-		attributes.remove(name);
+		removeAttribute(name);
 	}
 
 	@Override
 	public void setAttribute(final String name, final Object value) {
 		attributes.put(name, value);
+
+		// touch session
+		session.setAttribute(applicationAttributesKey, attributes);
 	}
 
 	@Override
