@@ -61,6 +61,9 @@ public class ResourceManager implements ExtensionPointTracker.Listener {
 			if (path == null) {
 				path = ""; //$NON-NLS-1$
 			}
+			if (path.charAt(path.length() - 1) == '/') {
+				path = path.substring(0, path.length() - 1);
+			}
 
 			String applicationId = resourceElement.getAttribute(APPLICATION_ID);
 			if (applicationId == null) {
