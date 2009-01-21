@@ -25,9 +25,6 @@ import org.eclipse.equinox.http.jetty.JettyConstants;
 
 final class JettyStarter extends Job {
 
-	/** PASSWORD */
-	private static final char[] EMPTY_PASSWORD = new char[0];
-
 	/**
 	 * Creates a new instance.
 	 * 
@@ -73,9 +70,13 @@ final class JettyStarter extends Job {
 	protected IStatus run(final IProgressMonitor monitor) {
 		monitor.beginTask("Staring Jetty", 100);
 		try {
+			try {
+				JettyConfigurator.stopServer("default");
+			} catch (final Exception e) {
+				// ignore;
+			}
 
 			final Dictionary settings = createSettings();
-
 			JettyConfigurator.startServer("default", settings);
 		} catch (final Exception e) {
 			return HttpActivator.getInstance().getStatusUtil().createError(0, "Failed starting Jetty: " + e.getMessage(), e);

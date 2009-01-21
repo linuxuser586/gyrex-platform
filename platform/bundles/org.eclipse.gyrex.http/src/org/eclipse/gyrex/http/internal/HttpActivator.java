@@ -15,6 +15,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.cloudfree.common.debug.BundleDebug;
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.cloudfree.common.services.IServiceProxy;
 import org.eclipse.cloudfree.configuration.constraints.PlatformConfigurationConstraint;
@@ -122,7 +123,7 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 
 		// start the default web server
-		new JettyStarter().schedule();
+		restartJetty();
 
 		// register our dummy app provider
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
@@ -151,7 +152,11 @@ public class HttpActivator extends BaseBundleActivator {
 		dummyProviderRegistration.unregister();
 
 		// stop Jetty
-		JettyConfigurator.stopServer("default");
+		try {
+			JettyConfigurator.stopServer("default");
+		} catch (final Exception e) {
+			BundleDebug.debug("Error while stopping Jetty: " + e.getMessage(), e);
+		}
 
 		// stop the HTTP service tracker
 		if (null != httpServiceTracker) {
@@ -244,6 +249,10 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 
 		return serviceProxy.getService();
+	}
+
+	private void restartJetty() {
+		new JettyStarter().schedule();
 	}
 
 	private void startApplicationManager(final BundleContext context) {
