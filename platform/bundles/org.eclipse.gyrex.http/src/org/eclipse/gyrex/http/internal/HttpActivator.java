@@ -251,8 +251,8 @@ public class HttpActivator extends BaseBundleActivator {
 		return serviceProxy.getService();
 	}
 
-	private void restartJetty() {
-		new JettyStarter().schedule();
+	public void restartJetty() {
+		new JettyStarter().schedule(500);
 	}
 
 	private void startApplicationManager(final BundleContext context) {
