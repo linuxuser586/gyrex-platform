@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.cloudfree.model.common
-Bundle-Version: 0.7.0.qualifier
+Bundle-Version: 1.0.0.qualifier
 Bundle-Name: %bundle.name
 Bundle-Vendor: %provider.name
 Bundle-Localization: plugin
@@ -20,7 +20,7 @@ Export-Package: org.eclipse.cloudfree.model.common;version="1.0.0";uses:="org.ec
    org.eclipse.cloudfree.persistence.storage,
    org.eclipse.cloudfree.model.common,
    org.eclipse.cloudfree.persistence.storage.content"
-Require-Bundle: org.eclipse.cloudfree.common;bundle-version="[0.7.0,1.0.0)",
- org.eclipse.cloudfree.configuration;bundle-version="[0.7.0,1.0.0)",
- org.eclipse.cloudfree.monitoring;bundle-version="[0.7.0,1.0.0)",
- org.eclipse.cloudfree.persistence;bundle-version="[0.7.0,1.0.0)"
+Require-Bundle: org.eclipse.cloudfree.common;bundle-version="[1.0.0,2.0.0)",
+ org.eclipse.cloudfree.configuration;bundle-version="[1.0.0,2.0.0)",
+ org.eclipse.cloudfree.monitoring;bundle-version="[1.0.0,2.0.0)",
+ org.eclipse.cloudfree.persistence;bundle-version="[1.0.0,2.0.0)"
