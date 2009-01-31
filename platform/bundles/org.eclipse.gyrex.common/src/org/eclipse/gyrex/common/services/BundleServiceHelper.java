@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
-
 import org.eclipse.cloudfree.common.internal.services.ServiceProxyPool;
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.osgi.framework.Bundle;
@@ -159,7 +158,7 @@ public final class BundleServiceHelper {
 
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(4);
 		if (null != pid) {
-			properties.put(Constants.SERVICE_VENDOR, pid);
+			properties.put(Constants.SERVICE_PID, pid);
 		}
 		if (null != vendor) {
 			properties.put(Constants.SERVICE_VENDOR, vendor);
