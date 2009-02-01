@@ -158,12 +158,14 @@ public abstract class Application extends PlatformObject {
 	 * Called by the platform to destroy the application when it's no longer
 	 * needed.
 	 * <p>
-	 * This implementations first sets the application status so that it stops
-	 * receiving requests. Next, it calls {@link #doDestroy()} and after that it
-	 * releases the reference to the {@link IApplicationServiceSupport} if
-	 * available. Subclasses may override {@link #doDestroy()} to perform
-	 * necessary cleanup.
+	 * The implementation first sets an internal flag so that it stops receiving
+	 * requests. Next, it calls {@link #doDestroy()} and after that it releases
+	 * the reference to the {@link IApplicationServiceSupport} if available.
+	 * Subclasses may override {@link #doDestroy()} to perform necessary
+	 * cleanup.
 	 * </p>
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	public final void destroy() {
 		// set status
@@ -365,8 +367,13 @@ public abstract class Application extends PlatformObject {
 	 * provided in the status object returned.
 	 * </p>
 	 * <p>
-	 * Clients that should to modify the application status should do so in a
+	 * Clients that want to modify the application status should do so in a
 	 * background operation and set it via {@link #setStatus(IStatus)}.
+	 * </p>
+	 * <p>
+	 * If the application is {@link #destroy() destroyed}, this method will
+	 * always return a status of severity {@link IStatus#CANCEL} to stop
+	 * receiving any further requests.
 	 * </p>
 	 * 
 	 * @return the application status
@@ -526,6 +533,7 @@ public abstract class Application extends PlatformObject {
 	 * 
 	 * @param applicationServiceSupport
 	 *            the application service support.
+	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	public final void initialize(final IApplicationServiceSupport applicationServiceSupport) throws CoreException {
 		if (null == applicationServiceSupport) {
@@ -547,8 +555,9 @@ public abstract class Application extends PlatformObject {
 	 * 
 	 * @param status
 	 *            the status to set, or <code>null</code> to reset
+	 * @see #getStatus()
 	 */
-	protected final void setStatus(final IStatus status) {
+	public final void setStatus(final IStatus status) {
 		this.status.set(status);
 	}
 
