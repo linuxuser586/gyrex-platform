@@ -15,7 +15,6 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.cloudfree.common.services.IServiceProxy;
 import org.eclipse.cloudfree.configuration.constraints.PlatformConfigurationConstraint;
@@ -24,7 +23,6 @@ import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
 import org.eclipse.cloudfree.http.internal.application.manager.ApplicationManager;
 import org.eclipse.cloudfree.http.internal.apps.dummy.DummyAppProvider;
 import org.eclipse.cloudfree.http.internal.apps.dummy.RootContext;
-import org.eclipse.equinox.http.jetty.JettyConfigurator;
 import org.eclipse.osgi.service.datalocation.Location;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -122,24 +120,13 @@ public class HttpActivator extends BaseBundleActivator {
 			httpServiceTracker.open();
 		}
 
-		// start the default web server
-		restartJetty();
-
 		// register our dummy app provider
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
 		properties.put(Constants.SERVICE_DESCRIPTION, "Dummy Application");
 		properties.put(Constants.SERVICE_VENDOR, "CloudFree");
 		dummyProviderRegistration = context.registerService(ApplicationProvider.class.getName(), new DummyAppProvider(), properties);
 
-		applicationManager.register("app1", DummyAppProvider.ID, new RootContext(), null);
-		applicationManager.register("app2", DummyAppProvider.ID, new RootContext(), null);
-		applicationManager.register("app3", DummyAppProvider.ID, new RootContext(), null);
 		applicationManager.register("default", DummyAppProvider.ID, new RootContext(), null);
-
-		applicationManager.mount("http://localhost/app1", "app1");
-		applicationManager.mount("http://localhost/app2", "app2");
-		applicationManager.mount("http://localhost/auchapp2", "app2");
-		applicationManager.mount("http://localhost/irgendwas/app3", "app3");
 		applicationManager.setDefaultApplication("default");
 	}
 
@@ -150,13 +137,6 @@ public class HttpActivator extends BaseBundleActivator {
 	protected synchronized void doStop(final BundleContext context) throws Exception {
 		// unregister the dummy app provider
 		dummyProviderRegistration.unregister();
-
-		// stop Jetty
-		try {
-			JettyConfigurator.stopServer("default");
-		} catch (final Exception e) {
-			BundleDebug.debug("Error while stopping Jetty: " + e.getMessage(), e);
-		}
 
 		// stop the HTTP service tracker
 		if (null != httpServiceTracker) {
@@ -249,10 +229,6 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 
 		return serviceProxy.getService();
-	}
-
-	public void restartJetty() {
-		new JettyStarter().schedule(500);
 	}
 
 	private void startApplicationManager(final BundleContext context) {
