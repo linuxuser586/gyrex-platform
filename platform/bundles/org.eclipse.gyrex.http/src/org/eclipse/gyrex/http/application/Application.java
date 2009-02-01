@@ -16,6 +16,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -107,6 +108,9 @@ public abstract class Application extends PlatformObject {
 	private final AtomicLong initTimestamp = new AtomicLong();
 	private final Lock initLock = new ReentrantLock();
 
+	/** the destroyed state */
+	private final AtomicBoolean destroyed = new AtomicBoolean();
+
 	/**
 	 * Creates a new application instance.
 	 * 
@@ -163,7 +167,7 @@ public abstract class Application extends PlatformObject {
 	 */
 	public final void destroy() {
 		// set status
-		status.set(Status.CANCEL_STATUS);
+		destroyed.set(true);
 
 		try {
 			// destroy
@@ -360,14 +364,26 @@ public abstract class Application extends PlatformObject {
 	 * {@link HttpServletResponse#SC_SERVICE_UNAVAILABLE} error and the message
 	 * provided in the status object returned.
 	 * </p>
+	 * <p>
+	 * Clients that should to modify the application status should do so in a
+	 * background operation and set it via {@link #setStatus(IStatus)}.
+	 * </p>
 	 * 
 	 * @return the application status
 	 */
-	public IStatus getStatus() {
+	public final IStatus getStatus() {
+		// check if destroyed
+		if (destroyed.get()) {
+			return Status.CANCEL_STATUS;
+		}
+
+		// get status
 		final IStatus status = this.status.get();
 		if (null != status) {
 			return status;
 		}
+
+		// assume OK
 		return Status.OK_STATUS;
 	}
 
@@ -524,6 +540,16 @@ public abstract class Application extends PlatformObject {
 			// deferred initialization
 			initTimestamp.set(0);
 		}
+	}
+
+	/**
+	 * Sets or resets the application status.
+	 * 
+	 * @param status
+	 *            the status to set, or <code>null</code> to reset
+	 */
+	protected final void setStatus(final IStatus status) {
+		this.status.set(status);
 	}
 
 	/* (non-Javadoc)
