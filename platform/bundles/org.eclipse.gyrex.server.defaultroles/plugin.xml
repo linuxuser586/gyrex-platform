@@ -30,13 +30,18 @@
       </role>
       <role
             defaultStart="inDevelopmentMode"
-            id="http"
-            name="CloudFree HTTP Server">
+            id="org.eclipse.cloudfree.boot.role.http.jetty"
+            name="CloudFree Jetty HTTP Engine">
+         <requireBundle
+               symbolicName="org.eclipse.cloudfree.http.jetty">
+         </requireBundle>
+      </role>
+      <role
+            defaultStart="inDevelopmentMode"
+            id="org.eclipse.cloudfree.boot.role.http.registry"
+            name="CloudFree HTTP Registry">
          <requireBundle
                symbolicName="org.eclipse.equinox.http.registry">
-         </requireBundle>
-         <requireBundle
-               symbolicName="org.eclipse.cloudfree.http">
          </requireBundle>
          <requireBundle
                symbolicName="org.eclipse.cloudfree.http.registry">
