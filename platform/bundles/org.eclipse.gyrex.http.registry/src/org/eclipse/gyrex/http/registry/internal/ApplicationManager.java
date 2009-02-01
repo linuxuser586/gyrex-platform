@@ -16,6 +16,7 @@ package org.eclipse.cloudfree.http.registry.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.cloudfree.http.registry.ApplicationCustomizer;
 import org.eclipse.cloudfree.http.registry.internal.ExtensionPointTracker.Listener;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtension;
@@ -27,9 +28,25 @@ public class ApplicationManager implements Listener {
 	private static final String APPLICATION = "application"; //$NON-NLS-1$
 	private static final String ID = "id"; //$NON-NLS-1$
 	private static final String CONTEXT_PATH = "contextPath"; //$NON-NLS-1$
+	private static final String CUSTOMIZER_CLASS = "customizerClass"; //$NON-NLS-1$
+
+	/**
+	 * @param configurationElement
+	 * @return
+	 */
+	public static ApplicationCustomizer createCustomizer(final IConfigurationElement configurationElement) {
+		try {
+			return (ApplicationCustomizer) configurationElement.createExecutableExtension(CUSTOMIZER_CLASS);
+		} catch (final Exception e) {
+			// TODO consider logging this
+			e.printStackTrace();
+		}
+		return null;
+	}
 
 	private final List<IConfigurationElement> registered = new ArrayList<IConfigurationElement>();
 	private final ApplicationRegistryManager applicationRegistryManager;
+
 	private final ExtensionPointTracker tracker;
 
 	public ApplicationManager(final ApplicationRegistryManager applicationRegistryManager, final IExtensionRegistry registry) {
@@ -59,7 +76,7 @@ public class ApplicationManager implements Listener {
 				contextPath = "/";
 			}
 
-			if (applicationRegistryManager.addApplicationContribution(applicationId, contextPath, extension.getContributor())) {
+			if (applicationRegistryManager.addApplicationContribution(applicationId, contextPath, applicationElement)) {
 				registered.add(applicationElement);
 			}
 		}

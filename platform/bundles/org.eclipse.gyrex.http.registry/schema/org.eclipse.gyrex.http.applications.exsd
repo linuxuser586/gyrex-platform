@@ -74,6 +74,16 @@
                </documentation>
             </annotation>
          </attribute>
+         <attribute name="customizerClass" type="string">
+            <annotation>
+               <documentation>
+                  if provided the the customizer will be invoked to allow further customization of the application
+               </documentation>
+               <appinfo>
+                  <meta.attribute kind="java" basedOn="org.eclipse.cloudfree.http.registry.ApplicationCustomizer:"/>
+               </appinfo>
+            </annotation>
+         </attribute>
       </complexType>
    </element>
 

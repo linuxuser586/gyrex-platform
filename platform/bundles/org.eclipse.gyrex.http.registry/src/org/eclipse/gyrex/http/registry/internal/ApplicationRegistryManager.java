@@ -27,6 +27,7 @@ import org.eclipse.cloudfree.http.application.manager.MountConflictException;
 import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
 import org.eclipse.cloudfree.http.application.servicesupport.NamespaceException;
 import org.eclipse.cloudfree.http.internal.apps.dummy.RootContext;
+import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.osgi.framework.Bundle;
@@ -39,14 +40,14 @@ import org.osgi.service.packageadmin.PackageAdmin;
 public class ApplicationRegistryManager {
 
 	class ApplicationContribution {
-		final IContributor contributor;
 		final String applicationId;
 		final String contextPath;
+		final IConfigurationElement configurationElement;
 
-		public ApplicationContribution(final String applicationId, final String contextPath, final IContributor contributor) {
+		public ApplicationContribution(final String applicationId, final String contextPath, final IConfigurationElement configurationElement) {
 			this.applicationId = applicationId;
 			this.contextPath = contextPath;
-			this.contributor = contributor;
+			this.configurationElement = configurationElement;
 		}
 	}
 
@@ -119,12 +120,12 @@ public class ApplicationRegistryManager {
 		mountManager = new MountManager(this, reference, registry);
 	}
 
-	public synchronized boolean addApplicationContribution(final String applicationId, final String contextPath, final IContributor contributor) {
+	public synchronized boolean addApplicationContribution(final String applicationId, final String contextPath, final IConfigurationElement configurationElement) {
 		if (applications.containsKey(applicationId)) {
 			return false; // TODO: should log this
 		}
 
-		applications.put(applicationId, new ApplicationContribution(applicationId, contextPath, contributor));
+		applications.put(applicationId, new ApplicationContribution(applicationId, contextPath, configurationElement));
 		try {
 			httpApplicationManager.register(applicationId, RegistryApplicationProvider.ID, new RootContext(), null);
 		} catch (final ApplicationRegistrationException e) {
@@ -232,6 +233,12 @@ public class ApplicationRegistryManager {
 			return;
 		}
 		activeApplications.put(applicationId, registryApplication);
+
+		// set customizer
+		final ApplicationContribution applicationContribution = applications.get(applicationId);
+		registryApplication.setCustomizer(ApplicationManager.createCustomizer(applicationContribution.configurationElement));
+
+		// register resources
 		for (final Iterator it = resources.values().iterator(); it.hasNext();) {
 			final ResourcesContribution contribution = (ResourcesContribution) it.next();
 			if (applicationId.equals(contribution.applicationId)) {
@@ -239,6 +246,7 @@ public class ApplicationRegistryManager {
 			}
 		}
 
+		// register servlets
 		for (final Iterator it = servlets.values().iterator(); it.hasNext();) {
 			final ServletContribution contribution = (ServletContribution) it.next();
 			if (applicationId.equals(contribution.applicationId)) {
