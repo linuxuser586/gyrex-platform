@@ -16,6 +16,7 @@ package org.eclipse.cloudfree.http.registry.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.cloudfree.http.registry.ApplicationCustomizer;
 import org.eclipse.cloudfree.http.registry.internal.ExtensionPointTracker.Listener;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -36,6 +37,9 @@ public class ApplicationManager implements Listener {
 	 */
 	public static ApplicationCustomizer createCustomizer(final IConfigurationElement configurationElement) {
 		try {
+			if (StringUtils.isBlank(configurationElement.getAttribute(CUSTOMIZER_CLASS))) {
+				return null;
+			}
 			return (ApplicationCustomizer) configurationElement.createExecutableExtension(CUSTOMIZER_CLASS);
 		} catch (final Exception e) {
 			// TODO consider logging this
