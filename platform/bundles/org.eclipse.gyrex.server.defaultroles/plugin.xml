@@ -16,7 +16,7 @@
          point="org.eclipse.cloudfree.boot.serverroles">
       <role
             defaultStart="inDevelopmentMode"
-            id="admin"
+            id="org.eclipse.cloudfree.boot.role.admin.gwt"
             name="CloudFree Admin UI (GWT based)">
          <requireBundle
                symbolicName="org.eclipse.equinox.http.registry">
