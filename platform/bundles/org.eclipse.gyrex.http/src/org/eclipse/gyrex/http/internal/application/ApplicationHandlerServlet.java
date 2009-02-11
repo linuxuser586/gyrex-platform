@@ -25,7 +25,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-
 import org.eclipse.cloudfree.common.debug.BundleDebug;
 import org.eclipse.cloudfree.common.logging.LogAudience;
 import org.eclipse.cloudfree.common.logging.LogSource;
@@ -240,7 +239,11 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 			return;
 		} catch (final Exception sendErrorException) {
 			// TODO: consider logging this, there is nothing much we can do here
-			throw new UnavailableException("Internal Error", 600);
+			// note, we'll be unavailable for 5 seconds only to allow a fast recover
+			// this could be more smart in the future (eg. an increase depending on load)
+			final UnavailableException unavailableException = new UnavailableException("Internal Error", 5);
+			unavailableException.initCause(sendErrorException);
+			throw unavailableException;
 		}
 	}
 
