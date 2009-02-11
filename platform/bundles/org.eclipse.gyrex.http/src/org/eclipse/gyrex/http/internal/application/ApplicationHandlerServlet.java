@@ -267,7 +267,7 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 			sendError(req, resp, e);
 		} catch (final Throwable t) {
 			if (HttpDebug.handlerServlet) {
-				BundleDebug.debug(MessageFormat.format("[EXCEPTION] [{0}] {1}: {2}", req.getMethod(), req.getRequestURL(), t));
+				BundleDebug.debug(MessageFormat.format("[UNHANDLED EXCEPTION] [{0}] {1}: {2}", req.getMethod(), req.getRequestURL(), t));
 			}
 			// we cache throwable here because we don't want to exceptions to slip through to an end user
 			if (PlatformConfiguration.isOperatingInDevelopmentMode()) {
@@ -275,7 +275,10 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 			} else {
 				// send a 503 to encourage the caller to re-try later
 				// TODO: consider logging original exception
-				throw new UnavailableException("Internal Error", 600);
+				// note, we must not throw javax.servlet.UnavailableException here because 
+				// this will block the whole server and affects all applications
+				// we also don't set a cause to prevent exposing stack straces to users
+				sendError(req, resp, new ApplicationException(503, "Application Handler Error"));
 			}
 		}
 	}
