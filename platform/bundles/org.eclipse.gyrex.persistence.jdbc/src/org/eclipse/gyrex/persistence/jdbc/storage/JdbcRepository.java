@@ -64,12 +64,12 @@ public abstract class JdbcRepository extends Repository {
 	 * repository instance represents.
 	 * <p>
 	 * Depending on the configuration of the repository this method may block
-	 * and wait till a connection is available.
+	 * and wait forever till a connection is available or fail after a timeout.
 	 * </p>
 	 * 
 	 * @return a connection to the data source
-	 * @exception SQLException
-	 *                if a database access error occurs
+	 * @throws SQLException
+	 *             if a database access error occurs
 	 */
 	public abstract Connection getConnection() throws SQLException;
 
@@ -78,6 +78,10 @@ public abstract class JdbcRepository extends Repository {
 	 * repository instance represents within the given waiting time and while
 	 * the current thread has not been {@linkplain Thread#interrupt()
 	 * interrupted}.
+	 * <p>
+	 * This method is encouraged for environments where a short reaction time is
+	 * necessary.
+	 * </p>
 	 * 
 	 * @param timeout
 	 *            the time to wait for a connection
@@ -85,8 +89,10 @@ public abstract class JdbcRepository extends Repository {
 	 *            the time unit of the timeout argument
 	 * @return a connection to the data source or <code>null</code> if no
 	 *         connection could be established within the given waiting time.
-	 * @exception SQLException
-	 *                if a database access error occurs
+	 * @throws SQLException
+	 *             if a database access error occurs
+	 * @throws InterruptedException
+	 *             if the thread has been interrupted
 	 */
-	public abstract Connection getConnection(final long timeout, final TimeUnit timeUnit) throws SQLException;
+	public abstract Connection getConnection(final long timeout, final TimeUnit timeUnit) throws SQLException, InterruptedException;
 }
