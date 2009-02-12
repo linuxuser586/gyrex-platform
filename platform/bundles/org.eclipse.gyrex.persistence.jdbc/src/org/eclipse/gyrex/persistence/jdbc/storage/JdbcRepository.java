@@ -47,16 +47,16 @@ public abstract class JdbcRepository extends Repository {
 	 * 
 	 * @param repositoryId
 	 *            the repository id (may not be <code>null</code>)
-	 * @param repositoryType
-	 *            the repository type (may not be <code>null</code>)
+	 * @param repositoryProvider
+	 *            the repository provider (may not be <code>null</code>)
 	 * @param metrics
 	 *            the metrics used by this repository (may not be
 	 *            <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if an invalid argument was specified
 	 */
-	protected JdbcRepository(final String repositoryId, final RepositoryProvider repositoryType, final MetricSet metrics) {
-		super(repositoryId, repositoryType, metrics);
+	protected JdbcRepository(final String repositoryId, final RepositoryProvider repositoryProvider, final MetricSet metrics) {
+		super(repositoryId, repositoryProvider, metrics);
 	}
 
 	/**
