@@ -12,12 +12,16 @@
 package org.eclipse.cloudfree.persistence.storage;
 
 import java.text.MessageFormat;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
 import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentTypeSupport;
 import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.PlatformObject;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
 
 /**
@@ -129,7 +133,8 @@ public abstract class Repository extends PlatformObject {
 	 * instance.
 	 * </p>
 	 * <p>
-	 * The provided metrics will be registered with the CloudFree platform.
+	 * The provided metrics will be registered with the CloudFree platform on
+	 * behalf of the bundle which loaded this class.
 	 * </p>
 	 * 
 	 * @param repositoryId
@@ -163,7 +168,7 @@ public abstract class Repository extends PlatformObject {
 		this.metrics = metrics;
 
 		// register the metrics
-		metricsRegistration = PersistenceActivator.getInstance().getServiceHelper().registerService(MetricSet.class.getName(), metrics, getName() + "(" + repositoryId + ")", "Metrics for repository " + repositoryId, null, null);
+		registerMetrics();
 	}
 
 	/**
@@ -229,7 +234,6 @@ public abstract class Repository extends PlatformObject {
 	 * @return the metrics
 	 */
 	protected final MetricSet getMetrics() {
-
 		return metrics;
 	}
 
@@ -286,6 +290,31 @@ public abstract class Repository extends PlatformObject {
 	 */
 	public final boolean isClosed() {
 		return closed;
+	}
+
+	/**
+	 * Registers the metrics on behalf of the bundle which loaded this class.
+	 * 
+	 * @throws IllegalArgumentException
+	 *             if the class was not loaded by a bundle class loader
+	 * @throws IllegalStateException
+	 *             if the bundle which loaded the class has no valid bundle
+	 *             context
+	 */
+	private void registerMetrics() throws IllegalArgumentException, IllegalStateException {
+		// get bundle context
+		final BundleContext bundleContext = FrameworkUtil.getBundleReference(getClass()).getBundle().getBundleContext();
+		if (null != bundleContext) {
+			throw new IllegalStateException("Unable to determin bundle context for class '" + getClass().getName() + "'. Please ensure that this class was loaded by a bundle which is either STARTING, ACTIVE or STOPPING.");
+		}
+
+		// create properties
+		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
+		properties.put(Constants.SERVICE_VENDOR, getName() + "[" + getRepositoryId() + "]");
+		properties.put(Constants.SERVICE_DESCRIPTION, "Metrics for repository '" + getRepositoryId() + "'.");
+
+		// register service
+		metricsRegistration = bundleContext.registerService(MetricSet.class.getName(), metrics, properties);
 	}
 
 	/**
