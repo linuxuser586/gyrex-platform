@@ -22,7 +22,7 @@ import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
 import org.eclipse.cloudfree.monitoring.metrics.PoolMetric;
 import org.eclipse.cloudfree.monitoring.metrics.StatusMetric;
 
-public class JdbcRepositoryMetrics extends MetricSet {
+public class SimplePooledJdbcRepositoryMetrics extends MetricSet {
 
 	private static String getError(final SQLException sqlException) {
 		final String error = MessageFormat.format("[SQLException] {0}; SQLState: {1}, Vendor ErrorCode: {2}", sqlException.getMessage(), sqlException.getSQLState(), sqlException.getErrorCode());
@@ -52,7 +52,7 @@ public class JdbcRepositoryMetrics extends MetricSet {
 
 	private final ErrorMetric errorMetric;
 
-	protected JdbcRepositoryMetrics(final String id, final String initialStatus, final String initialStatusReason, final long initialChannelsCapacity, final long initialChannelsMinimum) {
+	protected SimplePooledJdbcRepositoryMetrics(final String id, final String initialStatus, final String initialStatusReason, final long initialChannelsCapacity, final long initialChannelsMinimum) {
 		super(id, new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new PoolMetric(id + ".pool", initialChannelsCapacity, initialChannelsMinimum), new ErrorMetric(id + ".errors", true) });
 		poolStatusMetric = getMetric(0, StatusMetric.class);
 		poolMetric = getMetric(1, PoolMetric.class);

@@ -34,7 +34,7 @@ import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
  * This repository provides some basic pooling capabilities.
  * </p>
  */
-public class JdbcRepositoryImpl extends JdbcRepository {
+public class SimpledPooledJdbcRepositoryImpl extends JdbcRepository {
 
 	private final ConnectionPoolDataSource connectionPoolDataSource;
 
@@ -71,8 +71,8 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 	 *            the configured data source for creating
 	 *            {@link PooledConnection pooled connections}
 	 */
-	public JdbcRepositoryImpl(final String repositoryId, final RepositoryProvider repositoryType, final ConnectionPoolDataSource connectionPoolDataSource, final int poolCapacity) {
-		super(repositoryId, repositoryType, new JdbcRepositoryMetrics(createMetricsId(repositoryType, repositoryId), "open", "repository instance created", poolCapacity, 0));
+	public SimpledPooledJdbcRepositoryImpl(final String repositoryId, final RepositoryProvider repositoryType, final ConnectionPoolDataSource connectionPoolDataSource, final int poolCapacity) {
+		super(repositoryId, repositoryType, new SimplePooledJdbcRepositoryMetrics(createMetricsId(repositoryType, repositoryId), "open", "repository instance created", poolCapacity, 0));
 		this.connectionPoolDataSource = connectionPoolDataSource;
 		maxPoolCapacity = poolCapacity;
 	}
@@ -258,12 +258,12 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 	}
 
 	/**
-	 * Returns the metrics as {@link JdbcRepositoryMetrics}.
+	 * Returns the metrics as {@link SimplePooledJdbcRepositoryMetrics}.
 	 * 
-	 * @return the metrics as {@link JdbcRepositoryMetrics}
+	 * @return the metrics as {@link SimplePooledJdbcRepositoryMetrics}
 	 */
-	public JdbcRepositoryMetrics getJdbcRepositoryMetrics() {
-		return (JdbcRepositoryMetrics) getMetrics();
+	public SimplePooledJdbcRepositoryMetrics getJdbcRepositoryMetrics() {
+		return (SimplePooledJdbcRepositoryMetrics) getMetrics();
 	}
 
 	/**

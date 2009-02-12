@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.eclipse.cloudfree.persistence.jdbc.internal.JdbcRepositoryImpl;
+import org.eclipse.cloudfree.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
 import org.eclipse.cloudfree.persistence.storage.Repository;
 import org.junit.After;
 import org.junit.Before;
@@ -49,7 +49,7 @@ public class JdbcRepositoryTest {
 
 	private final AtomicInteger activeConnectionConcurreny = new AtomicInteger();
 
-	private void close(final JdbcRepositoryImpl repository) {
+	private void close(final SimpledPooledJdbcRepositoryImpl repository) {
 		try {
 			repository.close();
 		} catch (final Exception e) {
@@ -66,7 +66,7 @@ public class JdbcRepositoryTest {
 		}
 	}
 
-	private Callable<Exception> createConnectionCloseTask(final Future<Connection> connectionFuture, final JdbcRepositoryImpl repository) {
+	private Callable<Exception> createConnectionCloseTask(final Future<Connection> connectionFuture, final SimpledPooledJdbcRepositoryImpl repository) {
 		return new Callable<Exception>() {
 			@Override
 			public Exception call() throws Exception {
@@ -97,7 +97,7 @@ public class JdbcRepositoryTest {
 		};
 	}
 
-	private Callable<Connection> createGetConnectionTask(final JdbcRepositoryImpl repository, final CountDownLatch startSignal) {
+	private Callable<Connection> createGetConnectionTask(final SimpledPooledJdbcRepositoryImpl repository, final CountDownLatch startSignal) {
 		return new Callable<Connection>() {
 
 			@Override
@@ -124,11 +124,11 @@ public class JdbcRepositoryTest {
 		};
 	}
 
-	private JdbcRepositoryImpl createRepository() {
+	private SimpledPooledJdbcRepositoryImpl createRepository() {
 		final Repository repository = mockRepositoryType.createRepositoryInstance("test", null);
 		assertNotNull("repository must not be null", repository);
-		assertTrue("repository is not a JdbcRepository", repository instanceof JdbcRepositoryImpl);
-		return (JdbcRepositoryImpl) repository;
+		assertTrue("repository is not a JdbcRepository", repository instanceof SimpledPooledJdbcRepositoryImpl);
+		return (SimpledPooledJdbcRepositoryImpl) repository;
 	}
 
 	/**
@@ -136,7 +136,7 @@ public class JdbcRepositoryTest {
 	 * @return
 	 * @throws SQLException
 	 */
-	private Connection getConnection(final JdbcRepositoryImpl repository) throws SQLException {
+	private Connection getConnection(final SimpledPooledJdbcRepositoryImpl repository) throws SQLException {
 		final Connection connection = repository.getConnection();
 		assertNotNull("no connection returned", connection);
 		return connection;
@@ -160,7 +160,7 @@ public class JdbcRepositoryTest {
 
 	@Test
 	public void testCloseRepository() throws Exception {
-		final JdbcRepositoryImpl repository = createRepository();
+		final SimpledPooledJdbcRepositoryImpl repository = createRepository();
 		close(repository);
 	}
 
@@ -177,7 +177,7 @@ public class JdbcRepositoryTest {
 
 	@Test
 	public void testGetConnectionFromRepository() throws Exception {
-		final JdbcRepositoryImpl repository = createRepository();
+		final SimpledPooledJdbcRepositoryImpl repository = createRepository();
 
 		final Connection connection = getConnection(repository);
 
@@ -192,7 +192,7 @@ public class JdbcRepositoryTest {
 
 	@Test
 	public void testGetConnectionFromRepositoryMany() throws Exception {
-		final JdbcRepositoryImpl repository = createRepository();
+		final SimpledPooledJdbcRepositoryImpl repository = createRepository();
 
 		final Connection conn1 = getConnection(repository);
 		assertEquals("active connections count is not correct", 1, repository.getActiveConnectionsCount());
@@ -216,7 +216,7 @@ public class JdbcRepositoryTest {
 	}
 
 	private void testGetConnectionFromRepositoryParallel(final int maxConcurrency, final int taskToSchedule, final int poolCapacity) {
-		final JdbcRepositoryImpl repository = createRepository();
+		final SimpledPooledJdbcRepositoryImpl repository = createRepository();
 		repository.setPoolCapacity(poolCapacity);
 
 		final CountDownLatch startSignal = new CountDownLatch(1);
@@ -326,7 +326,7 @@ public class JdbcRepositoryTest {
 		testGetConnectionFromRepositoryParallel(1000, 10000, 100);
 	}
 
-	private int updateConcurrency(final JdbcRepositoryImpl repository) {
+	private int updateConcurrency(final SimpledPooledJdbcRepositoryImpl repository) {
 		final int activeConnectionsCount = repository.getActiveConnectionsCount();
 		final int activeConnectionConcurrenyCurrent = activeConnectionConcurreny.get();
 		if (activeConnectionConcurrenyCurrent < activeConnectionsCount) {

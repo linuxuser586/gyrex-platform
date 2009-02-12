@@ -12,7 +12,7 @@
 package org.eclipse.cloudfree.persistence.derby.internal;
 
 import org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource;
-import org.eclipse.cloudfree.persistence.jdbc.internal.JdbcRepositoryImpl;
+import org.eclipse.cloudfree.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
 import org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository;
 import org.eclipse.cloudfree.persistence.storage.Repository;
 import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
@@ -43,7 +43,7 @@ public class DerbyRepositoryType extends RepositoryProvider {
 	}
 
 	private Repository createJdbcRepository(final String repositoryId, final EmbeddedConnectionPoolDataSource embeddedConnectionPoolDataSource) {
-		return new JdbcRepositoryImpl(repositoryId, this, embeddedConnectionPoolDataSource, 0);
+		return new SimpledPooledJdbcRepositoryImpl(repositoryId, this, embeddedConnectionPoolDataSource, 0);
 	}
 
 	/* (non-Javadoc)
