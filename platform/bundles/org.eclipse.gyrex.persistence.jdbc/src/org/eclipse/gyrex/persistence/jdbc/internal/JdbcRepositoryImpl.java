@@ -50,12 +50,12 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 	private final ConnectionEventListener connectionEventListener = new ConnectionEventListener() {
 		@Override
 		public void connectionClosed(final ConnectionEvent event) {
-			closedPooledConnection((PooledConnection) event.getSource(), false);
+			pooledConnectionClosed((PooledConnection) event.getSource(), false);
 		}
 
 		@Override
 		public void connectionErrorOccurred(final ConnectionEvent event) {
-			closedPooledConnection((PooledConnection) event.getSource(), true);
+			pooledConnectionClosed((PooledConnection) event.getSource(), true);
 			getJdbcRepositoryMetrics().setSQLError("unknown", event.getSQLException());
 		}
 	};
@@ -77,81 +77,57 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 		maxPoolCapacity = poolCapacity;
 	}
 
-	private void activate(final PooledConnection pooledConnection) {
-		try {
-			activeConnections.add(pooledConnection);
-		} finally {
-			activeConnectionsCount = activeConnections.size();
-		}
-	}
-
-	/**
-	 * Adds a connection to the pool.
-	 * <p>
-	 * Note, must be called when holing {@link #poolLock}.
-	 * </p>
-	 * 
-	 * @param pooledConnection
-	 */
-	private void add(final PooledConnection pooledConnection) {
-		pooledConnections.add(pooledConnection);
-	}
-
 	private void checkClosed() {
 		if (isClosed()) {
-			throw new IllegalStateException("closed");
+			throw new IllegalStateException("repository '" + getRepositoryId() + "' closed");
 		}
 	}
 
 	/**
 	 * Closes the pooled connection.
 	 * <p>
-	 * Note, must be called when holing {@link #poolLock}.
+	 * Note, must be called when holding {@link #poolLock}.
 	 * </p>
 	 * 
 	 * @param pooledConnection
-	 * @throws SQLException
 	 */
 	private void close(final PooledConnection pooledConnection) {
-		untrack(pooledConnection);
-		remove(pooledConnection);
-	}
+		// no longer track events
+		pooledConnection.removeConnectionEventListener(connectionEventListener);
 
-	/**
-	 * Notifies the pool that a connection was "closed" by the application and
-	 * releases it back to the pool if desired.
-	 * 
-	 * @param pooledConnection
-	 * @param forceRemoveFromPool
-	 */
-	void closedPooledConnection(final PooledConnection pooledConnection, final boolean forceRemoveFromPool) {
-		final ReentrantLock lock = poolLock;
-		lock.lock();
+		// remove from the pool
+		pooledConnections.remove(pooledConnection);
+
+		// close the underlying connection
 		try {
-			// passivate
-			passivate(pooledConnection);
-
-			if (forceRemoveFromPool || (activeConnectionsCount >= maxPoolCapacity)) {
-				// remove it from the pool
-				close(pooledConnection);
-			} else {
-				// keep for re-use
-				availableConnections.add(pooledConnection);
-				getJdbcRepositoryMetrics().getPoolMetric().channelIdle();
-			}
-
-			// update metric
-			getJdbcRepositoryMetrics().getPoolMetric().channelFinished();
-
-		} finally {
-			lock.unlock();
+			pooledConnection.close();
+		} catch (final SQLException e) {
+			// we should eventually log this but it may just flood the logs
 		}
 	}
 
+	/**
+	 * Creates a new connection from the underlying data source and adds it to
+	 * the pool.
+	 * <p>
+	 * Note, must be called when holding {@link #poolLock}.
+	 * </p>
+	 * 
+	 * @return the created connection.
+	 * @throws SQLException
+	 *             if an error occured in the underlying pool data source while
+	 *             creating the connection.
+	 */
 	private PooledConnection create() throws SQLException {
+		// create connection
 		final PooledConnection pooledConnection = connectionPoolDataSource.getPooledConnection();
-		add(pooledConnection);
-		track(pooledConnection);
+
+		// add to the pool
+		pooledConnections.add(pooledConnection);
+
+		// track the connection
+		pooledConnection.addConnectionEventListener(connectionEventListener);
+
 		return pooledConnection;
 	}
 
@@ -168,23 +144,18 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 			final PooledConnection[] connections = pooledConnections.toArray(new PooledConnection[0]);
 			for (final PooledConnection pooledConnection : connections) {
 				// passivate
-				passivate(pooledConnection);
-				// remove from pool
-				close(pooledConnection);
-				// close underlying connection
-				try {
-					pooledConnection.close();
-				} catch (final SQLException e) {
-					// we should eventually log this but it may just flood the logs
-				}
-			}
+				markInactive(pooledConnection);
 
-			// update metrics
-			getJdbcRepositoryMetrics().getPoolStatusMetric().setStatus("closed", "repository closed through API call");
+				// close and remove from pool
+				close(pooledConnection);
+			}
 		} finally {
 			// release lock
 			lock.unlock();
 		}
+
+		// update metrics
+		getJdbcRepositoryMetrics().getPoolStatusMetric().setStatus("closed", "repository closed through API call");
 	}
 
 	/**
@@ -273,6 +244,15 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 		}
 	}
 
+	/**
+	 * Creates and returns a Connection object that is a handle for the physical
+	 * connection that the specified PooledConnection object represents.
+	 * 
+	 * @param pooledConnection
+	 * @return the connection handle
+	 * @throws SQLException
+	 *             if a database access error occurs
+	 */
 	private Connection getConnection(final PooledConnection pooledConnection) throws SQLException {
 		return pooledConnection.getConnection();
 	}
@@ -290,6 +270,9 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 	 * Returns a pooled connection.
 	 * <p>
 	 * The pool will dynamically grow if no connection is available in the pool.
+	 * </p>
+	 * <p>
+	 * Note, must be called when holding {@link #poolLock}.
 	 * </p>
 	 * 
 	 * @return a database connection
@@ -309,8 +292,8 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 			pooledConnection = create();
 		}
 
-		// activate
-		activate(pooledConnection);
+		// mark activate
+		markActive(pooledConnection);
 
 		// get real connection
 		final Connection connection = getConnection(pooledConnection);
@@ -319,7 +302,31 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 		return connection;
 	}
 
-	private void passivate(final PooledConnection pooledConnection) {
+	/**
+	 * Adds a connection to the list of active connections.
+	 * <p>
+	 * Note, must be called when holding {@link #poolLock}.
+	 * </p>
+	 * 
+	 * @param pooledConnection
+	 */
+	private void markActive(final PooledConnection pooledConnection) {
+		try {
+			activeConnections.add(pooledConnection);
+		} finally {
+			activeConnectionsCount = activeConnections.size();
+		}
+	}
+
+	/**
+	 * Removes a connection from the list of active connections.
+	 * <p>
+	 * Note, must be called when holding {@link #poolLock}.
+	 * </p>
+	 * 
+	 * @param pooledConnection
+	 */
+	private void markInactive(final PooledConnection pooledConnection) {
 		try {
 			activeConnections.remove(pooledConnection);
 		} finally {
@@ -328,15 +335,33 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 	}
 
 	/**
-	 * Removes a connection from the pool.
-	 * <p>
-	 * Note, must be called when holing {@link #poolLock}.
-	 * </p>
+	 * Notifies the pool that a connection was "closed" by the application and
+	 * releases it back to the pool if desired.
 	 * 
 	 * @param pooledConnection
+	 * @param forceRemoveFromPool
 	 */
-	private void remove(final PooledConnection pooledConnection) {
-		pooledConnections.remove(pooledConnection);
+	void pooledConnectionClosed(final PooledConnection pooledConnection, final boolean forceRemoveFromPool) {
+		final ReentrantLock lock = poolLock;
+		lock.lock();
+		try {
+			// remove from list of active connections
+			markInactive(pooledConnection);
+
+			if (forceRemoveFromPool || (activeConnectionsCount >= maxPoolCapacity)) {
+				// remove it from the pool
+				close(pooledConnection);
+			} else {
+				// keep for re-use
+				availableConnections.add(pooledConnection);
+				getJdbcRepositoryMetrics().getPoolMetric().channelIdle();
+			}
+		} finally {
+			lock.unlock();
+		}
+
+		// update metric
+		getJdbcRepositoryMetrics().getPoolMetric().channelFinished();
 	}
 
 	/**
@@ -354,22 +379,4 @@ public class JdbcRepositoryImpl extends JdbcRepository {
 		getJdbcRepositoryMetrics().getPoolMetric().setChannelsCapacity(maximumPoolSize);
 	}
 
-	/**
-	 * Tracks a connection so that we get notified when it becomes obsolete.
-	 * <p>
-	 * Note, must be called when holing {@link #poolLock}.
-	 * </p>
-	 * 
-	 * @param pooledConnection
-	 */
-	private void track(final PooledConnection pooledConnection) {
-		pooledConnection.addConnectionEventListener(connectionEventListener);
-	}
-
-	/**
-	 * @param pooledConnection
-	 */
-	private void untrack(final PooledConnection pooledConnection) {
-		pooledConnection.removeConnectionEventListener(connectionEventListener);
-	}
 }
