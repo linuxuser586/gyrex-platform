@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.internal.storage;
 
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -19,7 +20,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-
 import org.eclipse.cloudfree.configuration.preferences.PlatformScope;
 import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
 import org.eclipse.cloudfree.persistence.storage.Repository;
@@ -27,6 +27,8 @@ import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.cloudfree.persistence.storage.registry.IRepositoryRegistry;
 import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -39,6 +41,43 @@ public class RepositoriesManager implements IRepositoryRegistry {
 	 * A repository definition.
 	 */
 	private static class RepositoryDefinition {
+		/**
+		 * 
+		 */
+		private final class RepositoryPreferences implements IRepositoryPreferences {
+			/** securePreferences */
+			private final ISecurePreferences securePreferences;
+			/** eclipsePreferences */
+			private final IEclipsePreferences eclipsePreferences;
+
+			/**
+			 * Creates a new instance.
+			 * 
+			 * @param securePreferences
+			 * @param eclipsePreferences
+			 */
+			private RepositoryPreferences(final ISecurePreferences securePreferences, final IEclipsePreferences eclipsePreferences) {
+				this.securePreferences = securePreferences;
+				this.eclipsePreferences = eclipsePreferences;
+			}
+
+			@Override
+			public void flush() throws BackingStoreException, IOException {
+				eclipsePreferences.flush();
+				securePreferences.flush();
+			}
+
+			@Override
+			public IEclipsePreferences getPreferences() throws IllegalStateException {
+				return eclipsePreferences;
+			}
+
+			@Override
+			public ISecurePreferences getSecurePreferences() throws IllegalStateException {
+				return securePreferences;
+			}
+		}
+
 		private static final String KEY_TYPE = "type";
 		private static final String NODE_PROPERTIES = "properties";
 		private final RepositoryDefinitionsStore store;
@@ -74,17 +113,12 @@ public class RepositoriesManager implements IRepositoryRegistry {
 			return store.storage.node(repositoryId);
 		}
 
-		/**
-		 * @return
-		 */
 		public IRepositoryPreferences getPreferences() {
-			// TODO implement me using secure storage
-			return null;
+			final IEclipsePreferences eclipsePreferences = (IEclipsePreferences) getNode().node("data");
+			final ISecurePreferences securePreferences = SecurePreferencesFactory.getDefault().node(PersistenceActivator.PLUGIN_ID + "/repositories/" + repositoryId + "/data");
+			return new RepositoryPreferences(securePreferences, eclipsePreferences);
 		}
 
-		/**
-		 * @return
-		 */
 		public Dictionary<String, String> getProperties() {
 			try {
 				final String propertiesNodePath = repositoryId + "/" + NODE_PROPERTIES;

@@ -11,23 +11,21 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.storage.settings;
 
-import org.eclipse.equinox.security.storage.StorageException;
+import java.io.IOException;
+
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.osgi.service.prefs.BackingStoreException;
 
 /**
  * Repository preferences for storing repository configuration settings (such as
  * connection information).
  * <p>
- * Repository preferences allow to encrypt settings for storing sensitive
- * information such as passwords.
- * </p>
- * <p>
- * Please note that repository preferences are only intended to store relatively
- * small size data, such as passwords. If you need to securely store large
- * objects, consider encrypting such objects in a symmetric way using randomly
- * generated password and use repository preferences to store the password.
- * </p>
- * <p>
- * If preferences were modified, the platform will automatically save them.
+ * Repository preferences provide convenient access to the node in the Eclipse
+ * preferences hierarchy which a repository should use to store and read
+ * preferences. The usage of the suggested nodes is encouraged. It helps
+ * operators to locate the preferences more easily if they are stored together
+ * in an LDAP server for example.
  * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
@@ -36,121 +34,34 @@ import org.eclipse.equinox.security.storage.StorageException;
 public interface IRepositoryPreferences {
 
 	/**
-	 * Retrieves a value associated with the key in this node. If the value was
-	 * encrypted, it is decrypted.
+	 * Convenience method to flush both preferences.
 	 * 
-	 * @param key
-	 *            key with this the value is associated
-	 * @param def
-	 *            default value to return if the key is not associated with any
-	 *            value
-	 * @return value associated the key. If value was stored in an encrypted
-	 *         form, it will be decrypted
+	 * @throws IOException
+	 *             if error occurred while saving secure preferences
+	 * @throws BackingStoreException
+	 *             if an error occurred while saving the Eclipse preferences
+	 * @see IEclipsePreferences#flush()
+	 * @see ISecurePreferences#flush()
+	 */
+	public void flush() throws BackingStoreException, IOException;
+
+	/**
+	 * Returns the node in the Eclipse preferences hierarchy for reading and
+	 * storing non-secure preferences.
+	 * 
 	 * @throws IllegalStateException
-	 *             if exception occurred during decryption
+	 *             if exception occurred while accessing the preferences
+	 * @see IEclipsePreferences
 	 */
-	public boolean get(String key, boolean def) throws IllegalStateException;
+	public IEclipsePreferences getPreferences() throws IllegalStateException;
 
 	/**
-	 * Retrieves a value associated with the key in this node. If the value was
-	 * encrypted, it is decrypted.
+	 * Returns the node in the Eclipse preferences hierarchy for reading and
+	 * storing secure preferences.
 	 * 
-	 * @param key
-	 *            key with this the value is associated
-	 * @param def
-	 *            default value to return if the key is not associated with any
-	 *            value
-	 * @return value associated the key. If value was stored in an encrypted
-	 *         form, it will be decrypted
 	 * @throws IllegalStateException
-	 *             if exception occurred during decryption
+	 *             if exception occurred while accessing the preferences
+	 * @see ISecurePreferences
 	 */
-	public int get(String key, int def) throws IllegalStateException;
-
-	/**
-	 * Retrieves a value associated with the key in this node. If the value was
-	 * encrypted, it is decrypted.
-	 * 
-	 * @param key
-	 *            key with this the value is associated
-	 * @param def
-	 *            default value to return if the key is not associated with any
-	 *            value
-	 * @return value associated the key. If value was stored in an encrypted
-	 *         form, it will be decrypted
-	 * @throws IllegalStateException
-	 *             if exception occurred during decryption
-	 */
-	public String get(String key, String def) throws StorageException;
-
-	/**
-	 * Returns keys that have associated values.
-	 * 
-	 * @return keys that have associated values
-	 */
-	public String[] keys();
-
-	/**
-	 * Stores a value associated with the key in this node.
-	 * 
-	 * @param key
-	 *            key with which the value is going to be associated
-	 * @param value
-	 *            value to store
-	 * @param encrypt
-	 *            <code>true</code> if value is to be encrypted,
-	 *            <code>false</code> value does not need to be encrypted
-	 * @throws StorageException
-	 *             if exception occurred during encryption
-	 * @throws IllegalStateException
-	 *             if this node (or an ancestor) has been removed with the
-	 *             {@link #removeNode()} method.
-	 * @throws NullPointerException
-	 *             if <code>key</code> is <code>null</code>.
-	 */
-	public void put(String key, boolean value, boolean encrypt) throws IllegalStateException;
-
-	/**
-	 * Stores a value associated with the key in this node.
-	 * 
-	 * @param key
-	 *            key with which the value is going to be associated
-	 * @param value
-	 *            value to store
-	 * @param encrypt
-	 *            <code>true</code> if value is to be encrypted,
-	 *            <code>false</code> value does not need to be encrypted
-	 * @throws StorageException
-	 *             if exception occurred during encryption
-	 * @throws IllegalStateException
-	 *             if this node (or an ancestor) has been removed with the
-	 *             {@link #removeNode()} method.
-	 * @throws NullPointerException
-	 *             if <code>key</code> is <code>null</code>.
-	 */
-	public void put(String key, int value, boolean encrypt) throws IllegalStateException;
-
-	/**
-	 * Stores a value associated with the key in the preferences.
-	 * 
-	 * @param key
-	 *            key with which the value is going to be associated
-	 * @param value
-	 *            value to store
-	 * @param encrypt
-	 *            <code>true</code> if value is to be encrypted,
-	 *            <code>false</code> value does not need to be encrypted
-	 * @throws IllegalStateException
-	 *             if an exception occurred while storing the preferences
-	 */
-	public void put(String key, String value, boolean encrypt) throws IllegalStateException;
-
-	/**
-	 * Removes the value associated with the key.
-	 * 
-	 * @param key
-	 *            key with which a value is associated
-	 */
-	public void remove(String key);
-
+	public ISecurePreferences getSecurePreferences() throws IllegalStateException;
 }
