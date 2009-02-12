@@ -166,6 +166,8 @@ public final class RepositoryContentType extends PlatformObject {
 	 *            the {@link #getRepositoryTypeName() repository type name}
 	 * @param version
 	 *            the {@link #getVersion() version}
+	 * @throws IllegalArgumentException
+	 *             if any of the specified parameter is invalid
 	 */
 	public RepositoryContentType(final String mediaTypeType, final String mediaTypeSubType, final String repositoryTypeName, final String version) throws IllegalArgumentException {
 		if (null == repositoryTypeName) {
