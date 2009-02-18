@@ -66,12 +66,18 @@ public class RegistrationsManager implements SynchronousBundleListener, IShutdow
 	 */
 	@Override
 	public void bundleChanged(final BundleEvent event) {
+		// ignore events the manager is in the process of deactivation
+		if (!active.get()) {
+			return;
+		}
+
 		if (event.getType() == BundleEvent.STOPPED) {
 			final Bundle bundle = event.getBundle();
 
 			// the bundle has been STOPPED
 			// the event is processed synchronous (we are a SynchronousBundleListener)
-			// therefor, it's safe to assume that no one starts the same bundle again as long as we are running
+			// therefor, it's safe to assume that no one starts the same bundle again 
+			// as long as we are running
 			// thus, it's ok to remove all registrations of the bundle
 
 			// unregister all bundles registrations
@@ -121,25 +127,6 @@ public class RegistrationsManager implements SynchronousBundleListener, IShutdow
 		// check alias is not registered
 		if (registrations.containsKey(alias)) {
 			throw new NamespaceException(alias);
-		}
-	}
-
-	/**
-	 * Destroys the manager instance and clears out all registrations.
-	 * <p>
-	 * This method is safe to be called multiple times.
-	 * </p>
-	 */
-	public void destory() {
-		if (!active.get()) {
-			return;
-		}
-		if (active.compareAndSet(true, false)) {
-			// destroy succeeded
-			HttpActivator.getInstance().removeShutdownParticipant(this);
-			HttpActivator.getInstance().getBundle().getBundleContext().removeBundleListener(this);
-			registrations.clear();
-			registrationsByBundle.clear();
 		}
 	}
 
@@ -283,12 +270,26 @@ public class RegistrationsManager implements SynchronousBundleListener, IShutdow
 
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.lifecycle.IShutdownParticipant#shutdown()
+	/**
+	 * Destroys the manager instance and clears out all registrations.
+	 * <p>
+	 * This method is safe to be called multiple times.
+	 * </p>
 	 */
 	@Override
 	public void shutdown() throws Exception {
-		destory();
+		if (!active.get()) {
+			return;
+		}
+		if (active.compareAndSet(true, false)) {
+			// destroy succeeded
+			HttpActivator.getInstance().removeShutdownParticipant(this);
+			HttpActivator.getInstance().getBundle().getBundleContext().removeBundleListener(this);
+
+			// TODO we should verify that this is safe or whether we should explicitly unregister/destroy the registrations
+			registrations.clear();
+			registrationsByBundle.clear();
+		}
 	}
 
 	/**
