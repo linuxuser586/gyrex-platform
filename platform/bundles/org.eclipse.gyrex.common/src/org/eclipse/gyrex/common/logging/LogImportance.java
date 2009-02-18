@@ -11,14 +11,13 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.common.logging;
 
-
 /**
  * Tags for classifying log messages based on the log importance.
  */
 public enum LogImportance implements LogTag {
 
 	/**
-	 * a blocking entry (typically ised to report problems which are preventing
+	 * a blocking entry (typically used to report problems which are preventing
 	 * the system from functioning and must be addressed before continuing)
 	 * <p>
 	 * Examples:
