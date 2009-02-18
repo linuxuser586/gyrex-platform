@@ -31,7 +31,7 @@ public class DerbyRepositoryType extends RepositoryProvider {
 	 * 
 	 * @param repositoryTypeId
 	 */
-	DerbyRepositoryType() {
+	public DerbyRepositoryType() {
 		super(TYPE_ID, JdbcRepository.class);
 	}
 
