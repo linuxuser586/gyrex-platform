@@ -28,7 +28,9 @@ import org.osgi.framework.ServiceReference;
  * debugging and tracing.
  * <p>
  * Typically sub-class declare non-final public static boolean fields. The field
- * values are looked up from the debug options during bundle activation.
+ * values are looked up from the debug options when requested by calling
+ * {@link #initializeDebugOptions(BaseBundleActivator, Class)} (eg. during
+ * bundle activation).
  * </p>
  */
 public abstract class BundleDebug {
