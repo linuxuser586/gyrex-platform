@@ -25,15 +25,21 @@ public class ServiceNotAvailableException extends IllegalStateException {
 	private static final long serialVersionUID = 1487250773530150148L;
 
 	private static String getSymbolicName(final BundleContext bundleContext) {
-		if (null == bundleContext) {
+		// get bundle
+		Bundle bundle = null;
+		try {
+			bundle = null != bundleContext ? bundleContext.getBundle() : null;
+		} catch (final IllegalStateException e) {
+			// ignore;
+		}
+
+		// check if bundle was accessible
+		if (null == bundle) {
 			return "(destroyed)";
 		}
-		try {
-			final Bundle bundle = bundleContext.getBundle();
-			return MessageFormat.format("{0}(id {1})", bundle.getSymbolicName(), bundle.getBundleId());
-		} catch (final IllegalStateException e) {
-			return MessageFormat.format("({0})", e.getMessage());
-		}
+
+		// return formatted string
+		return MessageFormat.format("{0}(id {1})", bundle.getSymbolicName(), bundle.getBundleId());
 	}
 
 	/**
