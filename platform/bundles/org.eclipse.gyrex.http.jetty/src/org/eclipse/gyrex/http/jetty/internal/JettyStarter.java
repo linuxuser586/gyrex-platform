@@ -41,7 +41,7 @@ final class JettyStarter extends Job {
 		final Dictionary<String, Object> settings = new Hashtable<String, Object>(4);
 		settings.put(JettyConstants.OTHER_INFO, HttpActivator.TYPE_WEB);
 		settings.put(JettyConstants.HTTP_ENABLED, Boolean.TRUE);
-		settings.put(JettyConstants.HTTP_PORT, new Integer(configurationService.getInt(HttpActivator.PLUGIN_ID, "port", 80, null)));
+		settings.put(JettyConstants.HTTP_PORT, new Integer(configurationService.getInt(HttpJettyActivator.SYMBOLIC_NAME, "port", 80, null)));
 		// note, we use the string here to not depend on inofficial API
 		settings.put("customizer.class", "org.eclipse.cloudfree.http.internal.CloudFreeJettyCustomizer");
 
