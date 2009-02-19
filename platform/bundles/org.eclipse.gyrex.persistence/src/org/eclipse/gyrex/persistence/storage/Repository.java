@@ -305,7 +305,7 @@ public abstract class Repository extends PlatformObject {
 		// get bundle context
 		// TODO: we might need to wrap this into a privileged call
 		final BundleContext bundleContext = FrameworkUtil.getBundleReference(getClass()).getBundle().getBundleContext();
-		if (null != bundleContext) {
+		if (null == bundleContext) {
 			throw new IllegalStateException("Unable to determin bundle context for class '" + getClass().getName() + "'. Please ensure that this class was loaded by a bundle which is either STARTING, ACTIVE or STOPPING.");
 		}
 
