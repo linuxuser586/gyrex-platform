@@ -113,30 +113,15 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 		return providersById.get(providerId);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.util.tracker.ServiceTrackerCustomizer#modifiedService(org.osgi.framework.ServiceReference, java.lang.Object)
-	 */
 	@Override
 	public void modifiedService(final ServiceReference reference, final Object service) {
 		// nothing
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.registry.IApplicationManager#mount(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public void mount(final String url, final String applicationId) throws MountConflictException, MalformedURLException {
-		if (null == url) {
-			throw new IllegalArgumentException("url must not be null");
-		}
-
-		// verify protocol
-		if (!(url.startsWith("http://") || url.startsWith("https://"))) {
-			throw new IllegalArgumentException("url '" + url + "' must start with 'http://' or 'https://'");
-		}
-
 		// parse the url
-		final URL parsedUrl = new URL(url);
+		final URL parsedUrl = parseAndVerifyUrl(url);
 
 		// create the mount
 		final ApplicationMount mount = new ApplicationMount(parsedUrl, applicationId);
@@ -153,6 +138,22 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 */
 	public void open() {
 		providerTracker.open();
+	}
+
+	private URL parseAndVerifyUrl(final String url) throws MalformedURLException {
+		if (null == url) {
+			throw new IllegalArgumentException("url must not be null");
+		}
+
+		// parse the url
+		final URL parsedUrl = new URL(url);
+
+		// verify protocol
+		final String protocol = parsedUrl.getProtocol();
+		if (!(protocol.equals("http") || protocol.equals("https"))) {
+			throw new IllegalArgumentException("url '" + url + "' must start with 'http://' or 'https://'");
+		}
+		return parsedUrl;
 	}
 
 	/* (non-Javadoc)
@@ -210,19 +211,17 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	 * @see org.eclipse.cloudfree.http.application.registry.IApplicationManager#unmount(java.lang.String)
 	 */
 	@Override
-	public void unmount(String url) throws MalformedURLException {
-		// strip trailing slashes
-		while ((url.length() > 0) && (url.charAt(url.length() - 1) == '/')) {
-			url = url.substring(0, url.length() - 1);
-		}
-
-		// verify protocol
-		if (!(url.startsWith("http://") || url.startsWith("https://"))) {
-			throw new IllegalArgumentException("url '" + url + "' must start with 'http://' or 'https://'");
-		}
+	public void unmount(final String url) throws MalformedURLException, IllegalArgumentException, IllegalStateException {
+		// parse the url
+		final URL parsedUrl = parseAndVerifyUrl(url);
 
 		// remove
-		mountRegistry.remove(new URL(url));
+		final ApplicationMount applicationMount = mountRegistry.remove(parsedUrl);
+
+		// throw IllegalStateException if nothing was removed
+		if (null == applicationMount) {
+			throw new IllegalStateException("no application was mounted for url '" + parsedUrl.toExternalForm() + "' (submitted url was '" + url + "')");
+		}
 	}
 
 	/* (non-Javadoc)

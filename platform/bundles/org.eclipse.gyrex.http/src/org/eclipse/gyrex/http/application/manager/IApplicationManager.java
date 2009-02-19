@@ -142,8 +142,10 @@ public interface IApplicationManager {
 	 *             unsupported protocol is used)
 	 * @throws MalformedURLException
 	 *             if the specified url is invalid
+	 * @throws IllegalStateException
+	 *             if no application is mounted for the specified url
 	 */
-	void unmount(String url) throws IllegalArgumentException, MalformedURLException;
+	void unmount(String url) throws IllegalArgumentException, MalformedURLException, IllegalStateException;
 
 	/**
 	 * Unregisters an application.
