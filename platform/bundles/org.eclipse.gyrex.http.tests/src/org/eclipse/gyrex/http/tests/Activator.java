@@ -16,11 +16,27 @@ import org.osgi.framework.BundleContext;
 
 public class Activator implements BundleActivator {
 
+	private static BundleContext bundleContext;
+
+	/**
+	 * Returns the bundleContext.
+	 * 
+	 * @return the bundleContext
+	 */
+	public static BundleContext getBundleContext() {
+		final BundleContext context = bundleContext;
+		if (null == context) {
+			throw new IllegalStateException("inactive");
+		}
+		return context;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
 	 */
 	public void start(final BundleContext context) throws Exception {
+		bundleContext = context;
 	}
 
 	/*
@@ -28,6 +44,7 @@ public class Activator implements BundleActivator {
 	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
 	 */
 	public void stop(final BundleContext context) throws Exception {
+		bundleContext = null;
 	}
 
 }
