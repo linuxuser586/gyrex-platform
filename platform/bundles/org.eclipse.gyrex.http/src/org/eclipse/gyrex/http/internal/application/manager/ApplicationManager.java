@@ -132,7 +132,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 
 		// verify protocol
 		if (!(url.startsWith("http://") || url.startsWith("https://"))) {
-			throw new IllegalArgumentException("url must start with 'http://' or 'https://'");
+			throw new IllegalArgumentException("url '" + url + "' must start with 'http://' or 'https://'");
 		}
 
 		// parse the url
@@ -218,7 +218,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 
 		// verify protocol
 		if (!(url.startsWith("http://") || url.startsWith("https://"))) {
-			throw new IllegalArgumentException("url must start with 'http://' or 'https://'");
+			throw new IllegalArgumentException("url '" + url + "' must start with 'http://' or 'https://'");
 		}
 
 		// remove
