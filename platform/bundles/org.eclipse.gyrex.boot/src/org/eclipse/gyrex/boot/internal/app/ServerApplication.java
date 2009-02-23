@@ -235,7 +235,7 @@ public class ServerApplication implements IApplication {
 			return EXIT_ERROR;
 		}
 
-		return relaunch ? EXIT_RELAUNCH : EXIT_OK;
+		return relaunch ? EXIT_RESTART : EXIT_OK;
 	}
 
 	/* (non-Javadoc)
