@@ -55,9 +55,7 @@ public class AppActivator extends BaseBundleActivator {
 
 	private BundleContext context;
 	private ServiceTracker bundleTracker;
-
 	private Job shutdownListener;
-
 	private ServerSocket serverSocket;
 
 	/**
