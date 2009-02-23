@@ -37,13 +37,21 @@ public class ServerApplication implements IApplication {
 	private static final Integer EXIT_ERROR = new Integer(1);
 
 	/**
-	 * Sets the restart.
-	 * 
-	 * @param restart
-	 *            the restart to set
+	 * Signals a restart.
 	 */
 	public static void signalRelaunch() {
 		relaunch = true;
+		final CountDownLatch signal = stopOrRestartSignal;
+		if (null != signal) {
+			signal.countDown();
+		}
+	}
+
+	/**
+	 * Signals a shutdown.
+	 */
+	public static void signalShutdown() {
+		relaunch = false;
 		final CountDownLatch signal = stopOrRestartSignal;
 		if (null != signal) {
 			signal.countDown();
@@ -196,6 +204,8 @@ public class ServerApplication implements IApplication {
 				BundleDebug.debug("Platform started.");
 			}
 
+			// note, this application is configured to run only ONCE
+			// thus, the following code is safe
 			stopOrRestartSignal = new CountDownLatch(1);
 			do {
 				try {

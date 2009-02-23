@@ -12,7 +12,10 @@ Require-Bundle: org.eclipse.cloudfree.common;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.equinox.registry;bundle-version="[3.4.100,4.0.0)"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Import-Package: org.apache.commons.lang;version="[2.4.0,3.0.0)",
+Import-Package: org.apache.commons.io;version="1.4.0",
+ org.apache.commons.lang;version="[2.4.0,3.0.0)",
+ org.apache.commons.lang.math;version="2.4.0",
+ org.eclipse.core.runtime.jobs,
  org.eclipse.osgi.util;version="[1.1.0,2.0.0)",
  org.osgi.framework;version="[1.4.0,2.0.0)",
  org.osgi.service.packageadmin;version="[1.2.0,2.0.0)",
