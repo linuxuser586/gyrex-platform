@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.storage.registry;
 
+import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
+
 /**
  * The repository registry provides administrative access to repositories
  * defined in the system.
@@ -26,11 +28,12 @@ package org.eclipse.cloudfree.persistence.storage.registry;
 public interface IRepositoryRegistry {
 
 	/**
-	 * Retrieves the list of repository properties for the specified repository.
+	 * Retrieves the repository preferences for the specified repository.
 	 * 
 	 * @param repositoryId
 	 *            the repository id
-	 * @return
+	 * @return the repository preferences (maybe <code>null</code> if the
+	 *         repository does not exist)
 	 */
-	//Map<String, String> getRepositoryProperties(String repositoryId);
+	IRepositoryPreferences getRepositoryPreferences(String repositoryId);
 }

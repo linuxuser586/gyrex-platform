@@ -19,7 +19,6 @@ Require-Bundle: org.eclipse.cloudfree.common;bundle-version="[1.0.0,2.0.0)",
 Export-Package: org.eclipse.cloudfree.persistence;uses:="org.eclipse.cloudfree.common.context,org.eclipse.cloudfree.persistence.storage",
  org.eclipse.cloudfree.persistence.internal;x-friends:="org.eclipse.cloudfree.persistence.tests",
  org.eclipse.cloudfree.persistence.internal.storage;x-friends:="org.eclipse.cloudfree.persistence.tests",
- org.eclipse.cloudfree.persistence.internal.storage.type;x-friends:="org.eclipse.cloudfree.persistence.tests",
  org.eclipse.cloudfree.persistence.storage;
   uses:="org.eclipse.cloudfree.common.context,
    org.eclipse.core.runtime,

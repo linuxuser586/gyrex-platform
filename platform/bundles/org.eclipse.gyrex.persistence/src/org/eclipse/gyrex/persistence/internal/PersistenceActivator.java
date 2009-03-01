@@ -11,11 +11,11 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.internal;
 
-
 import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.persistence.internal.storage.RepositoriesManager;
-import org.eclipse.cloudfree.persistence.internal.storage.type.RepositoryTypeRegistry;
+import org.eclipse.cloudfree.persistence.internal.storage.RepositoryRegistry;
+import org.eclipse.cloudfree.persistence.internal.storage.RepositoryProviderRegistry;
+import org.eclipse.cloudfree.persistence.storage.registry.IRepositoryRegistry;
 import org.osgi.framework.BundleContext;
 
 /**
@@ -23,7 +23,10 @@ import org.osgi.framework.BundleContext;
  */
 public class PersistenceActivator extends BaseBundleActivator {
 
-	/** the plug-in id (value <code>org.eclipse.cloudfree.common.persistence</code>) */
+	/**
+	 * the plug-in id (value
+	 * <code>org.eclipse.cloudfree.common.persistence</code>)
+	 */
 	public static final String PLUGIN_ID = "org.eclipse.cloudfree.persistence";
 
 	/** the shared instance */
@@ -44,10 +47,10 @@ public class PersistenceActivator extends BaseBundleActivator {
 	}
 
 	/** the repository type registry */
-	private RepositoryTypeRegistry repositoryTypeRegistry;
+	private RepositoryProviderRegistry repositoryProviderRegistry;
 
 	/** the repositories manager */
-	private RepositoriesManager repositoriesManager;
+	private RepositoryRegistry repositoryRegistry;
 
 	/**
 	 * Creates a new instance.
@@ -70,8 +73,8 @@ public class PersistenceActivator extends BaseBundleActivator {
 		// register the type registry
 		startRepositoryTypeRegistry(context);
 
-		// start the repositories manager
-		startRepositoriesManager();
+		// start the repository registry
+		startRepositoryRegistry();
 
 		// TODO: initialize development defaults
 		if (PlatformConfiguration.isOperatingInDevelopmentMode()) {
@@ -90,7 +93,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 		sharedInstance = null;
 
 		// stop the manager
-		stopRepositoriesManager();
+		stopRepositoryRegistry();
 
 		// stop the type registry
 		stopRepositoryTypeRegistry();
@@ -101,8 +104,8 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 * 
 	 * @return the repositories manager
 	 */
-	public RepositoriesManager getRepositoriesManager() {
-		return repositoriesManager;
+	public RepositoryRegistry getRepositoriesManager() {
+		return repositoryRegistry;
 	}
 
 	/**
@@ -110,8 +113,8 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 * 
 	 * @return the repository type registry
 	 */
-	public RepositoryTypeRegistry getRepositoryTypeRegistry() {
-		final RepositoryTypeRegistry registry = repositoryTypeRegistry;
+	public RepositoryProviderRegistry getRepositoryProviderRegistry() {
+		final RepositoryProviderRegistry registry = repositoryProviderRegistry;
 		if (null == registry) {
 			throw new IllegalStateException("inactive");
 		}
@@ -119,33 +122,36 @@ public class PersistenceActivator extends BaseBundleActivator {
 		return registry;
 	}
 
-	private synchronized void startRepositoriesManager() {
-		if (null != repositoriesManager) {
+	private synchronized void startRepositoryRegistry() {
+		if (null != repositoryRegistry) {
 			return;
 		}
 
-		repositoriesManager = new RepositoriesManager();
+		repositoryRegistry = new RepositoryRegistry();
+
+		// register service
+		getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "CloudFree Repository Registry", null, null);
 	}
 
 	private synchronized void startRepositoryTypeRegistry(final BundleContext context) {
-		if (null == repositoryTypeRegistry) {
-			repositoryTypeRegistry = new RepositoryTypeRegistry();
+		if (null == repositoryProviderRegistry) {
+			repositoryProviderRegistry = new RepositoryProviderRegistry();
 		}
-		repositoryTypeRegistry.start(context);
+		repositoryProviderRegistry.start(context);
 	}
 
-	private synchronized void stopRepositoriesManager() {
-		if (null == repositoriesManager) {
+	private synchronized void stopRepositoryRegistry() {
+		if (null == repositoryRegistry) {
 			return;
 		}
 
-		repositoriesManager = null;
+		repositoryRegistry = null;
 	}
 
 	private synchronized void stopRepositoryTypeRegistry() {
-		if (null != repositoryTypeRegistry) {
-			repositoryTypeRegistry.close();
-			repositoryTypeRegistry = null;
+		if (null != repositoryProviderRegistry) {
+			repositoryProviderRegistry.close();
+			repositoryProviderRegistry = null;
 		}
 	}
 }

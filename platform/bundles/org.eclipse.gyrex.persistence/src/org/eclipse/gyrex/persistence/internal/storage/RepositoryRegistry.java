@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008,2009 Gunnar Wagenknecht and others.
  * All rights reserved.
  *  
  * This program and the accompanying materials are made available under the 
@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.cloudfree.persistence.internal.storage;
 
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -35,53 +34,17 @@ import org.osgi.service.prefs.Preferences;
 /**
  * The platform repository manager stores repository information.
  */
-public class RepositoriesManager implements IRepositoryRegistry {
+public class RepositoryRegistry implements IRepositoryRegistry {
 
 	/**
 	 * A repository definition.
 	 */
 	private static class RepositoryDefinition {
-		/**
-		 * 
-		 */
-		private final class RepositoryPreferences implements IRepositoryPreferences {
-			/** securePreferences */
-			private final ISecurePreferences securePreferences;
-			/** eclipsePreferences */
-			private final IEclipsePreferences eclipsePreferences;
-
-			/**
-			 * Creates a new instance.
-			 * 
-			 * @param securePreferences
-			 * @param eclipsePreferences
-			 */
-			private RepositoryPreferences(final ISecurePreferences securePreferences, final IEclipsePreferences eclipsePreferences) {
-				this.securePreferences = securePreferences;
-				this.eclipsePreferences = eclipsePreferences;
-			}
-
-			@Override
-			public void flush() throws BackingStoreException, IOException {
-				eclipsePreferences.flush();
-				securePreferences.flush();
-			}
-
-			@Override
-			public IEclipsePreferences getPreferences() throws IllegalStateException {
-				return eclipsePreferences;
-			}
-
-			@Override
-			public ISecurePreferences getSecurePreferences() throws IllegalStateException {
-				return securePreferences;
-			}
-		}
-
 		private static final String KEY_TYPE = "type";
 		private static final String NODE_PROPERTIES = "properties";
 		private final RepositoryDefinitionsStore store;
 		private final String repositoryId;
+		private RepositoryPreferences repositoryPreferences;
 
 		/**
 		 * Creates a new instance.
@@ -114,9 +77,12 @@ public class RepositoriesManager implements IRepositoryRegistry {
 		}
 
 		public IRepositoryPreferences getPreferences() {
+			if (null != repositoryPreferences) {
+				return repositoryPreferences;
+			}
 			final IEclipsePreferences eclipsePreferences = (IEclipsePreferences) getNode().node("data");
 			final ISecurePreferences securePreferences = SecurePreferencesFactory.getDefault().node(PersistenceActivator.PLUGIN_ID + "/repositories/" + repositoryId + "/data");
-			return new RepositoryPreferences(securePreferences, eclipsePreferences);
+			return repositoryPreferences = new RepositoryPreferences(securePreferences, eclipsePreferences);
 		}
 
 		public Dictionary<String, String> getProperties() {
@@ -154,7 +120,6 @@ public class RepositoriesManager implements IRepositoryRegistry {
 	private static class RepositoryDefinitionsStore {
 
 		private IEclipsePreferences storage;
-		private String[] repositories;
 
 		public RepositoryDefinition get(final String repositoryId) {
 			if (null == storage) {
@@ -170,26 +135,10 @@ public class RepositoriesManager implements IRepositoryRegistry {
 		}
 
 		/**
-		 * Returns the repositories.
-		 * 
-		 * @return the repositories
-		 */
-		public String[] getRepositories() {
-			return repositories;
-		}
-
-		/**
 		 * Loads the store
 		 */
 		public synchronized void load() {
 			storage = (IEclipsePreferences) new PlatformScope().getNode(PersistenceActivator.PLUGIN_ID).node("repositories");
-			try {
-				repositories = storage.childrenNames();
-			} catch (final Exception e) {
-				// TODO log error
-				// no children; ignore for now
-				repositories = new String[0];
-			}
 		}
 
 	}
@@ -218,7 +167,7 @@ public class RepositoriesManager implements IRepositoryRegistry {
 		}
 
 		// get repository type
-		final RepositoryProvider repositoryType = PersistenceActivator.getInstance().getRepositoryTypeRegistry().getRepositoryType(type);
+		final RepositoryProvider repositoryType = PersistenceActivator.getInstance().getRepositoryProviderRegistry().getRepositoryProvider(type);
 
 		// get repository settings
 		final IRepositoryPreferences repositoryPreferences = repositoryDef.getPreferences();
@@ -298,6 +247,29 @@ public class RepositoriesManager implements IRepositoryRegistry {
 		} finally {
 			repositoryCreationLock.unlock();
 		}
+	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.cloudfree.persistence.storage.registry.IRepositoryRegistry#getRepositoryPreferences(java.lang.String)
+	 */
+	@Override
+	public IRepositoryPreferences getRepositoryPreferences(final String repositoryId) {
+		if (null == repositoryId) {
+			throw new IllegalArgumentException("repository id must not be null");
+		}
+
+		// open store if necessary
+		if (null == repositoryDefinitionsStore) {
+			open();
+		}
+
+		// get repository definition
+		final RepositoryDefinition repositoryDef = repositoryDefinitionsStore.get(repositoryId);
+		if (null == repositoryDef) {
+			return null;
+		}
+
+		return repositoryDef.getPreferences();
 	}
 
 	private synchronized void open() {
