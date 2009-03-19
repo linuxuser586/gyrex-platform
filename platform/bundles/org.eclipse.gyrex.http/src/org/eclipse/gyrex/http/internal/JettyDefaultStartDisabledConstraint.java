@@ -9,15 +9,15 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal;
+package org.eclipse.gyrex.http.internal;
 
 import java.text.MessageFormat;
 
 
-import org.eclipse.cloudfree.configuration.constraints.PlatformConfigurationConstraint;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.gyrex.configuration.constraints.PlatformConfigurationConstraint;
 import org.osgi.framework.BundleContext;
 
 /**
@@ -37,13 +37,13 @@ public class JettyDefaultStartDisabledConstraint extends PlatformConfigurationCo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.configuration.service.ConfigurationConstraint#evaluateConfiguration(org.eclipse.core.runtime.IProgressMonitor)
+	 * @see org.eclipse.gyrex.configuration.service.ConfigurationConstraint#evaluateConfiguration(org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
 	public IStatus evaluateConfiguration(final IProgressMonitor progressMonitor) {
 		final String autostart = context.getProperty(PROP_JETTY_AUTOSTART);
 		if ((null == autostart) || !Boolean.FALSE.toString().equals(autostart)) {
-			return new Status(IStatus.ERROR, HttpActivator.PLUGIN_ID, MessageFormat.format("The Jetty-based HTTP is configured to startup automatically. However, this is discouraged on the CloudFree Platform. Please set the system property ''{0}'' to ''{1}''. Usually, the property is set in the config.ini before startup.", PROP_JETTY_AUTOSTART, Boolean.FALSE.toString()));
+			return new Status(IStatus.ERROR, HttpActivator.PLUGIN_ID, MessageFormat.format("The Jetty-based HTTP is configured to startup automatically. However, this is discouraged on Gyrex. Please set the system property ''{0}'' to ''{1}''. Usually, the property is set in the config.ini before startup.", PROP_JETTY_AUTOSTART, Boolean.FALSE.toString()));
 		}
 		return Status.OK_STATUS;
 	}

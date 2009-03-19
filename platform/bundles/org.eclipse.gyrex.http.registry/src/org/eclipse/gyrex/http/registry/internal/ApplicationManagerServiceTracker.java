@@ -9,15 +9,15 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
 import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.packageadmin.PackageAdmin;

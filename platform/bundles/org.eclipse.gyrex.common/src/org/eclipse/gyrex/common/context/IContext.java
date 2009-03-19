@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.context;
+package org.eclipse.gyrex.common.context;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IPath;
@@ -17,9 +17,9 @@ import org.eclipse.core.runtime.IPath;
 /**
  * The context for defining the runtime environment.
  * <p>
- * In the CloudFree Platform several constraints are not static for every
+ * In Gyrex several constraints are not static for every
  * execution. They depend on an environment. This interface defines this
- * environment and is used in the CloudFree Platform to bind runtime
+ * environment and is used in Gyrex to bind runtime
  * constraints.
  * </p>
  * 
@@ -49,7 +49,7 @@ public interface IContext extends IAdaptable {
 	 * Returns the context path.
 	 * <p>
 	 * Each context has a path which uniquely identifies the context across the
-	 * CloudFree Platform in a persistent manner. This means that the identifier
+	 * Gyrex in a persistent manner. This means that the identifier
 	 * must not change across subsequent invocations and sessions.
 	 * </p>
 	 * 

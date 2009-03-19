@@ -9,22 +9,22 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.runtime;
+package org.eclipse.gyrex.common.runtime;
 
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
-import org.eclipse.cloudfree.common.lifecycle.IShutdownParticipant;
-import org.eclipse.cloudfree.common.logging.BundleLog;
-import org.eclipse.cloudfree.common.logging.LogAudience;
-import org.eclipse.cloudfree.common.logging.LogSource;
-import org.eclipse.cloudfree.common.services.BundleServiceHelper;
-import org.eclipse.cloudfree.common.status.BundleStatusUtil;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.ListenerList;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
+import org.eclipse.gyrex.common.logging.BundleLog;
+import org.eclipse.gyrex.common.logging.LogAudience;
+import org.eclipse.gyrex.common.logging.LogSource;
+import org.eclipse.gyrex.common.services.BundleServiceHelper;
+import org.eclipse.gyrex.common.status.BundleStatusUtil;
 import org.eclipse.osgi.util.NLS;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
@@ -37,11 +37,11 @@ import org.osgi.framework.Version;
  * <p>
  * A bundle activator is the entry into the OSGi world. This common base class
  * provides convenient access to helpers and implements lifecycle practises
- * followed in the CloudFree Platform.
+ * followed in Gyrex.
  * </p>
  * <p>
  * This class should be subclassed by clients providing a bundle to the
- * CloudFree Platform. However, its usage is not mandatory.
+ * Gyrex. However, its usage is not mandatory.
  * </p>
  * <p>
  * Clients subclassing this class must provide a parameterless public

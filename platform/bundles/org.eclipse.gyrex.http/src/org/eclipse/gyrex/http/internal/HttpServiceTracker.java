@@ -9,18 +9,18 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal;
+package org.eclipse.gyrex.http.internal;
 
 
-import org.eclipse.cloudfree.common.logging.LogAudience;
-import org.eclipse.cloudfree.common.logging.LogImportance;
-import org.eclipse.cloudfree.common.logging.LogSource;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.helper.BaseDefaultHttpServiceTracker;
-import org.eclipse.cloudfree.http.internal.application.ApplicationHandlerServlet;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationManager;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.gyrex.common.logging.LogAudience;
+import org.eclipse.gyrex.common.logging.LogImportance;
+import org.eclipse.gyrex.common.logging.LogSource;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.helper.BaseDefaultHttpServiceTracker;
+import org.eclipse.gyrex.http.internal.application.ApplicationHandlerServlet;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.http.HttpService;

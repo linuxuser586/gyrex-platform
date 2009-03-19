@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.util.Arrays;
 import java.util.HashSet;

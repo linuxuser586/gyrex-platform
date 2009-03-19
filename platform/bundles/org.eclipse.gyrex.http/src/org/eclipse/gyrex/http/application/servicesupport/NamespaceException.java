@@ -9,11 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application.servicesupport;
+package org.eclipse.gyrex.http.application.servicesupport;
 
 
-import org.eclipse.cloudfree.http.internal.HttpActivator;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 
 /**
  * Indicated that a requested alias is already in use.

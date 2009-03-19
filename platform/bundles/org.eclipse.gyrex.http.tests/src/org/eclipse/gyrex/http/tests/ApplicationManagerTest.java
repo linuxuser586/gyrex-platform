@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.tests;
+package org.eclipse.gyrex.http.tests;
 
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
@@ -17,15 +17,15 @@ import static junit.framework.Assert.fail;
 
 import java.net.MalformedURLException;
 
-import org.eclipse.cloudfree.common.context.ContextUtil;
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.manager.MountConflictException;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationManager;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationProviderRegistration;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.gyrex.common.context.ContextUtil;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.manager.MountConflictException;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +70,7 @@ public class ApplicationManagerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.eclipse.cloudfree.http.internal.application.manager.ApplicationManager#mount(java.lang.String, java.lang.String)}
+	 * {@link org.eclipse.gyrex.http.internal.application.manager.ApplicationManager#mount(java.lang.String, java.lang.String)}
 	 * .
 	 */
 	@Test

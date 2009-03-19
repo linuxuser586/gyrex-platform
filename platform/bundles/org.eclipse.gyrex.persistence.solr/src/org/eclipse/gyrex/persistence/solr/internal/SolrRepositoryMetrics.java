@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.solr.internal;
+package org.eclipse.gyrex.persistence.solr.internal;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,10 +18,10 @@ import java.text.MessageFormat;
 
 
 import org.apache.solr.client.solrj.SolrServerException;
-import org.eclipse.cloudfree.monitoring.metrics.BaseMetric;
-import org.eclipse.cloudfree.monitoring.metrics.ErrorMetric;
-import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.monitoring.metrics.StatusMetric;
+import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
+import org.eclipse.gyrex.monitoring.metrics.ErrorMetric;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.monitoring.metrics.StatusMetric;
 
 /**
  * 

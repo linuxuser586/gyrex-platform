@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.internal;
+package org.eclipse.gyrex.persistence.internal;
 
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.persistence.internal.storage.RepositoryRegistry;
-import org.eclipse.cloudfree.persistence.internal.storage.RepositoryProviderRegistry;
-import org.eclipse.cloudfree.persistence.storage.registry.IRepositoryRegistry;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.persistence.internal.storage.RepositoryProviderRegistry;
+import org.eclipse.gyrex.persistence.internal.storage.RepositoryRegistry;
+import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
 import org.osgi.framework.BundleContext;
 
 /**
@@ -25,9 +25,9 @@ public class PersistenceActivator extends BaseBundleActivator {
 
 	/**
 	 * the plug-in id (value
-	 * <code>org.eclipse.cloudfree.common.persistence</code>)
+	 * <code>org.eclipse.gyrex.common.persistence</code>)
 	 */
-	public static final String PLUGIN_ID = "org.eclipse.cloudfree.persistence";
+	public static final String PLUGIN_ID = "org.eclipse.gyrex.persistence";
 
 	/** the shared instance */
 	private static PersistenceActivator sharedInstance;
@@ -64,7 +64,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
@@ -86,7 +86,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
@@ -130,7 +130,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 		repositoryRegistry = new RepositoryRegistry();
 
 		// register service
-		getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "CloudFree Repository Registry", null, null);
+		getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "Gyrex Repository Registry", null, null);
 	}
 
 	private synchronized void startRepositoryTypeRegistry(final BundleContext context) {

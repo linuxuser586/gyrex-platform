@@ -9,17 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.manager;
+package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
-import org.eclipse.cloudfree.http.internal.HttpActivator;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 import org.osgi.framework.ServiceReference;
 
 /**

@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.helpers;
+package org.eclipse.gyrex.http.internal.application.helpers;
 
 import java.util.Collections;
 import java.util.Enumeration;

@@ -9,16 +9,16 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common.internal;
+package org.eclipse.gyrex.model.common.internal;
 
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.common.services.IServiceProxy;
-import org.eclipse.cloudfree.model.common.internal.registry.ModelProviderRegistry;
 import org.eclipse.core.runtime.IAdapterManager;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.model.common.internal.registry.ModelProviderRegistry;
 import org.osgi.framework.BundleContext;
 
 /**
@@ -27,7 +27,7 @@ import org.osgi.framework.BundleContext;
 public class ModelActivator extends BaseBundleActivator {
 
 	/** PLUGIN_ID */
-	public static final String PLUGIN_ID = "org.eclipse.cloudfree.model.common";
+	public static final String PLUGIN_ID = "org.eclipse.gyrex.model.common";
 
 	/** the shared instance */
 	private static final AtomicReference<ModelActivator> sharedInstance = new AtomicReference<ModelActivator>();
@@ -81,7 +81,7 @@ public class ModelActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
@@ -95,7 +95,7 @@ public class ModelActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {

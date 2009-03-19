@@ -9,18 +9,18 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.jdbc.internal;
+package org.eclipse.gyrex.persistence.jdbc.internal;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 
-import org.eclipse.cloudfree.monitoring.metrics.BaseMetric;
-import org.eclipse.cloudfree.monitoring.metrics.ErrorMetric;
-import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.monitoring.metrics.PoolMetric;
-import org.eclipse.cloudfree.monitoring.metrics.StatusMetric;
+import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
+import org.eclipse.gyrex.monitoring.metrics.ErrorMetric;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.monitoring.metrics.PoolMetric;
+import org.eclipse.gyrex.monitoring.metrics.StatusMetric;
 
 public class SimplePooledJdbcRepositoryMetrics extends MetricSet {
 

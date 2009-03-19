@@ -25,10 +25,10 @@
 <stringAttribute key="pde.version" value="3.3"/>
 <stringAttribute key="product" value="org.eclipse.cloudfree.examples.fanshop.product"/>
 <booleanAttribute key="restart" value="false"/>
-<stringAttribute key="selectedPlugin" value="org.eclipse.cloudfree.configuration"/>
+<stringAttribute key="selectedPlugin" value="org.eclipse.gyrex.configuration"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
-<stringAttribute key="timestamp" value="1231846220277"/>
+<stringAttribute key="timestamp" value="1236063469947"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.eclipse.core.runtime/debug/context" value="false"/>
@@ -37,7 +37,7 @@
 <mapEntry key="org.eclipse.equinox.security/debug/loginFramework" value="false"/>
 <mapEntry key="org.eclipse.ui/trace/sources" value="false"/>
 <mapEntry key="org.eclipse.osgi/resolver/wiring" value="false"/>
-<mapEntry key="org.eclipse.cloudfree.configuration/debug" value="true"/>
+<mapEntry key="org.eclipse.gyrex.configuration/debug" value="true"/>
 <mapEntry key="org.eclipse.jface/debug/viewers/reentrantViewerCalls" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug/loader" value="false"/>
 <mapEntry key="org.eclipse.ui/trace/contexts.verbose" value="false"/>
@@ -56,7 +56,7 @@
 <mapEntry key="org.eclipse.ui/perf/contentTypes" value="200"/>
 <mapEntry key="org.eclipse.equinox.preferences/general" value="false"/>
 <mapEntry key="org.eclipse.ui/trace/handlers.performance" value="false"/>
-<mapEntry key="org.eclipse.cloudfree.configuration.impl/debugMode" value="true"/>
+<mapEntry key="org.eclipse.gyrex.configuration.impl/debugMode" value="true"/>
 <mapEntry key="org.eclipse.ui.forms/debug/text" value="true"/>
 <mapEntry key="org.eclipse.ui/trace/operations.verbose" value="false"/>
 <mapEntry key="org.eclipse.osgi/trace/activation" value="false"/>
@@ -127,7 +127,7 @@
 <mapEntry key="org.eclipse.osgi/trace/filters" value="trace.properties"/>
 <mapEntry key="org.eclipse.ui/perf/part.activate" value="200"/>
 <mapEntry key="org.eclipse.ui/perf/part.listeners" value="200"/>
-<mapEntry key="org.eclipse.cloudfree.configuration.impl/debug" value="true"/>
+<mapEntry key="org.eclipse.gyrex.configuration.impl/debug" value="true"/>
 <mapEntry key="org.eclipse.ui/trace/keyBindings.verbose" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug/security" value="false"/>
 <mapEntry key="org.eclipse.osgi/defaultprofile/buffersize" value="256"/>
@@ -142,7 +142,7 @@
 <mapEntry key="org.eclipse.osgi/monitor/resources" value="false"/>
 <mapEntry key="org.eclipse.core.runtime/debug" value="false"/>
 <mapEntry key="org.eclipse.equinox.preferences/set" value="false"/>
-<mapEntry key="org.eclipse.cloudfree.configuration/debugMode" value="true"/>
+<mapEntry key="org.eclipse.gyrex.configuration/debugMode" value="true"/>
 <mapEntry key="org.eclipse.ui/perf/part.control" value="800"/>
 <mapEntry key="org.eclipse.ui/perf/perspective.switch" value="800"/>
 <mapEntry key="org.eclipse.ui/perf/uijob" value="200"/>

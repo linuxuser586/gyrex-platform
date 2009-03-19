@@ -9,17 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.status;
+package org.eclipse.gyrex.services.common.status;
 
 import org.eclipse.core.runtime.IStatus;
 
 /**
  * A monitor for the status of a service.
  * <p>
- * Services are an essential element in the CloudFree platform as is
+ * Services are an essential element in Gyrex as is
  * self-monitoring. Therefore, each service is required to report information
  * when its status changes. This interface allows a service to report its status
- * information to the CloudFree platform.
+ * information to Gyrex.
  * </p>
  * <p>
  * Whenever the service status changes a service must report it using
@@ -34,7 +34,7 @@ public interface IStatusMonitor {
 	/**
 	 * Publishes the specified service status.
 	 * <p>
-	 * The CloudFree platform will evaluate the status once it is received.
+	 * Gyrex will evaluate the status once it is received.
 	 * Based on the severity and configured rules it may trigger appropriate
 	 * actions (eg. inform operators or site owners).
 	 * </p>

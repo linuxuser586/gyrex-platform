@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.servlet
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.registrations;
+package org.eclipse.gyrex.http.internal.application.registrations;
 
 import java.security.AccessController;
 import java.util.HashSet;
@@ -27,11 +27,11 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
-import org.eclipse.cloudfree.common.lifecycle.IShutdownParticipant;
-import org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport;
-import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
-import org.eclipse.cloudfree.http.application.servicesupport.NamespaceException;
-import org.eclipse.cloudfree.http.internal.HttpActivator;
+import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
+import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
+import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
+import org.eclipse.gyrex.http.application.servicesupport.NamespaceException;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleEvent;
 import org.osgi.framework.SynchronousBundleListener;

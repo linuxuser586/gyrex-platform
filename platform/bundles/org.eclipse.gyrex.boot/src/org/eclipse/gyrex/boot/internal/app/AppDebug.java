@@ -9,9 +9,9 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.boot.internal.app;
+package org.eclipse.gyrex.boot.internal.app;
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.debug.BundleDebug;
 
 /**
  * AppDebug flags.

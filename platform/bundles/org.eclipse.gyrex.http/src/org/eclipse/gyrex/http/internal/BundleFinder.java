@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal;
+package org.eclipse.gyrex.http.internal;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;

@@ -9,22 +9,22 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common.provider;
+package org.eclipse.gyrex.model.common.provider;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.model.common.IModelManager;
-import org.eclipse.cloudfree.model.common.internal.ModelActivator;
-import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.persistence.storage.Repository;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.PlatformObject;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.model.common.IModelManager;
+import org.eclipse.gyrex.model.common.internal.ModelActivator;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.persistence.storage.Repository;
 import org.osgi.framework.ServiceRegistration;
 
 /**
  * Base class for {@link IModelManager model managers}.
  * <p>
  * In addition to the {@link IModelManager} interface it enforces model manager
- * implementors to include central CloudFree concepts (eg., monitoring and
+ * implementors to include central Gyrex concepts (eg., monitoring and
  * metrics).
  * </p>
  * <p>
@@ -77,7 +77,7 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 	 * passed through {@link ModelProvider}.
 	 * <p>
 	 * Note, each manager is required to provide metrics so that it can be
-	 * monitored by the CloudFree platform. The metrics will be registered
+	 * monitored by Gyrex. The metrics will be registered
 	 * automatically with the platform.
 	 * </p>
 	 * 
@@ -173,7 +173,7 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.model.common.IModelManager#getContext()
+	 * @see org.eclipse.gyrex.model.common.IModelManager#getContext()
 	 */
 	@Override
 	public final IContext getContext() {

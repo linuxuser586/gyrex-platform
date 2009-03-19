@@ -9,21 +9,21 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.provider;
+package org.eclipse.gyrex.services.common.provider;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.services.common.IService;
-import org.eclipse.cloudfree.services.common.status.IStatusMonitor;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.PlatformObject;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.services.common.IService;
+import org.eclipse.gyrex.services.common.status.IStatusMonitor;
 import org.osgi.framework.ServiceRegistration;
 
 /**
  * Base class for {@link IService services}.
  * <p>
  * In addition to the {@link IService} interface it enforces service
- * implementors to include central CloudFree concepts (eg., monitoring and
+ * implementors to include central Gyrex concepts (eg., monitoring and
  * metrics).
  * </p>
  * <p>
@@ -74,7 +74,7 @@ public abstract class BaseService extends PlatformObject implements IService {
 	 * metrics.
 	 * <p>
 	 * Note, each service is required to provide metrics so that it can be
-	 * monitored by the CloudFree platform. The metrics will be registered
+	 * monitored by Gyrex. The metrics will be registered
 	 * automatically with the platform.
 	 * </p>
 	 * 

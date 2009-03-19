@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.apps.dummy;
+package org.eclipse.gyrex.http.internal.apps.dummy;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.ApplicationException;
-import org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.ApplicationException;
+import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
 
 /**
  * 
@@ -33,7 +33,7 @@ public class DummyApp extends Application {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.Application#doInit()
+	 * @see org.eclipse.gyrex.http.application.Application#doInit()
 	 */
 	@Override
 	protected void doInit() {

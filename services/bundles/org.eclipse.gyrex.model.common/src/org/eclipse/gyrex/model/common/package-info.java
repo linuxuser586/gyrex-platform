@@ -11,7 +11,7 @@
  *******************************************************************************/
 
 /**
- * This package defines the Model API of the CloudFree Platform.
+ * This package defines the Model API of Gyrex.
  * <p>
  * <strong>The Model API</strong>
  * </p>
@@ -78,13 +78,13 @@
  * Because the model manager API causes repository modifications it participates
  * in transactions as defined by the underlying repository but does NOT implement 
  * transaction logic. It's also important to note that transaction support
- * is very limited in the CloudFree Platform for scalability reasons. Basically,
+ * is very limited in Gyrex for scalability reasons. Basically,
  * transactions - if supported by the underlying repository - are only available 
  * within a single repository. This enforces a more scalable approach by moving
  * transaction logic out of the repository into the application. Thus, when
  * using the low-level Model API directly care must be taken to not make wrong
  * assumptions about transaction boundaries. To some extend, the concept of 
- * <em>eventual consistency</em> applies to the CloudFree model.
+ * <em>eventual consistency</em> applies to the Gyrex model.
  * </p>
  * <p>
  * Having said that, there is a simple rule to follow. Clients should not use
@@ -136,7 +136,7 @@
  * <strong>fully</strong> supports and implements two or three phase commits. 
  * That's all possible because of the extensibility and flexibility of this API.
  * However, this style of heavy design is just not developed and promoted initially 
- * in CloudFree <strong>but</strong> it is a supported use-case.
+ * in Gyrex <strong>but</strong> it is a supported use-case.
  * </em></p>
  * <p>
  * For a more detailed read on the subject of transactions and scalable systems
@@ -146,5 +146,5 @@
  * Opinion</a>, a position paper by Pat Helland.
  * </p>
  */
-package org.eclipse.cloudfree.model.common;
+package org.eclipse.gyrex.model.common;
 

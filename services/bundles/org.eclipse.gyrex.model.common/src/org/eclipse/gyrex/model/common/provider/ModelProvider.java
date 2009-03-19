@@ -9,24 +9,24 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common.provider;
+package org.eclipse.gyrex.model.common.provider;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.model.common.IModelManager;
-import org.eclipse.cloudfree.model.common.ModelUtil;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IAdapterManager;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.model.common.IModelManager;
+import org.eclipse.gyrex.model.common.ModelUtil;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 
 /**
  * A model provider base class which provides {@link IModelManager model
- * manager} instances to the CloudFree Platform.
+ * manager} instances to Gyrex.
  * <p>
  * A {@link ModelProvider} provides {@link IModelManager} objects. These model
  * manager objects may be obtained from a {@link IContext context} using the the
@@ -124,7 +124,7 @@ public abstract class ModelProvider {
 	}
 
 	/**
-	 * Called by the CloudFree Platform to create a new model manager instance
+	 * Called by Gyrex to create a new model manager instance
 	 * of the specified model manager type.
 	 * <p>
 	 * Subclasses must implement this method and return a manager instance which

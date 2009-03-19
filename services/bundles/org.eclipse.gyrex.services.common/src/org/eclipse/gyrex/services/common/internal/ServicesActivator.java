@@ -9,20 +9,20 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.internal;
+package org.eclipse.gyrex.services.common.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.common.services.IServiceProxy;
-import org.eclipse.cloudfree.services.common.internal.registry.ServiceProviderRegistry;
 import org.eclipse.core.runtime.IAdapterManager;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.services.common.internal.registry.ServiceProviderRegistry;
 import org.osgi.framework.BundleContext;
 
 public class ServicesActivator extends BaseBundleActivator {
 
-	public static final String SYMBOLIC_NAME = "org.eclipse.cloudfree.services.common";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.services.common";
 
 	private static final AtomicReference<ServicesActivator> instance = new AtomicReference<ServicesActivator>();
 	private static final AtomicReference<IServiceProxy<IAdapterManager>> adapterManagerRef = new AtomicReference<IServiceProxy<IAdapterManager>>();
@@ -63,7 +63,7 @@ public class ServicesActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
@@ -79,7 +79,7 @@ public class ServicesActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {

@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application;
+package org.eclipse.gyrex.http.application;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -27,20 +27,20 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
-import org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
 import org.osgi.service.http.HttpContext;
 
 /**
- * A CloudFree HTTP application.
+ * A Gyrex HTTP application.
  * <p>
- * The CloudFree Platform defines HTTP applications as a point for bundling a
+ * Gyrex defines HTTP applications as a point for bundling a
  * set of functionality offered via HTTP operating in a specific
  * {@link IContext context}. Applications are contributed to the platform by
  * {@link ApplicationProvider providers}.
@@ -53,7 +53,7 @@ import org.osgi.service.http.HttpContext;
  * instance for the same {@link #getId() id}.
  * </p>
  * <p>
- * Although it may be possible to compare CloudFree HTTP applications to JavaEE
+ * Although it may be possible to compare Gyrex HTTP applications to JavaEE
  * web applications, they do not provide the full set of functionality provided
  * by a JavaEE web application. The central point of entrance of a HTTP request
  * is {@link #handleRequest(HttpServletRequest, HttpServletResponse)}. From

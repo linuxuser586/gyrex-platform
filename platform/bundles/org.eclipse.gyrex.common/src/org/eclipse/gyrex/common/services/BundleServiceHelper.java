@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.services;
+package org.eclipse.gyrex.common.services;
 
 import java.text.MessageFormat;
 import java.util.Dictionary;
@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.cloudfree.common.internal.services.ServiceProxyPool;
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.internal.services.ServiceProxyPool;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;

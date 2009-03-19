@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.solr.internal;
+package org.eclipse.gyrex.persistence.solr.internal;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -21,7 +21,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
-import org.eclipse.cloudfree.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.Repository;
 
 /**
  * 
@@ -31,7 +31,7 @@ public class SolrRepository extends Repository {
 	private final SolrServer solrServer;
 
 	SolrRepository(final String repositoryId, final EmbeddedSolrRepositoryType repositoryType, final SolrServer solrServer) throws IllegalArgumentException {
-		super(repositoryId, repositoryType, new SolrRepositoryMetrics("org.eclipse.cloudfree.persistence.solr.repository." + repositoryId + repositoryId + ".metrics", "not initialized", "repository created"));
+		super(repositoryId, repositoryType, new SolrRepositoryMetrics("org.eclipse.gyrex.persistence.solr.repository." + repositoryId + repositoryId + ".metrics", "not initialized", "repository created"));
 		this.solrServer = solrServer;
 	}
 
@@ -76,7 +76,7 @@ public class SolrRepository extends Repository {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.Repository#doClose()
+	 * @see org.eclipse.gyrex.persistence.storage.Repository#doClose()
 	 */
 	@Override
 	protected void doClose() {

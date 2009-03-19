@@ -9,23 +9,23 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.cloudfree.http.registry.ApplicationCustomizer;
-import org.eclipse.cloudfree.http.registry.internal.ExtensionPointTracker.Listener;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtension;
 import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.gyrex.http.registry.ApplicationCustomizer;
+import org.eclipse.gyrex.http.registry.internal.ExtensionPointTracker.Listener;
 
 public class ApplicationManager implements Listener {
 
-	private static final String APPLICATIONS_EXTENSION_POINT = "org.eclipse.cloudfree.http.applications"; //$NON-NLS-1$
+	private static final String APPLICATIONS_EXTENSION_POINT = "org.eclipse.gyrex.http.applications"; //$NON-NLS-1$
 	private static final String APPLICATION = "application"; //$NON-NLS-1$
 	private static final String ID = "id"; //$NON-NLS-1$
 	private static final String CONTEXT_PATH = "contextPath"; //$NON-NLS-1$

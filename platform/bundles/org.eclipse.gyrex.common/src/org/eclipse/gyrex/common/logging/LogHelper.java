@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.logging;
+package org.eclipse.gyrex.common.logging;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -17,14 +17,14 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.common.internal.fixme.RuntimeLogAccess;
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.common.internal.fixme.RuntimeLogAccess;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.osgi.util.NLS;
 import org.osgi.framework.BundleContext;
 import org.osgi.util.tracker.ServiceTracker;
@@ -32,15 +32,15 @@ import org.osgi.util.tracker.ServiceTracker;
 /**
  * The bundle specific logger.
  * <p>
- * The CloudFree Platform takes logging seriously. It strictly separates logging
+ * Gyrex takes logging seriously. It strictly separates logging
  * from debugging. Typically, logging may not be limited to technical message
  * logging about the system which usually targets developers or system
  * administrators. Logging is also suitable for logging application logic
  * specific messages targeted at a difference audience (eg. application users).
- * Therefore, the CloudFree platform comes with a different approach to logging.
+ * Therefore, Gyrex comes with a different approach to logging.
  * </p>
  * <p>
- * Under the covers, the CloudFree Platform provides integrations into different
+ * Under the covers, Gyrex provides integrations into different
  * logging implementations.
  * </p>
  * <p>

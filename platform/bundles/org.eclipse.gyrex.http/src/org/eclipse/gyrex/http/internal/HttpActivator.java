@@ -9,20 +9,20 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal;
+package org.eclipse.gyrex.http.internal;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.common.services.IServiceProxy;
-import org.eclipse.cloudfree.configuration.constraints.PlatformConfigurationConstraint;
-import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationManager;
-import org.eclipse.cloudfree.http.internal.apps.dummy.DummyAppProvider;
-import org.eclipse.cloudfree.http.internal.apps.dummy.RootContext;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.configuration.constraints.PlatformConfigurationConstraint;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+import org.eclipse.gyrex.http.internal.apps.dummy.DummyAppProvider;
+import org.eclipse.gyrex.http.internal.apps.dummy.RootContext;
 import org.eclipse.osgi.service.datalocation.Location;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -35,7 +35,7 @@ import org.osgi.util.tracker.ServiceTracker;
 public class HttpActivator extends BaseBundleActivator {
 
 	/** PLUGIN_ID */
-	public static final String PLUGIN_ID = "org.eclipse.cloudfree.http";
+	public static final String PLUGIN_ID = "org.eclipse.gyrex.http";
 
 	/** server type for the default web server */
 	public static final String TYPE_WEB = PLUGIN_ID + ".default";
@@ -51,7 +51,7 @@ public class HttpActivator extends BaseBundleActivator {
 	public static HttpActivator getInstance() throws IllegalStateException {
 		final HttpActivator instance = sharedInstance;
 		if (null == instance) {
-			throw new IllegalStateException("The CloudFree Platform HTTP Core has not been started.");
+			throw new IllegalStateException("Gyrex HTTP Core has not been started.");
 		}
 		return instance;
 	}
@@ -92,7 +92,7 @@ public class HttpActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected synchronized void doStart(final BundleContext context) throws Exception {
@@ -102,7 +102,7 @@ public class HttpActivator extends BaseBundleActivator {
 		instanceLocationRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
 
 		// register configuration checkers
-		getServiceHelper().registerService(PlatformConfigurationConstraint.class.getName(), new JettyDefaultStartDisabledConstraint(context), "CloudFree", "Jetty Auto Start Check", null, null);
+		getServiceHelper().registerService(PlatformConfigurationConstraint.class.getName(), new JettyDefaultStartDisabledConstraint(context), "Gyrex", "Jetty Auto Start Check", null, null);
 
 		// open package admin tracker
 		if (null == packageAdminTracker) {
@@ -112,7 +112,7 @@ public class HttpActivator extends BaseBundleActivator {
 
 		// start the application registry
 		startApplicationManager(context);
-		getServiceHelper().registerService(IApplicationManager.class.getName(), applicationManager, "CloudFree.net", "CloudFree Application Manager", null, null);
+		getServiceHelper().registerService(IApplicationManager.class.getName(), applicationManager, "Gyrex.net", "Gyrex Application Manager", null, null);
 
 		// open the http tracker
 		if (null == httpServiceTracker) {
@@ -123,7 +123,7 @@ public class HttpActivator extends BaseBundleActivator {
 		// register our dummy app provider
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
 		properties.put(Constants.SERVICE_DESCRIPTION, "Dummy Application");
-		properties.put(Constants.SERVICE_VENDOR, "CloudFree");
+		properties.put(Constants.SERVICE_VENDOR, "Gyrex");
 		dummyProviderRegistration = context.registerService(ApplicationProvider.class.getName(), new DummyAppProvider(), properties);
 
 		applicationManager.register("default", DummyAppProvider.ID, new RootContext(), null);
@@ -131,7 +131,7 @@ public class HttpActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected synchronized void doStop(final BundleContext context) throws Exception {
@@ -215,7 +215,7 @@ public class HttpActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#getDebugOptions()
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#getDebugOptions()
 	 */
 	@Override
 	protected Class getDebugOptions() {

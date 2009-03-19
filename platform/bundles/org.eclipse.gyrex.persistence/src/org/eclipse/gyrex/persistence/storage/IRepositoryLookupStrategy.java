@@ -9,11 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage;
+package org.eclipse.gyrex.persistence.storage;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 
 /**
  * A strategy for the look up of {@link Repository repositories} from a context.

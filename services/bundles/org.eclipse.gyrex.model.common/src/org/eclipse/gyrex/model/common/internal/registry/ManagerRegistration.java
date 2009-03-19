@@ -9,21 +9,21 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common.internal.registry;
+package org.eclipse.gyrex.model.common.internal.registry;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.model.common.IModelManager;
-import org.eclipse.cloudfree.model.common.provider.ModelProvider;
-import org.eclipse.cloudfree.persistence.PersistenceUtil;
-import org.eclipse.cloudfree.persistence.storage.IRepositoryLookupStrategy;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
 import org.eclipse.core.runtime.IAdapterFactory;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.model.common.IModelManager;
+import org.eclipse.gyrex.model.common.provider.ModelProvider;
+import org.eclipse.gyrex.persistence.PersistenceUtil;
+import org.eclipse.gyrex.persistence.storage.IRepositoryLookupStrategy;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 import org.osgi.framework.Bundle;
 
 /**

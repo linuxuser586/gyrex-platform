@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.tests;
+package org.eclipse.gyrex.http.tests;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -17,8 +17,8 @@ import static org.junit.Assert.fail;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationMount;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationMountRegistry;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationMount;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationMountRegistry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,7 +54,7 @@ public class ApplicationMountRegistryTests {
 
 	/**
 	 * Test method for
-	 * {@link org.eclipse.cloudfree.http.internal.application.manager.ApplicationMountRegistry#find(java.net.URL)}
+	 * {@link org.eclipse.gyrex.http.internal.application.manager.ApplicationMountRegistry#find(java.net.URL)}
 	 * .
 	 */
 	@Test
@@ -144,7 +144,7 @@ public class ApplicationMountRegistryTests {
 
 	/**
 	 * Test method for
-	 * {@link org.eclipse.cloudfree.http.internal.application.manager.ApplicationMountRegistry#putIfAbsent(java.net.URL, org.eclipse.cloudfree.http.internal.application.manager.ApplicationMount)}
+	 * {@link org.eclipse.gyrex.http.internal.application.manager.ApplicationMountRegistry#putIfAbsent(java.net.URL, org.eclipse.gyrex.http.internal.application.manager.ApplicationMount)}
 	 * .
 	 */
 	@Test
@@ -154,7 +154,7 @@ public class ApplicationMountRegistryTests {
 
 	/**
 	 * Test method for
-	 * {@link org.eclipse.cloudfree.http.internal.application.manager.ApplicationMountRegistry#remove(java.net.URL)}
+	 * {@link org.eclipse.gyrex.http.internal.application.manager.ApplicationMountRegistry#remove(java.net.URL)}
 	 * .
 	 */
 	@Test

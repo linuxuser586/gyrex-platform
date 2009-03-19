@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.helper;
+package org.eclipse.gyrex.http.helper;
 
 import java.io.IOException;
 import java.net.URL;

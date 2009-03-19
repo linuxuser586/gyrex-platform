@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.jdbc.internal;
+package org.eclipse.gyrex.persistence.jdbc.internal;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -25,8 +25,8 @@ import javax.sql.ConnectionEventListener;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 
-import org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.persistence.jdbc.storage.JdbcRepository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 
 /**
  * A generic JDBC based repository.
@@ -132,7 +132,7 @@ public class SimpledPooledJdbcRepositoryImpl extends JdbcRepository {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.Repository#doClose()
+	 * @see org.eclipse.gyrex.persistence.storage.Repository#doClose()
 	 */
 	@Override
 	protected void doClose() {
@@ -168,7 +168,7 @@ public class SimpledPooledJdbcRepositoryImpl extends JdbcRepository {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository#getConnection()
+	 * @see org.eclipse.gyrex.persistence.jdbc.storage.JdbcRepository#getConnection()
 	 */
 	@Override
 	public Connection getConnection() throws SQLException {
@@ -195,7 +195,7 @@ public class SimpledPooledJdbcRepositoryImpl extends JdbcRepository {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository#getConnection(long, java.util.concurrent.TimeUnit)
+	 * @see org.eclipse.gyrex.persistence.jdbc.storage.JdbcRepository#getConnection(long, java.util.concurrent.TimeUnit)
 	 */
 	@Override
 	public Connection getConnection(final long timeout, final TimeUnit timeUnit) throws SQLException {

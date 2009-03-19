@@ -9,16 +9,16 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage;
+package org.eclipse.gyrex.persistence.storage;
 
 import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentTypeSupport;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.PlatformObject;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkUtil;
@@ -28,16 +28,16 @@ import org.osgi.framework.ServiceRegistration;
  * A repository is a concrete instance of a data store where a particular set of
  * data will be persisted.
  * <p>
- * In CloudFree, repositories are an abstraction for an actual data store
+ * In Gyrex, repositories are an abstraction for an actual data store
  * accessed using a defined persistence technology (eg. a MySQL database
  * accessed via JDBC, a flat CSV file, a distributed in-memory hast table,
  * etc.). A specific repository may only be accessed using the technology
  * defined by the repository implementation. Typically, they are configured
- * whitin CloudFree through an administrative interface. Their implementation is
- * contributed to CloudFree by {@link RepositoryProvider repository providers}.
+ * whitin Gyrex through an administrative interface. Their implementation is
+ * contributed to Gyrex by {@link RepositoryProvider repository providers}.
  * </p>
  * <p>
- * In order to simplify operation of the CloudFree platform repositories will
+ * In order to simplify operation of Gyrex repositories will
  * support administrative tasks. For example, it will be possible to transfer a
  * repository into a read-only mode or disabled it completely for maintenance
  * purposes. It will also be possible to dump a repository (or portions of it)
@@ -46,7 +46,7 @@ import org.osgi.framework.ServiceRegistration;
  * </p>
  * <p>
  * This class must be subclassed by clients that contribute a repository
- * implementation to the CloudFree Platform.
+ * implementation to Gyrex.
  * </p>
  */
 public abstract class Repository extends PlatformObject {
@@ -133,7 +133,7 @@ public abstract class Repository extends PlatformObject {
 	 * instance.
 	 * </p>
 	 * <p>
-	 * The provided metrics will be registered with the CloudFree platform on
+	 * The provided metrics will be registered with Gyrex on
 	 * behalf of the bundle which loaded this class.
 	 * </p>
 	 * 
@@ -255,7 +255,7 @@ public abstract class Repository extends PlatformObject {
 	/**
 	 * Returns the repository identifier.
 	 * <p>
-	 * The identifier is unique within the CloudFree Platform and persistent
+	 * The identifier is unique within Gyrex and persistent
 	 * across session.
 	 * </p>
 	 * 

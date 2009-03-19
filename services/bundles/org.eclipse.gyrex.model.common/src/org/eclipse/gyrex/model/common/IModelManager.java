@@ -9,12 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common;
+package org.eclipse.gyrex.model.common;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.model.common.provider.BaseModelManager;
-import org.eclipse.cloudfree.model.common.provider.ModelProvider;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.model.common.provider.BaseModelManager;
+import org.eclipse.gyrex.model.common.provider.ModelProvider;
 
 /**
  * A model manager provides access to {@link IModelObject model objects}.

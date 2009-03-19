@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.services;
+package org.eclipse.gyrex.common.services;
 
 /**
  * A proxy for tracking and accessing a single OSGi service instance.

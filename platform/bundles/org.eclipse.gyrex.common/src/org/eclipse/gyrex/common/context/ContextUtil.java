@@ -9,15 +9,15 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.common.context;
+package org.eclipse.gyrex.common.context;
 
-import org.eclipse.cloudfree.common.internal.context.CloudFreeContextImpl;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.gyrex.common.internal.context.GyrexContextImpl;
 
 /**
- * Provides access to CloudFree contexts.
+ * Provides access to Gyrex contexts.
  * <p>
- * Access to CloudFree contexts is provided through this central class.
+ * Access to Gyrex contexts is provided through this central class.
  * Internally, it uses a pluggable strategy for resolving the path to a context.
  * </p>
  * <p>
@@ -28,7 +28,7 @@ import org.eclipse.core.runtime.IPath;
 public class ContextUtil {
 
 	/**
-	 * Returns the CloudFree context with the specified path.
+	 * Returns the Gyrex context with the specified path.
 	 * <p>
 	 * Note, security may be used to verify that the caller is allowed to access
 	 * the specified context.
@@ -41,7 +41,7 @@ public class ContextUtil {
 	public static IContext get(final IPath contextPath) {
 		// TODO: implement pluggable strategy
 		// TODO: implement security
-		return new CloudFreeContextImpl(contextPath);
+		return new GyrexContextImpl(contextPath);
 	}
 
 }

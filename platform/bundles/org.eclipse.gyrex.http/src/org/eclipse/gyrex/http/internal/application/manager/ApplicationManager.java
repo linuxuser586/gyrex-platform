@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.manager;
+package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -17,11 +17,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.manager.ApplicationRegistrationException;
-import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
-import org.eclipse.cloudfree.http.application.manager.MountConflictException;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
+import org.eclipse.gyrex.http.application.manager.MountConflictException;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -157,7 +157,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.registry.IApplicationManager#register(java.lang.String, java.lang.String, org.eclipse.cloudfree.common.context.IContext, java.util.Map)
+	 * @see org.eclipse.gyrex.http.application.registry.IApplicationManager#register(java.lang.String, java.lang.String, org.eclipse.gyrex.common.context.IContext, java.util.Map)
 	 */
 	@Override
 	public void register(final String applicationId, final String providerId, final IContext context, final Map<String, String> properties) throws ApplicationRegistrationException {
@@ -208,7 +208,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.registry.IApplicationManager#unmount(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.registry.IApplicationManager#unmount(java.lang.String)
 	 */
 	@Override
 	public void unmount(final String url) throws MalformedURLException, IllegalArgumentException, IllegalStateException {
@@ -225,7 +225,7 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.registry.IApplicationManager#unregister(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.registry.IApplicationManager#unregister(java.lang.String)
 	 */
 	@Override
 	public void unregister(final String applicationId) {

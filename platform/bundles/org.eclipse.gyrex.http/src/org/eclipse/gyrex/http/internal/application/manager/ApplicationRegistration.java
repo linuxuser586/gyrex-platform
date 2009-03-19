@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.manager;
+package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,17 +19,17 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.servlet.ServletContext;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.common.logging.LogAudience;
-import org.eclipse.cloudfree.common.logging.LogImportance;
-import org.eclipse.cloudfree.common.logging.LogSource;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.ApplicationException;
-import org.eclipse.cloudfree.http.internal.HttpActivator;
-import org.eclipse.cloudfree.http.internal.application.ApplicationHandlerServlet;
-import org.eclipse.cloudfree.http.internal.application.ApplicationServiceSupport;
-import org.eclipse.cloudfree.http.internal.application.helpers.ApplicationServletContextAdapter;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.common.logging.LogAudience;
+import org.eclipse.gyrex.common.logging.LogImportance;
+import org.eclipse.gyrex.common.logging.LogSource;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.ApplicationException;
+import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.gyrex.http.internal.application.ApplicationHandlerServlet;
+import org.eclipse.gyrex.http.internal.application.ApplicationServiceSupport;
+import org.eclipse.gyrex.http.internal.application.helpers.ApplicationServletContextAdapter;
 
 /**
  * A registered {@link Application}.

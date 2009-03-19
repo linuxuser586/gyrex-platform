@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.helpers;
+package org.eclipse.gyrex.http.internal.application.helpers;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,11 +29,11 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.IApplicationConstants;
-import org.eclipse.cloudfree.http.internal.application.IApplicationServletConstants;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationMount;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationRegistration;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.IApplicationConstants;
+import org.eclipse.gyrex.http.internal.application.IApplicationServletConstants;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationMount;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 import org.mortbay.util.URIUtil;
 
 /**

@@ -9,16 +9,16 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage;
+package org.eclipse.gyrex.persistence.storage;
 
 import java.text.MessageFormat;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.configuration.ConfigurationMode;
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
-import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentType;
-import org.eclipse.cloudfree.persistence.storage.content.RepositoryContentTypeSupport;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.configuration.ConfigurationMode;
+import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
+import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
+import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
 
 /**
  * The default {@link IRepositoryLookupStrategy repository lookup strategy}.
@@ -77,8 +77,8 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see org.eclipse.cloudfree.common.persistence.storage.IRepositoryLookupStrategy#getRepository(org.eclipse.cloudfree.common.context.IContext,
-	 *      org.eclipse.cloudfree.common.persistence.storage.RepositoryContentType)
+	 * @see org.eclipse.gyrex.common.persistence.storage.IRepositoryLookupStrategy#getRepository(org.eclipse.gyrex.common.context.IContext,
+	 *      org.eclipse.gyrex.common.persistence.storage.RepositoryContentType)
 	 */
 	@Override
 	public Repository getRepository(final IContext context, final RepositoryContentType contentType) throws IllegalStateException {

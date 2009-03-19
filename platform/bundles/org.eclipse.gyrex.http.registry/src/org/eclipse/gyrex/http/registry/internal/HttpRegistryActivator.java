@@ -9,13 +9,13 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
 import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.packageadmin.PackageAdmin;
@@ -24,7 +24,7 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 public class HttpRegistryActivator extends BaseBundleActivator implements ServiceTrackerCustomizer {
 
-	public static final String SYMBOLIC_NAME = "org.eclipse.cloudfree.http.registry";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.http.registry";
 
 	private ServiceTracker packageAdminTracker;
 	private ServiceTracker registryTracker;
@@ -65,7 +65,7 @@ public class HttpRegistryActivator extends BaseBundleActivator implements Servic
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
@@ -80,7 +80,7 @@ public class HttpRegistryActivator extends BaseBundleActivator implements Servic
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {

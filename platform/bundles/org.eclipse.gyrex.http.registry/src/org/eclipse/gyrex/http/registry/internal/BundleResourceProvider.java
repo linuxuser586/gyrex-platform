@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.net.URL;
 import java.util.Enumeration;
@@ -19,7 +19,7 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
+import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
 import org.osgi.framework.Bundle;
 
 public class BundleResourceProvider implements IResourceProvider {

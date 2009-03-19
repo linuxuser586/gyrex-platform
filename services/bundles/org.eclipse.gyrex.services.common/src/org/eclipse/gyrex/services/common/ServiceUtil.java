@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common;
+package org.eclipse.gyrex.services.common;
 
 import java.text.MessageFormat;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.services.common.internal.ServicesActivator;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.services.common.internal.ServicesActivator;
 
 /**
  * This class must be used to obtain any service implementation.

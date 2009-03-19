@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.servlet
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.registrations;
+package org.eclipse.gyrex.http.internal.application.registrations;
 
 import java.io.IOException;
 
@@ -45,7 +45,7 @@ public class ServletRegistration extends Registration {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.internal.application.registrations.Registration#doClose()
+	 * @see org.eclipse.gyrex.http.internal.application.registrations.Registration#doClose()
 	 */
 	@Override
 	protected void doClose() {
@@ -54,7 +54,7 @@ public class ServletRegistration extends Registration {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.internal.application.registrations.Registration#doDestroy()
+	 * @see org.eclipse.gyrex.http.internal.application.registrations.Registration#doDestroy()
 	 */
 	@Override
 	protected void doDestroy() {
@@ -65,7 +65,7 @@ public class ServletRegistration extends Registration {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.internal.application.registrations.Registration#doHandleRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, java.lang.String)
+	 * @see org.eclipse.gyrex.http.internal.application.registrations.Registration#doHandleRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, java.lang.String)
 	 */
 	@Override
 	protected boolean doHandleRequest(final HttpServletRequest req, final HttpServletResponse resp, final String alias) throws ServletException, IOException {

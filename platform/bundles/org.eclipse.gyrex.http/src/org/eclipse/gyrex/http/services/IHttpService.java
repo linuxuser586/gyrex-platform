@@ -9,18 +9,18 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.services;
+package org.eclipse.gyrex.http.services;
 
 import org.eclipse.core.runtime.IAdaptable;
 
 /**
- * A CloudFree HTTP service.
+ * A Gyrex HTTP service.
  * <p>
- * A central concept of the CloudFree Platform are HTTP services. Services
+ * A central concept of Gyrex are HTTP services. Services
  * provide a common interface to access functionality offered by applications.
  * </p>
  * <p>
- * CloudFree HTTP services follow a REST style. Typically, they wrap a Java
+ * Gyrex HTTP services follow a REST style. Typically, they wrap a Java
  * service provided by the application service layer. This allows to develop the
  * actual service functionality independent from the technology used to export
  * the services via HTTP.

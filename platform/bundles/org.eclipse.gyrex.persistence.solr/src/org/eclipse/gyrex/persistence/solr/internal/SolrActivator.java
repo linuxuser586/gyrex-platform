@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.solr.internal;
+package org.eclipse.gyrex.persistence.solr.internal;
 
 import java.io.File;
 import java.net.URL;
@@ -21,18 +21,18 @@ import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
-import org.eclipse.cloudfree.common.services.IServiceProxy;
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.osgi.service.datalocation.Location;
 import org.osgi.framework.BundleContext;
 
 public class SolrActivator extends BaseBundleActivator {
 
-	public static final String PLUGIN_ID = "org.eclipse.cloudfree.persistence.solr";
+	public static final String PLUGIN_ID = "org.eclipse.gyrex.persistence.solr";
 	private static final AtomicReference<SolrActivator> instance = new AtomicReference<SolrActivator>();
 
 	/**
@@ -57,7 +57,7 @@ public class SolrActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
@@ -71,7 +71,7 @@ public class SolrActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
@@ -166,6 +166,6 @@ public class SolrActivator extends BaseBundleActivator {
 		coreContainer.setAdminCore(adminCore);
 
 		// register the embedded repository type
-		getServiceHelper().registerService(RepositoryProvider.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "CloudFree.net", "Embedded Solr Repository", null, null);
+		getServiceHelper().registerService(RepositoryProvider.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "Gyrex.net", "Embedded Solr Repository", null, null);
 	}
 }

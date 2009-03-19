@@ -9,17 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage.content;
+package org.eclipse.gyrex.persistence.storage.content;
 
 
-import org.eclipse.cloudfree.persistence.storage.Repository;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.gyrex.persistence.storage.Repository;
 
 /**
  * Provides support for working with content types in a repository.
  * <p>
  * This class must be subclassed by clients that contribute a repository type to
- * the CloudFree Platform.
+ * Gyrex.
  * </p>
  */
 public abstract class RepositoryContentTypeSupport {

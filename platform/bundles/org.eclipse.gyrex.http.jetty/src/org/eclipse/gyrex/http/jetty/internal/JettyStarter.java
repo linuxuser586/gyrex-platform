@@ -9,20 +9,20 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.jetty.internal;
+package org.eclipse.gyrex.http.jetty.internal;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.configuration.service.IConfigurationService;
-import org.eclipse.cloudfree.http.internal.HttpActivator;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.equinox.http.jetty.JettyConfigurator;
 import org.eclipse.equinox.http.jetty.JettyConstants;
+import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.configuration.service.IConfigurationService;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 
 final class JettyStarter extends Job {
 
@@ -43,7 +43,7 @@ final class JettyStarter extends Job {
 		settings.put(JettyConstants.HTTP_ENABLED, Boolean.TRUE);
 		settings.put(JettyConstants.HTTP_PORT, new Integer(configurationService.getInt(HttpJettyActivator.SYMBOLIC_NAME, "port", 80, null)));
 		// note, we use the string here to not depend on inofficial API
-		settings.put("customizer.class", "org.eclipse.cloudfree.http.internal.CloudFreeJettyCustomizer");
+		settings.put("customizer.class", "org.eclipse.gyrex.http.internal.GyrexJettyCustomizer");
 
 		// enable SSL if necessary
 		final int sslPort = configurationService.getInt(HttpJettyActivator.SYMBOLIC_NAME, JettyConstants.HTTPS_PORT, 0, null);

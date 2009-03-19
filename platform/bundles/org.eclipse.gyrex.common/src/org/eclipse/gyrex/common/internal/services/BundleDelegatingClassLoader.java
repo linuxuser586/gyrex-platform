@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.internal.services;
+package org.eclipse.gyrex.common.internal.services;
 
 import java.io.IOException;
 import java.net.URL;

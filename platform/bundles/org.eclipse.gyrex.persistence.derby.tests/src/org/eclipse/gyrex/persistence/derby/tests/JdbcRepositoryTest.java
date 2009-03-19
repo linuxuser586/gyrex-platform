@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.derby.tests;
+package org.eclipse.gyrex.persistence.derby.tests;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
@@ -32,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.eclipse.cloudfree.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
-import org.eclipse.cloudfree.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
+import org.eclipse.gyrex.persistence.storage.Repository;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

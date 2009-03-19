@@ -9,17 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common;
+package org.eclipse.gyrex.services.common;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.services.common.provider.BaseService;
-import org.eclipse.cloudfree.services.common.provider.ServiceProvider;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.services.common.provider.BaseService;
+import org.eclipse.gyrex.services.common.provider.ServiceProvider;
 
 /**
- * A CloudFree service.
+ * A Gyrex service.
  * <p>
- * In CloudFree services implement business operations and more sophisticated
+ * In Gyrex services implement business operations and more sophisticated
  * query capabilities. A service provides more powerful capabilities on top of
  * the model layer. As such, services might be exposed to a broader group then
  * the underlying model layer.

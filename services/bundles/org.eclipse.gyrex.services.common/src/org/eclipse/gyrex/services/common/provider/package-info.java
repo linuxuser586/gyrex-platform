@@ -11,12 +11,12 @@
  *******************************************************************************/
 
 /**
- * This package contains the service provider API of the CloudFree Platform.
+ * This package contains the service provider API of Gyrex.
  * <p>
- * CloudFree services are extensible through {@link ServiceProvider service providers}. 
+ * Gyrex services are extensible through {@link ServiceProvider service providers}. 
  * Service providers are made available as OSGi services and contribute service 
  * implementations.
  * </p>
  */
-package org.eclipse.cloudfree.services.common.provider;
+package org.eclipse.gyrex.services.common.provider;
 

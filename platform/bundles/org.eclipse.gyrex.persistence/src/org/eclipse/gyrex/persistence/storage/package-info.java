@@ -13,7 +13,7 @@
 /**
  * This package defines the repository storage model.
  * <p>
- * The CloudFree Platform supports a distributed architecture. This 
+ * Gyrex supports a distributed architecture. This 
  * also applies to persistent data. In order to allow data to be stored on 
  * various systems using different technologies the concept of repository 
  * abstraction is introduced. It allows to partition data of various types 
@@ -23,5 +23,5 @@
  * type. 
  * </p>
  */
-package org.eclipse.cloudfree.persistence.storage;
+package org.eclipse.gyrex.persistence.storage;
 

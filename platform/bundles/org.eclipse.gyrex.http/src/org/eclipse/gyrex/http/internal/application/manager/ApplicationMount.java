@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.manager;
+package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.net.URL;
 

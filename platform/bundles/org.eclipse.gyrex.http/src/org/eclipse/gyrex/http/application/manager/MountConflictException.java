@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application.manager;
+package org.eclipse.gyrex.http.application.manager;
 
 import java.text.MessageFormat;
 
 
-import org.eclipse.cloudfree.http.internal.HttpActivator;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 
 /**
  * Indicates that an application could not be mount at a specific mount point.

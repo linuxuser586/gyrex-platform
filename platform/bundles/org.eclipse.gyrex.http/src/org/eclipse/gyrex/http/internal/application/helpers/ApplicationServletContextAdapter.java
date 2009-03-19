@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.helpers;
+package org.eclipse.gyrex.http.internal.application.helpers;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,9 +24,9 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationConfiguration;
+import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationConfiguration;
 
 /**
  * A servlet context for a particular {@link Application}
@@ -252,7 +252,7 @@ public class ApplicationServletContextAdapter implements ServletContext {
 	 */
 	@Override
 	public String getServerInfo() {
-		return "CloudFree";
+		return "Gyrex";
 	}
 
 	/* (non-Javadoc)

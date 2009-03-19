@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.jdbc.storage;
+package org.eclipse.gyrex.persistence.jdbc.storage;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -17,9 +17,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 
 /**
  * Common base class for a repository which can be accessed via JDBC.
@@ -30,7 +30,7 @@ import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
  * </p>
  * <p>
  * This class may be subclassed by clients that contribute a JDBC repository
- * type to the CloudFree Platform.
+ * type to Gyrex.
  * </p>
  */
 public abstract class JdbcRepository extends Repository {
@@ -42,7 +42,7 @@ public abstract class JdbcRepository extends Repository {
 	 * instance.
 	 * </p>
 	 * <p>
-	 * The provided metrics will be registered with the CloudFree platform.
+	 * The provided metrics will be registered with Gyrex.
 	 * </p>
 	 * 
 	 * @param repositoryId

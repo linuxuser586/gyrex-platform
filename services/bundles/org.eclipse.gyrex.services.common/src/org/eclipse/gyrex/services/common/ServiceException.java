@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common;
+package org.eclipse.gyrex.services.common;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 
 /**
- * Checked exception for the CloudFree service API.
+ * Checked exception for the Gyrex service API.
  * <p>
  * Service operations will typically throw this exception in case of problems
  * occurred in the service. A status can be further queried for the problem

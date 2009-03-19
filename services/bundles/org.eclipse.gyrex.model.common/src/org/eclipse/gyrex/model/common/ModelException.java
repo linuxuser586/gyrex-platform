@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common;
+package org.eclipse.gyrex.model.common;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 
 /**
- * Checked exception for the CloudFree model.
+ * Checked exception for the Gyrex model.
  * <p>
  * Model operations will typically throw this exception in case of problems
  * occurred in the model. A status can be further queried for the problem

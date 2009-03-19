@@ -12,7 +12,7 @@
 
 /**
  * This package and its sub packages host common classes which are ment 
- * to be shared across the CloudFree Platform and its applications. 
+ * to be shared across Gyrex and its applications. 
  */
-package org.eclipse.cloudfree.common;
+package org.eclipse.gyrex.common;
 

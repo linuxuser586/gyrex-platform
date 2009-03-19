@@ -9,15 +9,15 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport;
-import org.eclipse.cloudfree.http.registry.ApplicationCustomizer;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
+import org.eclipse.gyrex.http.registry.ApplicationCustomizer;
 
 /**
  * 
@@ -31,7 +31,7 @@ public class RegistryApplication extends Application {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.Application#doDestroy()
+	 * @see org.eclipse.gyrex.http.application.Application#doDestroy()
 	 */
 	@Override
 	protected void doDestroy() {
@@ -49,7 +49,7 @@ public class RegistryApplication extends Application {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.Application#doInit()
+	 * @see org.eclipse.gyrex.http.application.Application#doInit()
 	 */
 	@Override
 	protected void doInit() throws CoreException {
@@ -63,7 +63,7 @@ public class RegistryApplication extends Application {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.Application#getApplicationServiceSupport()
+	 * @see org.eclipse.gyrex.http.application.Application#getApplicationServiceSupport()
 	 */
 	@Override
 	protected IApplicationServiceSupport getApplicationServiceSupport() {

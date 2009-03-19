@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.jdbc.internal;
+package org.eclipse.gyrex.persistence.jdbc.internal;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;

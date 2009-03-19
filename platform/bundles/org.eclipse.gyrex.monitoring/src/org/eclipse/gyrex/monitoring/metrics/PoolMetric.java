@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.monitoring.metrics;
+package org.eclipse.gyrex.monitoring.metrics;
 
 import java.util.concurrent.locks.Lock;
 
@@ -109,8 +109,8 @@ public class PoolMetric extends CapacityMetric {
 	 * invoked directly.
 	 * </p>
 	 * 
-	 * @see org.eclipse.cloudfree.monitoring.metrics.BaseMetric#doResetStats()
-	 * @see org.eclipse.cloudfree.monitoring.metrics.CapacityMetric#doResetStats()
+	 * @see org.eclipse.gyrex.monitoring.metrics.BaseMetric#doResetStats()
+	 * @see org.eclipse.gyrex.monitoring.metrics.CapacityMetric#doResetStats()
 	 */
 	@Override
 	protected void doResetStats() {

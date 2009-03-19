@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common;
+package org.eclipse.gyrex.model.common;
 
 /**
  * A model object which knows about the last time it was modified.

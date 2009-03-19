@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.lifecycle;
+package org.eclipse.gyrex.common.lifecycle;
 
 /**
  * A shutdown listener that gets notified whenever the bundle it is registered

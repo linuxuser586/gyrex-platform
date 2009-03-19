@@ -9,12 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence;
+package org.eclipse.gyrex.persistence;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.persistence.storage.DefaultRepositoryLookupStrategy;
-import org.eclipse.cloudfree.persistence.storage.IRepositoryLookupStrategy;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.persistence.storage.DefaultRepositoryLookupStrategy;
+import org.eclipse.gyrex.persistence.storage.IRepositoryLookupStrategy;
 
 /**
  * This class provides utility methods for working with the persistence API.

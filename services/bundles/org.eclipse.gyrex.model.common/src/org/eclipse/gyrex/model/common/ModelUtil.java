@@ -9,12 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common;
+package org.eclipse.gyrex.model.common;
 
 import java.text.MessageFormat;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.model.common.internal.ModelActivator;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.model.common.internal.ModelActivator;
 
 /**
  * This class must be used to obtain any model implementation.

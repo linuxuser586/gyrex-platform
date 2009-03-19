@@ -9,27 +9,27 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application.manager;
+package org.eclipse.gyrex.http.application.manager;
 
 import java.net.MalformedURLException;
 import java.util.Map;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 
 /**
- * A management interface for CloudFree HTTP applications.
+ * A management interface for Gyrex HTTP applications.
  * <p>
- * The CloudFree Platform offers applications which run in a specific context
+ * Gyrex offers applications which run in a specific context
  * (eg. a tenant specific context). Thus, multiple instances of the
  * <em>same</em> application may be running. Each instance may expose
  * differences in its behavior and functionality depending on the context it is
  * running in. The manager allows to mount applications to the OSGi HTTP
- * service(s) used by the CloudFree Platform.
+ * service(s) used by Gyrex.
  * </p>
  * <p>
- * The manager is provided as an OSGi service. The CloudFree Platform may use
+ * The manager is provided as an OSGi service. Gyrex may use
  * security restrictions to limit the registration of applications.
  * </p>
  * 
@@ -45,7 +45,7 @@ public interface IApplicationManager {
 	 * <p>
 	 * An URL must begin with a protocol (<code>http://</code> or
 	 * <code>https://</code>) followed by a domain name with a port and a path
-	 * (eg. <code>http://shop.cloudfree.net/admin/</code>). The domain name,
+	 * (eg. <code>http://shop.gyrex.net/admin/</code>). The domain name,
 	 * port and path may be optional. Everything below the specified URL is
 	 * intended to be controlled by the application.
 	 * </p>
@@ -125,7 +125,7 @@ public interface IApplicationManager {
 	 * @param properties
 	 *            application properties which may configure the application
 	 *            further when
-	 *            {@link Application#initialize(org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport)}
+	 *            {@link Application#initialize(org.eclipse.gyrex.http.application.service.IApplicationServiceSupport)}
 	 *            is invoked
 	 * @throws ApplicationRegistrationException
 	 *             if an application with the specified id is already defined

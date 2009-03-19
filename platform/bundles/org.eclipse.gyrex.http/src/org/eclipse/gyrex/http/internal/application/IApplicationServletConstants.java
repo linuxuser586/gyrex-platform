@@ -9,19 +9,19 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application;
+package org.eclipse.gyrex.http.internal.application;
 
 /**
  * internal constants
  */
 public interface IApplicationServletConstants {
 
-	String INTERNAL_HEADER_PREFIX = "X-CloudFree-";//$NON-NLS-1$
-	String INTERNAL_ATTR_PREFIX = "org.eclipse.cloudfree.http.internal.";//$NON-NLS-1$
+	String INTERNAL_HEADER_PREFIX = "X-Gyrex-";//$NON-NLS-1$
+	String INTERNAL_ATTR_PREFIX = "org.eclipse.gyrex.http.internal.";//$NON-NLS-1$
 
-	String INTERNAL_HEADER_ORIGINAL_URL = "X-CloudFree-OriginalURL"; //$NON-NLS-1$
-	String INTERNAL_HEADER_CLIENT_IP = "X-CloudFree-ClientIP"; //$NON-NLS-1$
-	String INTERNAL_HEADER_CLIENT_PORT = "X-CloudFree-ClientPort"; //$NON-NLS-1$
+	String INTERNAL_HEADER_ORIGINAL_URL = "X-Gyrex-OriginalURL"; //$NON-NLS-1$
+	String INTERNAL_HEADER_CLIENT_IP = "X-Gyrex-ClientIP"; //$NON-NLS-1$
+	String INTERNAL_HEADER_CLIENT_PORT = "X-Gyrex-ClientPort"; //$NON-NLS-1$
 
 	String INTERNAL_ATTR_APP_REGISTRATION = INTERNAL_ATTR_PREFIX + "application.registration";//$NON-NLS-1$
 	String INTERNAL_ATTR_APP_MOUNT = INTERNAL_ATTR_PREFIX + "application.mount";//$NON-NLS-1$

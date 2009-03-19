@@ -9,11 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.internal.registry;
+package org.eclipse.gyrex.services.common.internal.registry;
 
 
-import org.eclipse.cloudfree.services.common.status.IStatusMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.gyrex.services.common.status.IStatusMonitor;
 
 /**
  * 
@@ -21,7 +21,7 @@ import org.eclipse.core.runtime.IStatus;
 public class ServiceStatusMonitor implements IStatusMonitor {
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.services.common.status.IStatusMonitor#publishStatus(org.eclipse.core.runtime.IStatus)
+	 * @see org.eclipse.gyrex.services.common.status.IStatusMonitor#publishStatus(org.eclipse.core.runtime.IStatus)
 	 */
 	@Override
 	public void publishStatus(IStatus status) {

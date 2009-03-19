@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.logging;
+package org.eclipse.gyrex.common.logging;
 
 /**
  * Tags for classifying log messages based on the log source.

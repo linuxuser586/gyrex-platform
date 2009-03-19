@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage.settings;
+package org.eclipse.gyrex.persistence.storage.settings;
 
 import java.io.IOException;
 

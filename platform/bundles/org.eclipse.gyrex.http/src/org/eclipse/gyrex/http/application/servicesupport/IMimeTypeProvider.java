@@ -9,11 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application.servicesupport;
+package org.eclipse.gyrex.http.application.servicesupport;
 
 import javax.servlet.ServletContext;
 
-import org.eclipse.cloudfree.http.application.Application;
+import org.eclipse.gyrex.http.application.Application;
 
 /**
  * This interface defines methods that the application may call to get access to

@@ -9,9 +9,9 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.registry;
+package org.eclipse.gyrex.http.registry;
 
-import org.eclipse.cloudfree.http.application.Application;
+import org.eclipse.gyrex.http.application.Application;
 
 /**
  * A customizer to allow further customization of {@link Application HTTP

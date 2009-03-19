@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.internal.services;
+package org.eclipse.gyrex.common.internal.services;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.services.IServiceProxy;
+import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 

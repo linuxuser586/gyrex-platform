@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.helpers;
+package org.eclipse.gyrex.http.internal.application.helpers;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,7 +21,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionContext;
 
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationRegistration;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 
 /**
  * Adapts a {@link HttpSession} so that the correct application specific
@@ -87,7 +87,7 @@ public class ApplicationSessionAdapter implements HttpSession {
 	@Override
 	@Deprecated
 	public HttpSessionContext getSessionContext() {
-		throw new IllegalStateException("HttpSession#getSessionContext is deprecated and not supported in CloudFree");
+		throw new IllegalStateException("HttpSession#getSessionContext is deprecated and not supported in Gyrex");
 	}
 
 	@Override

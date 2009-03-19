@@ -9,14 +9,14 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.derby.tests;
+package org.eclipse.gyrex.persistence.derby.tests;
 
 import org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource;
-import org.eclipse.cloudfree.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
-import org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
+import org.eclipse.gyrex.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
+import org.eclipse.gyrex.persistence.jdbc.storage.JdbcRepository;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 public class MockRepositoryType extends RepositoryProvider {
 
@@ -32,7 +32,7 @@ public class MockRepositoryType extends RepositoryProvider {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
+	 * @see org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences)
 	 */
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {

@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage.content;
+package org.eclipse.gyrex.persistence.storage.content;
 
 import java.text.MessageFormat;
 
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.PlatformObject;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.osgi.framework.Version;
 
 /**

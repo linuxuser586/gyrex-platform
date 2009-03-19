@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.boot.internal.app;
+package org.eclipse.gyrex.boot.internal.app;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -19,11 +19,11 @@ import java.net.Socket;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.packageadmin.PackageAdmin;
@@ -34,12 +34,12 @@ import org.osgi.util.tracker.ServiceTracker;
  */
 public class AppActivator extends BaseBundleActivator {
 
-	private static final String PROP_SHUTDOWN_PORT = "eclipse.cloudfree.shutdown.port";
+	private static final String PROP_SHUTDOWN_PORT = "eclipse.gyrex.shutdown.port";
 	private static final String UTF8 = "UTF-8";
-	private static final String CMD_SHUTDOWN = "eclipse.cloudfree.shutdown.command";
+	private static final String CMD_SHUTDOWN = "eclipse.gyrex.shutdown.command";
 
 	// The plug-in ID
-	public static final String PLUGIN_ID = "org.eclipse.cloudfree.boot";
+	public static final String PLUGIN_ID = "org.eclipse.gyrex.boot";
 
 	// The shared instance
 	private static AppActivator sharedInstance;
@@ -66,7 +66,7 @@ public class AppActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
@@ -81,7 +81,7 @@ public class AppActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
@@ -119,7 +119,7 @@ public class AppActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#getDebugOptions()
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#getDebugOptions()
 	 */
 	@Override
 	protected Class getDebugOptions() {

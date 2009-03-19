@@ -9,14 +9,14 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.derby.internal;
+package org.eclipse.gyrex.persistence.derby.internal;
 
 import org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource;
-import org.eclipse.cloudfree.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
-import org.eclipse.cloudfree.persistence.jdbc.storage.JdbcRepository;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
+import org.eclipse.gyrex.persistence.jdbc.internal.SimpledPooledJdbcRepositoryImpl;
+import org.eclipse.gyrex.persistence.jdbc.storage.JdbcRepository;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 /**
  * Embedded Derby Database.
@@ -24,7 +24,7 @@ import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences
 public class DerbyRepositoryType extends RepositoryProvider {
 
 	/** the plug-in id */
-	public static final String TYPE_ID = "org.eclipse.cloudfree.persistence.derby.type";
+	public static final String TYPE_ID = "org.eclipse.gyrex.persistence.derby.type";
 
 	/**
 	 * Creates a new instance.
@@ -47,7 +47,7 @@ public class DerbyRepositoryType extends RepositoryProvider {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
+	 * @see org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences)
 	 */
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {

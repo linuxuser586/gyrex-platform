@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.internal.storage;
+package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.text.MessageFormat;
 import java.util.Dictionary;
@@ -19,15 +19,15 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.cloudfree.configuration.preferences.PlatformScope;
-import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
-import org.eclipse.cloudfree.persistence.storage.registry.IRepositoryRegistry;
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
+import org.eclipse.gyrex.configuration.preferences.PlatformScope;
+import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -250,7 +250,7 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.registry.IRepositoryRegistry#getRepositoryPreferences(java.lang.String)
+	 * @see org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry#getRepositoryPreferences(java.lang.String)
 	 */
 	@Override
 	public IRepositoryPreferences getRepositoryPreferences(final String repositoryId) {

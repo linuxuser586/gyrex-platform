@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.model.common;
+package org.eclipse.gyrex.model.common;
 
 import org.eclipse.core.runtime.IAdaptable;
 
@@ -24,7 +24,7 @@ import org.eclipse.core.runtime.IAdaptable;
  * extends the {@link IAdaptable} interface.
  * </p>
  * <p>
- * By definition all model objects in the CloudFree platform
+ * By definition all model objects in Gyrex
  * <strong>must</strong> implement this interface.
  * </p>
  */

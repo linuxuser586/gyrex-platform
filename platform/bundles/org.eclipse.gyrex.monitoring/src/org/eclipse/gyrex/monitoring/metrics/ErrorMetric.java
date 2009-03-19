@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.monitoring.metrics;
+package org.eclipse.gyrex.monitoring.metrics;
 
 import java.util.ConcurrentModificationException;
 import java.util.Date;
@@ -154,7 +154,7 @@ public class ErrorMetric extends BaseMetric {
 	 * invoked directly.
 	 * </p>
 	 * 
-	 * @see org.eclipse.cloudfree.monitoring.metrics.BaseMetric#doResetStats()
+	 * @see org.eclipse.gyrex.monitoring.metrics.BaseMetric#doResetStats()
 	 */
 	@Override
 	protected void doResetStats() {

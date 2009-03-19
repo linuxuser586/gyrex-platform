@@ -9,12 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.nondurable.map.internal;
+package org.eclipse.gyrex.persistence.nondurable.map.internal;
 
-import org.eclipse.cloudfree.persistence.nondurable.map.MapRepository;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
+import org.eclipse.gyrex.persistence.nondurable.map.MapRepository;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 /**
  * A repository type which stores objects in a map in memory.
@@ -27,11 +27,11 @@ public class MapRepositoryType extends RepositoryProvider {
 	 * @param id
 	 */
 	public MapRepositoryType() {
-		super("org.eclipse.cloudfree.persistence.nondurable.map", MapRepository.class);
+		super("org.eclipse.gyrex.persistence.nondurable.map", MapRepository.class);
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
+	 * @see org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences)
 	 */
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {

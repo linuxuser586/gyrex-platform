@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.servlet
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.registrations;
+package org.eclipse.gyrex.http.internal.application.registrations;
 
 import java.io.IOException;
 
@@ -22,7 +22,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
-import org.eclipse.cloudfree.http.internal.application.IApplicationServletConstants;
+import org.eclipse.gyrex.http.internal.application.IApplicationServletConstants;
 
 /**
  * Adapts a {@link HttpServletRequest} for a {@link ServletRegistration}.

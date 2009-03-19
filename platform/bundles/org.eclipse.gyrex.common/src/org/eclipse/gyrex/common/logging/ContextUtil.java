@@ -9,11 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.logging;
+package org.eclipse.gyrex.common.logging;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.common.internal.fixme.AdapterManagerAccess;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.common.internal.fixme.AdapterManagerAccess;
 
 /**
  * This class provides static utility methods when working with contexts.

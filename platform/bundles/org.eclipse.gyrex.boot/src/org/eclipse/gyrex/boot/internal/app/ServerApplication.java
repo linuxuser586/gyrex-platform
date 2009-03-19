@@ -9,21 +9,21 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.boot.internal.app;
+package org.eclipse.gyrex.boot.internal.app;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.cloudfree.common.debug.BundleDebug;
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
+import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.osgi.framework.Bundle;
 
 /**
- * The server application which starts the CloudFree Platform.
+ * The server application which starts Gyrex.
  */
 public class ServerApplication implements IApplication {
 
@@ -64,9 +64,9 @@ public class ServerApplication implements IApplication {
 		}
 
 		// make sure that the configuration is initialized
-		final Bundle csImplBundle = AppActivator.getInstance().getBundle("org.eclipse.cloudfree.configuration.impl");
+		final Bundle csImplBundle = AppActivator.getInstance().getBundle("org.eclipse.gyrex.configuration.impl");
 		if (null == csImplBundle) {
-			throw new IllegalStateException("Bundle 'org.eclipse.cloudfree.configuration.impl' is missing. Please check the installation");
+			throw new IllegalStateException("Bundle 'org.eclipse.gyrex.configuration.impl' is missing. Please check the installation");
 		}
 		csImplBundle.start(Bundle.START_TRANSIENT);
 

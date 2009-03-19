@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.internal.storage;
+package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.io.IOException;
 
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 import org.osgi.service.prefs.BackingStoreException;
 
 /**

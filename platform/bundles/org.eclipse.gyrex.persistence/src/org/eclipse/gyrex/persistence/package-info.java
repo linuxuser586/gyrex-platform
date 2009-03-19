@@ -19,5 +19,5 @@
  * low-level API access.
  * </p>
  */
-package org.eclipse.cloudfree.persistence;
+package org.eclipse.gyrex.persistence;
 

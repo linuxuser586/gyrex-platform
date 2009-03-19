@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application;
+package org.eclipse.gyrex.http.internal.application;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -25,21 +25,21 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
-import org.eclipse.cloudfree.common.logging.LogAudience;
-import org.eclipse.cloudfree.common.logging.LogSource;
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.ApplicationException;
-import org.eclipse.cloudfree.http.internal.HttpActivator;
-import org.eclipse.cloudfree.http.internal.HttpDebug;
-import org.eclipse.cloudfree.http.internal.application.helpers.ApplicationRequestAdapter;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationInstance;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationManager;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationMount;
-import org.eclipse.cloudfree.http.internal.application.manager.ApplicationRegistration;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.logging.LogAudience;
+import org.eclipse.gyrex.common.logging.LogSource;
+import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.ApplicationException;
+import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.gyrex.http.internal.HttpDebug;
+import org.eclipse.gyrex.http.internal.application.helpers.ApplicationRequestAdapter;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationInstance;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationMount;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 
 /**
  * The main entry into the world of applications.
@@ -284,7 +284,7 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 	}
 
 	private boolean verifyHeaderKey(final HttpServletRequest req) throws ApplicationException {
-		//final String key = req.getHeader("X-CloudFree-Key");
+		//final String key = req.getHeader("X-Gyrex-Key");
 		// TODO implement header key validation
 		// TODO this should be configurable
 		final boolean failIfInvalid = true;

@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.monitoring.metrics;
+package org.eclipse.gyrex.monitoring.metrics;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -23,7 +23,7 @@ import java.util.List;
  * supported.
  * </p>
  * <p>
- * Metrics must be registered with the CloudFree platform by registering them as
+ * Metrics must be registered with Gyrex by registering them as
  * OSGi services using this class.
  * </p>
  * <p>

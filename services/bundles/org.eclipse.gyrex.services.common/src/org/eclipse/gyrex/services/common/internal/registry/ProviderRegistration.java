@@ -9,10 +9,10 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.internal.registry;
+package org.eclipse.gyrex.services.common.internal.registry;
 
 
-import org.eclipse.cloudfree.services.common.provider.ServiceProvider;
+import org.eclipse.gyrex.services.common.provider.ServiceProvider;
 import org.osgi.framework.Bundle;
 
 /**

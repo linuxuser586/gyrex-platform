@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.net.MalformedURLException;
 import java.util.HashMap;
@@ -21,15 +21,15 @@ import java.util.Map;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 
-import org.eclipse.cloudfree.http.application.manager.ApplicationRegistrationException;
-import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
-import org.eclipse.cloudfree.http.application.manager.MountConflictException;
-import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
-import org.eclipse.cloudfree.http.application.servicesupport.NamespaceException;
-import org.eclipse.cloudfree.http.internal.apps.dummy.RootContext;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;
 import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
+import org.eclipse.gyrex.http.application.manager.MountConflictException;
+import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
+import org.eclipse.gyrex.http.application.servicesupport.NamespaceException;
+import org.eclipse.gyrex.http.internal.apps.dummy.RootContext;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.packageadmin.PackageAdmin;

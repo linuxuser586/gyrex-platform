@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application;
+package org.eclipse.gyrex.http.application;
 
 /**
  * An <code>ApplicationException</code> is thrown to indicate an error occurred
@@ -22,7 +22,7 @@ package org.eclipse.cloudfree.http.application;
  * </p>
  * <p>
  * This class extends runtime exception because the exception is handled at the
- * runtime by the CloudFree Platform.
+ * runtime by Gyrex.
  * </p>
  * <p>
  * This class may be extended by clients.

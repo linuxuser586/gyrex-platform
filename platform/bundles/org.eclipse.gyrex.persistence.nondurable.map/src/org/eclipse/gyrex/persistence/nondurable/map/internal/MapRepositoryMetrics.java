@@ -9,10 +9,10 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.nondurable.map.internal;
+package org.eclipse.gyrex.persistence.nondurable.map.internal;
 
-import org.eclipse.cloudfree.monitoring.metrics.MetricSet;
-import org.eclipse.cloudfree.monitoring.metrics.ThroughputMetric;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 
 /**
  * 

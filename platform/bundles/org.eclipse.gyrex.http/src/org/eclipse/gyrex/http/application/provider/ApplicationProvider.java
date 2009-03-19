@@ -9,12 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application.provider;
+package org.eclipse.gyrex.http.application.provider;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
 
 /**
  * A provider for {@link Application applications}.
@@ -24,7 +24,7 @@ import org.eclipse.core.runtime.CoreException;
  * </p>
  * <p>
  * This class may be implemented by clients contributing a custom application
- * type and must be made available to the CloudFree Platform as an OSGi service.
+ * type and must be made available to Gyrex as an OSGi service.
  * </p>
  */
 public abstract class ApplicationProvider {
@@ -47,7 +47,7 @@ public abstract class ApplicationProvider {
 	/**
 	 * Creates a new application instance.
 	 * <p>
-	 * The CloudFree platform calls this method to ask the provider for a new
+	 * Gyrex calls this method to ask the provider for a new
 	 * application which is intended to handle HTTP requests for the specified
 	 * context.
 	 * </p>
@@ -55,7 +55,7 @@ public abstract class ApplicationProvider {
 	 * Implementors <strong>must</strong> return a new object every time this
 	 * method is invoked. The application will be initialized by the platform
 	 * when necessary by calling
-	 * {@link Application#initialize(org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport)}
+	 * {@link Application#initialize(org.eclipse.gyrex.http.application.service.IApplicationServiceSupport)}
 	 * on the returned application object.
 	 * </p>
 	 * 

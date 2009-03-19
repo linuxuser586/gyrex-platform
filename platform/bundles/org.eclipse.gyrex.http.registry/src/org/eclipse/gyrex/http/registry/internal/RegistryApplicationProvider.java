@@ -9,23 +9,23 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.provider.ApplicationProvider;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 
 /**
  * 
  */
 public class RegistryApplicationProvider extends ApplicationProvider {
 
-	public static final String ID = "org.eclipse.cloudfree.http.registry.application";
+	public static final String ID = "org.eclipse.gyrex.http.registry.application";
 	private static final AtomicReference<RegistryApplicationProvider> instanceRef = new AtomicReference<RegistryApplicationProvider>();
 
 	/**
@@ -55,7 +55,7 @@ public class RegistryApplicationProvider extends ApplicationProvider {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.provider.ApplicationProvider#createApplication(java.lang.String, org.eclipse.cloudfree.common.context.IContext)
+	 * @see org.eclipse.gyrex.http.application.provider.ApplicationProvider#createApplication(java.lang.String, org.eclipse.gyrex.common.context.IContext)
 	 */
 	@Override
 	public Application createApplication(final String applicationId, final IContext context) throws CoreException {

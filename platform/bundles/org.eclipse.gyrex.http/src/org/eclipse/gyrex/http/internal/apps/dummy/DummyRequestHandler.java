@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.apps.dummy;
+package org.eclipse.gyrex.http.internal.apps.dummy;
 
 import java.io.IOException;
 
@@ -19,9 +19,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 
-import org.eclipse.cloudfree.configuration.PlatformConfiguration;
-import org.eclipse.cloudfree.http.internal.HttpServiceTracker;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.http.internal.HttpServiceTracker;
 
 /**
  * 

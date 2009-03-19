@@ -9,14 +9,14 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.monitoring.internal;
+package org.eclipse.gyrex.monitoring.internal;
 
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 
 public class MonitoringActivator extends BaseBundleActivator {
 
 	/** plug-in id */
-	public static final String PLUGIN_ID = "org.eclipse.cloudfree.monitoring";
+	public static final String PLUGIN_ID = "org.eclipse.gyrex.monitoring";
 
 	/**
 	 * Creates a new instance.

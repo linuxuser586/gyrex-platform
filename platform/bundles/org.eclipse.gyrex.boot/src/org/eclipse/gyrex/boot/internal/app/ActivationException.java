@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.boot.internal.app;
+package org.eclipse.gyrex.boot.internal.app;
 
 /**
  * Exception during activation of a server role.

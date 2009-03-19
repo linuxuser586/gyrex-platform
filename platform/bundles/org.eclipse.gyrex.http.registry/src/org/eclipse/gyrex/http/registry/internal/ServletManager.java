@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -94,7 +94,7 @@ public class ServletManager implements ExtensionPointTracker.Listener {
 		}
 	}
 
-	private static final String SERVLETS_EXTENSION_POINT = "org.eclipse.cloudfree.http.applications"; //$NON-NLS-1$
+	private static final String SERVLETS_EXTENSION_POINT = "org.eclipse.gyrex.http.applications"; //$NON-NLS-1$
 
 	private static final String PARAM_VALUE = "value"; //$NON-NLS-1$
 

@@ -9,15 +9,15 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.internal.application.manager;
+package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
-import org.eclipse.cloudfree.http.application.manager.IApplicationManager;
-import org.eclipse.cloudfree.monitoring.metrics.ThroughputMetric;
+import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
+import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 
 /**
  * Specialized registry for mapping URLs to application mounts.

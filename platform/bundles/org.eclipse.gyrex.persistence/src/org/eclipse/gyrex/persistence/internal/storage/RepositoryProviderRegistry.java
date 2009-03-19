@@ -9,17 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.internal.storage;
+package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.text.MessageFormat;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.cloudfree.persistence.internal.PersistenceActivator;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;

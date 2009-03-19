@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.boot.internal.app;
+package org.eclipse.gyrex.boot.internal.app;
 
 import java.util.ArrayList;
 import java.util.HashMap;

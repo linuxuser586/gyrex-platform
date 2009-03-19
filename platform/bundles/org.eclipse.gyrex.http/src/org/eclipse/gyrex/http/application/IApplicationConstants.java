@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.application;
+package org.eclipse.gyrex.http.application;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -24,7 +24,7 @@ public interface IApplicationConstants {
 	 * A {@link HttpServletRequest servlet request} attribute which value is the
 	 * {@link String} object containing the mount point URL a request was
 	 * received on (constant value
-	 * <code>org.eclipse.cloudfree.http.application.mount</code>).
+	 * <code>org.eclipse.gyrex.http.application.mount</code>).
 	 */
-	String REQUEST_ATTRIBUTE_MOUNT_POINT = "org.eclipse.cloudfree.http.application.mount";
+	String REQUEST_ATTRIBUTE_MOUNT_POINT = "org.eclipse.gyrex.http.application.mount";
 }

@@ -9,9 +9,9 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal;
+package org.eclipse.gyrex.http.internal;
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.debug.BundleDebug;
 
 public class HttpDebug extends BundleDebug {
 

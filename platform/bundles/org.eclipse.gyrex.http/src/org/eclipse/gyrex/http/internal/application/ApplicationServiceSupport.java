@@ -11,7 +11,7 @@
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.servlet
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application;
+package org.eclipse.gyrex.http.internal.application;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -27,19 +27,19 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.ApplicationException;
-import org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport;
-import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
-import org.eclipse.cloudfree.http.application.servicesupport.NamespaceException;
-import org.eclipse.cloudfree.http.internal.HttpActivator;
-import org.eclipse.cloudfree.http.internal.application.helpers.ApplicationServletConfig;
-import org.eclipse.cloudfree.http.internal.application.helpers.ServletUtil;
-import org.eclipse.cloudfree.http.internal.application.registrations.Registration;
-import org.eclipse.cloudfree.http.internal.application.registrations.RegistrationsManager;
-import org.eclipse.cloudfree.http.internal.application.registrations.ResourceRegistration;
-import org.eclipse.cloudfree.http.internal.application.registrations.ServletRegistration;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.ApplicationException;
+import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
+import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
+import org.eclipse.gyrex.http.application.servicesupport.NamespaceException;
+import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.gyrex.http.internal.application.helpers.ApplicationServletConfig;
+import org.eclipse.gyrex.http.internal.application.helpers.ServletUtil;
+import org.eclipse.gyrex.http.internal.application.registrations.Registration;
+import org.eclipse.gyrex.http.internal.application.registrations.RegistrationsManager;
+import org.eclipse.gyrex.http.internal.application.registrations.ResourceRegistration;
+import org.eclipse.gyrex.http.internal.application.registrations.ServletRegistration;
 import org.osgi.framework.Bundle;
 
 /**
@@ -119,7 +119,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#getMimeType(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#getMimeType(java.lang.String)
 	 */
 	@Override
 	public String getMimeType(final String file) {
@@ -163,7 +163,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#getResource(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#getResource(java.lang.String)
 	 */
 	@Override
 	public URL getResource(final String path) throws MalformedURLException {
@@ -205,7 +205,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#getResourcePaths(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#getResourcePaths(java.lang.String)
 	 */
 	@Override
 	public Set getResourcePaths(final String path) {
@@ -247,7 +247,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#getServletContext()
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#getServletContext()
 	 */
 	@Override
 	public ServletContext getServletContext() {
@@ -259,7 +259,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#handleRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#handleRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
 	 */
 	@Override
 	public boolean handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ApplicationException {
@@ -357,7 +357,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#registerResources(java.lang.String, java.lang.String, org.eclipse.cloudfree.http.application.service.IResourceProvider)
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#registerResources(java.lang.String, java.lang.String, org.eclipse.gyrex.http.application.service.IResourceProvider)
 	 */
 	@Override
 	public void registerResources(final String alias, final String name, final IResourceProvider provider) throws NamespaceException {
@@ -367,7 +367,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	//	/* (non-Javadoc)
-	//	 * @see org.eclipse.cloudfree.http.application.servicesupport.IApplicationServiceSupport#registerService(java.lang.String, org.eclipse.core.runtime.IAdaptable)
+	//	 * @see org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport#registerService(java.lang.String, org.eclipse.core.runtime.IAdaptable)
 	//	 */
 	//	@Override
 	//	public void registerService(final String alias, final IAdaptable service) throws ServletException, NamespaceException {
@@ -380,7 +380,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	//	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#registerServlet(java.lang.String, javax.servlet.Servlet, java.util.Map)
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#registerServlet(java.lang.String, javax.servlet.Servlet, java.util.Map)
 	 */
 	@Override
 	public void registerServlet(final String alias, final Servlet servlet, final Map<String, String> initparams) throws ServletException, NamespaceException {
@@ -395,7 +395,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.application.service.IApplicationServiceSupport#unregister(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.service.IApplicationServiceSupport#unregister(java.lang.String)
 	 */
 	@Override
 	public void unregister(final String alias) {

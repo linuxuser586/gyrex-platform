@@ -1,5 +1,5 @@
 # global debug option
-org.eclipse.cloudfree.http/debug=true
+org.eclipse.gyrex.http/debug=true
 
 # debug roles
-org.eclipse.cloudfree.http/handlerServlet=true
+org.eclipse.gyrex.http/handlerServlet=true

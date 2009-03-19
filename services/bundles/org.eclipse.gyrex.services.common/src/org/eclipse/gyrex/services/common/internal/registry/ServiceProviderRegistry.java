@@ -9,16 +9,16 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.internal.registry;
+package org.eclipse.gyrex.services.common.internal.registry;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.services.common.internal.ServicesActivator;
-import org.eclipse.cloudfree.services.common.provider.ServiceProvider;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.services.common.internal.ServicesActivator;
+import org.eclipse.gyrex.services.common.provider.ServiceProvider;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;

@@ -9,11 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.helpers;
+package org.eclipse.gyrex.http.internal.application.helpers;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.eclipse.cloudfree.http.internal.application.IApplicationServletConstants;
+import org.eclipse.gyrex.http.internal.application.IApplicationServletConstants;
 
 /**
  * Utility class for working with the servlet API.

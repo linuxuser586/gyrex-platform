@@ -9,10 +9,10 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.helper;
+package org.eclipse.gyrex.http.helper;
 
 
-import org.eclipse.cloudfree.http.internal.HttpActivator;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
@@ -20,13 +20,13 @@ import org.osgi.service.http.HttpService;
 import org.osgi.util.tracker.ServiceTracker;
 
 /**
- * Base HTTP service tracker for the CloudFree Platform default HTTP service.
+ * Base HTTP service tracker for Gyrex default HTTP service.
  */
 public abstract class BaseDefaultHttpServiceTracker extends ServiceTracker {
 
 	/**
 	 * filter string for the default http service (value
-	 * <code>(&(objectClass=org.osgi.service.http.HttpService)(other.info=org.eclipse.cloudfree.http.default))</code>)
+	 * <code>(&(objectClass=org.osgi.service.http.HttpService)(other.info=org.eclipse.gyrex.http.default))</code>)
 	 */
 	private static final String FILTER_DEFAULT_HTTP_SERVICE = "(&(objectClass=" + HttpService.class.getName() + ")(other.info=" + HttpActivator.TYPE_WEB + "))";
 

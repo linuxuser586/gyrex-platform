@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.manager;
+package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.ServletContext;
 
-import org.eclipse.cloudfree.http.application.Application;
+import org.eclipse.gyrex.http.application.Application;
 
 /**
  * A concrete application instance.

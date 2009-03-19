@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.servlet
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.registrations;
+package org.eclipse.gyrex.http.internal.application.registrations;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.servlet
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.application.registrations;
+package org.eclipse.gyrex.http.internal.application.registrations;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -34,8 +34,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider;
-import org.eclipse.cloudfree.http.internal.application.helpers.ServletUtil;
+import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
+import org.eclipse.gyrex.http.internal.application.helpers.ServletUtil;
 import org.osgi.framework.Bundle;
 
 /**
@@ -83,7 +83,7 @@ public class ResourceRegistration extends Registration {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.internal.application.registrations.Registration#doClose()
+	 * @see org.eclipse.gyrex.http.internal.application.registrations.Registration#doClose()
 	 */
 	@Override
 	protected void doClose() {
@@ -92,7 +92,7 @@ public class ResourceRegistration extends Registration {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.internal.application.registrations.Registration#doDestroy()
+	 * @see org.eclipse.gyrex.http.internal.application.registrations.Registration#doDestroy()
 	 */
 	@Override
 	protected void doDestroy() {
@@ -100,7 +100,7 @@ public class ResourceRegistration extends Registration {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.http.internal.application.registrations.Registration#doHandleRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, java.lang.String)
+	 * @see org.eclipse.gyrex.http.internal.application.registrations.Registration#doHandleRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, java.lang.String)
 	 */
 	@Override
 	protected boolean doHandleRequest(final HttpServletRequest req, final HttpServletResponse resp, final String alias) throws ServletException, IOException {
@@ -160,7 +160,7 @@ public class ResourceRegistration extends Registration {
 	 *            the matched alias
 	 * @return whatever {@link IResourceProvider#getMimeType(String)} returned
 	 * @throws MalformedURLException
-	 * @see org.eclipse.cloudfree.http.application.servicesupport.IMimeTypeProvider#getMimeType(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.servicesupport.IMimeTypeProvider#getMimeType(java.lang.String)
 	 */
 	public String getMimeType(final String path, final String alias) {
 		final IResourceProvider provider = this.provider;
@@ -180,7 +180,7 @@ public class ResourceRegistration extends Registration {
 	 *            the matched alias
 	 * @return whatever {@link IResourceProvider#getResource(String)} returned
 	 * @throws MalformedURLException
-	 * @see org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider#getResource(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.servicesupport.IResourceProvider#getResource(java.lang.String)
 	 */
 	public URL getResource(final String path, final String alias) throws MalformedURLException {
 		final IResourceProvider provider = this.provider;
@@ -200,7 +200,7 @@ public class ResourceRegistration extends Registration {
 	 *            the matched alias
 	 * @return whatever {@link IResourceProvider#getResourcePaths(String)}
 	 *         returned
-	 * @see org.eclipse.cloudfree.http.application.servicesupport.IResourceProvider#getResourcePaths(java.lang.String)
+	 * @see org.eclipse.gyrex.http.application.servicesupport.IResourceProvider#getResourcePaths(java.lang.String)
 	 */
 	public Set getResourcePaths(final String path, final String alias) {
 		final IResourceProvider provider = this.provider;

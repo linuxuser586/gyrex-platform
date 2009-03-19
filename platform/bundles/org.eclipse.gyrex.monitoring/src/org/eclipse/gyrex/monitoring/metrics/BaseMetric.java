@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.monitoring.metrics;
+package org.eclipse.gyrex.monitoring.metrics;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

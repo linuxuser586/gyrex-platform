@@ -12,16 +12,16 @@
         Gunnar Wagenknecht - initial API and implementation
  -->
 <plugin>
-   <extension-point id="serverroles" name="CloudFree Server Roles" schema="schema/serverroles.exsd"/>
+   <extension-point id="serverroles" name="Gyrex Server Roles" schema="schema/serverroles.exsd"/>
    <extension
          id="server"
-         name="CloudFree Platform Server"
+         name="Gyrex Server"
          point="org.eclipse.core.runtime.applications">
       <application
             cardinality="singleton-global"
             thread="any">
          <run
-               class="org.eclipse.cloudfree.boot.internal.app.ServerApplication">
+               class="org.eclipse.gyrex.boot.internal.app.ServerApplication">
          </run></application>
    </extension>
 

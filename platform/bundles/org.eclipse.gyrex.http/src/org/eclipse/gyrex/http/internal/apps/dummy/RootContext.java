@@ -9,13 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.apps.dummy;
+package org.eclipse.gyrex.http.internal.apps.dummy;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.PlatformObject;
+import org.eclipse.gyrex.common.context.IContext;
 
 /**
  * 
@@ -23,7 +23,7 @@ import org.eclipse.core.runtime.PlatformObject;
 public class RootContext extends PlatformObject implements IContext {
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.context.IContext#getContextPath()
+	 * @see org.eclipse.gyrex.common.context.IContext#getContextPath()
 	 */
 	@Override
 	public IPath getContextPath() {

@@ -9,9 +9,9 @@
  * Contributors:
  *     Cognos Incorporated, IBM Corporation - concept/implementation from 
  *                                            org.eclipse.equinox.http.registry
- *     Gunnar Wagenknecht - adaption to CloudFree
+ *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
-package org.eclipse.cloudfree.http.registry.internal;
+package org.eclipse.gyrex.http.registry.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +23,7 @@ import org.osgi.framework.ServiceReference;
 
 public class MountManager implements ExtensionPointTracker.Listener {
 
-	private static final String MOUNTS_EXTENSION_POINT = "org.eclipse.cloudfree.http.applications"; //$NON-NLS-1$
+	private static final String MOUNTS_EXTENSION_POINT = "org.eclipse.gyrex.http.applications"; //$NON-NLS-1$
 	private static final String URL = "url"; //$NON-NLS-1$
 	private static final String MOUNT = "mount"; //$NON-NLS-1$
 

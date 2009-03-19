@@ -9,11 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.nondurable.map.internal;
+package org.eclipse.gyrex.persistence.nondurable.map.internal;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import org.eclipse.cloudfree.persistence.nondurable.map.MapRepository;
+import org.eclipse.gyrex.persistence.nondurable.map.MapRepository;
 
 /**
  * {@link MapRepository} implementation using a {@link ConcurrentSkipListMap}.

@@ -9,22 +9,22 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.solr.internal;
+package org.eclipse.gyrex.persistence.solr.internal;
 
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider;
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 /**
  * Useful during development on the local machine.
  */
 public class EmbeddedSolrRepositoryType extends RepositoryProvider {
 
-	public static final String TYPE_ID = "org.eclipse.cloudfree.persistence.solr.embedded";
+	public static final String TYPE_ID = "org.eclipse.gyrex.persistence.solr.embedded";
 
 	private final CoreContainer coreContainer;
 	private final SolrServer adminServer;
@@ -48,7 +48,7 @@ public class EmbeddedSolrRepositoryType extends RepositoryProvider {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences)
+	 * @see org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider#newRepositoryInstance(java.lang.String, org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences)
 	 */
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {

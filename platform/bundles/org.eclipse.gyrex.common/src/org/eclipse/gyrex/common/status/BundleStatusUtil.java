@@ -9,12 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.status;
+package org.eclipse.gyrex.common.status;
 
 
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 
 /**
  * A utility for working with {@link IStatus} objects.

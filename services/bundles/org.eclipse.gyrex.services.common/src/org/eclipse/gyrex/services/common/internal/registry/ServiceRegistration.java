@@ -9,17 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.internal.registry;
+package org.eclipse.gyrex.services.common.internal.registry;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.services.common.IService;
-import org.eclipse.cloudfree.services.common.provider.ServiceProvider;
 import org.eclipse.core.runtime.IAdapterFactory;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.services.common.IService;
+import org.eclipse.gyrex.services.common.provider.ServiceProvider;
 import org.osgi.framework.Bundle;
 
 /**

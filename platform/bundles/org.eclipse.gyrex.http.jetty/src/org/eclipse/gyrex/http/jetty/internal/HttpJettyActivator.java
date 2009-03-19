@@ -9,18 +9,18 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.cloudfree.http.jetty.internal;
+package org.eclipse.gyrex.http.jetty.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.cloudfree.common.debug.BundleDebug;
-import org.eclipse.cloudfree.common.runtime.BaseBundleActivator;
 import org.eclipse.equinox.http.jetty.JettyConfigurator;
+import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.osgi.framework.BundleContext;
 
 public class HttpJettyActivator extends BaseBundleActivator {
 
-	public static final String SYMBOLIC_NAME = "org.eclipse.cloudfree.http.jetty";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.http.jetty";
 
 	private static final AtomicReference<HttpJettyActivator> instanceRef = new AtomicReference<HttpJettyActivator>();
 
@@ -45,7 +45,7 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
@@ -55,7 +55,7 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {

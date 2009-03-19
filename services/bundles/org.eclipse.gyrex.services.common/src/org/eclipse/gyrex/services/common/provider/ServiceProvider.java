@@ -9,23 +9,23 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.services.common.provider;
+package org.eclipse.gyrex.services.common.provider;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.services.common.IService;
-import org.eclipse.cloudfree.services.common.ServiceUtil;
-import org.eclipse.cloudfree.services.common.status.IStatusMonitor;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IAdapterManager;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.services.common.IService;
+import org.eclipse.gyrex.services.common.ServiceUtil;
+import org.eclipse.gyrex.services.common.status.IStatusMonitor;
 
 /**
  * A service provider base class which provides {@link IService service}
- * instances to the CloudFree Platform.
+ * instances to Gyrex.
  * <p>
  * A {@link ServiceProvider} provides {@link IService} objects. These service
  * service objects may be obtained from a {@link IContext context} using the the
@@ -107,7 +107,7 @@ public abstract class ServiceProvider {
 	}
 
 	/**
-	 * Called by the CloudFree Platform to create a new service instance of the
+	 * Called by Gyrex to create a new service instance of the
 	 * specified service type.
 	 * <p>
 	 * Subclasses must implement this method and return a service instance which

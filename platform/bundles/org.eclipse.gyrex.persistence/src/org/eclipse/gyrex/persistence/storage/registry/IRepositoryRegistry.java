@@ -9,9 +9,9 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage.registry;
+package org.eclipse.gyrex.persistence.storage.registry;
 
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 /**
  * The repository registry provides administrative access to repositories

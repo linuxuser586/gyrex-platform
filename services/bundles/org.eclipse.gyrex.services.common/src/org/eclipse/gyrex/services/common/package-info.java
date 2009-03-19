@@ -11,7 +11,7 @@
  *******************************************************************************/
 
 /**
- * This package defines the Service API of the CloudFree Platform.
+ * This package defines the Service API of Gyrex.
  * <p>
  * <strong>The Service API</strong>
  </p>
@@ -50,7 +50,7 @@
  */
 
 /**
- * This package defines the Service API of the CloudFree Platform.
+ * This package defines the Service API of Gyrex.
  * <p>
  * <strong>The Service API</strong>
  * </p>
@@ -99,5 +99,5 @@
  * Opinion</a>, a position paper by Pat Helland.
  * </p>
  */
-package org.eclipse.cloudfree.services.common;
+package org.eclipse.gyrex.services.common;
 

@@ -9,21 +9,21 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.persistence.storage.provider;
+package org.eclipse.gyrex.persistence.storage.provider;
 
 import java.text.MessageFormat;
 
-import org.eclipse.cloudfree.persistence.storage.Repository;
-import org.eclipse.cloudfree.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.core.runtime.PlatformObject;
+import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 /**
  * A repository provider base class which provides {@link Repository repository}
- * instances to the CloudFree Platform.
+ * instances to Gyrex.
  * <p>
- * Repository providers can be dynamically registered to the CloudFree Platform
+ * Repository providers can be dynamically registered to Gyrex
  * by registering {@link RepositoryProvider} instances as OSGi services.
- * Repository providers are considered core elements of the CloudFree Platform.
+ * Repository providers are considered core elements of Gyrex.
  * Security restrictions may be used to only allow a set of well known (i.e.
  * trusted) providers.
  * </p>
@@ -33,8 +33,8 @@ import org.eclipse.core.runtime.PlatformObject;
  * </p>
  * <p>
  * This class must be subclassed by clients that want to contribute a repository
- * provider to the CloudFree Platform. However, it is typically not referenced
- * directly outside the CloudFree Platform.
+ * provider to Gyrex. However, it is typically not referenced
+ * directly outside Gyrex.
  * </p>
  */
 public abstract class RepositoryProvider extends PlatformObject {

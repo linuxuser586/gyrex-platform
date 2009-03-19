@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.common.internal.services;
+package org.eclipse.gyrex.common.internal.services;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -17,8 +17,8 @@ import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.cloudfree.common.services.IServiceProxy;
-import org.eclipse.cloudfree.common.services.ServiceNotAvailableException;
+import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.common.services.ServiceNotAvailableException;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.util.tracker.ServiceTracker;
@@ -90,7 +90,7 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.internal.services.IServiceProxy#get()
+	 * @see org.eclipse.gyrex.common.internal.services.IServiceProxy#get()
 	 */
 	@Override
 	public T getProxy() {
@@ -101,7 +101,7 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.services.IServiceProxy#getService()
+	 * @see org.eclipse.gyrex.common.services.IServiceProxy#getService()
 	 */
 	@Override
 	public T getService() throws ServiceNotAvailableException {
@@ -128,7 +128,7 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.cloudfree.common.internal.services.IServiceProxy#setTimeout(long, java.util.concurrent.TimeUnit)
+	 * @see org.eclipse.gyrex.common.internal.services.IServiceProxy#setTimeout(long, java.util.concurrent.TimeUnit)
 	 */
 	//	@Override
 	//	public IServiceProxy<T> setTimeout(final long timeout, final TimeUnit unit) {

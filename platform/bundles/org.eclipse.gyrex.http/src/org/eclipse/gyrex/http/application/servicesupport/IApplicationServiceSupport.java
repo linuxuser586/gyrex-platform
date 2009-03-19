@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.application.servicesupport;
+package org.eclipse.gyrex.http.application.servicesupport;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -24,9 +24,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.cloudfree.common.context.IContext;
-import org.eclipse.cloudfree.http.application.Application;
-import org.eclipse.cloudfree.http.application.ApplicationException;
+import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.ApplicationException;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 
@@ -42,7 +42,7 @@ import org.osgi.service.http.HttpService;
  * It's important to know that an {@link Application} does not implement the
  * {@link HttpService} interface because an application must
  * <strong>not</strong> made available as an OSGi Http Service. This would
- * conflict with the Http Service consumed by the CloudFree Platform itself and
+ * conflict with the Http Service consumed by Gyrex itself and
  * result in recursive registration. Therefore, implementors must not export
  * application services using the OSGi {@link HttpService} interface.
  * </p>
@@ -55,16 +55,16 @@ public interface IApplicationServiceSupport {
 	/**
 	 * A {@link #getServletContext() servlet context} attribute which value is
 	 * the {@link Application} object (constant value
-	 * <code>org.eclipse.cloudfree.http.application</code>).
+	 * <code>org.eclipse.gyrex.http.application</code>).
 	 */
-	String SERVLET_CONTEXT_ATTRIBUTE_APPLICATION = "org.eclipse.cloudfree.http.application";
+	String SERVLET_CONTEXT_ATTRIBUTE_APPLICATION = "org.eclipse.gyrex.http.application";
 
 	/**
 	 * A {@link #getServletContext() servlet context} attribute which value is
 	 * the {@link IContext} object (constant value
-	 * <code>org.eclipse.cloudfree.common.context</code>).
+	 * <code>org.eclipse.gyrex.common.context</code>).
 	 */
-	String SERVLET_CONTEXT_ATTRIBUTE_CONTEXT = "org.eclipse.cloudfree.common.context";
+	String SERVLET_CONTEXT_ATTRIBUTE_CONTEXT = "org.eclipse.gyrex.common.context";
 
 	/**
 	 * Maps a file to a MIME type by asking all registered mime type providers.
@@ -124,7 +124,7 @@ public interface IApplicationServiceSupport {
 	 * Provides access to an application specific {@link ServletContext}.
 	 * <p>
 	 * The application servlet context is created and maintained by the
-	 * CloudFree platform.
+	 * Gyrex.
 	 * </p>
 	 * 
 	 * @return the servlet context (maybe <code>null</code> if the application

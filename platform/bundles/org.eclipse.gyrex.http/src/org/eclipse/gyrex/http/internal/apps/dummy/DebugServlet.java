@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.cloudfree.http.internal.apps.dummy;
+package org.eclipse.gyrex.http.internal.apps.dummy;
 
 import java.io.IOException;
 import java.io.PrintWriter;

@@ -11,12 +11,12 @@
  *******************************************************************************/
 
 /**
- * This package contains the model provider API of the CloudFree Platform.
+ * This package contains the model provider API of Gyrex.
  * <p>
- * The CloudFree model is extensible through {@link ModelProvider model providers}. 
+ * The Gyrex model is extensible through {@link ModelProvider model providers}. 
  * Model providers are made available as OSGi services and contribute model 
  * implementations.
  * </p>
  */
-package org.eclipse.cloudfree.model.common.provider;
+package org.eclipse.gyrex.model.common.provider;
 
