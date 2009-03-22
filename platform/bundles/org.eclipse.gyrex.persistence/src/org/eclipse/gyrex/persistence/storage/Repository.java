@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -19,6 +19,7 @@ import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkUtil;
@@ -28,17 +29,17 @@ import org.osgi.framework.ServiceRegistration;
  * A repository is a concrete instance of a data store where a particular set of
  * data will be persisted.
  * <p>
- * In Gyrex, repositories are an abstraction for an actual data store
- * accessed using a defined persistence technology (eg. a MySQL database
- * accessed via JDBC, a flat CSV file, a distributed in-memory hast table,
- * etc.). A specific repository may only be accessed using the technology
- * defined by the repository implementation. Typically, they are configured
- * whitin Gyrex through an administrative interface. Their implementation is
- * contributed to Gyrex by {@link RepositoryProvider repository providers}.
+ * In Gyrex, repositories are an abstraction for an actual data store accessed
+ * using a defined persistence technology (eg. a MySQL database accessed via
+ * JDBC, a flat CSV file, a distributed in-memory hast table, etc.). A specific
+ * repository may only be accessed using the technology defined by the
+ * repository implementation. Typically, they are configured whitin Gyrex
+ * through an administrative interface. Their implementation is contributed to
+ * Gyrex by {@link RepositoryProvider repository providers}.
  * </p>
  * <p>
- * In order to simplify operation of Gyrex repositories will
- * support administrative tasks. For example, it will be possible to transfer a
+ * In order to simplify operation of Gyrex repositories will support
+ * administrative tasks. For example, it will be possible to transfer a
  * repository into a read-only mode or disabled it completely for maintenance
  * purposes. It will also be possible to dump a repository (or portions of it)
  * into a repository provider independent format. The dump may be loaded later
@@ -133,8 +134,8 @@ public abstract class Repository extends PlatformObject {
 	 * instance.
 	 * </p>
 	 * <p>
-	 * The provided metrics will be registered with Gyrex on
-	 * behalf of the bundle which loaded this class.
+	 * The provided metrics will be registered with Gyrex on behalf of the
+	 * bundle which loaded this class.
 	 * </p>
 	 * 
 	 * @param repositoryId
@@ -255,8 +256,7 @@ public abstract class Repository extends PlatformObject {
 	/**
 	 * Returns the repository identifier.
 	 * <p>
-	 * The identifier is unique within Gyrex and persistent
-	 * across session.
+	 * The identifier is unique within Gyrex and persistent across session.
 	 * </p>
 	 * 
 	 * @return the repository identifier
@@ -304,7 +304,8 @@ public abstract class Repository extends PlatformObject {
 	private void registerMetrics() throws IllegalArgumentException, IllegalStateException {
 		// get bundle context
 		// TODO: we might need to wrap this into a privileged call
-		final BundleContext bundleContext = FrameworkUtil.getBundleReference(getClass()).getBundle().getBundleContext();
+		final Bundle bundle = FrameworkUtil.getBundle(getClass());
+		final BundleContext bundleContext = null != bundle ? bundle.getBundleContext() : null;
 		if (null == bundleContext) {
 			throw new IllegalStateException("Unable to determin bundle context for class '" + getClass().getName() + "'. Please ensure that this class was loaded by a bundle which is either STARTING, ACTIVE or STOPPING.");
 		}
