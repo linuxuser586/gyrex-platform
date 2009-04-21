@@ -28,7 +28,7 @@
 <stringAttribute key="selectedPlugin" value="org.eclipse.gyrex.configuration"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
-<stringAttribute key="timestamp" value="1237721473077"/>
+<stringAttribute key="timestamp" value="1237868280256"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.eclipse.core.runtime/debug/context" value="false"/>
@@ -38,13 +38,13 @@
 <mapEntry key="org.eclipse.ui/trace/sources" value="false"/>
 <mapEntry key="org.eclipse.osgi/resolver/wiring" value="false"/>
 <mapEntry key="org.eclipse.jface/debug/viewers/reentrantViewerCalls" value="false"/>
-<mapEntry key="org.eclipse.ui/trace/contexts.verbose" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug/loader" value="false"/>
+<mapEntry key="org.eclipse.ui/trace/contexts.verbose" value="false"/>
 <mapEntry key="org.eclipse.ui/trace/contexts" value="false"/>
 <mapEntry key="org.eclipse.osgi/trace/filename" value="runtime.traces"/>
 <mapEntry key="org.eclipse.osgi/eclipseadaptor/debug/platformadmin/resolver" value="false"/>
-<mapEntry key="org.eclipse.ui/listeners/IWorkbenchPage.IPartListener2" value="false"/>
 <mapEntry key="org.eclipse.osgi/eclipseadaptor/debug" value="false"/>
+<mapEntry key="org.eclipse.ui/listeners/IWorkbenchPage.IPartListener2" value="false"/>
 <mapEntry key="org.eclipse.ui.forms/debug/focus" value="true"/>
 <mapEntry key="org.eclipse.ui/trace/operations" value="false"/>
 <mapEntry key="org.eclipse.ui/listeners/IWorkbenchWindow.IPerspectiveListener" value="false"/>
@@ -60,8 +60,8 @@
 <mapEntry key="org.eclipse.ui/trace/operations.verbose" value="false"/>
 <mapEntry key="org.eclipse.osgi/trace/activation" value="false"/>
 <mapEntry key="org.eclipse.ui/perf/part.init" value="800"/>
-<mapEntry key="org.eclipse.equinox.security/debug" value="false"/>
 <mapEntry key="org.eclipse.core.contenttype/debug" value="false"/>
+<mapEntry key="org.eclipse.equinox.security/debug" value="false"/>
 <mapEntry key="org.eclipse.osgi/resolver/imports" value="false"/>
 <mapEntry key="org.eclipse.ui/perf/workbench.restore" value="30000"/>
 <mapEntry key="org.eclipse.cloudfree.boot/debugRoles" value="true"/>
@@ -79,10 +79,10 @@
 <mapEntry key="org.eclipse.ui/trace/commands" value="false"/>
 <mapEntry key="org.eclipse.equinox.preferences/get" value="false"/>
 <mapEntry key="org.eclipse.ui/perf/perspective.create" value="800"/>
-<mapEntry key="org.eclipse.equinox.registry/debug" value="false"/>
 <mapEntry key="org.eclipse.osgi/eclipseadaptor/debug/platformadmin" value="false"/>
-<mapEntry key="org.eclipse.osgi/resolver/generics" value="false"/>
+<mapEntry key="org.eclipse.equinox.registry/debug" value="false"/>
 <mapEntry key="org.eclipse.ui/listeners/IWorkbenchPage.IPropertyChangeListener" value="false"/>
+<mapEntry key="org.eclipse.osgi/resolver/generics" value="false"/>
 <mapEntry key="org.eclipse.osgi/resolver/requires" value="false"/>
 <mapEntry key="org.eclipse.osgi/profile/benchmark" value="false"/>
 <mapEntry key="org.eclipse.ui.forms/debug/textsize" value="true"/>
@@ -100,8 +100,8 @@
 <mapEntry key="org.eclipse.ui/listeners/IWorkbenchWindow.IPageListener" value="false"/>
 <mapEntry key="org.eclipse.ui/debug/contributions" value="false"/>
 <mapEntry key="org.eclipse.core.jobs/jobs/locks" value="false"/>
-<mapEntry key="org.eclipse.core.runtime/url/debug/connect" value="false"/>
 <mapEntry key="org.eclipse.ui/trace/handlers.verbose.commandId" value=""/>
+<mapEntry key="org.eclipse.core.runtime/url/debug/connect" value="false"/>
 <mapEntry key="org.eclipse.ui/perf/part.create" value="800"/>
 <mapEntry key="org.eclipse.osgi/profile/debug" value="false"/>
 <mapEntry key="org.eclipse.ui/listeners/IWorkbenchPartReference" value="false"/>
@@ -129,8 +129,8 @@
 <mapEntry key="org.eclipse.ui/perf/part.listeners" value="200"/>
 <mapEntry key="org.eclipse.ui/trace/keyBindings.verbose" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug/security" value="false"/>
-<mapEntry key="org.eclipse.osgi/defaultprofile/buffersize" value="256"/>
 <mapEntry key="org.eclipse.gyrex.configuration/debug" value="true"/>
+<mapEntry key="org.eclipse.osgi/defaultprofile/buffersize" value="256"/>
 <mapEntry key="org.eclipse.ui/perf/page.listeners" value="200"/>
 <mapEntry key="org.eclipse.ui/debug/swtdebugglobal" value="false"/>
 <mapEntry key="org.eclipse.jface/newlook/preferences/showNewLook" value="false"/>
@@ -149,8 +149,8 @@
 <mapEntry key="org.eclipse.ui/listeners/IWorkbenchWindow.IPartListener2" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug/bundleTime" value="false"/>
 <mapEntry key="org.eclipse.osgi/resolver/uses" value="false"/>
-<mapEntry key="org.eclipse.jface/trace/toolbarDisposal" value="false"/>
 <mapEntry key="org.eclipse.core.runtime/preferences/plugin" value="false"/>
+<mapEntry key="org.eclipse.jface/trace/toolbarDisposal" value="false"/>
 <mapEntry key="org.eclipse.core.runtime/url/debug" value="false"/>
 <mapEntry key="org.eclipse.osgi/resolver/cycles" value="false"/>
 <mapEntry key="org.eclipse.ui/listeners/IWorkbenchWindow.IPartListener" value="false"/>

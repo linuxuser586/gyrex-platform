@@ -27,7 +27,7 @@
 <booleanAttribute key="restart" value="false"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
-<stringAttribute key="timestamp" value="1237721288472"/>
+<stringAttribute key="timestamp" value="1237868045986"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.eclipse.core.runtime/debug/context" value="false"/>

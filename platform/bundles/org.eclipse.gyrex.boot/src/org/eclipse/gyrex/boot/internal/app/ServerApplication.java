@@ -20,6 +20,7 @@ import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.gyrex.common.debug.BundleDebug;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.configuration.preferences.PlatformScope;
 import org.osgi.framework.Bundle;
 
 /**
@@ -123,7 +124,8 @@ public class ServerApplication implements IApplication {
 
 		// read roles from preferences
 		if (!ignoreConfiguredRoles) {
-			final String[] rolesToStart = StringUtils.split(PlatformConfiguration.getConfigurationService().getString(AppActivator.PLUGIN_ID, "rolesToStart", null, null), ',');
+			// TODO: introduce node specific preferences
+			final String[] rolesToStart = StringUtils.split(new PlatformScope().getNode(AppActivator.PLUGIN_ID).get("rolesToStart", null), ',');
 			if (null != rolesToStart) {
 				for (final String role : rolesToStart) {
 					if (StringUtils.isNotBlank(role)) {
