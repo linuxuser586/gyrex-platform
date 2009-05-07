@@ -67,7 +67,8 @@ public class TypeRegistration {
 			// TODO: consider logging this
 		}
 
-		// flush from all contexts
+		// a new provider was registered
+		// flush from all contexts so that they re-evaluate next time
 		flushFromContexts();
 	}
 

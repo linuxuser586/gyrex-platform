@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,6 +24,7 @@ import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.e4.core.services.IDisposable;
 import org.eclipse.e4.core.services.context.EclipseContextFactory;
 import org.eclipse.e4.core.services.context.IEclipseContext;
+import org.eclipse.e4.core.services.context.spi.IContextConstants;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 
@@ -49,12 +51,13 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 
 	private final IPath contextPath;
 	private final AtomicBoolean disposed = new AtomicBoolean();
-	private volatile IEclipseContext eclipseContext;
+	private final ContextRegistryImpl contextRegistry;
+	private final Set<IDisposable> disposables = new CopyOnWriteArraySet<IDisposable>();
 	private final Lock initializationLock = new ReentrantLock();
 
-	private final ContextRegistryImpl contextRegistry;
+	private volatile IEclipseContext eclipseContext;
 
-	private final Set<IDisposable> disposables = new CopyOnWriteArraySet<IDisposable>();
+	private final AtomicLong lastAccessTime = new AtomicLong();
 
 	/**
 	 * Creates a new instance.
@@ -122,6 +125,8 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 	 */
 	@Override
 	public <T> T get(final Class<T> type) throws IllegalArgumentException {
+		trackAccess();
+
 		// lookup from Eclipse context (always provide the context as argument)
 		final Object value = getEclipseContext().get(type.getName(), new Object[] { type });
 		if (null == value) {
@@ -152,6 +157,7 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 	 */
 	@Override
 	public IPath getContextPath() {
+		trackAccess();
 		return contextPath;
 	}
 
@@ -198,11 +204,21 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 
 			// set reference to context
 			eclipseContext.set(GYREX_CONTEXT, this);
+			eclipseContext.set(IContextConstants.DEBUG_STRING, "Eclipse Context [" + contextPath.toString() + "]");
 
 			return eclipseContext;
 		} finally {
 			initializationLock.unlock();
 		}
+	}
+
+	/**
+	 * Returns the time stamp the last time this context was accessed.
+	 * 
+	 * @return the time stamp the last time this context was accessed
+	 */
+	long getLastAccessTime() {
+		return lastAccessTime.get();
 	}
 
 	void removeDisposable(final IDisposable disposable) {
@@ -218,5 +234,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 	@Override
 	public String toString() {
 		return "Gyrex Context [" + contextPath.toString() + "]";
+	}
+
+	private void trackAccess() {
+		lastAccessTime.set(System.currentTimeMillis());
 	}
 }

@@ -17,6 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.eclipse.e4.core.services.IDisposable;
 import org.eclipse.e4.core.services.context.IContextFunction;
 import org.eclipse.e4.core.services.context.IEclipseContext;
+import org.eclipse.e4.core.services.context.spi.ContextFunction;
 import org.eclipse.gyrex.context.internal.provider.ProviderRegistration;
 import org.eclipse.gyrex.context.internal.provider.TypeRegistration;
 import org.eclipse.gyrex.context.internal.provider.ProviderRegistration.ProviderRegistrationReference;
@@ -32,17 +33,21 @@ import org.osgi.framework.Filter;
  * valid. Thus, it computes a value only once and never re-computes it.
  * </p>
  */
-final class GyrexContextObject implements IContextFunction, IDisposable, ProviderRegistrationReference, TypeRegistrationReference {
+final class GyrexContextObject extends ContextFunction implements IDisposable, ProviderRegistrationReference, TypeRegistrationReference {
 
+	private final TypeRegistration typeRegistration;
 	private final String typeName;
 	private final Filter filter;
 	private final Lock objectCreationLock = new ReentrantLock();
+
+	private volatile boolean isComputed;
 	private volatile Object computedObject;
 	private volatile ProviderRegistration computedObjectProvider;
 	private volatile GyrexContextImpl computedObjectContext;
 	private volatile IEclipseContext computedObjectEclipseContext;
 
-	public GyrexContextObject(final String typeName, final Filter filter) {
+	public GyrexContextObject(final GyrexContextImpl runtimeContext, final TypeRegistration typeRegistration, final String typeName, final Filter filter) {
+		this.typeRegistration = typeRegistration;
 		this.typeName = typeName;
 		this.filter = filter;
 	}
@@ -51,7 +56,7 @@ final class GyrexContextObject implements IContextFunction, IDisposable, Provide
 	 * Releases the computed object.
 	 */
 	private void clearComputedObject() {
-		if (null == computedObject) {
+		if (!isComputed) {
 			return;
 		}
 
@@ -61,11 +66,12 @@ final class GyrexContextObject implements IContextFunction, IDisposable, Provide
 		IEclipseContext eclipseContext;
 		objectCreationLock.tryLock();
 		try {
-			if (null == computedObject) {
+			if (!isComputed) {
 				return;
 			}
 
 			// get object and its provider
+			isComputed = false;
 			object = computedObject;
 			provider = computedObjectProvider;
 			context = computedObjectContext;
@@ -80,24 +86,26 @@ final class GyrexContextObject implements IContextFunction, IDisposable, Provide
 			objectCreationLock.unlock();
 		}
 
-		// remove from provider
-		if (null != provider) {
-			provider.removeReference(this);
-		}
-
-		// remove from context disposables
-		if (null != context) {
-			context.removeDisposable(this);
-		}
-
-		// remove from the underlying Eclipse context to trigger lookup through the strategy again
-		if (null != eclipseContext) {
-			eclipseContext.remove(typeName);
-		}
-
 		// inform provider of object disposal (outside the lock)
-		if (null != provider) {
-			provider.getProvider().ungetObject(object, context);
+		try {
+			if (null != provider) {
+				provider.getProvider().ungetObject(object, context);
+			}
+		} finally {
+			// remove from provider
+			if (null != provider) {
+				provider.removeReference(this);
+			}
+
+			// remove from context disposables
+			if (null != context) {
+				context.removeDisposable(this);
+			}
+
+			// remove from the underlying Eclipse context to trigger lookup through the strategy again
+			if (null != eclipseContext) {
+				eclipseContext.remove(typeName);
+			}
 		}
 	}
 
@@ -112,45 +120,42 @@ final class GyrexContextObject implements IContextFunction, IDisposable, Provide
 			return null;
 		}
 
-		// use computed object if available
-		if (null != computedObject) {
-			return computedObject;
-		}
-
 		// get the runtime context
 		final GyrexContextImpl runtimeContext = (GyrexContextImpl) context.get(GyrexContextImpl.GYREX_CONTEXT);
 		if (null == runtimeContext) {
 			return null;
 		}
 
-		// get the type registration
-		final TypeRegistration typeRegistration = runtimeContext.getContextRegistry().getObjectProviderRegistry().getType(type.getName());
-
-		// get matching provider
-		final ProviderRegistration provider = typeRegistration.getProvider(type, filter);
-		if (null == provider) {
-			return null;
+		// use computed object if available
+		if (isComputed) {
+			return computedObject;
 		}
 
 		// lock to ensure that at most one object per context is created
 		objectCreationLock.tryLock();
 		try {
 			// ensure that no other thread created an object instance yet
-			if (null != computedObject) {
+			if (isComputed) {
 				return computedObject;
 			}
 
-			// get the object
-			final Object object = provider.getProvider().getObject(type, runtimeContext);
+			// get matching provider
+			final ProviderRegistration provider = typeRegistration.getProvider(type, filter);
 
-			// inform the provider registration that our context depend on it
-			if (null != object) {
-				// remember the object and its provider
-				computedObject = object;
-				computedObjectProvider = provider;
-				computedObjectContext = runtimeContext;
-				computedObjectEclipseContext = context;
+			// TODO: verify that the provider is allowed for automatic availability in this context
+			if ((null == filter) && (null != provider)) {
+				// ....
 			}
+
+			// get the object
+			final Object object = null != provider ? provider.getProvider().getObject(type, runtimeContext) : null;
+
+			// remember the object and its provider
+			isComputed = true;
+			computedObject = object;
+			computedObjectProvider = provider;
+			computedObjectContext = runtimeContext;
+			computedObjectEclipseContext = context;
 
 			// hook with the context for disposal
 			runtimeContext.addDisposable(this);
@@ -158,10 +163,13 @@ final class GyrexContextObject implements IContextFunction, IDisposable, Provide
 			// hook with the type registration to get informed of updates
 			typeRegistration.addReference(this);
 
-			// hook with the provider registration
-			provider.addReference(this);
+			// hook with the provider registration to get informed of updates
+			if (null != provider) {
+				provider.addReference(this);
+			}
 
 			// for performance reasons set the object directly in the context
+			// (note, we even set it to null to explicitly indicate that non is available)
 			context.set(typeName, object);
 
 			// return the object

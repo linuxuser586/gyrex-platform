@@ -99,7 +99,14 @@ public class ProviderRegistration {
 	 * Flushes the provider from any context it is currently used in.
 	 */
 	void flushFromContexts() {
-		for (final ProviderRegistrationReference reference : contextReferences) {
+		ProviderRegistrationReference[] references;
+		referencesLock.tryLock();
+		try {
+			references = contextReferences.toArray(new ProviderRegistrationReference[contextReferences.size()]);
+		} finally {
+			referencesLock.unlock();
+		}
+		for (final ProviderRegistrationReference reference : references) {
 			reference.flushReference(this);
 		}
 	}

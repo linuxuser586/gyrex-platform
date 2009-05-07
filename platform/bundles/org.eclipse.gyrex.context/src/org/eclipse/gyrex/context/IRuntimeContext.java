@@ -59,6 +59,15 @@ public interface IRuntimeContext extends IAdaptable {
 	 * Returns <code>null</code> if no context object could be determined, or if
 	 * the associated object is <code>null</code>.
 	 * </p>
+	 * <p>
+	 * Note, clients must be aware that they run in a dynamic system. Therefore
+	 * they must not hold on the object returned for a long time. The reason is
+	 * that at any time a context (and its parent contexts) can be re-configured
+	 * at runtime. This may change what object is returned for future calls.
+	 * Depending on the object type and its provider additional API might be
+	 * available to check whether an object is still valid. In this case, the
+	 * provider API might be consulted for further lifecycle information.
+	 * </p>
 	 * 
 	 * @param <T>
 	 *            the expected type of the value

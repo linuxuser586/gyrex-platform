@@ -11,8 +11,6 @@
  */
 package org.eclipse.gyrex.context.provider;
 
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.gyrex.context.IRuntimeContext;
 
 /**
@@ -20,7 +18,9 @@ import org.eclipse.gyrex.context.IRuntimeContext;
  * <p>
  * A context object provider allows to contribute context specific objects to
  * the contextual runtime in Gyrex. It is essentially a factory for objects
- * which are to be made available in a context.
+ * which are to be made available in a context. Those context objects have a
+ * defined lifecycle which is bound to the context they were retreived for. See
+ * {@link #getObject(Class, IRuntimeContext)} for details.
  * </p>
  * <p>
  * This class must be subclassed by clients that want to contribute contextual
@@ -40,30 +40,22 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 public abstract class ContextObjectProvider {
 
 	/**
-	 * Returns the default context path an object should be registered
-	 * automatically. Returns <code>null</code> or an empty path if the provider
-	 * should not be registered automatically in the context hierarchy.
-	 * <p>
-	 * The default implementation returns the {@link Path#ROOT root path} which
-	 * means that the provider should be registered with the root context
-	 * automatically. Subclasses may overwrite and return <code>null</code> or
-	 * any other path.
-	 * </p>
-	 * <p>
-	 * Note, if the path is not defined yet, the provider will not be registered
-	 * until the context path becomes available.
-	 * </p>
-	 * 
-	 * @return the default registration path (maybe <code>null</code>)
-	 */
-	public IPath getDefaultRegistrationPath() {
-		return Path.ROOT;
-	}
-
-	/**
 	 * Returns an object which is an instance of the given class associated with
 	 * the given context. Returns <code>null</code> if no such object can be
 	 * found.
+	 * <p>
+	 * This method is guaranteed to be called only once for each context an
+	 * object is requested for. From this time one the object is used in the
+	 * context. When the contextual runtime detects that an object is no longer
+	 * needed for a context it calls
+	 * {@link #ungetObject(Object, IRuntimeContext)}. This allows providers to
+	 * handle the lifecycle of context objects. They may document this as part
+	 * of the public contract of the provided object. They may also provide
+	 * additional API for querying the lifecycle status of their objects.
+	 * However, they must not allow changed to the lifecycle of their objects
+	 * through any other channels than
+	 * {@link #ungetObject(Object, IRuntimeContext)}.
+	 * </p>
 	 * 
 	 * @param <T>
 	 *            the object type parameter
@@ -94,11 +86,13 @@ public abstract class ContextObjectProvider {
 	public abstract Class[] getObjectTypes();
 
 	/**
-	 * Called by the platform when an object which was created by this provider
-	 * is no longer used by a particular context.
+	 * Called by the platform when an object which was retrieved from this
+	 * provider through a {@link #getObject(Class, IRuntimeContext)} call is no
+	 * longer used by a particular context.
 	 * <p>
-	 * Implementors should perform any necessary cleanup on the object and
-	 * release any resources associated with it.
+	 * Implementors must perform any necessary cleanup on the object and release
+	 * any resources and references associated with it so that it can be garbage
+	 * collected.
 	 * </p>
 	 * 
 	 * @param object
