@@ -147,6 +147,12 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 				// ....
 			}
 
+			/*
+			 * implementation note: we should revisit this;
+			 * It might be better to move more of this into the ProviderRegistration.
+			 * But at this point it works for now.
+			 */
+
 			// get the object
 			final Object object = null != provider ? provider.getProvider().getObject(type, runtimeContext) : null;
 
