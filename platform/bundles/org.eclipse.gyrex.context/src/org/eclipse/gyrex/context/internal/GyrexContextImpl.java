@@ -37,7 +37,7 @@ import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
  */
 public class GyrexContextImpl extends PlatformObject implements IRuntimeContext, IDisposable {
 
-	static final String GYREX_CONTEXT = GyrexContextImpl.class.getName();
+	static final String ECLIPSE_CONTEXT_KEY = GyrexContextImpl.class.getName();
 
 	@SuppressWarnings("unchecked")
 	private static <T> T safeCast(final Object object) {
@@ -88,9 +88,6 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.e4.core.services.IDisposable#dispose()
-	 */
 	@Override
 	public void dispose() {
 		// don't do anything if already disposed; if not mark disposed
@@ -104,7 +101,7 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 			eclipseContext = null;
 
 			// remove reference
-			context.remove(GYREX_CONTEXT);
+			context.remove(ECLIPSE_CONTEXT_KEY);
 
 			// dispose context
 			if (context instanceof IDisposable) {
@@ -120,9 +117,6 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.context.IRuntimeContext#get(java.lang.Class)
-	 */
 	@Override
 	public <T> T get(final Class<T> type) throws IllegalArgumentException {
 		trackAccess();
@@ -152,9 +146,6 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return null;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.context.IRuntimeContext#getContextPath()
-	 */
 	@Override
 	public IPath getContextPath() {
 		trackAccess();
@@ -180,8 +171,8 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		}
 
 		// determine parent (outside of initialization lock)
-		final GyrexContextImpl parent = contextPath.segmentCount() > 0 ? contextRegistry.get(contextPath.removeLastSegments(1)) : null;
-		final IEclipseContext parentEclipseContext = null != parent ? parent.getEclipseContext() : null;
+		final GyrexContextHandle parent = contextPath.segmentCount() > 0 ? contextRegistry.get(contextPath.removeLastSegments(1)) : null;
+		final IEclipseContext parentEclipseContext = null != parent ? parent.get().getEclipseContext() : null;
 
 		// make sure we stay responsive when acquiring the initialization lock
 		try {
@@ -202,14 +193,24 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 			// create eclipse context
 			eclipseContext = EclipseContextFactory.create(parentEclipseContext, GyrexContextStrategy.SINGLETON);
 
-			// set reference to context
-			eclipseContext.set(GYREX_CONTEXT, this);
+			// set reference to *this* context
+			eclipseContext.set(ECLIPSE_CONTEXT_KEY, this);
 			eclipseContext.set(IContextConstants.DEBUG_STRING, "Eclipse Context [" + contextPath.toString() + "]");
 
 			return eclipseContext;
 		} finally {
 			initializationLock.unlock();
 		}
+	}
+
+	/**
+	 * Returns a handle to this context which should be passed to external API
+	 * clients.
+	 * 
+	 * @return the {@link GyrexContextHandle}
+	 */
+	public GyrexContextHandle getHandle() {
+		return contextRegistry.getHandle(contextPath);
 	}
 
 	/**
@@ -221,6 +222,15 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return lastAccessTime.get();
 	}
 
+	/**
+	 * Indicates if the context has been disposed.
+	 * 
+	 * @return <code>true</code> if the context has been disposed
+	 */
+	public boolean isDisposed() {
+		return disposed.get();
+	}
+
 	void removeDisposable(final IDisposable disposable) {
 		// ignore after disposal
 		if (!disposed.get()) {
@@ -228,9 +238,6 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
 		return "Gyrex Context [" + contextPath.toString() + "]";

@@ -12,16 +12,22 @@
 package org.eclipse.gyrex.context.tests.internal;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
 
 import org.eclipse.core.runtime.Path;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
 import org.eclipse.gyrex.context.provider.ContextObjectProvider;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
 
 /**
@@ -40,6 +46,18 @@ public class ContextualRuntimeBlackBoxTests {
 		@Override
 		public String toString() {
 			return "DummyObject{ " + context + " }";
+		}
+	}
+
+	public static class DummyObject2 extends DummyObject {
+
+		public DummyObject2(final IRuntimeContext context) {
+			super(context);
+		}
+
+		@Override
+		public String toString() {
+			return "DummyObject2{ " + context + " }";
 		}
 	}
 
@@ -66,6 +84,23 @@ public class ContextualRuntimeBlackBoxTests {
 		}
 	}
 
+	public static class DummyObjectProvider2 extends DummyObjectProvider {
+
+		@Override
+		public Object getObject(final Class type, final IRuntimeContext context) {
+			if (type.equals(DummyObject.class)) {
+				return new DummyObject2(context);
+			}
+			return null;
+		}
+	}
+
+	/** ORG_ECLIPSE_GYREX_CONTEXT_TESTS_DUMMY2 */
+	private static final String SERVICE_PID_DUMMY2 = "org.eclipse.gyrex.context.tests.dummy2";
+
+	/** CONTEXT_PATH */
+	private static final Path SOME_CONTEXT_PATH = new Path("/some/other/context");
+
 	static void safeUnregister(final ServiceRegistration serviceRegistration) {
 		if (null != serviceRegistration) {
 			try {
@@ -78,6 +113,8 @@ public class ContextualRuntimeBlackBoxTests {
 
 	private IServiceProxy<IRuntimeContextRegistry> contextRegistryProxy;
 	private IRuntimeContextRegistry contextRegistry;
+	private IServiceProxy<IRuntimeContextManager> contextManagerProxy;
+	private IRuntimeContextManager contextManager;
 
 	/**
 	 * @throws java.lang.Exception
@@ -86,6 +123,9 @@ public class ContextualRuntimeBlackBoxTests {
 	public void setUp() throws Exception {
 		contextRegistryProxy = Activator.getActivator().getServiceHelper().trackService(IRuntimeContextRegistry.class);
 		contextRegistry = contextRegistryProxy.getService();
+
+		contextManagerProxy = Activator.getActivator().getServiceHelper().trackService(IRuntimeContextManager.class);
+		contextManager = contextManagerProxy.getService();
 	}
 
 	/**
@@ -96,6 +136,10 @@ public class ContextualRuntimeBlackBoxTests {
 		contextRegistry = null;
 		contextRegistryProxy.dispose();
 		contextRegistryProxy = null;
+
+		contextManager = null;
+		contextManagerProxy.dispose();
+		contextManagerProxy = null;
 	}
 
 	/**
@@ -104,7 +148,7 @@ public class ContextualRuntimeBlackBoxTests {
 	 * available because it's available in the root context automatically.
 	 */
 	@Test
-	public void testContextualObjectScenarioOne() {
+	public void testContextualObjectScenario001() {
 		// register our provider
 		ServiceRegistration serviceRegistration = Activator.getActivator().getServiceHelper().registerService(ContextObjectProvider.class.getName(), new DummyObjectProvider(), "Eclipse.org Gyrex", "Dummy object provider.", null, null);
 
@@ -115,7 +159,7 @@ public class ContextualRuntimeBlackBoxTests {
 			assertNotNull("The dummy object from the root context must not be null!", dummyObject);
 			assertEquals("The context of the dummy object does not match!", rootContext, dummyObject.context);
 
-			final IRuntimeContext testContext = contextRegistry.get(new Path("/some/other/context"));
+			final IRuntimeContext testContext = contextRegistry.get(SOME_CONTEXT_PATH);
 			final DummyObject dummyObject2 = testContext.get(DummyObject.class);
 			assertNotNull("The dummy object from the test context must not be null!", dummyObject2);
 			assertEquals("The context of the dummy object from the test context does not match!", testContext, dummyObject2.context);
@@ -139,7 +183,7 @@ public class ContextualRuntimeBlackBoxTests {
 	 * available because it's available in the root context automatically.
 	 */
 	@Test
-	public void testContextualObjectScenarioTwo() {
+	public void testContextualObjectScenario002() {
 		// register our provider
 		ServiceRegistration serviceRegistration = null;
 		ServiceRegistration serviceRegistration2 = null;
@@ -153,7 +197,7 @@ public class ContextualRuntimeBlackBoxTests {
 			assertNotNull("The dummy object from the root context must not be null!", dummyObject);
 			assertEquals("The context of the dummy object does not match!", rootContext, dummyObject.context);
 
-			final IRuntimeContext testContext = contextRegistry.get(new Path("/some/other/context"));
+			final IRuntimeContext testContext = contextRegistry.get(SOME_CONTEXT_PATH);
 			final DummyObject dummyObject2 = testContext.get(DummyObject.class);
 			assertNotNull("The dummy object from the test context must not be null!", dummyObject2);
 			assertEquals("The context of the dummy object from the test context does not match!", testContext, dummyObject2.context);
@@ -180,4 +224,45 @@ public class ContextualRuntimeBlackBoxTests {
 		}
 	}
 
+	/**
+	 * This test tests registration of a contextual object provider and
+	 * retrieval with a particular configuration. It also tests update of the
+	 * configuration and relies on service ranking to work properly.
+	 */
+	@Test
+	public void testContextualObjectScenario003() {
+		ServiceRegistration serviceRegistration = null;
+		ServiceRegistration serviceRegistration2 = null;
+
+		try {
+			// register our providers
+			// give provider one a higher ranking so that it is returned in favour of the second one
+			serviceRegistration = Activator.getActivator().getServiceHelper().registerService(ContextObjectProvider.class.getName(), new DummyObjectProvider(), "Eclipse.org Gyrex", "Dummy object provider.", "org.eclipse.gyrex.context.tests.dummy1", Integer.MAX_VALUE);
+			serviceRegistration2 = Activator.getActivator().getServiceHelper().registerService(ContextObjectProvider.class.getName(), new DummyObjectProvider2(), "Eclipse.org Gyrex", "Dummy object provider 2.", SERVICE_PID_DUMMY2, Integer.MIN_VALUE);
+
+			final IRuntimeContext testContext = contextRegistry.get(SOME_CONTEXT_PATH);
+
+			// configure context
+			try {
+				contextManager.set(testContext, DummyObject.class, FrameworkUtil.createFilter("(service.pid=" + SERVICE_PID_DUMMY2 + ")"));
+			} catch (final InvalidSyntaxException e) {
+				fail("Please check test case implementation, invalid filter string: " + e.getFilter() + "; " + e.getMessage());
+			}
+
+			// get object
+			final DummyObject dummyObject = testContext.get(DummyObject.class);
+			assertTrue("The returned object was not provided by the configured provider (DummyObjectProvider 2)!", dummyObject instanceof DummyObject2);
+
+			// reconfigure
+			contextManager.set(testContext, DummyObject.class, null);
+
+			// get object
+			final DummyObject dummyObject2 = testContext.get(DummyObject.class);
+			assertFalse("The returned object was not provided by the expected provider (DummyObjectProvider 1)!", dummyObject2 instanceof DummyObject2);
+
+		} finally {
+			safeUnregister(serviceRegistration);
+			safeUnregister(serviceRegistration2);
+		}
+	}
 }

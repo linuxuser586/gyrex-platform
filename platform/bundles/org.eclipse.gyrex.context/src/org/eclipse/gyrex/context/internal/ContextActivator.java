@@ -3,8 +3,10 @@ package org.eclipse.gyrex.context.internal;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.context.internal.manager.ContextManagerImpl;
 import org.eclipse.gyrex.context.internal.provider.ObjectProviderRegistry;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
+import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.osgi.util.NLS;
 import org.osgi.framework.BundleContext;
@@ -31,9 +33,6 @@ public class ContextActivator extends BaseBundleActivator {
 		super(SYMBOLIC_NAME);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
@@ -47,11 +46,13 @@ public class ContextActivator extends BaseBundleActivator {
 		final ContextRegistryImpl contextRegistry = new ContextRegistryImpl(objectProviderRegistry);
 		getServiceHelper().registerService(IRuntimeContextRegistry.class.getName(), contextRegistry, "Eclipse.org Gyrex", "Eclipse Gyrex Contextual Runtime Registry", null, null);
 		addShutdownParticipant(contextRegistry);
+
+		// start the context manager
+		final ContextManagerImpl contextManager = new ContextManagerImpl(contextRegistry);
+		getServiceHelper().registerService(IRuntimeContextManager.class.getName(), contextManager, "Eclipse.org Gyrex", "Eclipse Gyrex Contextual Runtime Manager", null, null);
+		addShutdownParticipant(contextManager);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		instanceRef.set(null);

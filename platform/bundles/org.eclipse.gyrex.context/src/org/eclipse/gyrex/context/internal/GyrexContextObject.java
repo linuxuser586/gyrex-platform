@@ -121,7 +121,7 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 		}
 
 		// get the runtime context
-		final GyrexContextImpl runtimeContext = (GyrexContextImpl) context.get(GyrexContextImpl.GYREX_CONTEXT);
+		final GyrexContextImpl runtimeContext = (GyrexContextImpl) context.get(GyrexContextImpl.ECLIPSE_CONTEXT_KEY);
 		if (null == runtimeContext) {
 			return null;
 		}
@@ -154,7 +154,7 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 			 */
 
 			// get the object
-			final Object object = null != provider ? provider.getProvider().getObject(type, runtimeContext) : null;
+			final Object object = null != provider ? provider.getProvider().getObject(type, runtimeContext.getHandle()) : null;
 
 			// remember the object and its provider
 			isComputed = true;
@@ -185,25 +185,16 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.e4.core.services.IDisposable#dispose()
-	 */
 	@Override
 	public void dispose() {
 		clearComputedObject();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.context.internal.provider.ProviderRegistration.ProviderRegistrationReference#flushReference(org.eclipse.gyrex.context.internal.provider.ProviderRegistration)
-	 */
 	@Override
 	public void flushReference(final ProviderRegistration provider) {
 		clearComputedObject();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.context.internal.provider.TypeRegistration.TypeRegistrationReference#typeRegistrationUpdated()
-	 */
 	@Override
 	public void flushReference(final TypeRegistration typeRegsitration) {
 		clearComputedObject();
