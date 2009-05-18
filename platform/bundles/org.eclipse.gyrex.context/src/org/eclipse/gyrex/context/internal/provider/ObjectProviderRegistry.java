@@ -16,26 +16,27 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
-import org.eclipse.gyrex.context.provider.ContextObjectProvider;
+import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
-import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 /**
  * The internal object provider registry.
  */
 public class ObjectProviderRegistry implements IShutdownParticipant {
 
-	private final ConcurrentMap<String, TypeRegistration> registrations = new ConcurrentHashMap<String, TypeRegistration>();
+	/**
+	 * service tracker
+	 */
+	private final class RuntimeContextObjectProviderTracker extends ServiceTracker {
+		private RuntimeContextObjectProviderTracker(final BundleContext context) {
+			super(context, RuntimeContextObjectProvider.class.getName(), null);
+		}
 
-	private final AtomicReference<BundleContext> contextRef = new AtomicReference<BundleContext>();
-
-	private ServiceTracker tracker;
-	private final ServiceTrackerCustomizer serviceTrackerCustomizer = new ServiceTrackerCustomizer() {
 		@Override
 		public Object addingService(final ServiceReference reference) {
-			final ContextObjectProvider provider = (ContextObjectProvider) contextRef.get().getService(reference);
+			final RuntimeContextObjectProvider provider = (RuntimeContextObjectProvider) super.addingService(reference); // get service
 			if (null != provider) {
 				registerProvider(provider, reference);
 			}
@@ -44,7 +45,7 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 
 		@Override
 		public void modifiedService(final ServiceReference reference, final Object service) {
-			final ContextObjectProvider provider = (ContextObjectProvider) service;
+			final RuntimeContextObjectProvider provider = (RuntimeContextObjectProvider) service;
 			if (null != provider) {
 				flushProperties(provider, reference);
 			}
@@ -52,13 +53,21 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 
 		@Override
 		public void removedService(final ServiceReference reference, final Object service) {
-			final ContextObjectProvider provider = (ContextObjectProvider) service;
+			final RuntimeContextObjectProvider provider = (RuntimeContextObjectProvider) service;
 			if (null != provider) {
 				unregisterProvider(provider, reference);
 			}
-			contextRef.get().ungetService(reference);
+
+			// unget service
+			super.removedService(reference, service);
 		}
-	};
+	}
+
+	private final ConcurrentMap<String, TypeRegistration> registrations = new ConcurrentHashMap<String, TypeRegistration>();
+
+	private final AtomicReference<BundleContext> contextRef = new AtomicReference<BundleContext>();
+
+	private ServiceTracker tracker;
 
 	/**
 	 * Flushes any cached properties of a provider.
@@ -66,7 +75,7 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	 * @param provider
 	 * @param reference
 	 */
-	void flushProperties(final ContextObjectProvider provider, final ServiceReference reference) {
+	void flushProperties(final RuntimeContextObjectProvider provider, final ServiceReference reference) {
 		for (final Class<?> type : provider.getObjectTypes()) {
 			final TypeRegistration registration = registrations.get(type.getName());
 			if (null != registration) {
@@ -93,7 +102,7 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	 * @param reference
 	 *            the service reference
 	 */
-	void registerProvider(final ContextObjectProvider provider, final ServiceReference reference) {
+	void registerProvider(final RuntimeContextObjectProvider provider, final ServiceReference reference) {
 		if (null == reference) {
 			return;
 		}
@@ -137,7 +146,7 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 			throw new IllegalStateException("already (still?) active");
 		}
 
-		tracker = new ServiceTracker(context, ContextObjectProvider.class.getName(), serviceTrackerCustomizer);
+		tracker = new RuntimeContextObjectProviderTracker(context);
 		tracker.open();
 	}
 
@@ -149,7 +158,7 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	 * @param reference
 	 *            the providing bundle
 	 */
-	void unregisterProvider(final ContextObjectProvider provider, final ServiceReference reference) {
+	void unregisterProvider(final RuntimeContextObjectProvider provider, final ServiceReference reference) {
 		for (final Class<?> type : provider.getObjectTypes()) {
 			final TypeRegistration registration = registrations.get(type.getName());
 			if (null != registration) {
