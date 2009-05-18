@@ -24,7 +24,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.osgi.service.http.HttpContext;
@@ -61,10 +61,10 @@ public interface IApplicationServiceSupport {
 
 	/**
 	 * A {@link #getServletContext() servlet context} attribute which value is
-	 * the {@link IContext} object (constant value
-	 * <code>org.eclipse.gyrex.common.context</code>).
+	 * the {@link IRuntimeContext} object (constant value
+	 * <code>org.eclipse.gyrex.context</code>).
 	 */
-	String SERVLET_CONTEXT_ATTRIBUTE_CONTEXT = "org.eclipse.gyrex.common.context";
+	String SERVLET_CONTEXT_ATTRIBUTE_CONTEXT = "org.eclipse.gyrex.context";
 
 	/**
 	 * Maps a file to a MIME type by asking all registered mime type providers.

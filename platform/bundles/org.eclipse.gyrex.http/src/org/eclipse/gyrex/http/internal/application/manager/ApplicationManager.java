@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
@@ -157,10 +157,10 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.registry.IApplicationManager#register(java.lang.String, java.lang.String, org.eclipse.gyrex.common.context.IContext, java.util.Map)
+	 * @see org.eclipse.gyrex.http.application.registry.IApplicationManager#register(java.lang.String, java.lang.String, org.eclipse.gyrex.context.IRuntimeContext, java.util.Map)
 	 */
 	@Override
-	public void register(final String applicationId, final String providerId, final IContext context, final Map<String, String> properties) throws ApplicationRegistrationException {
+	public void register(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> properties) throws ApplicationRegistrationException {
 		if (null == applicationId) {
 			throw new IllegalArgumentException("application id must not be null");
 		}

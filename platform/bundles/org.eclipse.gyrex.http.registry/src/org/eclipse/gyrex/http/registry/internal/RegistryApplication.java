@@ -14,7 +14,7 @@ package org.eclipse.gyrex.http.registry.internal;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
 import org.eclipse.gyrex.http.registry.ApplicationCustomizer;
@@ -26,7 +26,7 @@ public class RegistryApplication extends Application {
 
 	private final AtomicReference<ApplicationCustomizer> customizerRef = new AtomicReference<ApplicationCustomizer>();
 
-	RegistryApplication(final String id, final IContext context) {
+	RegistryApplication(final String id, final IRuntimeContext context) {
 		super(id, context);
 	}
 

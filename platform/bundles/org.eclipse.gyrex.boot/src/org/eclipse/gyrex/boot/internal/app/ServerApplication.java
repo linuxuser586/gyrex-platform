@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -18,10 +18,14 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
-import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.logging.LogAudience;
+import org.eclipse.gyrex.common.logging.LogImportance;
+import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
-import org.eclipse.gyrex.configuration.preferences.PlatformScope;
+import org.eclipse.gyrex.preferences.PlatformScope;
 import org.osgi.framework.Bundle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The server application which starts Gyrex.
@@ -36,6 +40,8 @@ public class ServerApplication implements IApplication {
 
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = new Integer(1);
+
+	private static final Logger LOG = LoggerFactory.getLogger(ServerApplication.class);
 
 	/**
 	 * Signals a restart.
@@ -61,7 +67,7 @@ public class ServerApplication implements IApplication {
 
 	private void bootstrap() throws Exception {
 		if (AppDebug.debug) {
-			BundleDebug.debug("Bootstrapping platform...");
+			LOG.debug("Bootstrapping platform...");
 		}
 
 		// make sure that the configuration is initialized
@@ -75,6 +81,9 @@ public class ServerApplication implements IApplication {
 		final Bundle dsImplBundle = AppActivator.getInstance().getBundle("org.eclipse.equinox.ds");
 		if (null != dsImplBundle) {
 			dsImplBundle.start(Bundle.START_TRANSIENT);
+		} else {
+			// TODO consider failing startup
+			AppActivator.getInstance().getLog().log("Bundle 'org.eclipse.equinox.ds' not available but may be required by parts of the system. Your system may not function properly.", (Object) null, LogImportance.WARNING, LogAudience.DEVELOPER, LogAudience.ADMIN, LogSource.PLATFORM);
 		}
 	}
 
@@ -113,7 +122,7 @@ public class ServerApplication implements IApplication {
 					if (StringUtils.isNotBlank(role)) {
 						if (!roles.contains(role)) {
 							if (AppDebug.debugRoles) {
-								BundleDebug.debug("Role submitted via command line: " + role);
+								LOG.debug("Role submitted via command line: " + role);
 							}
 							roles.add(role);
 						}
@@ -131,7 +140,7 @@ public class ServerApplication implements IApplication {
 					if (StringUtils.isNotBlank(role)) {
 						if (!roles.contains(role)) {
 							if (AppDebug.debugRoles) {
-								BundleDebug.debug("Configured role: " + role);
+								LOG.debug("Configured role: " + role);
 							}
 							roles.add(role);
 						}
@@ -140,7 +149,7 @@ public class ServerApplication implements IApplication {
 			}
 		} else {
 			if (AppDebug.debugRoles) {
-				BundleDebug.debug("Ignoring configured roles.");
+				LOG.debug("Ignoring configured roles.");
 			}
 		}
 
@@ -150,7 +159,7 @@ public class ServerApplication implements IApplication {
 			for (final String role : defaultRoles) {
 				if (!roles.contains(role)) {
 					if (AppDebug.debugRoles) {
-						BundleDebug.debug("Default start role: " + role);
+						LOG.debug("Default start role: " + role);
 					}
 					roles.add(role);
 				}
@@ -174,7 +183,7 @@ public class ServerApplication implements IApplication {
 		}
 
 		if (AppDebug.debug) {
-			BundleDebug.debug("Starting platform...");
+			LOG.debug("Starting platform...");
 		}
 
 		// relaunch flag
@@ -203,7 +212,7 @@ public class ServerApplication implements IApplication {
 			context.applicationRunning();
 
 			if (AppDebug.debug) {
-				BundleDebug.debug("Platform started.");
+				LOG.debug("Platform started.");
 			}
 
 			// note, this application is configured to run only ONCE
@@ -224,12 +233,12 @@ public class ServerApplication implements IApplication {
 			ServerApplication.relaunch = false;
 
 			if (AppDebug.debug) {
-				BundleDebug.debug("Platform closed.");
+				LOG.debug("Platform closed.");
 			}
 
 		} catch (final Exception e) {
 			if (AppDebug.debug) {
-				BundleDebug.debug("Platform start failed!", e);
+				LOG.debug("Platform start failed!", e);
 			}
 
 			// TODO should evaluate and suggest solution to Ops

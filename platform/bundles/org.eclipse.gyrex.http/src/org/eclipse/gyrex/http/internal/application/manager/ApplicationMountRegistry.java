@@ -1,11 +1,11 @@
 /**
  * Copyright (c) 2008 AGETO Service GmbH and others.
- * All rights reserved. 
- * 
- * This program and the accompanying materials are made available under the terms of the 
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the terms of the
  * Eclipse Public License v1.0 which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
@@ -15,14 +15,17 @@ import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.gyrex.common.debug.BundleDebug;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Specialized registry for mapping URLs to application mounts.
  */
 public class ApplicationMountRegistry {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ApplicationMountRegistry.class);
 
 	private static final int LOOKUP_LOOP_LIMIT = 1000;
 
@@ -157,7 +160,7 @@ public class ApplicationMountRegistry {
 
 		// log if limit exceeded
 		if (loopCounter >= LOOKUP_LOOP_LIMIT) {
-			BundleDebug.debug("[ApplicationMountRegistry] loop limit exceeded for url " + url);
+			LOG.debug("[ApplicationMountRegistry] loop limit exceeded for url " + url);
 		}
 
 		// return what we have

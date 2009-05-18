@@ -14,7 +14,7 @@ package org.eclipse.gyrex.services.common;
 import java.text.MessageFormat;
 
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.services.common.internal.ServicesActivator;
 
 /**
@@ -61,7 +61,7 @@ public final class ServiceUtil {
 	 * @throws IllegalStateException
 	 *             if no suitable service implementation is currently available
 	 */
-	public static <M extends IService> M getService(final Class<M> serviceType, final IContext context) throws IllegalStateException {
+	public static <M extends IService> M getService(final Class<M> serviceType, final IRuntimeContext context) throws IllegalStateException {
 		if (null == serviceType) {
 			throw new IllegalArgumentException("service type must not be null");
 		}

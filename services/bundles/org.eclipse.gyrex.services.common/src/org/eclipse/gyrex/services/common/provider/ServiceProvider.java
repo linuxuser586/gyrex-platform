@@ -18,7 +18,7 @@ import java.util.List;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IAdapterManager;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.services.common.IService;
 import org.eclipse.gyrex.services.common.ServiceUtil;
 import org.eclipse.gyrex.services.common.status.IStatusMonitor;
@@ -28,7 +28,7 @@ import org.eclipse.gyrex.services.common.status.IStatusMonitor;
  * instances to Gyrex.
  * <p>
  * A {@link ServiceProvider} provides {@link IService} objects. These service
- * service objects may be obtained from a {@link IContext context} using the the
+ * service objects may be obtained from a {@link IRuntimeContext context} using the the
  * standard {@link IAdaptable#getAdapter(Class) Eclipse adapter mechanise}. In
  * the background, a service provider registry maintains registrations with the
  * the Eclipse {@link IAdapterManager} because it will not always be possible to
@@ -43,7 +43,7 @@ import org.eclipse.gyrex.services.common.status.IStatusMonitor;
  * available as OSGi services using type {@link ServiceProvider}.
  * </p>
  * 
- * @see ServiceUtil#getService(Class, IContext)
+ * @see ServiceUtil#getService(Class, IRuntimeContext)
  */
 public abstract class ServiceProvider {
 
@@ -60,7 +60,7 @@ public abstract class ServiceProvider {
 	 * Although not enforced in this constructor, the list should specify the
 	 * public interface a service implements not the actual service
 	 * implementation. Each interface for one wishes to return a service in
-	 * {@link ServiceUtil#getService(Class, IContext)} should be specified.
+	 * {@link ServiceUtil#getService(Class, IRuntimeContext)} should be specified.
 	 * </p>
 	 * <p>
 	 * If a class in the list does not extend the {@link IService} interface an
@@ -124,14 +124,14 @@ public abstract class ServiceProvider {
 	 * @noreference This method is not intended to be referenced by clients
 	 *              directly.
 	 */
-	public abstract BaseService createServiceInstance(Class serviceType, IContext context, IStatusMonitor statusMonitor);
+	public abstract BaseService createServiceInstance(Class serviceType, IRuntimeContext context, IStatusMonitor statusMonitor);
 
 	/**
 	 * Returns the collection of service types contributed by this provider.
 	 * <p>
 	 * This method is generally used by the platform to discover which service
 	 * types are supported, in advance of dispatching any actual
-	 * {@link #createServiceInstance(Class, IContext, IStatusMonitor)} requests.
+	 * {@link #createServiceInstance(Class, IRuntimeContext, IStatusMonitor)} requests.
 	 * </p>
 	 * 
 	 * @return the collection of adapter types

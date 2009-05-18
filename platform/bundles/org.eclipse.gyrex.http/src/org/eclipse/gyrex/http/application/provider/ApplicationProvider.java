@@ -13,7 +13,7 @@ package org.eclipse.gyrex.http.application.provider;
 
 
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 
 /**
@@ -65,7 +65,7 @@ public abstract class ApplicationProvider {
 	 *            the context the application will operate in
 	 * @return a new application instance
 	 */
-	public abstract Application createApplication(String applicationId, IContext context) throws CoreException;
+	public abstract Application createApplication(String applicationId, IRuntimeContext context) throws CoreException;
 
 	/**
 	 * Returns the provider id.

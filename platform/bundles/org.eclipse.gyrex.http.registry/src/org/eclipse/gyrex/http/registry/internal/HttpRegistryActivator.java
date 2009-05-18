@@ -15,6 +15,7 @@ package org.eclipse.gyrex.http.registry.internal;
 
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -27,11 +28,13 @@ public class HttpRegistryActivator extends BaseBundleActivator implements Servic
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.http.registry";
 
 	private ServiceTracker packageAdminTracker;
-	private ServiceTracker registryTracker;
+	private ServiceTracker extensionRegistryTracker;
+	private ServiceTracker contextRegistryTracker;
 	private ServiceTracker applicationManagerServiceTracker;
 
 	private volatile PackageAdmin packageAdmin;
-	private volatile IExtensionRegistry registry;
+	private volatile IExtensionRegistry extensionRegistry;
+	private volatile IRuntimeContextRegistry contextRegistry;
 	private volatile BundleContext context;
 
 	/**
@@ -52,12 +55,16 @@ public class HttpRegistryActivator extends BaseBundleActivator implements Servic
 			packageAdmin = (PackageAdmin) service;
 		}
 
-		if ((service instanceof IExtensionRegistry) && (registry == null)) {
-			registry = (IExtensionRegistry) service;
+		if ((service instanceof IExtensionRegistry) && (extensionRegistry == null)) {
+			extensionRegistry = (IExtensionRegistry) service;
 		}
 
-		if ((packageAdmin != null) && (registry != null)) {
-			applicationManagerServiceTracker = new ApplicationManagerServiceTracker(context, packageAdmin, registry);
+		if ((service instanceof IRuntimeContextRegistry) && (contextRegistry == null)) {
+			contextRegistry = (IRuntimeContextRegistry) service;
+		}
+
+		if ((packageAdmin != null) && (extensionRegistry != null) && (contextRegistry != null)) {
+			applicationManagerServiceTracker = new ApplicationManagerServiceTracker(context, packageAdmin, extensionRegistry, contextRegistry);
 			applicationManagerServiceTracker.open();
 		}
 
@@ -75,8 +82,11 @@ public class HttpRegistryActivator extends BaseBundleActivator implements Servic
 		packageAdminTracker = new ServiceTracker(context, PackageAdmin.class.getName(), this);
 		packageAdminTracker.open();
 
-		registryTracker = new ServiceTracker(context, IExtensionRegistry.class.getName(), this);
-		registryTracker.open();
+		extensionRegistryTracker = new ServiceTracker(context, IExtensionRegistry.class.getName(), this);
+		extensionRegistryTracker.open();
+
+		contextRegistryTracker = new ServiceTracker(context, IRuntimeContextRegistry.class.getName(), this);
+		contextRegistryTracker.open();
 	}
 
 	/* (non-Javadoc)
@@ -86,8 +96,8 @@ public class HttpRegistryActivator extends BaseBundleActivator implements Servic
 	protected void doStop(final BundleContext context) throws Exception {
 		packageAdminTracker.close();
 		packageAdminTracker = null;
-		registryTracker.close();
-		registryTracker = null;
+		extensionRegistryTracker.close();
+		extensionRegistryTracker = null;
 		this.context = null;
 	}
 
@@ -108,11 +118,15 @@ public class HttpRegistryActivator extends BaseBundleActivator implements Servic
 			packageAdmin = null;
 		}
 
-		if (service == registry) {
-			registry = null;
+		if (service == extensionRegistry) {
+			extensionRegistry = null;
 		}
 
-		if ((packageAdmin == null) || (registry == null)) {
+		if (service == contextRegistry) {
+			contextRegistry = null;
+		}
+
+		if ((null == packageAdmin) || (null == extensionRegistry) || (null == contextRegistry)) {
 			if (applicationManagerServiceTracker != null) {
 				applicationManagerServiceTracker.close();
 				applicationManagerServiceTracker = null;

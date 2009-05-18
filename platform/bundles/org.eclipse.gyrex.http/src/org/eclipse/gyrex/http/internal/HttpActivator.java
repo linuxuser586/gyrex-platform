@@ -11,22 +11,16 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.configuration.constraints.PlatformConfigurationConstraint;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
-import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
-import org.eclipse.gyrex.http.internal.apps.dummy.DummyAppProvider;
-import org.eclipse.gyrex.http.internal.apps.dummy.RootContext;
 import org.eclipse.osgi.service.datalocation.Location;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.framework.Version;
 import org.osgi.service.packageadmin.PackageAdmin;
@@ -121,13 +115,13 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 
 		// register our dummy app provider
-		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
-		properties.put(Constants.SERVICE_DESCRIPTION, "Dummy Application");
-		properties.put(Constants.SERVICE_VENDOR, "Gyrex");
-		dummyProviderRegistration = context.registerService(ApplicationProvider.class.getName(), new DummyAppProvider(), properties);
-
-		applicationManager.register("default", DummyAppProvider.ID, new RootContext(), null);
-		applicationManager.setDefaultApplication("default");
+		//		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
+		//		properties.put(Constants.SERVICE_DESCRIPTION, "Dummy Application");
+		//		properties.put(Constants.SERVICE_VENDOR, "Gyrex");
+		//		dummyProviderRegistration = context.registerService(ApplicationProvider.class.getName(), new DummyAppProvider(), properties);
+		//
+		//		applicationManager.register("default", DummyAppProvider.ID, new RootContext(), null);
+		//		applicationManager.setDefaultApplication("default");
 	}
 
 	/* (non-Javadoc)
@@ -136,7 +130,10 @@ public class HttpActivator extends BaseBundleActivator {
 	@Override
 	protected synchronized void doStop(final BundleContext context) throws Exception {
 		// unregister the dummy app provider
-		dummyProviderRegistration.unregister();
+		if (null != dummyProviderRegistration) {
+			dummyProviderRegistration.unregister();
+			dummyProviderRegistration = null;
+		}
 
 		// stop the HTTP service tracker
 		if (null != httpServiceTracker) {

@@ -17,7 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.model.common.IModelManager;
 import org.eclipse.gyrex.model.common.provider.ModelProvider;
 import org.eclipse.gyrex.persistence.PersistenceUtil;
@@ -60,8 +60,8 @@ public class ManagerRegistration implements IAdapterFactory {
 	 */
 	@Override
 	public Object getAdapter(final Object adaptableObject, final Class adapterType) {
-		// we only provide adapters of IContext objects
-		if (!(adaptableObject instanceof IContext)) {
+		// we only provide adapters of IRuntimeContext objects
+		if (!(adaptableObject instanceof IRuntimeContext)) {
 			return null;
 		}
 
@@ -71,7 +71,7 @@ public class ManagerRegistration implements IAdapterFactory {
 		}
 
 		// the context
-		final IContext context = (IContext) adaptableObject;
+		final IRuntimeContext context = (IRuntimeContext) adaptableObject;
 
 		// get the provider to use
 		final ModelProvider provider = getProvider(context, adapterType);
@@ -108,7 +108,7 @@ public class ManagerRegistration implements IAdapterFactory {
 	 * @param managerType
 	 * @return the provider to use
 	 */
-	private ModelProvider getProvider(final IContext context, final Class<?> managerType) {
+	private ModelProvider getProvider(final IRuntimeContext context, final Class<?> managerType) {
 		// currently, we simply use the first matching provider
 		// in the future a context might specify a preferred provider version
 		for (final ProviderRegistration provider : providers) {

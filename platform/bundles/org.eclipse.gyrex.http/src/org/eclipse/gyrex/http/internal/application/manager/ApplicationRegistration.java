@@ -20,10 +20,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.servlet.ServletContext;
 
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.gyrex.common.context.IContext;
 import org.eclipse.gyrex.common.logging.LogAudience;
 import org.eclipse.gyrex.common.logging.LogImportance;
 import org.eclipse.gyrex.common.logging.LogSource;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.internal.HttpActivator;
@@ -38,7 +38,7 @@ public class ApplicationRegistration {
 
 	private final String applicationId;
 	private final String providerId;
-	private final IContext context;
+	private final IRuntimeContext context;
 	private final ApplicationConfiguration configuration;
 	private final ConcurrentMap<ApplicationHandlerServlet, ApplicationInstance> activeApplications = new ConcurrentHashMap<ApplicationHandlerServlet, ApplicationInstance>(1);
 	private final ApplicationManager applicationManager;
@@ -53,7 +53,7 @@ public class ApplicationRegistration {
 	 * @param context
 	 * @param properties
 	 */
-	public ApplicationRegistration(final String applicationId, final String providerId, final IContext context, final Map<String, String> properties, final ApplicationManager applicationManager) {
+	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> properties, final ApplicationManager applicationManager) {
 		this.applicationManager = applicationManager;
 		this.applicationId = applicationId.intern();
 		this.providerId = providerId.intern();
@@ -167,7 +167,7 @@ public class ApplicationRegistration {
 	 * 
 	 * @return the context
 	 */
-	public IContext getContext() {
+	public IRuntimeContext getContext() {
 		return context;
 	}
 

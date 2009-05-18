@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.services.common;
 
 import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.services.common.provider.BaseService;
 import org.eclipse.gyrex.services.common.provider.ServiceProvider;
 
@@ -31,12 +31,12 @@ import org.eclipse.gyrex.services.common.provider.ServiceProvider;
  * </p>
  * <p>
  * Service implementations depend on a particular
- * <em>{@link IContext context}</em>. Thus, there is no central service
+ * <em>{@link IRuntimeContext context}</em>. Thus, there is no central service
  * registry. Instead, clients contribute a {@link ServiceProvider service
- * factory} which creates service instances based on a {@link IContext context}.
+ * factory} which creates service instances based on a {@link IRuntimeContext context}.
  * This also means that callers must not hold onto a specific service instance
- * but obtain a fresh one for a particular {@link IContext context} using
- * {@link ServiceUtil#getService(Class, IContext)}.
+ * but obtain a fresh one for a particular {@link IRuntimeContext context} using
+ * {@link ServiceUtil#getService(Class, IRuntimeContext)}.
  * </p>
  * <p>
  * This interface is not intended to be implemented by clients directly. Clients
@@ -45,7 +45,7 @@ import org.eclipse.gyrex.services.common.provider.ServiceProvider;
  * a {@link ServiceProvider factory}.
  * </p>
  * 
- * @see ServiceUtil#getService(Class, IContext)
+ * @see ServiceUtil#getService(Class, IRuntimeContext)
  * @see ServiceProvider
  * @noimplement This interface is not intended to be implemented by service
  *              implementors directly. They must subclass {@link BaseService}
@@ -58,6 +58,6 @@ public interface IService extends IAdaptable {
 	 * 
 	 * @return the service context
 	 */
-	IContext getContext();
+	IRuntimeContext getContext();
 
 }

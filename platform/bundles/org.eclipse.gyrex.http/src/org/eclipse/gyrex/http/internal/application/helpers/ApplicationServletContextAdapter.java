@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -24,9 +24,10 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
-import org.eclipse.gyrex.common.debug.BundleDebug;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A servlet context for a particular {@link Application}
@@ -37,6 +38,8 @@ public class ApplicationServletContextAdapter implements ServletContext {
 	private final Application application;
 	private String contextPath;
 	private final ApplicationConfiguration applicationConfiguration;
+
+	private static final Logger LOG = LoggerFactory.getLogger(ApplicationServletContextAdapter.class);
 
 	/**
 	 * Creates a new instance.
@@ -318,7 +321,7 @@ public class ApplicationServletContextAdapter implements ServletContext {
 	@Override
 	public void log(final String message, final Throwable throwable) {
 		// TODO should use application specific logging
-		BundleDebug.debug(message, throwable);
+		LOG.debug(message, throwable);
 	}
 
 	/* (non-Javadoc)

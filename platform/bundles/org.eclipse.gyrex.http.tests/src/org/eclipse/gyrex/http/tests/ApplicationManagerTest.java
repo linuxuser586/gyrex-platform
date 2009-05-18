@@ -1,11 +1,11 @@
 /**
  * Copyright (c) 2009 AGETO Service GmbH and others.
- * All rights reserved. 
- * 
- * This program and the accompanying materials are made available under the terms of the 
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the terms of the
  * Eclipse Public License v1.0 which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
@@ -19,8 +19,8 @@ import java.net.MalformedURLException;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.gyrex.common.context.ContextUtil;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.ContextUtil;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
@@ -33,12 +33,12 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
 /**
- * 
+ *
  */
 public class ApplicationManagerTest {
 
 	static class TestApp extends Application {
-		TestApp(final String id, final IContext context) {
+		TestApp(final String id, final IRuntimeContext context) {
 			super(id, context);
 		}
 	}
@@ -49,7 +49,7 @@ public class ApplicationManagerTest {
 		}
 
 		@Override
-		public Application createApplication(final String applicationId, final IContext context) throws CoreException {
+		public Application createApplication(final String applicationId, final IRuntimeContext context) throws CoreException {
 			return new TestApp(applicationId, context);
 		}
 	}
@@ -88,7 +88,7 @@ public class ApplicationManagerTest {
 			final TestAppProvider appProvider = new TestAppProvider();
 			serviceRegistration = context.registerService(ApplicationProvider.class.getName(), appProvider, null);
 
-			// assert registration not null 
+			// assert registration not null
 			final ApplicationProviderRegistration providerRegistration = applicationManager.getProviderRegistration(appProvider.getId());
 			if (null == providerRegistration) {
 				fail("provider not registered correctly with manager; please check provider registration test");
@@ -214,7 +214,7 @@ public class ApplicationManagerTest {
 			// open manager
 			applicationManager.open();
 
-			// ensure that there is no registration when starting the test 
+			// ensure that there is no registration when starting the test
 			if (null != applicationManager.getProviderRegistration(appProvider.getId())) {
 				fail("there is already a provider registered; that should not happen");
 			}
@@ -222,14 +222,14 @@ public class ApplicationManagerTest {
 			// register provider
 			final ServiceRegistration serviceRegistration = context.registerService(ApplicationProvider.class.getName(), appProvider, null);
 
-			// assert registration not null 
+			// assert registration not null
 			ApplicationProviderRegistration providerRegistration = applicationManager.getProviderRegistration(appProvider.getId());
 			assertNotNull("provider not registered with manager", providerRegistration);
 
 			// unregister
 			serviceRegistration.unregister();
 
-			// assert registration is null 
+			// assert registration is null
 			providerRegistration = applicationManager.getProviderRegistration(appProvider.getId());
 			assertNull("provider should be unregistered at this point", providerRegistration);
 

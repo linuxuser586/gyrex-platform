@@ -13,9 +13,9 @@ package org.eclipse.gyrex.persistence.storage;
 
 import java.text.MessageFormat;
 
-import org.eclipse.gyrex.common.context.IContext;
 import org.eclipse.gyrex.configuration.ConfigurationMode;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
@@ -32,7 +32,7 @@ import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSuppor
  * <dd>One repository is used for all model objects.</dd>
  * <dt>{@link ConfigurationMode#PRODUCTION}</dt>
  * <dd>A configured repository is used depending on the
- * {@link IContext#getContextPath() context path}. If no repository is
+ * {@link IRuntimeContext#getContextPath() context path}. If no repository is
  * configured for a particular context path the path is traversed upwards till a
  * repository is found.</dd>
  * </dl>
@@ -77,11 +77,11 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see org.eclipse.gyrex.common.persistence.storage.IRepositoryLookupStrategy#getRepository(org.eclipse.gyrex.common.context.IContext,
+	 * @see org.eclipse.gyrex.common.persistence.storage.IRepositoryLookupStrategy#getRepository(org.eclipse.gyrex.context.IRuntimeContext,
 	 *      org.eclipse.gyrex.common.persistence.storage.RepositoryContentType)
 	 */
 	@Override
-	public Repository getRepository(final IContext context, final RepositoryContentType contentType) throws IllegalStateException {
+	public Repository getRepository(final IRuntimeContext context, final RepositoryContentType contentType) throws IllegalStateException {
 		if (null == context) {
 			throw new IllegalArgumentException("context must not be null");
 		}
@@ -114,7 +114,7 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		return PersistenceActivator.getInstance().getRepositoriesManager().getRepository(repositoryId);
 	}
 
-	private String getRepositoryId(final IContext context, final RepositoryContentType contentType) {
+	private String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) {
 		// TODO: incorporate repository type from content type into lookup 
 		// lookup the repository id based on the context from the preferences
 		final String peferenceKey = PREF_PATH_REPORITORIES.concat(contentType.getMediaType());

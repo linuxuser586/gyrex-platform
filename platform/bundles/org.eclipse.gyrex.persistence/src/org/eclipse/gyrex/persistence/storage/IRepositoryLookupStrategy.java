@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.persistence.storage;
 
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 
 /**
@@ -46,5 +46,5 @@ public interface IRepositoryLookupStrategy {
 	 * @throws IllegalStateException
 	 *             if no suitable repository is available
 	 */
-	Repository getRepository(IContext context, RepositoryContentType repositoryContentType) throws IllegalStateException;
+	Repository getRepository(IRuntimeContext context, RepositoryContentType repositoryContentType) throws IllegalStateException;
 }

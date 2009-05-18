@@ -24,12 +24,14 @@ import javax.servlet.ServletException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;
 import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
 import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
 import org.eclipse.gyrex.http.application.servicesupport.NamespaceException;
-import org.eclipse.gyrex.http.internal.apps.dummy.RootContext;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.packageadmin.PackageAdmin;
@@ -107,10 +109,12 @@ public class ApplicationRegistryManager {
 	private final Map<String, ServletContribution> servlets = new HashMap<String, ServletContribution>();
 	private final Map<String, ResourcesContribution> resources = new HashMap<String, ResourcesContribution>();
 	private final Map<String, MountContribution> mounts = new HashMap<String, MountContribution>();
+	private final IRuntimeContextRegistry contextRegistry;
 
-	public ApplicationRegistryManager(final ServiceReference reference, final IApplicationManager httpApplicationManager, final PackageAdmin packageAdmin, final IExtensionRegistry registry) {
+	public ApplicationRegistryManager(final ServiceReference reference, final IApplicationManager httpApplicationManager, final PackageAdmin packageAdmin, final IExtensionRegistry registry, final IRuntimeContextRegistry contextRegistry) {
 		this.httpApplicationManager = httpApplicationManager;
 		this.packageAdmin = packageAdmin;
+		this.contextRegistry = contextRegistry;
 
 		applicationProvider = RegistryApplicationProvider.getInstance();
 
@@ -125,9 +129,14 @@ public class ApplicationRegistryManager {
 			return false; // TODO: should log this
 		}
 
+		final IRuntimeContext context = contextRegistry.get(null != contextPath ? new Path(contextPath) : Path.EMPTY);
+		if (null == context) {
+			return false; // TODO: should log this
+		}
+
 		applications.put(applicationId, new ApplicationContribution(applicationId, contextPath, configurationElement));
 		try {
-			httpApplicationManager.register(applicationId, RegistryApplicationProvider.ID, new RootContext(), null);
+			httpApplicationManager.register(applicationId, RegistryApplicationProvider.ID, context, null);
 		} catch (final ApplicationRegistrationException e) {
 			return false; // TODO: should log this
 		}

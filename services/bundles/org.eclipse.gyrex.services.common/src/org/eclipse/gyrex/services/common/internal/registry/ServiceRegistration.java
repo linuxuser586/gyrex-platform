@@ -17,7 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.services.common.IService;
 import org.eclipse.gyrex.services.common.provider.ServiceProvider;
 import org.osgi.framework.Bundle;
@@ -56,8 +56,8 @@ public class ServiceRegistration implements IAdapterFactory {
 	 */
 	@Override
 	public Object getAdapter(final Object adaptableObject, final Class adapterType) {
-		// we only provide adapters of IContext objects
-		if (!(adaptableObject instanceof IContext)) {
+		// we only provide adapters of IRuntimeContext objects
+		if (!(adaptableObject instanceof IRuntimeContext)) {
 			return null;
 		}
 
@@ -67,7 +67,7 @@ public class ServiceRegistration implements IAdapterFactory {
 		}
 
 		// the context
-		final IContext context = (IContext) adaptableObject;
+		final IRuntimeContext context = (IRuntimeContext) adaptableObject;
 
 		// get the provider to use
 		final ServiceProvider provider = getProvider(context, adapterType);
@@ -95,7 +95,7 @@ public class ServiceRegistration implements IAdapterFactory {
 	 * @param serviceType
 	 * @return the provider to use
 	 */
-	private ServiceProvider getProvider(final IContext context, final Class<?> serviceType) {
+	private ServiceProvider getProvider(final IRuntimeContext context, final Class<?> serviceType) {
 		// currently, we simply use the first matching provider
 		// in the future a context might specify a preferred provider version
 		for (final ProviderRegistration provider : providers) {

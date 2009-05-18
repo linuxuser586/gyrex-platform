@@ -27,27 +27,20 @@ package org.eclipse.gyrex.common.services;
 public interface IServiceProxy<T> {
 
 	/**
+	 * Disposes the service proxy and releases any resources.
+	 * <p>
+	 * After the service proxy has been disposed it can no longer be used.
+	 * </p>
+	 */
+	void dispose();
+
+	/**
 	 * Returns a dynamic proxy implementing the service interface for
 	 * transparent access to the service object.
 	 * 
 	 * @return a dynamic proxy implementing the service interface
 	 */
 	T getProxy();
-
-	/**
-	 * Returns a service object for one of the services being tracked by this
-	 * <code>IServiceProxy</code> object.
-	 * <p>
-	 * <p>
-	 * Note, the returned service object must not be hold on for a longer
-	 * duration. It is only intended for short durations.
-	 * </p>
-	 * 
-	 * @return a service object
-	 * @throws ServiceNotAvailableException
-	 *             is no service is available
-	 */
-	T getService() throws ServiceNotAvailableException;
 
 	/**
 	 * Configures a timeout for method invocations on the service interface.
@@ -73,4 +66,19 @@ public interface IServiceProxy<T> {
 	 * @return the service proxy object to allow a convenient programming style
 	 */
 	//IServiceProxy<T> setTimeout(final long timeout, final TimeUnit unit);
+
+	/**
+	 * Returns a service object for one of the services being tracked by this
+	 * <code>IServiceProxy</code> object.
+	 * <p>
+	 * <p>
+	 * Note, the returned service object must not be hold on for a longer
+	 * duration. It is only intended for short durations.
+	 * </p>
+	 * 
+	 * @return a service object
+	 * @throws ServiceNotAvailableException
+	 *             is no service is available
+	 */
+	T getService() throws ServiceNotAvailableException;
 }

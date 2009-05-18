@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.services.common.internal.ServicesActivator;
 import org.eclipse.gyrex.services.common.provider.ServiceProvider;
 import org.osgi.framework.Bundle;
@@ -72,7 +72,7 @@ public class ServiceProviderRegistry implements ServiceTrackerCustomizer {
 
 			// in any case, re-register with the adapter service
 			ServicesActivator.getAdapterManager().unregisterAdapters(registration);
-			ServicesActivator.getAdapterManager().registerAdapters(registration, IContext.class);
+			ServicesActivator.getAdapterManager().registerAdapters(registration, IRuntimeContext.class);
 		}
 
 	}
@@ -117,7 +117,7 @@ public class ServiceProviderRegistry implements ServiceTrackerCustomizer {
 				// re-register with the adapter service (to flush it)
 				if (!registration.isEmpty()) {
 					ServicesActivator.getAdapterManager().unregisterAdapters(registration);
-					ServicesActivator.getAdapterManager().registerAdapters(registration, IContext.class);
+					ServicesActivator.getAdapterManager().registerAdapters(registration, IRuntimeContext.class);
 				} else {
 					// un-register from the adapter service
 					if (registrations.remove(service.getName(), registration)) {

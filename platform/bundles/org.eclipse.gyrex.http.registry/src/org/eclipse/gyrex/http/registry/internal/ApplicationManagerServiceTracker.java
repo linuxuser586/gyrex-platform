@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -30,19 +31,21 @@ public class ApplicationManagerServiceTracker extends ServiceTracker {
 
 	private final ConcurrentMap<ServiceReference, ApplicationRegistryManager> applicationRegistryManagers = new ConcurrentHashMap<ServiceReference, ApplicationRegistryManager>(2);
 	private final PackageAdmin packageAdmin;
-	private final IExtensionRegistry registry;
+	private final IExtensionRegistry extensionRegistry;
+	private final IRuntimeContextRegistry contextRegistry;
 
 	/**
 	 * Creates a new instance.
 	 * 
 	 * @param context
 	 * @param packageAdmin
-	 * @param registry
+	 * @param extensionRegistry
 	 */
-	public ApplicationManagerServiceTracker(final BundleContext context, final PackageAdmin packageAdmin, final IExtensionRegistry registry) {
+	public ApplicationManagerServiceTracker(final BundleContext context, final PackageAdmin packageAdmin, final IExtensionRegistry extensionRegistry, final IRuntimeContextRegistry contextRegistry) {
 		super(context, IApplicationManager.class.getName(), null);
 		this.packageAdmin = packageAdmin;
-		this.registry = registry;
+		this.extensionRegistry = extensionRegistry;
+		this.contextRegistry = contextRegistry;
 	}
 
 	/* (non-Javadoc)
@@ -55,7 +58,7 @@ public class ApplicationManagerServiceTracker extends ServiceTracker {
 			return null;
 		}
 
-		final ApplicationRegistryManager applicationRegistryManager = new ApplicationRegistryManager(reference, applicationManager, packageAdmin, registry);
+		final ApplicationRegistryManager applicationRegistryManager = new ApplicationRegistryManager(reference, applicationManager, packageAdmin, extensionRegistry, contextRegistry);
 		if (null == applicationRegistryManagers.putIfAbsent(reference, applicationRegistryManager)) {
 			applicationRegistryManager.start();
 		}

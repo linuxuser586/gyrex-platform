@@ -16,7 +16,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicReference;
 
-
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.common.services.ServiceNotAvailableException;
 import org.osgi.framework.BundleContext;
@@ -80,6 +79,7 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler {
 		return (T) Proxy.newProxyInstance(new BundleDelegatingClassLoader(bundleContext.getBundle()), new Class[] { serviceInterface }, this);
 	}
 
+	@Override
 	public void dispose() {
 		bundleContextRef.set(null);
 		final ServiceTracker tracker = serviceTrackerRef.getAndSet(null);

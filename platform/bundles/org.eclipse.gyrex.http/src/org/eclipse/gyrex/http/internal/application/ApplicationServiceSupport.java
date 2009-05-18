@@ -27,7 +27,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
@@ -59,7 +59,7 @@ public final class ApplicationServiceSupport implements IApplicationServiceSuppo
 	 * @param servletContext
 	 * @param application
 	 */
-	public ApplicationServiceSupport(final ServletContext servletContext, final Application application, final IContext context) {
+	public ApplicationServiceSupport(final ServletContext servletContext, final Application application, final IRuntimeContext context) {
 		this.servletContext.set(servletContext);
 
 		// ensure that the context has the required attributes

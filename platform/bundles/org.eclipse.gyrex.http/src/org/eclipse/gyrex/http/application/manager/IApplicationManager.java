@@ -14,7 +14,7 @@ package org.eclipse.gyrex.http.application.manager;
 import java.net.MalformedURLException;
 import java.util.Map;
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 
@@ -130,7 +130,7 @@ public interface IApplicationManager {
 	 * @throws ApplicationRegistrationException
 	 *             if an application with the specified id is already defined
 	 */
-	void register(String applicationId, String providerId, IContext context, Map<String, String> properties) throws ApplicationRegistrationException;
+	void register(String applicationId, String providerId, IRuntimeContext context, Map<String, String> properties) throws ApplicationRegistrationException;
 
 	/**
 	 * Unmounts an application mounted at the specified URL.

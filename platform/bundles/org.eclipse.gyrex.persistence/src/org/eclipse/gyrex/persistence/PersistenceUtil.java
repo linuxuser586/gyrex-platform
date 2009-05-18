@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.persistence;
 
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.persistence.storage.DefaultRepositoryLookupStrategy;
 import org.eclipse.gyrex.persistence.storage.IRepositoryLookupStrategy;
 
@@ -28,7 +28,7 @@ public final class PersistenceUtil {
 	/**
 	 * Returns the repository lookup strategy for the specified context.
 	 * <p>
-	 * This method basically calls {@link IContext#getAdapter(Class)} to obtain
+	 * This method basically calls {@link IRuntimeContext#getAdapter(Class)} to obtain
 	 * {@link IRepositoryLookupStrategy the lookup strategy} from the context.
 	 * This allows a context to provide custom lookup strategies. If the context
 	 * does not specify a custom lookup strategy a
@@ -39,11 +39,11 @@ public final class PersistenceUtil {
 	 *            the context to obtain the strategy from (may not be
 	 *            <code>null</code>)
 	 * @return the lookup strategy
-	 * @see IContext#getAdapter(Class)
+	 * @see IRuntimeContext#getAdapter(Class)
 	 * @see IRepositoryLookupStrategy
 	 * @see DefaultRepositoryLookupStrategy
 	 */
-	public static IRepositoryLookupStrategy getRepositoryLookupStrategy(final IContext context) {
+	public static IRepositoryLookupStrategy getRepositoryLookupStrategy(final IRuntimeContext context) {
 		if (null == context) {
 			throw new IllegalArgumentException("context must not be null");
 		}

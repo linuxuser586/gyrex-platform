@@ -15,10 +15,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IAdapterManager;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.model.common.IModelManager;
 import org.eclipse.gyrex.model.common.ModelUtil;
 import org.eclipse.gyrex.persistence.storage.Repository;
@@ -29,13 +28,13 @@ import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
  * manager} instances to Gyrex.
  * <p>
  * A {@link ModelProvider} provides {@link IModelManager} objects. These model
- * manager objects may be obtained from a {@link IContext context} using the the
- * standard {@link IAdaptable#getAdapter(Class) Eclipse adapter mechanise}. In
- * the background, a model provider registry maintains registrations with the
- * the Eclipse {@link IAdapterManager} because it will not always be possible to
- * register adapters directly (eg., because of security constraints enforced by
- * the platform). Thus, a registration of model providers using this class is
- * enforced.
+ * manager objects may be obtained from a {@link IRuntimeContext context} using
+ * the the standard {@link IAdaptable#getAdapter(Class) Eclipse adapter
+ * mechanise}. In the background, a model provider registry maintains
+ * registrations with the the Eclipse {@link IAdapterManager} because it will
+ * not always be possible to register adapters directly (eg., because of
+ * security constraints enforced by the platform). Thus, a registration of model
+ * providers using this class is enforced.
  * </p>
  * <p>
  * All model managers created by a provider share the same
@@ -55,7 +54,7 @@ import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
  * available as OSGi services using type {@link ModelProvider}.
  * </p>
  * 
- * @see ModelUtil#getManager(Class, IContext)
+ * @see ModelUtil#getManager(Class, IRuntimeContext)
  */
 public abstract class ModelProvider {
 
@@ -75,7 +74,8 @@ public abstract class ModelProvider {
 	 * Although not enforced in this constructor, the list should specify the
 	 * public interface a model manager implements not the actual manager
 	 * implementation. Each interface for one wishes to return a model manager
-	 * in {@link ModelUtil#getManager(Class, IContext)} should be specified.
+	 * in {@link ModelUtil#getManager(Class, IRuntimeContext)} should be
+	 * specified.
 	 * </p>
 	 * <p>
 	 * If a class in the list does not extend the {@link IModelManager}
@@ -96,36 +96,33 @@ public abstract class ModelProvider {
 	 * @throws IllegalArgumentException
 	 *             is any of the provided arguments are invalid
 	 */
-	protected ModelProvider(final RepositoryContentType contentType, final Class providedManager, final Class... providedManagers) throws IllegalArgumentException {
+	protected ModelProvider(final RepositoryContentType contentType, final Class... providedManagers) throws IllegalArgumentException {
 		if (null == contentType) {
 			throw new IllegalArgumentException("contentType must not be null");
 		}
-		if (null == providedManager) {
-			throw new IllegalArgumentException("providedManager must not be null");
+		if (null == providedManagers) {
+			throw new IllegalArgumentException("providedManagers must not be null");
 		}
-		if (!IModelManager.class.isAssignableFrom(providedManager)) {
-			throw new IllegalArgumentException("manager '" + providedManager.getName() + "' is not assignable to '" + IModelManager.class.getName() + "'");
+		if (providedManagers.length == 0) {
+			throw new IllegalArgumentException("providedManagers must contain at least one entry");
 		}
 		final List<Class<?>> managers = new ArrayList<Class<?>>(providedManagers.length);
-		managers.add(providedManager);
-		if (null != providedManagers) {
-			for (final Class<?> manager : providedManagers) {
-				if (null == manager) {
-					throw new IllegalArgumentException("providedManagers list contains NULL entries which is not supported");
-				}
-				if (!IModelManager.class.isAssignableFrom(manager)) {
-					throw new IllegalArgumentException("manager '" + manager.getName() + "' is not assignable to '" + IModelManager.class.getName() + "'");
-				}
-				managers.add(manager);
+		for (final Class<?> manager : providedManagers) {
+			if (null == manager) {
+				throw new IllegalArgumentException("providedManagers list contains NULL entries which is not supported");
 			}
+			if (!IModelManager.class.isAssignableFrom(manager)) {
+				throw new IllegalArgumentException("manager '" + manager.getName() + "' is not assignable to '" + IModelManager.class.getName() + "'");
+			}
+			managers.add(manager);
 		}
 		this.providedManagers = Collections.unmodifiableList(managers);
 		this.contentType = contentType;
 	}
 
 	/**
-	 * Called by Gyrex to create a new model manager instance
-	 * of the specified model manager type.
+	 * Called by Gyrex to create a new model manager instance of the specified
+	 * model manager type.
 	 * <p>
 	 * Subclasses must implement this method and return a manager instance which
 	 * is initialized completely for using the specified repository and context.
@@ -141,7 +138,7 @@ public abstract class ModelProvider {
 	 * @noreference This method is not intended to be referenced by clients
 	 *              directly.
 	 */
-	public abstract BaseModelManager createModelManagerInstance(Class modelManagerType, Repository repository, IContext context);
+	public abstract BaseModelManager createModelManagerInstance(Class modelManagerType, Repository repository, IRuntimeContext context);
 
 	/**
 	 * Returns the content type required by the model managers provided by the
@@ -165,7 +162,7 @@ public abstract class ModelProvider {
 	 * <p>
 	 * This method is generally used by the platform to discover which manager
 	 * types are supported, in advance of dispatching any actual
-	 * {@link #createModelManagerInstance(Class, Repository, IContext)}
+	 * {@link #createModelManagerInstance(Class, Repository, IRuntimeContext)}
 	 * requests.
 	 * </p>
 	 * 

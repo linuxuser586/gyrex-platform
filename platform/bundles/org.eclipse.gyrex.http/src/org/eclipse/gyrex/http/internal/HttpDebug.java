@@ -11,9 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal;
 
-import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 
-public class HttpDebug extends BundleDebug {
+public class HttpDebug extends BundleDebugOptions {
 
 	public static boolean debug;
 

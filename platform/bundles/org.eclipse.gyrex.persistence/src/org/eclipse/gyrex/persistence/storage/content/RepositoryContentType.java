@@ -30,8 +30,10 @@ import org.osgi.framework.Version;
  * A {@link #getMediaType() media type} is used to uniquely identify content. A
  * media type is composed of at least two parts: a <em>type</em>, a
  * <em>subtype</em>, and one or more optional parameters. All rules and
- * limitations mentioned in <a href="">the Wikipedia article</a> and especially
- * in the referenced RFCs apply equally to repository content types.
+ * limitations mentioned in <a
+ * href="http://en.wikipedia.org/wiki/Internet_media_type">the Wikipedia
+ * article</a> and especially in the referenced RFCs apply equally to repository
+ * content types.
  * </p>
  * <p>
  * In addition to the {@link #getMediaType() media type} a content type has the

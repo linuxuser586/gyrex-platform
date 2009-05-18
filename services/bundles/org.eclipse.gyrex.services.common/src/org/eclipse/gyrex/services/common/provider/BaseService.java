@@ -13,7 +13,7 @@ package org.eclipse.gyrex.services.common.provider;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.PlatformObject;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.services.common.IService;
 import org.eclipse.gyrex.services.common.status.IStatusMonitor;
@@ -50,12 +50,12 @@ public abstract class BaseService extends PlatformObject implements IService {
 	 *            the context
 	 * @return a well formatted metrics id
 	 */
-	protected static String createMetricsId(final String serviceImplementationId, final IContext context) {
+	protected static String createMetricsId(final String serviceImplementationId, final IRuntimeContext context) {
 		return serviceImplementationId + "[" + context.getContextPath().toString() + "].metrics";
 	}
 
 	/** the context */
-	private final IContext context;
+	private final IRuntimeContext context;
 
 	/** the status monitor */
 	private final IStatusMonitor statusMonitor;
@@ -83,7 +83,7 @@ public abstract class BaseService extends PlatformObject implements IService {
 	 * @param metrics
 	 *            the service metrics
 	 */
-	protected BaseService(final IContext context, final IStatusMonitor statusMonitor, final MetricSet metrics) {
+	protected BaseService(final IRuntimeContext context, final IStatusMonitor statusMonitor, final MetricSet metrics) {
 		if (null == context) {
 			throw new IllegalArgumentException("context must not be null");
 		}
@@ -172,7 +172,7 @@ public abstract class BaseService extends PlatformObject implements IService {
 	}
 
 	@Override
-	public final IContext getContext() {
+	public final IRuntimeContext getContext() {
 		return context;
 	}
 

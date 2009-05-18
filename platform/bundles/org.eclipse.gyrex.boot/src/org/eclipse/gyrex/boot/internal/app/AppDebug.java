@@ -11,12 +11,12 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.internal.app;
 
-import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 
 /**
  * AppDebug flags.
  */
-public class AppDebug extends BundleDebug {
+public class AppDebug extends BundleDebugOptions {
 
 	public static boolean debug;
 	public static boolean debugRoles;

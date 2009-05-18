@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.model.common;
 
 import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.model.common.provider.BaseModelManager;
 import org.eclipse.gyrex.model.common.provider.ModelProvider;
 
@@ -30,13 +30,13 @@ import org.eclipse.gyrex.model.common.provider.ModelProvider;
  * typically execute within their objects only.
  * </p>
  * <p>
- * Model manager implementations depend on a particular {@link IContext context}
+ * Model manager implementations depend on a particular {@link IRuntimeContext context}
  * and a repository assigned to it. Thus, there is no central manager registry.
  * Instead, clients contribute a {@link ModelProvider model manager factory}
- * which creates model manager instances based on a {@link IContext context}.
+ * which creates model manager instances based on a {@link IRuntimeContext context}.
  * This also means that callers must not hold onto a specific model manager
- * instance but obtain a fresh one for a particular {@link IContext context}
- * using {@link ModelUtil#getManager(Class, IContext)}.
+ * instance but obtain a fresh one for a particular {@link IRuntimeContext context}
+ * using {@link ModelUtil#getManager(Class, IRuntimeContext)}.
  * </p>
  * <p>
  * This interface is not intended to be implemented by clients directly. Clients
@@ -45,7 +45,7 @@ import org.eclipse.gyrex.model.common.provider.ModelProvider;
  * using a {@link ModelProvider factory}.
  * </p>
  * 
- * @see ModelUtil#getManager(Class, IContext)
+ * @see ModelUtil#getManager(Class, IRuntimeContext)
  * @see ModelProvider
  * @noimplement This interface is not intended to be implemented by model
  *              implementors directly. They must subclass
@@ -58,6 +58,6 @@ public interface IModelManager extends IAdaptable {
 	 * 
 	 * @return the manager context
 	 */
-	IContext getContext();
+	IRuntimeContext getContext();
 
 }

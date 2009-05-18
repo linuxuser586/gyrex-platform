@@ -22,12 +22,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
-import org.eclipse.gyrex.configuration.preferences.PlatformScope;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
+import org.eclipse.gyrex.preferences.PlatformScope;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 

@@ -13,7 +13,7 @@ package org.eclipse.gyrex.model.common.provider;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.PlatformObject;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.model.common.IModelManager;
 import org.eclipse.gyrex.model.common.internal.ModelActivator;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
@@ -55,11 +55,11 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 	 *            the repository
 	 * @return a well formatted metrics id
 	 */
-	protected static String createMetricsId(final String modelImplementationId, final IContext context, final Repository repository) {
+	protected static String createMetricsId(final String modelImplementationId, final IRuntimeContext context, final Repository repository) {
 		return modelImplementationId + "[" + context.getContextPath().toString() + "," + repository.getRepositoryId() + "].metrics";
 	}
 
-	private final IContext context;
+	private final IRuntimeContext context;
 	private final T repository;
 
 	/** indicates if the service has been closed */
@@ -88,7 +88,7 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 	 * @param metrics
 	 *            the manager metrics
 	 */
-	protected BaseModelManager(final IContext context, final T repository, final MetricSet metrics) {
+	protected BaseModelManager(final IRuntimeContext context, final T repository, final MetricSet metrics) {
 		if (null == context) {
 			throw new IllegalArgumentException("context must not be null");
 		}
@@ -176,7 +176,7 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 	 * @see org.eclipse.gyrex.model.common.IModelManager#getContext()
 	 */
 	@Override
-	public final IContext getContext() {
+	public final IRuntimeContext getContext() {
 		return context;
 	}
 

@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -27,7 +27,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.gyrex.common.debug.BundleDebug;
 import org.eclipse.gyrex.common.logging.LogAudience;
 import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
@@ -40,6 +39,9 @@ import org.eclipse.gyrex.http.internal.application.manager.ApplicationInstance;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationMount;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
+import org.eclipse.gyrex.log.internal.firephp.FirePHPLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The main entry into the world of applications.
@@ -55,6 +57,8 @@ import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistrati
  * </p>
  */
 public class ApplicationHandlerServlet extends HttpServlet implements IApplicationServletConstants {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ApplicationHandlerServlet.class);
 
 	/** serialVersionUID */
 	private static final long serialVersionUID = 1L;
@@ -86,7 +90,7 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 	 * @see javax.servlet.Servlet#service(ServletRequest, ServletResponse)
 	 */
 	private void doService(final HttpServletRequest req, final HttpServletResponse res) throws IOException, ApplicationException {
-		// get the requested URL 
+		// get the requested URL
 		final URL url = getRequestUrl(req);
 
 		// get the requesting client address
@@ -139,7 +143,7 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 
 		// call the application
 		if (HttpDebug.handlerServlet) {
-			BundleDebug.debug(MessageFormat.format("[{0}] {1} -> {2} {3} {4}", adaptedRequest.getMethod(), url, application, adaptedRequest.getMethod(), null != adaptedRequest.getPathInfo() ? adaptedRequest.getPathInfo() : ""));
+			LOG.debug(MessageFormat.format("[{0}] {1} -> {2} {3} {4}", adaptedRequest.getMethod(), url, application, adaptedRequest.getMethod(), null != adaptedRequest.getPathInfo() ? adaptedRequest.getPathInfo() : ""));
 		}
 		application.handleRequest(adaptedRequest, res);
 	}
@@ -257,17 +261,21 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 	 */
 	@Override
 	protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-		// handle the request
 		try {
+			// hack: hook with Firebug logging
+			FirePHPLogger.setResponse(resp);
+
+			// handle the request
 			doService(req, resp);
+
 		} catch (final ApplicationException e) {
 			if (HttpDebug.handlerServlet) {
-				BundleDebug.debug(MessageFormat.format("[ERROR {2}] [{0}] {1}: {3}", req.getMethod(), req.getRequestURL(), e.getStatus(), e.getMessage()));
+				LOG.debug(MessageFormat.format("[ERROR {2}] [{0}] {1}: {3}", req.getMethod(), req.getRequestURL(), e.getStatus(), e.getMessage()));
 			}
 			sendError(req, resp, e);
 		} catch (final Throwable t) {
 			if (HttpDebug.handlerServlet) {
-				BundleDebug.debug(MessageFormat.format("[UNHANDLED EXCEPTION] [{0}] {1}: {2}", req.getMethod(), req.getRequestURL(), t));
+				LOG.debug(MessageFormat.format("[UNHANDLED EXCEPTION] [{0}] {1}: {2}", req.getMethod(), req.getRequestURL(), t));
 			}
 			// we cache throwable here because we don't want to exceptions to slip through to an end user
 			if (PlatformConfiguration.isOperatingInDevelopmentMode()) {
@@ -275,11 +283,14 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 			} else {
 				// send a 503 to encourage the caller to re-try later
 				// TODO: consider logging original exception
-				// note, we must not throw javax.servlet.UnavailableException here because 
+				// note, we must not throw javax.servlet.UnavailableException here because
 				// this will block the whole server and affects all applications
 				// we also don't set a cause to prevent exposing stack straces to users
 				sendError(req, resp, new ApplicationException(503, "Application Handler Error"));
 			}
+		} finally {
+			// hack: un-hook with Firebug logging
+			FirePHPLogger.setResponse(null);
 		}
 	}
 
@@ -287,11 +298,7 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 		//final String key = req.getHeader("X-Gyrex-Key");
 		// TODO implement header key validation
 		// TODO this should be configurable
-		final boolean failIfInvalid = true;
-		if (failIfInvalid) {
-			throw new ApplicationException(HttpServletResponse.SC_FORBIDDEN, "invalid header key submitted");
-		}
-		return false;
+		throw new ApplicationException(HttpServletResponse.SC_FORBIDDEN, "invalid header key submitted");
 	}
 
 }

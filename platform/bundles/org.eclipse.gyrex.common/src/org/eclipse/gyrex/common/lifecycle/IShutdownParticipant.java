@@ -16,8 +16,8 @@ package org.eclipse.gyrex.common.lifecycle;
  * with is shut down.
  * <p>
  * A shutdown listener can be registered with a bundle. When the bundle is shut
- * down the <code>{@link #shutdown()}</code> method will be called to allow
- * the listener to participate in the shutdown process.
+ * down the <code>{@link #shutdown()}</code> method will be called to allow the
+ * listener to participate in the shutdown process.
  * </p>
  * <p>
  * This interface is intended to be implemented by clients.

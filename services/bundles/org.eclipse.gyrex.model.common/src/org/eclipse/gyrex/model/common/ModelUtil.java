@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -13,11 +13,11 @@ package org.eclipse.gyrex.model.common;
 
 import java.text.MessageFormat;
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.model.common.internal.ModelActivator;
 
 /**
- * This class must be used to obtain any model implementation.
+ * This class may be used to obtain any model implementation.
  * <p>
  * This class is not intended to be subclassed or instantiated. It provides
  * static methods to streamline the model access.
@@ -67,7 +67,7 @@ public final class ModelUtil {
 	 * @throws IllegalStateException
 	 *             if no suitable manager implementation is currently available
 	 */
-	public static <M extends IModelManager> M getManager(final Class<M> managerType, final IContext context) throws IllegalStateException {
+	public static <M extends IModelManager> M getManager(final Class<M> managerType, final IRuntimeContext context) throws IllegalStateException {
 		if (null == managerType) {
 			throw new IllegalArgumentException("manager type must not be null");
 		}

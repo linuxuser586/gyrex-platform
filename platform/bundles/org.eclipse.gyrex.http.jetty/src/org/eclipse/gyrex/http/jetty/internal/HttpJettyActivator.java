@@ -1,11 +1,11 @@
 /**
  * Copyright (c) 2009 AGETO Service GmbH and others.
- * All rights reserved. 
- * 
- * This program and the accompanying materials are made available under the terms of the 
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the terms of the
  * Eclipse Public License v1.0 which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
@@ -14,15 +14,17 @@ package org.eclipse.gyrex.http.jetty.internal;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.http.jetty.JettyConfigurator;
-import org.eclipse.gyrex.common.debug.BundleDebug;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HttpJettyActivator extends BaseBundleActivator {
 
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.http.jetty";
 
 	private static final AtomicReference<HttpJettyActivator> instanceRef = new AtomicReference<HttpJettyActivator>();
+	private static final Logger LOG = LoggerFactory.getLogger(HttpJettyActivator.class);
 
 	/**
 	 * Returns the shared instance.
@@ -64,7 +66,7 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		try {
 			JettyConfigurator.stopServer(JettyStarter.ID_DEFAULT);
 		} catch (final Exception e) {
-			BundleDebug.debug("Error while stopping Jetty: " + e.getMessage(), e);
+			LOG.warn("Error while stopping Jetty: " + e.getMessage(), e);
 		}
 	}
 

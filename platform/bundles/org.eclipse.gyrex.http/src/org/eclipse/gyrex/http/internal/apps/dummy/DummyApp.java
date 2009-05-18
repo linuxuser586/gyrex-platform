@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.http.internal.apps.dummy;
 
 
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
@@ -28,7 +28,7 @@ public class DummyApp extends Application {
 	 * @param id
 	 * @param context
 	 */
-	protected DummyApp(final String id, final IContext context) {
+	protected DummyApp(final String id, final IRuntimeContext context) {
 		super(id, context);
 	}
 

@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -16,32 +16,32 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.gyrex.common.context.IContext;
 import org.eclipse.gyrex.common.internal.fixme.RuntimeLogAccess;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.osgi.util.NLS;
 import org.osgi.framework.BundleContext;
 import org.osgi.util.tracker.ServiceTracker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 /**
  * The bundle specific logger.
  * <p>
- * Gyrex takes logging seriously. It strictly separates logging
- * from debugging. Typically, logging may not be limited to technical message
- * logging about the system which usually targets developers or system
- * administrators. Logging is also suitable for logging application logic
- * specific messages targeted at a difference audience (eg. application users).
- * Therefore, Gyrex comes with a different approach to logging.
+ * Gyrex takes logging seriously. It strictly separates logging from debugging.
+ * Typically, logging may not be limited to technical message logging about the
+ * system which usually targets developers or system administrators. Logging is
+ * also suitable for logging application logic specific messages targeted at a
+ * difference audience (eg. application users). Therefore, Gyrex comes with a
+ * different approach to logging.
  * </p>
  * <p>
- * Under the covers, Gyrex provides integrations into different
- * logging implementations.
+ * Under the covers, Gyrex provides integrations into different logging
+ * implementations.
  * </p>
  * <p>
  * This class may be instantiated directly by clients. However, the use through
@@ -100,6 +100,9 @@ public final class BundleLog {
 	/** the plug-in id */
 	private final String symbolicName;
 
+	/** the logger */
+	private final Logger logger;
+
 	/**
 	 * Creates a new instance.
 	 * 
@@ -108,6 +111,7 @@ public final class BundleLog {
 	 */
 	public BundleLog(final String symbolicName) {
 		this.symbolicName = symbolicName;
+		logger = LoggerFactory.getLogger(symbolicName);
 	}
 
 	/**
@@ -191,13 +195,6 @@ public final class BundleLog {
 		}
 	}
 
-	private IPath getContextPath(final IContext context) {
-		if (null == context) {
-			return Path.EMPTY;
-		}
-		return context.getContextPath();
-	}
-
 	/**
 	 * Returns the matching {@link LogImportance} for a status object.
 	 * 
@@ -229,11 +226,28 @@ public final class BundleLog {
 		return symbolicName;
 	}
 
-	private void internalLog(final IStatus status, final IContext context, final Set<LogTag> allTags) {
+	private void internalLog(final IStatus status, final Object context, final Set<LogTag> allTags) {
 		// TODO: implement logging
 		final MultiStatus multiStatus = new MultiStatus(status.getPlugin(), status.getCode(), status.getMessage(), status.getException());
-		multiStatus.add(new Status(status.getSeverity(), status.getPlugin(), "Context: " + getContextPath(context)));
+		multiStatus.add(new Status(status.getSeverity(), status.getPlugin(), "Context: " + context));
 		RuntimeLogAccess.log(multiStatus);
+
+		switch (status.getSeverity()) {
+			case IStatus.WARNING:
+				logger.warn(toMarker(allTags), status.getMessage(), status.getException());
+				break;
+			case IStatus.ERROR:
+				logger.error(toMarker(allTags), status.getMessage(), status.getException());
+				break;
+			case IStatus.CANCEL:
+				logger.error(toMarker(allTags), status.getMessage(), status.getException());
+				break;
+			case IStatus.OK:
+			case IStatus.INFO:
+			default:
+				logger.info(toMarker(allTags), status.getMessage(), status.getException());
+				break;
+		}
 	}
 
 	/**
@@ -257,7 +271,7 @@ public final class BundleLog {
 			throw new IllegalArgumentException("status must not be null");
 		}
 
-		internalLog(status, ContextUtil.getContext(context), sanitizeTags(tags, status));
+		internalLog(status, null, sanitizeTags(tags, status));
 	}
 
 	/**
@@ -279,7 +293,7 @@ public final class BundleLog {
 	 */
 	public void log(final String message, final Object context, final LogTag... tags) {
 		final IStatus status = new Status(findSeverity(tags), getSymbolicName(), message);
-		internalLog(status, ContextUtil.getContext(context), sanitizeTags(tags, status));
+		internalLog(status, null, sanitizeTags(tags, status));
 	}
 
 	/**
@@ -303,7 +317,7 @@ public final class BundleLog {
 	 */
 	public void log(final String message, final Throwable cause, final Object context, final LogTag... tags) {
 		final IStatus status = new Status(findSeverity(tags), getSymbolicName(), message, cause);
-		internalLog(status, ContextUtil.getContext(context), sanitizeTags(tags, status));
+		internalLog(status, null, sanitizeTags(tags, status));
 	}
 
 	private Set<LogTag> sanitizeTags(final LogTag[] tags, final IStatus status) {
@@ -315,12 +329,20 @@ public final class BundleLog {
 			allTags.add(UNCLASSIFIED);
 		}
 
-		// add LogImportance for status if none is present 
+		// add LogImportance for status if none is present
 		if ((null != status) && (null == findLogImportanceTag(allTags))) {
 			allTags.add(getImportance(status));
 		}
 
 		// done
 		return allTags;
+	}
+
+	private Marker toMarker(final Set<LogTag> allTags) {
+		final Marker marker = MarkerFactory.getMarker("Gyrex Log Message");
+		for (final LogTag tag : allTags) {
+			marker.add(MarkerFactory.getMarker(tag.toString()));
+		}
+		return marker;
 	}
 }

@@ -6,7 +6,7 @@
 <booleanAttribute key="automaticAdd" value="true"/>
 <booleanAttribute key="automaticValidate" value="false"/>
 <stringAttribute key="bootstrap" value=""/>
-<stringAttribute key="checked" value="org.eclipse.gyrex.configuration,org.eclipse.gyrex.configuration.impl"/>
+<stringAttribute key="checked" value="org.eclipse.gyrex.configuration,org.eclipse.gyrex.configuration.impl,org.eclipse.gyrex.http"/>
 <booleanAttribute key="clearConfig" value="true"/>
 <booleanAttribute key="clearws" value="true"/>
 <booleanAttribute key="clearwslog" value="false"/>
@@ -25,9 +25,10 @@
 <stringAttribute key="pde.version" value="3.3"/>
 <stringAttribute key="product" value="org.eclipse.cloudfree.examples.fanshop.product"/>
 <booleanAttribute key="restart" value="false"/>
+<stringAttribute key="selectedPlugin" value="org.eclipse.gyrex.http"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
-<stringAttribute key="timestamp" value="1237868045986"/>
+<stringAttribute key="timestamp" value="1242374857546"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.eclipse.core.runtime/debug/context" value="false"/>

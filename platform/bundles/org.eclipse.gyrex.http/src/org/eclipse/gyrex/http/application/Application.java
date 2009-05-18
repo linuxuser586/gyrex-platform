@@ -31,7 +31,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.gyrex.common.context.IContext;
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
@@ -42,7 +42,7 @@ import org.osgi.service.http.HttpContext;
  * <p>
  * Gyrex defines HTTP applications as a point for bundling a
  * set of functionality offered via HTTP operating in a specific
- * {@link IContext context}. Applications are contributed to the platform by
+ * {@link IRuntimeContext context}. Applications are contributed to the platform by
  * {@link ApplicationProvider providers}.
  * </p>
  * <p>
@@ -96,7 +96,7 @@ public abstract class Application extends PlatformObject {
 	private final String id;
 
 	/** the context */
-	private final IContext context;
+	private final IRuntimeContext context;
 
 	/** the application service support */
 	private final AtomicReference<IApplicationServiceSupport> applicationServiceSupport = new AtomicReference<IApplicationServiceSupport>();
@@ -119,7 +119,7 @@ public abstract class Application extends PlatformObject {
 	 * @param context
 	 *            the context
 	 */
-	protected Application(final String id, final IContext context) {
+	protected Application(final String id, final IRuntimeContext context) {
 		if (null == id) {
 			throw new IllegalArgumentException("id must not be null");
 		}
@@ -221,7 +221,7 @@ public abstract class Application extends PlatformObject {
 	 * @return the context
 	 */
 
-	public final IContext getContext() {
+	public final IRuntimeContext getContext() {
 		return context;
 	}
 

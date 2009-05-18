@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -14,11 +14,10 @@ package org.eclipse.gyrex.common.runtime;
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicReference;
 
-
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.ListenerList;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.gyrex.common.debug.BundleDebug;
+import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.common.logging.BundleLog;
 import org.eclipse.gyrex.common.logging.LogAudience;
@@ -40,8 +39,8 @@ import org.osgi.framework.Version;
  * followed in Gyrex.
  * </p>
  * <p>
- * This class should be subclassed by clients providing a bundle to the
- * Gyrex. However, its usage is not mandatory.
+ * This class should be subclassed by clients providing a bundle to the Gyrex.
+ * However, its usage is not mandatory.
  * </p>
  * <p>
  * Clients subclassing this class must provide a parameterless public
@@ -311,7 +310,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
 	 */
 	public final void start(final BundleContext context) throws Exception {
@@ -332,7 +331,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 		// initialize debug options
 		final Class debugOptions = getDebugOptions();
 		if (null != debugOptions) {
-			BundleDebug.initializeDebugOptions(this, debugOptions);
+			BundleDebugOptions.initializeDebugOptions(this, debugOptions);
 		}
 
 		// initialize service helper
@@ -344,7 +343,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
 	 */
 	public final void stop(final BundleContext context) throws Exception {
