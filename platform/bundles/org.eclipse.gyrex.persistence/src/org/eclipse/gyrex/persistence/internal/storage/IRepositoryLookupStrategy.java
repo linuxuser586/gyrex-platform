@@ -9,10 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.persistence.storage;
+package org.eclipse.gyrex.persistence.internal.storage;
 
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 
 /**

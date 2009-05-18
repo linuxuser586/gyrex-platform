@@ -1,22 +1,24 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.persistence.storage;
+package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.text.MessageFormat;
 
 import org.eclipse.gyrex.configuration.ConfigurationMode;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.preferences.PreferencesUtil;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
+import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
 
@@ -43,6 +45,7 @@ import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSuppor
  * </p>
  * 
  * @see IRepositoryLookupStrategy
+ * @noinstantiate This class is not intended to be instantiated by clients.
  */
 public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupStrategy {
 
@@ -74,12 +77,6 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		// empty
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.gyrex.common.persistence.storage.IRepositoryLookupStrategy#getRepository(org.eclipse.gyrex.context.IRuntimeContext,
-	 *      org.eclipse.gyrex.common.persistence.storage.RepositoryContentType)
-	 */
 	@Override
 	public Repository getRepository(final IRuntimeContext context, final RepositoryContentType contentType) throws IllegalStateException {
 		if (null == context) {
@@ -115,10 +112,10 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	}
 
 	private String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) {
-		// TODO: incorporate repository type from content type into lookup 
+		// TODO: incorporate repository type from content type into lookup
 		// lookup the repository id based on the context from the preferences
 		final String peferenceKey = PREF_PATH_REPORITORIES.concat(contentType.getMediaType());
-		return PlatformConfiguration.getConfigurationService().getString(PersistenceActivator.PLUGIN_ID, peferenceKey, null, context);
+		return PreferencesUtil.getPreferences(context).get(PersistenceActivator.PLUGIN_ID, peferenceKey, null);
 	}
 
 }

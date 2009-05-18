@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -15,19 +15,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-
 import org.eclipse.core.runtime.IAdapterFactory;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.model.common.IModelManager;
 import org.eclipse.gyrex.model.common.provider.ModelProvider;
 import org.eclipse.gyrex.persistence.PersistenceUtil;
-import org.eclipse.gyrex.persistence.storage.IRepositoryLookupStrategy;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 import org.osgi.framework.Bundle;
 
 /**
- * 
+ *
  */
 public class ManagerRegistration implements IAdapterFactory {
 
@@ -82,11 +80,8 @@ public class ManagerRegistration implements IAdapterFactory {
 		// get the content type
 		final RepositoryContentType contentType = provider.getContentType();
 
-		// get the repository lookup strategy from the context
-		final IRepositoryLookupStrategy strategy = PersistenceUtil.getRepositoryLookupStrategy(context);
-
 		// get the repository
-		final Repository repository = strategy.getRepository(context, contentType);
+		final Repository repository = PersistenceUtil.getRepository(context, contentType);
 
 		// get the model manager for the specified context and repository
 		// TODO: implement caching
