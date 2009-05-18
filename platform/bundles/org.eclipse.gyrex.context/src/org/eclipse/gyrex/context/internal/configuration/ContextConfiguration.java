@@ -14,6 +14,7 @@ package org.eclipse.gyrex.context.internal.configuration;
 import java.text.MessageFormat;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.gyrex.common.logging.LogAudience;
 import org.eclipse.gyrex.common.logging.LogImportance;
@@ -32,8 +33,11 @@ import org.osgi.service.prefs.Preferences;
  */
 public final class ContextConfiguration {
 
-	// the preferences
-	static final IEclipsePreferences PREF_ROOT_NODE = new PlatformScope().getNode(ContextActivator.SYMBOLIC_NAME);
+	/** CONTEXTS */
+	public static final String CONTEXTS = "contexts";
+
+	/** the path to the context preferences root node */
+	public static final IPath CONTEXT_PREF_ROOT = new Path(ContextActivator.SYMBOLIC_NAME).append(CONTEXTS).makeRelative();
 
 	/**
 	 * Finds a filter if available from the context configuration.
@@ -49,19 +53,26 @@ public final class ContextConfiguration {
 		// the context path
 		IPath contextPath = context.getContextPath();
 
+		// get preferences root node
+		final IEclipsePreferences rootNode = getRootNodeForContextPreferences();
+
 		// lookup filter in this context
-		Filter filter = readFilterFromPreferences(context, PREF_ROOT_NODE, contextPath, typeName);
+		Filter filter = readFilterFromPreferences(context, rootNode, contextPath, typeName);
 		if (null != filter) {
 			return filter;
 		}
 
 		// search parent contexts
 		while ((null == filter) && !contextPath.isRoot()) {
-			filter = readFilterFromPreferences(context, PREF_ROOT_NODE, contextPath = contextPath.removeLastSegments(1), typeName);
+			filter = readFilterFromPreferences(context, rootNode, contextPath = contextPath.removeLastSegments(1), typeName);
 		}
 
 		// return what we have (may be nothing)
 		return filter;
+	}
+
+	public static IEclipsePreferences getRootNodeForContextPreferences() {
+		return (IEclipsePreferences) new PlatformScope().getNode(ContextActivator.SYMBOLIC_NAME).node(CONTEXTS);
 	}
 
 	/**
@@ -118,10 +129,13 @@ public final class ContextConfiguration {
 		// the context path
 		final IPath contextPath = context.getContextPath();
 
+		// get preferences root node
+		final IEclipsePreferences rootNode = getRootNodeForContextPreferences();
+
 		// set the preferences
 		final String preferencesPath = contextPath.toString();
 		try {
-			final Preferences contextPreferences = PREF_ROOT_NODE.node(preferencesPath);
+			final Preferences contextPreferences = rootNode.node(preferencesPath);
 			if (null != filter) {
 				contextPreferences.put(typeName, filter.toString());
 			} else {

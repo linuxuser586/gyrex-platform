@@ -1,0 +1,8 @@
+# global debug option
+org.eclipse.gyrex.context/debug=true
+
+# debug preferences lookup
+org.eclipse.gyrex.context/preferencesLookup=true
+
+# debug preferences storage
+org.eclipse.gyrex.context/preferencesPut=true

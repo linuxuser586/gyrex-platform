@@ -2,11 +2,15 @@ package org.eclipse.gyrex.context.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.internal.manager.ContextManagerImpl;
+import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesProvider;
 import org.eclipse.gyrex.context.internal.provider.ObjectProviderRegistry;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
+import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.osgi.util.NLS;
 import org.osgi.framework.BundleContext;
@@ -26,6 +30,8 @@ public class ContextActivator extends BaseBundleActivator {
 		return contextActivator;
 	}
 
+	private final AtomicReference<IServiceProxy<IPreferencesService>> preferencesServiceProxyRef = new AtomicReference<IServiceProxy<IPreferencesService>>();
+
 	/**
 	 * Creates a new instance.
 	 */
@@ -36,6 +42,9 @@ public class ContextActivator extends BaseBundleActivator {
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
+
+		// track the preferences service
+		preferencesServiceProxyRef.set(getServiceHelper().trackService(IPreferencesService.class));
 
 		// start the object provider registry
 		final ObjectProviderRegistry objectProviderRegistry = new ObjectProviderRegistry();
@@ -51,10 +60,31 @@ public class ContextActivator extends BaseBundleActivator {
 		final ContextManagerImpl contextManager = new ContextManagerImpl(contextRegistry);
 		getServiceHelper().registerService(IRuntimeContextManager.class.getName(), contextManager, "Eclipse.org Gyrex", "Eclipse Gyrex Contextual Runtime Manager", null, null);
 		addShutdownParticipant(contextManager);
+
+		// register the preferences provider
+		final GyrexContextPreferencesProvider preferencesProvider = new GyrexContextPreferencesProvider();
+		getServiceHelper().registerService(RuntimeContextObjectProvider.class.getName(), preferencesProvider, "Eclipse Gyrex Project", "Contextual preferences object provider for contexts.", null, null);
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		instanceRef.set(null);
+		preferencesServiceProxyRef.set(null);
+	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#getDebugOptions()
+	 */
+	@Override
+	protected Class getDebugOptions() {
+		return ContextDebug.class;
+	}
+
+	public IPreferencesService getPreferencesService() {
+		final IServiceProxy<IPreferencesService> serviceProxy = preferencesServiceProxyRef.get();
+		if (null == serviceProxy) {
+			throw createBundleInactiveException();
+		}
+		return serviceProxy.getService();
 	}
 }

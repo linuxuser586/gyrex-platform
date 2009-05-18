@@ -240,6 +240,7 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 
 	@Override
 	public String toString() {
+		// TODO: should not leak context path here, we may need a story for this
 		return "Gyrex Context [" + contextPath.toString() + "]";
 	}
 

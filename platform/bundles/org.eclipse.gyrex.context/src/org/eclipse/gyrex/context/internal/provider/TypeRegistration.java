@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.gyrex.context.provider.ContextObjectProvider;
+import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
 
@@ -55,7 +55,7 @@ public class TypeRegistration {
 		this.typeName = typeName;
 	}
 
-	void add(final Class<?> type, final ContextObjectProvider provider, final ServiceReference serviceReference) {
+	void add(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference serviceReference) {
 		if (!typeName.equals(type.getName())) {
 			throw new IllegalArgumentException("manager class name should be " + typeName);
 		}
@@ -116,7 +116,7 @@ public class TypeRegistration {
 		return null;
 	}
 
-	void remove(final Class<?> type, final ContextObjectProvider provider, final ServiceReference reference) {
+	void remove(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference reference) {
 		if (!typeName.equals(type.getName())) {
 			throw new IllegalArgumentException("type class name should be " + typeName);
 		}
@@ -141,7 +141,7 @@ public class TypeRegistration {
 		}
 	}
 
-	void update(final Class<?> type, final ContextObjectProvider provider, final ServiceReference reference) {
+	void update(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference reference) {
 		if (!typeName.equals(type.getName())) {
 			throw new IllegalArgumentException("type class name should be " + typeName);
 		}

@@ -93,4 +93,18 @@ public interface IRuntimeContext extends IAdaptable {
 	 */
 	IPath getContextPath();
 
+	/**
+	 * Returns a human readable string representation of the context.
+	 * <p>
+	 * Note, the string returned here should only be used for debugging or error
+	 * tracing purposes. It should not be exposed to users directly because it
+	 * <strong>leaks</strong> the context path. The context path may contain
+	 * sensitive information which is not intended for end users.
+	 * </p>
+	 * 
+	 * @return a string representation of the
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString();
 }

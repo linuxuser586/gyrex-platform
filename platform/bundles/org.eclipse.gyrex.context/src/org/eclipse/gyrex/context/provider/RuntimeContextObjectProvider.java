@@ -26,7 +26,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
  * This class must be subclassed by clients that want to contribute contextual
  * objects. It is part of the contextual runtime API and should never be used
  * directly by clients. Context object providers must be made available as OSGi
- * services using type {@link ContextObjectProvider} (also known as whiteboard
+ * services using type {@link RuntimeContextObjectProvider} (also known as whiteboard
  * pattern).
  * </p>
  * <p>
@@ -37,7 +37,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
  * of possible changes.
  * </p>
  */
-public abstract class ContextObjectProvider {
+public abstract class RuntimeContextObjectProvider {
 
 	/**
 	 * Returns an object which is an instance of the given class associated with

@@ -68,13 +68,24 @@
  * to the context requesting the service. This allows for a concept of context
  * singletons.
  * </p>
- * <h4>Context Registry & Security</h4>
+ * <h4>Context Registry, Manager & Security</h4>
  * <p>
  * The configuration of contexts is persisted and kept across sessions. A
- * central registry is available of "loading" of contexts. However, access to
- * the registry may be guarded by security constraints to allow only trusted
- * code access to a specific set of contexts. This prevents client code with a
- * lower lever of trust to not execute operations outside of the client context.
+ * central registry is available for "loading" of contexts. A manager is
+ * available for manipulating the configuration of a context. However, access to
+ * the registry as well as the manager may be guarded by security constraints to
+ * allow only trusted code access to a specific set of contexts. This prevents
+ * client code with a lower lever of trust to not execute operations outside of
+ * the client context.
+ * </p>
+ * <h4>Context Preferences</h4>
+ * <p>
+ * Context preferences allow to maintain context specific preferences which
+ * support the hierarchical inheritance model of the contextual runtime. They
+ * allow to set preferences on a context which will be inherited into
+ * sub-contexts. Context preferences are based on vanilla Eclipse preferences.
+ * However, in a secure environment not every code may have access to the same
+ * set of preferences.
  * </p>
  */
 package org.eclipse.gyrex.context;

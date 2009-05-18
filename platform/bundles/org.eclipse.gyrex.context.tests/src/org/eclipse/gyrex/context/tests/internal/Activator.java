@@ -5,6 +5,8 @@ import org.osgi.framework.BundleContext;
 
 public class Activator extends BaseBundleActivator {
 
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.context.tests";
+
 	private static Activator activator;
 
 	/**
@@ -23,7 +25,7 @@ public class Activator extends BaseBundleActivator {
 	private BundleContext context;
 
 	public Activator() {
-		super("org.eclipse.gyrex.context.tests");
+		super(SYMBOLIC_NAME);
 	}
 
 	/* (non-Javadoc)

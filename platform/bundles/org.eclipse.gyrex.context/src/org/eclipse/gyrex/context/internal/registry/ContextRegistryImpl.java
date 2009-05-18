@@ -31,6 +31,7 @@ import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
+import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.internal.provider.ObjectProviderRegistry;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.osgi.util.NLS;
@@ -41,12 +42,10 @@ import org.eclipse.osgi.util.NLS;
 //TODO: this should be a ServiceFactory which knows about the bundle requesting the manager for context access permission checks
 public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownParticipant {
 
-	public static final String SETTINGS = ".settings";
-
 	private static final Set<String> forbiddenPathSegments;
 	static {
 		final HashSet<String> segments = new HashSet<String>(1);
-		segments.add(SETTINGS);
+		segments.add(GyrexContextPreferencesImpl.SETTINGS);
 		forbiddenPathSegments = Collections.unmodifiableSet(segments);
 	}
 

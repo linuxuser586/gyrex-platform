@@ -19,12 +19,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.gyrex.context.provider.ContextObjectProvider;
+import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
 
 /**
- * A provider registration of a {@link ContextObjectProvider}.
+ * A provider registration of a {@link RuntimeContextObjectProvider}.
  */
 public class ProviderRegistration {
 
@@ -41,7 +41,7 @@ public class ProviderRegistration {
 	}
 
 	private final Class<?> type;
-	private final ContextObjectProvider provider;
+	private final RuntimeContextObjectProvider provider;
 	private final ServiceReference serviceReference;
 	private final AtomicReference<Dictionary<String, Object>> cachedPropertiesRef = new AtomicReference<Dictionary<String, Object>>();
 	private final Set<ProviderRegistrationReference> contextReferences = new HashSet<ProviderRegistrationReference>(3);
@@ -54,7 +54,7 @@ public class ProviderRegistration {
 	 * @param provider
 	 * @param serviceReference
 	 */
-	public ProviderRegistration(final Class<?> type, final ContextObjectProvider provider, final ServiceReference serviceReference) {
+	public ProviderRegistration(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference serviceReference) {
 		this.type = type;
 		this.provider = provider;
 		this.serviceReference = serviceReference;
@@ -157,7 +157,7 @@ public class ProviderRegistration {
 	 * 
 	 * @return the provider
 	 */
-	public ContextObjectProvider getProvider() {
+	public RuntimeContextObjectProvider getProvider() {
 		return provider;
 	}
 

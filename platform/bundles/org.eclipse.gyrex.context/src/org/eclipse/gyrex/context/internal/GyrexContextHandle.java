@@ -76,6 +76,7 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 
 	@Override
 	public String toString() {
+		// TODO: should not leak context path here, we may need a story for this
 		return "Gyrex Context Handle [" + contextPath.toString() + "]";
 	}
 }
