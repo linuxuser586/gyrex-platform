@@ -18,8 +18,6 @@ import static junit.framework.Assert.fail;
 import java.net.MalformedURLException;
 
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.gyrex.context.ContextUtil;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
@@ -97,7 +95,7 @@ public class ApplicationManagerTest {
 			// define application
 			final String applicationId = "testMountApp" + String.valueOf(System.currentTimeMillis());
 			try {
-				applicationManager.register(applicationId, appProvider.getId(), ContextUtil.get(Path.ROOT), null);
+				applicationManager.register(applicationId, appProvider.getId(), null, null);
 			} catch (final Exception e) {
 				fail("error while registering dummy application: " + e);
 			}
