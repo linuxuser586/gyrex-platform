@@ -46,6 +46,10 @@ public class ContextActivator extends BaseBundleActivator {
 		// track the preferences service
 		preferencesServiceProxyRef.set(getServiceHelper().trackService(IPreferencesService.class));
 
+		// register the preferences provider first so that it can be found by ObjectProviderRegistry immediately
+		final GyrexContextPreferencesProvider preferencesProvider = new GyrexContextPreferencesProvider();
+		getServiceHelper().registerService(RuntimeContextObjectProvider.class.getName(), preferencesProvider, "Eclipse Gyrex Project", "Contextual preferences object provider for contexts.", null, null);
+
 		// start the object provider registry
 		final ObjectProviderRegistry objectProviderRegistry = new ObjectProviderRegistry();
 		objectProviderRegistry.start(context);
@@ -60,10 +64,6 @@ public class ContextActivator extends BaseBundleActivator {
 		final ContextManagerImpl contextManager = new ContextManagerImpl(contextRegistry);
 		getServiceHelper().registerService(IRuntimeContextManager.class.getName(), contextManager, "Eclipse.org Gyrex", "Eclipse Gyrex Contextual Runtime Manager", null, null);
 		addShutdownParticipant(contextManager);
-
-		// register the preferences provider
-		final GyrexContextPreferencesProvider preferencesProvider = new GyrexContextPreferencesProvider();
-		getServiceHelper().registerService(RuntimeContextObjectProvider.class.getName(), preferencesProvider, "Eclipse Gyrex Project", "Contextual preferences object provider for contexts.", null, null);
 	}
 
 	@Override
