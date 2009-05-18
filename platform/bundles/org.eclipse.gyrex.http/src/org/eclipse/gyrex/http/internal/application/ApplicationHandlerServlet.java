@@ -39,7 +39,6 @@ import org.eclipse.gyrex.http.internal.application.manager.ApplicationInstance;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationMount;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
-import org.eclipse.gyrex.log.internal.firephp.FirePHPLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,12 +99,18 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 		// determine if there is an application mounted for the url
 		final ApplicationMount applicationMount = getApplicationMount(req, url);
 		if (null == applicationMount) {
+			if (LOG.isWarnEnabled()) {
+				LOG.warn("No application mounted on URL \"{}\".", url);
+			}
 			throw new ApplicationException(HttpServletResponse.SC_NOT_FOUND, "No Mount Found");
 		}
 
 		// get the application registration
 		final ApplicationRegistration applicationRegistration = getApplicationRegistration(req, applicationMount);
 		if (null == applicationRegistration) {
+			if (LOG.isErrorEnabled()) {
+				LOG.error("Application mounted on URL \"{}\" could not be retreived from the registry!", url);
+			}
 			throw new ApplicationException(HttpServletResponse.SC_NOT_FOUND, "No Application Found");
 		}
 
@@ -262,20 +267,16 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 	@Override
 	protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
 		try {
-			// hack: hook with Firebug logging
-			FirePHPLogger.setResponse(resp);
-
 			// handle the request
 			doService(req, resp);
-
 		} catch (final ApplicationException e) {
 			if (HttpDebug.handlerServlet) {
-				LOG.debug(MessageFormat.format("[ERROR {2}] [{0}] {1}: {3}", req.getMethod(), req.getRequestURL(), e.getStatus(), e.getMessage()));
+				LOG.debug(MessageFormat.format("[ERROR {2}] [{0}] {1}: {3}", req.getMethod(), req.getRequestURL(), e.getStatus(), e.getMessage()), e);
 			}
 			sendError(req, resp, e);
 		} catch (final Throwable t) {
 			if (HttpDebug.handlerServlet) {
-				LOG.debug(MessageFormat.format("[UNHANDLED EXCEPTION] [{0}] {1}: {2}", req.getMethod(), req.getRequestURL(), t));
+				LOG.debug(MessageFormat.format("[UNHANDLED EXCEPTION] [{0}] {1}: {2}", req.getMethod(), req.getRequestURL(), t), t);
 			}
 			// we cache throwable here because we don't want to exceptions to slip through to an end user
 			if (PlatformConfiguration.isOperatingInDevelopmentMode()) {
@@ -288,9 +289,6 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 				// we also don't set a cause to prevent exposing stack straces to users
 				sendError(req, resp, new ApplicationException(503, "Application Handler Error"));
 			}
-		} finally {
-			// hack: un-hook with Firebug logging
-			FirePHPLogger.setResponse(null);
 		}
 	}
 
