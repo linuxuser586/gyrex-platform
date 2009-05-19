@@ -1,20 +1,20 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.eclipse.cloudfree.http.registry" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="org.eclipse.gyrex.http.registry" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
-      <appinfo>
-         <meta.schema plugin="org.eclipse.cloudfree.http.registry" id="org.eclipse.cloudfree.http.applications" name="CloudFree Http Applications"/>
-      </appinfo>
+      <appInfo>
+         <meta.schema plugin="org.eclipse.gyrex.http.registry" id="org.eclipse.gyrex.http.applications" name="Gyrex Http Applications"/>
+      </appInfo>
       <documentation>
-         Allows to register CloudFree Http Applications identified by id.
+         Allows to register Gyrex Http Applications identified by id.
       </documentation>
    </annotation>
 
    <element name="extension">
       <annotation>
-         <appinfo>
+         <appInfo>
             <meta.element />
-         </appinfo>
+         </appInfo>
       </annotation>
       <complexType>
          <choice minOccurs="1" maxOccurs="unbounded">
@@ -42,9 +42,9 @@
                <documentation>
                   
                </documentation>
-               <appinfo>
+               <appInfo>
                   <meta.attribute translatable="true"/>
-               </appinfo>
+               </appInfo>
             </annotation>
          </attribute>
       </complexType>
@@ -52,9 +52,9 @@
 
    <element name="application">
       <annotation>
-         <appinfo>
+         <appInfo>
             <meta.element labelAttribute="id"/>
-         </appinfo>
+         </appInfo>
          <documentation>
             registers an application
          </documentation>
@@ -79,9 +79,9 @@
                <documentation>
                   if provided the the customizer will be invoked to allow further customization of the application
                </documentation>
-               <appinfo>
+               <appInfo>
                   <meta.attribute kind="java" basedOn="org.eclipse.cloudfree.http.registry.ApplicationCustomizer:"/>
-               </appinfo>
+               </appInfo>
             </annotation>
          </attribute>
       </complexType>
@@ -89,9 +89,9 @@
 
    <element name="servlet">
       <annotation>
-         <appinfo>
+         <appInfo>
             <meta.element labelAttribute="alias"/>
-         </appinfo>
+         </appInfo>
          <documentation>
             contributes a servlet to an application
          </documentation>
@@ -112,9 +112,9 @@
                <documentation>
                   the servlet class to register (will be is instantiated by the Extension Point provider and must be an instance of &lt;code&gt;javax.servlet.Servlet&lt;/code&gt;)
                </documentation>
-               <appinfo>
+               <appInfo>
                   <meta.attribute kind="java" basedOn="javax.servlet.Servlet"/>
-               </appinfo>
+               </appInfo>
             </annotation>
          </attribute>
          <attribute name="applicationId" type="string" use="required">
@@ -122,9 +122,9 @@
                <documentation>
                   the id of the application to contribute the servlet to
                </documentation>
-               <appinfo>
-                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/application/@id"/>
-               </appinfo>
+               <appInfo>
+                  <meta.attribute kind="identifier" basedOn="org.eclipse.gyrex.http.applications/application/@id"/>
+               </appInfo>
             </annotation>
          </attribute>
          <attribute name="load-on-startup" type="boolean">
@@ -139,9 +139,9 @@
 
    <element name="init-param">
       <annotation>
-         <appinfo>
+         <appInfo>
             <meta.element labelAttribute="name"/>
-         </appinfo>
+         </appInfo>
          <documentation>
             Similar to the Servlet Specification and its deployment descriptor&apos;s init-param elements.
          </documentation>
@@ -166,9 +166,9 @@
 
    <element name="resource">
       <annotation>
-         <appinfo>
+         <appInfo>
             <meta.element labelAttribute="alias"/>
-         </appinfo>
+         </appInfo>
          <documentation>
             contributes resources to an application
          </documentation>
@@ -186,9 +186,9 @@
                <documentation>
                   the path name of the bundle resources that will be registered
                </documentation>
-               <appinfo>
+               <appInfo>
                   <meta.attribute kind="resource"/>
-               </appinfo>
+               </appInfo>
             </annotation>
          </attribute>
          <attribute name="applicationId" type="string" use="required">
@@ -196,9 +196,9 @@
                <documentation>
                   the id of the application to contribute the resources to
                </documentation>
-               <appinfo>
-                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/application/@id"/>
-               </appinfo>
+               <appInfo>
+                  <meta.attribute kind="identifier" basedOn="org.eclipse.gyrex.http.applications/application/@id"/>
+               </appInfo>
             </annotation>
          </attribute>
       </complexType>
@@ -206,9 +206,9 @@
 
    <element name="mount">
       <annotation>
-         <appinfo>
+         <appInfo>
             <meta.element labelAttribute="url"/>
-         </appinfo>
+         </appInfo>
          <documentation>
             mounts an application to a url
          </documentation>
@@ -226,20 +226,20 @@
                <documentation>
                   the id of the application to mount
                </documentation>
-               <appinfo>
-                  <meta.attribute kind="identifier" basedOn="org.eclipse.cloudfree.http.applications/application/@id"/>
-               </appinfo>
+               <appInfo>
+                  <meta.attribute kind="identifier" basedOn="org.eclipse.gyrex.http.applications/application/@id"/>
+               </appInfo>
             </annotation>
          </attribute>
       </complexType>
    </element>
 
    <annotation>
-      <appinfo>
+      <appInfo>
          <meta.section type="since"/>
-      </appinfo>
+      </appInfo>
       <documentation>
-         0.7
+         1.0
       </documentation>
    </annotation>
 
@@ -247,11 +247,11 @@
 
 
    <annotation>
-      <appinfo>
+      <appInfo>
          <meta.section type="copyright"/>
-      </appinfo>
+      </appInfo>
       <documentation>
-         Copyright (c) 2008 AGETO Service GmbH and others.&lt;br&gt;
+         Copyright (c) 2008, 2009 AGETO Service GmbH and others.&lt;br&gt;
 All rights reserved.&lt;br&gt;
 &lt;br&gt;
 This program and the accompanying materials are made 
