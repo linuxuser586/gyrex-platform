@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -13,9 +13,7 @@ package org.eclipse.gyrex.services.common;
 
 import java.text.MessageFormat;
 
-
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.services.common.internal.ServicesActivator;
 
 /**
  * This class must be used to obtain any service implementation.
@@ -25,13 +23,6 @@ import org.eclipse.gyrex.services.common.internal.ServicesActivator;
  * </p>
  */
 public final class ServiceUtil {
-
-	@SuppressWarnings("unchecked")
-	private static <M> M castObject(final Object object, final Class<M> type) throws ClassCastException {
-		// we use a direct cast for performance reason
-		//return serviceType.cast(service);
-		return (M) object;
-	}
 
 	/**
 	 * Returns the contributed service implementation of the specified type for
@@ -58,10 +49,12 @@ public final class ServiceUtil {
 	 * @param context
 	 *            the context for service lookup (may not be <code>null</code>)
 	 * @return the service implementation
+	 * @throws IllegalArgumentException
+	 *             if the any input is <code>null</code> or invalid
 	 * @throws IllegalStateException
 	 *             if no suitable service implementation is currently available
 	 */
-	public static <M extends IService> M getService(final Class<M> serviceType, final IRuntimeContext context) throws IllegalStateException {
+	public static <M extends IService> M getService(final Class<M> serviceType, final IRuntimeContext context) throws IllegalArgumentException, IllegalStateException {
 		if (null == serviceType) {
 			throw new IllegalArgumentException("service type must not be null");
 		}
@@ -69,25 +62,15 @@ public final class ServiceUtil {
 			throw new IllegalArgumentException("context must not be null");
 		}
 
-		// we simply ask the context for an adapter
-		Object service = context.getAdapter(serviceType);
-
-		// check if we can load an adapter if necessary
-		if (null == service) {
-			service = ServicesActivator.getAdapterManager().loadAdapter(context, serviceType.getName());
-		}
+		// we simply ask the context for the object
+		final M service = context.get(serviceType);
 
 		// at this point check if a service was found
 		if (null == service) {
 			throw new IllegalStateException(MessageFormat.format("No service implementation available for type ''{0}'' in context ''{1}''", serviceType.getName(), context.getContextPath()));
 		}
 
-		try {
-			return castObject(service, serviceType);
-		} catch (final ClassCastException e) {
-			// we catch ClassCastException to throw a better error message
-			throw new IllegalStateException(MessageFormat.format("The service implementation available for type ''{0}'' in context ''{1}'' is invalid", serviceType.getName(), context.getContextPath()), e);
-		}
+		return service;
 	}
 
 	/**

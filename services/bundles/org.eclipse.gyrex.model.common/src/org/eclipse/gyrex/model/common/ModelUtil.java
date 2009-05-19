@@ -14,7 +14,6 @@ package org.eclipse.gyrex.model.common;
 import java.text.MessageFormat;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.model.common.internal.ModelActivator;
 
 /**
  * This class may be used to obtain any model implementation.
@@ -24,13 +23,6 @@ import org.eclipse.gyrex.model.common.internal.ModelActivator;
  * </p>
  */
 public final class ModelUtil {
-
-	@SuppressWarnings("unchecked")
-	private static <M> M castObject(final Object object, final Class<M> type) throws ClassCastException {
-		// we use a direct cast for performance reason
-		//return managerType.cast(manager);
-		return (M) object;
-	}
 
 	/**
 	 * Returns a contributed model manager implementation of the specified type
@@ -64,10 +56,12 @@ public final class ModelUtil {
 	 *            the context for model manager lookup (may not be
 	 *            <code>null</code>)
 	 * @return the model manager implementation
+	 * @throws IllegalArgumentException
+	 *             if any input is <code>null</code> or invalid
 	 * @throws IllegalStateException
 	 *             if no suitable manager implementation is currently available
 	 */
-	public static <M extends IModelManager> M getManager(final Class<M> managerType, final IRuntimeContext context) throws IllegalStateException {
+	public static <M extends IModelManager> M getManager(final Class<M> managerType, final IRuntimeContext context) throws IllegalArgumentException, IllegalStateException {
 		if (null == managerType) {
 			throw new IllegalArgumentException("manager type must not be null");
 		}
@@ -76,24 +70,14 @@ public final class ModelUtil {
 		}
 
 		// we simply ask the context for an adapter
-		Object manager = context.getAdapter(managerType);
-
-		// check if we can load an adapter if necessary
-		if (null == manager) {
-			manager = ModelActivator.getAdapterManager().loadAdapter(context, managerType.getName());
-		}
+		final M manager = context.get(managerType);
 
 		// at this point check if a manager was found
 		if (null == manager) {
 			throw new IllegalStateException(MessageFormat.format("No model manager implementation available for type ''{0}'' in context ''{1}''", managerType.getName(), context.getContextPath()));
 		}
 
-		try {
-			return castObject(manager, managerType);
-		} catch (final ClassCastException e) {
-			// we catch ClassCastException to throw a better error message
-			throw new IllegalStateException(MessageFormat.format("The model manager implementation available for type ''{0}'' in context ''{1}'' is invalid", managerType.getName(), context.getContextPath()), e);
-		}
+		return manager;
 	}
 
 	/**

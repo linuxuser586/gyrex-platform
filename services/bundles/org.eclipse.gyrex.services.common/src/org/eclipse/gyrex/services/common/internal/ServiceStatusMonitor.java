@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.services.common.internal.registry;
+package org.eclipse.gyrex.services.common.internal;
 
 
 import org.eclipse.core.runtime.IStatus;

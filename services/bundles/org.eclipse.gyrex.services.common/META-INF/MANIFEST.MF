@@ -14,13 +14,12 @@ Require-Bundle: org.eclipse.gyrex.common;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.context;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.configuration;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.monitoring;bundle-version="[1.0.0,2.0.0)"
-Export-Package: org.eclipse.gyrex.services.common;uses:="org.eclipse.gyrex.context,org.eclipse.core.runtime",
+Export-Package: org.eclipse.gyrex.services.common;version="1.0.0";uses:="org.eclipse.gyrex.context,org.eclipse.core.runtime",
  org.eclipse.gyrex.services.common.internal;x-internal:=true,
- org.eclipse.gyrex.services.common.internal.registry;x-internal:=true,
- org.eclipse.gyrex.services.common.provider;
+ org.eclipse.gyrex.services.common.provider;version="1.0.0";
   uses:="org.eclipse.gyrex.context,
    org.eclipse.core.runtime,
    org.eclipse.gyrex.monitoring.metrics,
    org.eclipse.gyrex.services.common,
    org.eclipse.gyrex.services.common.status",
- org.eclipse.gyrex.services.common.status;uses:="org.eclipse.core.runtime"
+ org.eclipse.gyrex.services.common.status;version="1.0.0";uses:="org.eclipse.core.runtime"

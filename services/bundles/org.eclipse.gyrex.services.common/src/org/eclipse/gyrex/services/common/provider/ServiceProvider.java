@@ -1,26 +1,24 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.services.common.provider;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-
-import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.core.runtime.IAdapterManager;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.gyrex.services.common.IService;
 import org.eclipse.gyrex.services.common.ServiceUtil;
+import org.eclipse.gyrex.services.common.internal.ServiceStatusMonitor;
 import org.eclipse.gyrex.services.common.status.IStatusMonitor;
 
 /**
@@ -28,27 +26,24 @@ import org.eclipse.gyrex.services.common.status.IStatusMonitor;
  * instances to Gyrex.
  * <p>
  * A {@link ServiceProvider} provides {@link IService} objects. These service
- * service objects may be obtained from a {@link IRuntimeContext context} using the the
- * standard {@link IAdaptable#getAdapter(Class) Eclipse adapter mechanise}. In
- * the background, a service provider registry maintains registrations with the
- * the Eclipse {@link IAdapterManager} because it will not always be possible to
- * register adapters directly (eg., because of security constraints enforced by
- * the platform). Thus, a registration of service providers using this class is
- * enforced.
+ * objects may be obtained from a {@link IRuntimeContext context} using the the
+ * standard {@link IRuntimeContext#get(Class) contextual object mechanism}.
  * </p>
  * <p>
  * This class must be subclassed by clients that want to contribute
  * {@link IService} implementations. It is part of a service provider API and
- * should never be used directly by clients. Service providers must be made
- * available as OSGi services using type {@link ServiceProvider}.
+ * should never be used directly by clients. Note, a {@link ServiceProvider} is
+ * essentially a {@link RuntimeContextObjectProvider}. Therefore providers must
+ * be made available as OSGi services using the
+ * {@link RuntimeContextObjectProvider} type name.
  * </p>
  * 
  * @see ServiceUtil#getService(Class, IRuntimeContext)
  */
-public abstract class ServiceProvider {
+public abstract class ServiceProvider extends RuntimeContextObjectProvider {
 
 	/** the list of services provided by the factory */
-	private final List<Class<?>> providedServices;
+	private final Class[] providedServices;
 
 	/**
 	 * Creates a new service provider.
@@ -60,7 +55,8 @@ public abstract class ServiceProvider {
 	 * Although not enforced in this constructor, the list should specify the
 	 * public interface a service implements not the actual service
 	 * implementation. Each interface for one wishes to return a service in
-	 * {@link ServiceUtil#getService(Class, IRuntimeContext)} should be specified.
+	 * {@link ServiceUtil#getService(Class, IRuntimeContext)} should be
+	 * specified.
 	 * </p>
 	 * <p>
 	 * If a class in the list does not extend the {@link IService} interface an
@@ -82,7 +78,7 @@ public abstract class ServiceProvider {
 	 *             is any of the provided arguments are invalid
 	 */
 	protected ServiceProvider(final Class<? extends IService> providedService, final Class... providedServices) throws IllegalArgumentException {
-		// note, we need the trick with (Class, Class...) here because 
+		// note, we need the trick with (Class, Class...) here because
 		// just (Class...) would allow subclass to skip invocation of this constructor
 		if (null == providedService) {
 			throw new IllegalArgumentException("providedService must not be null");
@@ -103,12 +99,12 @@ public abstract class ServiceProvider {
 				services.add(service);
 			}
 		}
-		this.providedServices = Collections.unmodifiableList(services);
+		this.providedServices = services.toArray(new Class[services.size()]);
 	}
 
 	/**
-	 * Called by Gyrex to create a new service instance of the
-	 * specified service type.
+	 * Called by Gyrex to create a new service instance of the specified service
+	 * type.
 	 * <p>
 	 * Subclasses must implement this method and return a service instance which
 	 * is initialized completely for using the specified repository and context.
@@ -126,17 +122,20 @@ public abstract class ServiceProvider {
 	 */
 	public abstract BaseService createServiceInstance(Class serviceType, IRuntimeContext context, IStatusMonitor statusMonitor);
 
-	/**
-	 * Returns the collection of service types contributed by this provider.
-	 * <p>
-	 * This method is generally used by the platform to discover which service
-	 * types are supported, in advance of dispatching any actual
-	 * {@link #createServiceInstance(Class, IRuntimeContext, IStatusMonitor)} requests.
-	 * </p>
-	 * 
-	 * @return the collection of adapter types
-	 */
-	public final Iterable<Class<?>> getProvidedServices() {
+	@Override
+	public final Object getObject(final Class type, final IRuntimeContext context) {
+		return createServiceInstance(type, context, new ServiceStatusMonitor());
+	}
+
+	@Override
+	public final Class[] getObjectTypes() {
 		return providedServices;
+	}
+
+	@Override
+	public final void ungetObject(final Object object, final IRuntimeContext context) {
+		if (object instanceof BaseService) {
+			((BaseService) object).close();
+		}
 	}
 }

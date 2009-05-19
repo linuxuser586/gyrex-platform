@@ -1,15 +1,18 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.services.common.provider;
+
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.PlatformObject;
@@ -17,14 +20,17 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.services.common.IService;
 import org.eclipse.gyrex.services.common.status.IStatusMonitor;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
 
 /**
  * Base class for {@link IService services}.
  * <p>
  * In addition to the {@link IService} interface it enforces service
- * implementors to include central Gyrex concepts (eg., monitoring and
- * metrics).
+ * implementors to include central Gyrex concepts (eg., monitoring and metrics).
  * </p>
  * <p>
  * Clients that want to contribute a service implementation must subclass this
@@ -74,8 +80,9 @@ public abstract class BaseService extends PlatformObject implements IService {
 	 * metrics.
 	 * <p>
 	 * Note, each service is required to provide metrics so that it can be
-	 * monitored by Gyrex. The metrics will be registered
-	 * automatically with the platform.
+	 * monitored by Gyrex. The metrics will be registered automatically with the
+	 * platform using the bundle which provides the actual {@link #getClass()
+	 * class}.
 	 * </p>
 	 * 
 	 * @param context
@@ -98,8 +105,7 @@ public abstract class BaseService extends PlatformObject implements IService {
 		this.metrics = metrics;
 
 		// register metrics
-		// TODO: implement caching for service instances before we register metrics
-		//metricsRegistration = ServicesActivator.getInstance().getServiceHelper().registerService(MetricSet.class.getName(), metrics, this.getClass().getSimpleName(), "Metrics for service " + this.getClass().getSimpleName(), null, null);
+		registerMetrics();
 	}
 
 	/**
@@ -206,6 +212,33 @@ public abstract class BaseService extends PlatformObject implements IService {
 	 */
 	public final boolean isClosed() {
 		return closed;
+	}
+
+	/**
+	 * Registers the metrics on behalf of the bundle which loaded this class.
+	 * 
+	 * @throws IllegalArgumentException
+	 *             if the class was not loaded by a bundle class loader
+	 * @throws IllegalStateException
+	 *             if the bundle which loaded the class has no valid bundle
+	 *             context
+	 */
+	private void registerMetrics() throws IllegalArgumentException, IllegalStateException {
+		// get bundle context
+		// TODO: we might need to wrap this into a privileged call
+		final Bundle bundle = FrameworkUtil.getBundle(getClass());
+		final BundleContext bundleContext = null != bundle ? bundle.getBundleContext() : null;
+		if (null == bundleContext) {
+			throw new IllegalStateException("Unable to determin bundle context for class '" + getClass().getName() + "'. Please ensure that this class was loaded by a bundle which is either STARTING, ACTIVE or STOPPING.");
+		}
+
+		// create properties
+		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
+		properties.put(Constants.SERVICE_VENDOR, this.getClass().getName());
+		properties.put(Constants.SERVICE_DESCRIPTION, "Metrics for service implementation '" + this.getClass().getName() + "'.");
+
+		// register service
+		metricsRegistration = bundleContext.registerService(MetricSet.class.getName(), metrics, properties);
 	}
 
 }

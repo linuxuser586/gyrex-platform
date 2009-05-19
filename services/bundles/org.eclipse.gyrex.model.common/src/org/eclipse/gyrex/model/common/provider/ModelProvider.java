@@ -1,25 +1,26 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.model.common.provider;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IAdapterManager;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.gyrex.model.common.IModelManager;
 import org.eclipse.gyrex.model.common.ModelUtil;
+import org.eclipse.gyrex.persistence.PersistenceUtil;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 
@@ -56,10 +57,10 @@ import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
  * 
  * @see ModelUtil#getManager(Class, IRuntimeContext)
  */
-public abstract class ModelProvider {
+public abstract class ModelProvider extends RuntimeContextObjectProvider {
 
 	/** the list of model managers provided by the factory */
-	private final List<Class<?>> providedManagers;
+	private final Class[] providedManagers;
 
 	/** the required content type */
 	private final RepositoryContentType contentType;
@@ -116,7 +117,7 @@ public abstract class ModelProvider {
 			}
 			managers.add(manager);
 		}
-		this.providedManagers = Collections.unmodifiableList(managers);
+		this.providedManagers = managers.toArray(new Class[managers.size()]);
 		this.contentType = contentType;
 	}
 
@@ -157,18 +158,24 @@ public abstract class ModelProvider {
 		return contentType;
 	}
 
-	/**
-	 * Returns the collection of manager types contributed by this provider.
-	 * <p>
-	 * This method is generally used by the platform to discover which manager
-	 * types are supported, in advance of dispatching any actual
-	 * {@link #createModelManagerInstance(Class, Repository, IRuntimeContext)}
-	 * requests.
-	 * </p>
-	 * 
-	 * @return the collection of adapter types
-	 */
-	public final Iterable<Class<?>> getProvidedManagers() {
+	@Override
+	public final Object getObject(final Class type, final IRuntimeContext context) {
+		// get the repository
+		final Repository repository = PersistenceUtil.getRepository(context, getContentType());
+
+		// get the model manager for the specified context and repository
+		return createModelManagerInstance(type, repository, context);
+	}
+
+	@Override
+	public final Class[] getObjectTypes() {
 		return providedManagers;
+	}
+
+	@Override
+	public final void ungetObject(final Object object, final IRuntimeContext context) {
+		if (object instanceof BaseModelManager) {
+			((BaseModelManager) object).close();
+		}
 	}
 }
