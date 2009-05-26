@@ -21,6 +21,6 @@ public class ContextDebug extends BundleDebugOptions {
 	public static boolean debug;
 
 	public static boolean preferencesLookup;
-	public static boolean preferencesPut;
+	public static boolean preferencesModify;
 
 }

@@ -188,7 +188,10 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences, 
 
 	@Override
 	public void flush(final String qualifier) throws BackingStoreException, SecurityException {
-		getNode(qualifier, EMPTY, context).removeNode();
+		if (ContextDebug.preferencesModify) {
+			LOG.debug("Flushing preferences of context \"{}\" for qualifier \"{}\"", context, qualifier);
+		}
+		getNode(qualifier, EMPTY, context).flush();
 	}
 
 	private String get(final String key, final String defaultValue, final Preferences[] nodes) {
@@ -250,12 +253,10 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences, 
 	}
 
 	private void put(final String qualifier, final String key, final String value, final IRuntimeContext context, final boolean encrypt) {
-		// get the node
-		final Preferences node = getNode(qualifier, key, context);
-		if (ContextDebug.preferencesPut) {
-			LOG.debug("Preference node for storing: {}", node.absolutePath());
+		if (ContextDebug.preferencesModify) {
+			LOG.debug("Preference modification in context \"{}\" for qualifier \"{}\": {}", new Object[] { context, qualifier, key });
 		}
-		node.put(EclipsePreferencesUtil.decodePath(key)[1], value);
+		getNode(qualifier, key, context).put(EclipsePreferencesUtil.decodePath(key)[1], value);
 	}
 
 	@Override
@@ -303,6 +304,17 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences, 
 
 	@Override
 	public void sync(final String qualifier) throws BackingStoreException, SecurityException {
+		if (ContextDebug.preferencesModify) {
+			LOG.debug("Synchronizing preferences of context \"{}\" for qualifier \"{}\"", context, qualifier);
+		}
 		getNode(qualifier, EMPTY, context).sync();
 	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("GyrexContextPreferencesImpl [context=").append(context).append("]");
+		return builder.toString();
+	}
+
 }

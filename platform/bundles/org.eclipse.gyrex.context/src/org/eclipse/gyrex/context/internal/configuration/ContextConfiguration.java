@@ -141,7 +141,9 @@ public final class ContextConfiguration {
 			} else {
 				contextPreferences.remove(typeName);
 			}
+			//						new PlatformScope().getNode(ContextActivator.SYMBOLIC_NAME).flush();
 			contextPreferences.flush();
+			//new PlatformScope().getNode("org.eclipse.gyrex.preferences").flush();
 		} catch (final BackingStoreException e) {
 			ContextActivator.getInstance().getLog().log(MessageFormat.format("Error while accessing the preferences backend for context path \"{0}\": {1}", contextPath, e.getMessage()), e, context, LogAudience.ADMIN, LogImportance.WARNING, LogSource.PLATFORM);
 		}

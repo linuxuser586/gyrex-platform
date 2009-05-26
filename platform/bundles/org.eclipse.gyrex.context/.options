@@ -5,4 +5,4 @@ org.eclipse.gyrex.context/debug=true
 org.eclipse.gyrex.context/preferencesLookup=true
 
 # debug preferences storage
-org.eclipse.gyrex.context/preferencesPut=true
+org.eclipse.gyrex.context/preferencesModify=true
