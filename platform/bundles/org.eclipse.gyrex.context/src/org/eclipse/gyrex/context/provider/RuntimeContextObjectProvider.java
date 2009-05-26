@@ -11,6 +11,8 @@
  */
 package org.eclipse.gyrex.context.provider;
 
+import java.util.Arrays;
+
 import org.eclipse.gyrex.context.IRuntimeContext;
 
 /**
@@ -26,8 +28,8 @@ import org.eclipse.gyrex.context.IRuntimeContext;
  * This class must be subclassed by clients that want to contribute contextual
  * objects. It is part of the contextual runtime API and should never be used
  * directly by clients. Context object providers must be made available as OSGi
- * services using type {@link RuntimeContextObjectProvider} (also known as whiteboard
- * pattern).
+ * services using type {@link RuntimeContextObjectProvider} (also known as
+ * whiteboard pattern).
  * </p>
  * <p>
  * Note, this class is part of a service provider API which may evolve faster
@@ -85,6 +87,13 @@ public abstract class RuntimeContextObjectProvider {
 	 */
 	public abstract Class[] getObjectTypes();
 
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("RuntimeContextObjectProvider [getClass()=").append(getClass()).append(", getObjectTypes()=").append(Arrays.toString(getObjectTypes())).append("]");
+		return builder.toString();
+	}
+
 	/**
 	 * Called by the platform when an object which was retrieved from this
 	 * provider through a {@link #getObject(Class, IRuntimeContext)} call is no
@@ -101,4 +110,5 @@ public abstract class RuntimeContextObjectProvider {
 	 *            the context for which the object was created
 	 */
 	public abstract void ungetObject(final Object object, IRuntimeContext context);
+
 }

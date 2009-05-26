@@ -19,9 +19,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A provider registration of a {@link RuntimeContextObjectProvider}.
@@ -39,6 +42,8 @@ public class ProviderRegistration {
 		 */
 		void flushReference(ProviderRegistration provider);
 	}
+
+	private static final Logger LOG = LoggerFactory.getLogger(ProviderRegistration.class);
 
 	private final Class<?> type;
 	private final RuntimeContextObjectProvider provider;
@@ -99,6 +104,10 @@ public class ProviderRegistration {
 	 * Flushes the provider from any context it is currently used in.
 	 */
 	void flushFromContexts() {
+		if (ContextDebug.objectLifecycle) {
+			LOG.debug("Flushing provider registration {}", this);
+		}
+
 		ProviderRegistrationReference[] references;
 		referencesLock.tryLock();
 		try {
@@ -107,6 +116,9 @@ public class ProviderRegistration {
 			referencesLock.unlock();
 		}
 		for (final ProviderRegistrationReference reference : references) {
+			if (ContextDebug.objectLifecycle) {
+				LOG.debug("Flushing provider registration {} from reference {}", this, reference);
+			}
 			reference.flushReference(this);
 		}
 	}
@@ -232,6 +244,13 @@ public class ProviderRegistration {
 		} finally {
 			referencesLock.unlock();
 		}
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("ProviderRegistration [type=").append(type).append(", serviceReference=").append(serviceReference).append("]");
+		return builder.toString();
 	}
 
 }

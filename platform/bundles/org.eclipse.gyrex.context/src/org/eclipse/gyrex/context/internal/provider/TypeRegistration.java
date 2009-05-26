@@ -18,9 +18,12 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Object for a type registration with all its available providers
@@ -40,6 +43,8 @@ public class TypeRegistration {
 		 */
 		void flushReference(TypeRegistration typeRegistration);
 	}
+
+	private static final Logger LOG = LoggerFactory.getLogger(TypeRegistration.class);
 
 	private final String typeName;
 	private final ConcurrentNavigableMap<ServiceReference, ProviderRegistration> providersByReference = new ConcurrentSkipListMap<ServiceReference, ProviderRegistration>();
@@ -64,7 +69,11 @@ public class TypeRegistration {
 		if (null != providerRegistration) {
 			// this should not happen if everything behaves correctly ...
 			// not sure why there would be two service references for us
-			// TODO: consider logging this
+			LOG.warn("A provider was added which was already tracked by us. This looks like a programming (concurrency?) error. (old:{}, new:{}, {})", new Object[] { providerRegistration, serviceReference, this });
+		} else {
+			if (ContextDebug.objectLifecycle) {
+				LOG.debug("Adding provider {} to {}", provider, this);
+			}
 		}
 
 		// a new provider was registered
@@ -116,6 +125,15 @@ public class TypeRegistration {
 		return null;
 	}
 
+	/**
+	 * Returns the typeName.
+	 * 
+	 * @return the typeName
+	 */
+	public String getTypeName() {
+		return typeName;
+	}
+
 	void remove(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference reference) {
 		if (!typeName.equals(type.getName())) {
 			throw new IllegalArgumentException("type class name should be " + typeName);
@@ -123,8 +141,15 @@ public class TypeRegistration {
 
 		final ProviderRegistration providerRegistration = providersByReference.remove(reference);
 		if (null != providerRegistration) {
+			if (ContextDebug.objectLifecycle) {
+				LOG.debug("Removing provider {} from {}", provider, this);
+			}
 			// flush from all contexts
 			providerRegistration.flushFromContexts();
+		} else {
+			// this should not happen if everything behaves correctly ...
+			// not sure why there would be no registration for a service references tracked for us
+			LOG.warn("A provider was removed which wasn't tracked by us. This looks like a programming (concurrency?) error. ({}, {}, {})", new Object[] { provider, reference, this });
 		}
 
 		// note, we do not notify all listeners here
@@ -139,6 +164,13 @@ public class TypeRegistration {
 		} finally {
 			referencesLock.unlock();
 		}
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("TypeRegistration [typeName=").append(typeName).append("]");
+		return builder.toString();
 	}
 
 	void update(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference reference) {

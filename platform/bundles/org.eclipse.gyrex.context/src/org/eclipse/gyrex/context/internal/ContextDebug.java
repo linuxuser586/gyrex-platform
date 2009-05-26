@@ -23,4 +23,6 @@ public class ContextDebug extends BundleDebugOptions {
 	public static boolean preferencesLookup;
 	public static boolean preferencesModify;
 
+	public static boolean objectLifecycle;
+
 }

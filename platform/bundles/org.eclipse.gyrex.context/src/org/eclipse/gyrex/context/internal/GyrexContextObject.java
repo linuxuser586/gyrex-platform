@@ -23,6 +23,8 @@ import org.eclipse.gyrex.context.internal.provider.TypeRegistration;
 import org.eclipse.gyrex.context.internal.provider.ProviderRegistration.ProviderRegistrationReference;
 import org.eclipse.gyrex.context.internal.provider.TypeRegistration.TypeRegistrationReference;
 import org.osgi.framework.Filter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the {@link IContextFunction} which gets placed into the e4 context.
@@ -35,10 +37,13 @@ import org.osgi.framework.Filter;
  */
 final class GyrexContextObject extends ContextFunction implements IDisposable, ProviderRegistrationReference, TypeRegistrationReference {
 
-	private final TypeRegistration typeRegistration;
-	private final String typeName;
-	private final Filter filter;
+	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextObject.class);
+
 	private final Lock objectCreationLock = new ReentrantLock();
+	private final TypeRegistration typeRegistration;
+	private final Filter filter;
+
+	private GyrexContextImpl runtimeContext;
 
 	private volatile boolean isComputed;
 	private volatile Object computedObject;
@@ -46,9 +51,9 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 	private volatile GyrexContextImpl computedObjectContext;
 	private volatile IEclipseContext computedObjectEclipseContext;
 
-	public GyrexContextObject(final GyrexContextImpl runtimeContext, final TypeRegistration typeRegistration, final String typeName, final Filter filter) {
+	public GyrexContextObject(final GyrexContextImpl runtimeContext, final TypeRegistration typeRegistration, final Filter filter) {
+		this.runtimeContext = runtimeContext;
 		this.typeRegistration = typeRegistration;
-		this.typeName = typeName;
 		this.filter = filter;
 	}
 
@@ -86,6 +91,10 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 			objectCreationLock.unlock();
 		}
 
+		if (ContextDebug.objectLifecycle) {
+			LOG.debug("Flushing computed object {}", this);
+		}
+
 		// inform provider of object disposal (outside the lock)
 		try {
 			if (null != provider) {
@@ -104,7 +113,7 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 
 			// remove from the underlying Eclipse context to trigger lookup through the strategy again
 			if (null != eclipseContext) {
-				eclipseContext.remove(typeName);
+				eclipseContext.remove(getTypeName());
 			}
 		}
 	}
@@ -116,7 +125,7 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 			return null;
 		}
 		final Class<?> type = (Class) arguments[0];
-		if (!type.getName().equals(typeName)) {
+		if (!type.getName().equals(getTypeName())) {
 			return null;
 		}
 
@@ -128,6 +137,9 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 
 		// use computed object if available
 		if (isComputed) {
+			if (ContextDebug.objectLifecycle) {
+				LOG.debug("Returning previously computed object {} from {}", computedObject, this);
+			}
 			return computedObject;
 		}
 
@@ -136,7 +148,14 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 		try {
 			// ensure that no other thread created an object instance yet
 			if (isComputed) {
+				if (ContextDebug.objectLifecycle) {
+					LOG.debug("Returning previously computed object {} from {}", computedObject, this);
+				}
 				return computedObject;
+			}
+
+			if (ContextDebug.objectLifecycle) {
+				LOG.debug("Computing object for {}", this);
 			}
 
 			// get matching provider
@@ -176,7 +195,7 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 
 			// for performance reasons set the object directly in the context
 			// (note, we even set it to null to explicitly indicate that non is available)
-			context.set(typeName, object);
+			context.set(getTypeName(), object);
 
 			// return the object
 			return object;
@@ -187,7 +206,14 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 
 	@Override
 	public void dispose() {
+		if (ContextDebug.objectLifecycle) {
+			LOG.debug("Disposing {}", this);
+		}
+
 		clearComputedObject();
+
+		// dispose
+		runtimeContext = null;
 	}
 
 	@Override
@@ -198,5 +224,21 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 	@Override
 	public void flushReference(final TypeRegistration typeRegsitration) {
 		clearComputedObject();
+	}
+
+	private String getTypeName() {
+		return typeRegistration.getTypeName();
+	}
+
+	@Override
+	public String toString() {
+		final GyrexContextImpl context = runtimeContext;
+		if (null == context) {
+			return "GyrexContextObject [disposed]";
+		}
+
+		final StringBuilder builder = new StringBuilder();
+		builder.append("GyrexContextObject [runtimeContext=").append(context).append(", typeName=").append(getTypeName()).append(", filter=").append(filter).append("]");
+		return builder.toString();
 	}
 }

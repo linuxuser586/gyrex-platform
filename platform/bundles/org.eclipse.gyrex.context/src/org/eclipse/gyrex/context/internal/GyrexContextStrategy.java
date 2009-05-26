@@ -79,7 +79,7 @@ final class GyrexContextStrategy implements ILookupStrategy, IDisposable {
 		final Filter filter = ContextConfiguration.findFilter(runtimeContext, name);
 
 		// return our helper context function to instantiate the object
-		return new GyrexContextObject(runtimeContext, typeRegistration, name, filter);
+		return new GyrexContextObject(runtimeContext, typeRegistration, filter);
 	}
 
 }

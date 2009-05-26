@@ -21,17 +21,22 @@ import org.eclipse.gyrex.common.logging.LogImportance;
 import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
+import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.preferences.PlatformScope;
 import org.osgi.framework.Filter;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Helper class for context configuration.
  */
 public final class ContextConfiguration {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ContextConfiguration.class);
 
 	/** CONTEXTS */
 	public static final String CONTEXTS = "contexts";
@@ -71,6 +76,10 @@ public final class ContextConfiguration {
 		return filter;
 	}
 
+	private static String getPreferencesPathForContextObjectFilterSetting(final IPath contextPath) {
+		return contextPath.makeRelative().toString();
+	}
+
 	public static IEclipsePreferences getRootNodeForContextPreferences() {
 		return (IEclipsePreferences) new PlatformScope().getNode(ContextActivator.SYMBOLIC_NAME).node(CONTEXTS);
 	}
@@ -90,7 +99,7 @@ public final class ContextConfiguration {
 	 */
 	private static Filter readFilterFromPreferences(final IRuntimeContext context, final IEclipsePreferences root, final IPath contextPath, final String typeName) {
 		// get the preferences
-		final String preferencesPath = contextPath.toString();
+		final String preferencesPath = getPreferencesPathForContextObjectFilterSetting(contextPath);
 		try {
 			if (!root.nodeExists(preferencesPath)) {
 				return null;
@@ -132,8 +141,13 @@ public final class ContextConfiguration {
 		// get preferences root node
 		final IEclipsePreferences rootNode = getRootNodeForContextPreferences();
 
+		// log a debug message
+		if (ContextDebug.objectLifecycle) {
+			LOG.debug("Setting filter in context {} for type {} to {}", new Object[] { context, typeName, filter });
+		}
+
 		// set the preferences
-		final String preferencesPath = contextPath.toString();
+		final String preferencesPath = getPreferencesPathForContextObjectFilterSetting(contextPath);
 		try {
 			final Preferences contextPreferences = rootNode.node(preferencesPath);
 			if (null != filter) {
@@ -141,9 +155,7 @@ public final class ContextConfiguration {
 			} else {
 				contextPreferences.remove(typeName);
 			}
-			//						new PlatformScope().getNode(ContextActivator.SYMBOLIC_NAME).flush();
 			contextPreferences.flush();
-			//new PlatformScope().getNode("org.eclipse.gyrex.preferences").flush();
 		} catch (final BackingStoreException e) {
 			ContextActivator.getInstance().getLog().log(MessageFormat.format("Error while accessing the preferences backend for context path \"{0}\": {1}", contextPath, e.getMessage()), e, context, LogAudience.ADMIN, LogImportance.WARNING, LogSource.PLATFORM);
 		}
