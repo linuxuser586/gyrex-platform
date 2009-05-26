@@ -195,7 +195,9 @@ final class GyrexContextObject extends ContextFunction implements IDisposable, P
 
 			// for performance reasons set the object directly in the context
 			// (note, we even set it to null to explicitly indicate that non is available)
-			context.set(getTypeName(), object);
+			// 2009-05-26, disabled ... this forces flushes of the ValueComputation
+			// (related to a workaround introduced for https://bugs.eclipse.org/bugs/show_bug.cgi?id=277809)
+			//context.set(getTypeName(), object);
 
 			// return the object
 			return object;
