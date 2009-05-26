@@ -3,6 +3,7 @@ package org.eclipse.gyrex.preferences.internal;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.core.runtime.preferences.IPreferencesService;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.osgi.framework.BundleContext;
@@ -49,6 +50,9 @@ public class PreferencesActivator extends BaseBundleActivator {
 		instanceRef.set(null);
 		preferenceServiceProxy.dispose();
 		preferenceServiceProxy = null;
+
+		// flush the preferences
+		new InstanceScope().getNode(SYMBOLIC_NAME).flush();
 	}
 
 	public IPreferencesService getPreferencesService() {
