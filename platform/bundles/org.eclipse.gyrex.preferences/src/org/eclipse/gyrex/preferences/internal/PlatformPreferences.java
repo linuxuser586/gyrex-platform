@@ -117,12 +117,9 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#absolutePath()
-	 */
 	@Override
 	public String absolutePath() {
-		checkRemoved();
+		// don't check removed state here, this method can be called at any time
 		if (cachedPath == null) {
 			if (parent == null) {
 				cachedPath = PATH_SEPARATOR;
@@ -140,11 +137,9 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 		return cachedPath;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences#accept(org.eclipse.core.runtime.preferences.IPreferenceNodeVisitor)
-	 */
 	@Override
 	public void accept(final IPreferenceNodeVisitor visitor) throws BackingStoreException {
+		// illegal state if the node has been removed
 		checkRemoved();
 		if (!visitor.visit(this)) {
 			return;
@@ -155,20 +150,16 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences#addNodeChangeListener(org.eclipse.core.runtime.preferences.IEclipsePreferences.INodeChangeListener)
-	 */
 	@Override
 	public void addNodeChangeListener(final INodeChangeListener listener) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.addNodeChangeListener(new NodeChangeListenerWrapper(listener));
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences#addPreferenceChangeListener(org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener)
-	 */
 	@Override
 	public void addPreferenceChangeListener(final IPreferenceChangeListener listener) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.addPreferenceChangeListener(listener);
 	}
@@ -181,75 +172,62 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 		return result;
 	}
 
-	private void checkRemoved() {
+	private void checkRemoved() throws IllegalStateException {
 		if (removed) {
 			throw new IllegalStateException(String.format("Node '%s' has been removed.", name));
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#childrenNames()
-	 */
 	@Override
 	public String[] childrenNames() throws BackingStoreException {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.childrenNames();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#clear()
-	 */
 	@Override
 	public void clear() throws BackingStoreException {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.clear();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IScope#create(org.eclipse.core.runtime.preferences.IEclipsePreferences, java.lang.String)
-	 */
+	@Override
 	public IEclipsePreferences create(final IEclipsePreferences parent, final String name) {
 		return new PlatformPreferences(parent, name, false);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#flush()
-	 */
 	@Override
 	public void flush() throws BackingStoreException {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.flush();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#get(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public String get(final String key, final String def) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.get(key, def);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#getBoolean(java.lang.String, boolean)
-	 */
 	@Override
 	public boolean getBoolean(final String key, final boolean def) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.getBoolean(key, def);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#getByteArray(java.lang.String, byte[])
-	 */
 	@Override
 	public byte[] getByteArray(final String key, final byte[] def) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.getByteArray(key, def);
 	}
 
 	/**
-	 * Thread safe way to obtain all children of this node. Never returns null.
+	 * Thread safe way to obtain all children of this node. Never returns
+	 * <code>null</code>.
 	 * 
 	 * @throws BackingStoreException
 	 */
@@ -265,64 +243,49 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 		return result.toArray(EMPTY_NODE_ARRAY);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#getDouble(java.lang.String, double)
-	 */
 	@Override
 	public double getDouble(final String key, final double def) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.getDouble(key, def);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#getFloat(java.lang.String, float)
-	 */
 	@Override
 	public float getFloat(final String key, final float def) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.getFloat(key, def);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#getInt(java.lang.String, int)
-	 */
 	@Override
 	public int getInt(final String key, final int def) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.getInt(key, def);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#getLong(java.lang.String, long)
-	 */
 	@Override
 	public long getLong(final String key, final long def) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.getLong(key, def);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#keys()
-	 */
 	@Override
 	public String[] keys() throws BackingStoreException {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return instanceNode.keys();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#name()
-	 */
 	@Override
 	public String name() {
 		return name;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences#node(java.lang.String)
-	 */
 	@Override
 	public Preferences node(final String path) {
+		// illegal state if the node has been removed
 		checkRemoved();
 
 		// short circuit this node
@@ -343,130 +306,104 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 		return child.node(index == -1 ? EMPTY_STRING : path.substring(index + 1));
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#nodeExists(java.lang.String)
-	 */
 	@Override
 	public boolean nodeExists(final String pathName) throws BackingStoreException {
-		checkRemoved();
+		// don't check removed state here, this method can be called at any time
 		return instanceNode.nodeExists(pathName);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#parent()
-	 */
 	@Override
 	public Preferences parent() {
+		// illegal state if the node has been removed
 		checkRemoved();
 		return parent;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#put(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public void put(final String key, final String value) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.put(key, value);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#putBoolean(java.lang.String, boolean)
-	 */
 	@Override
 	public void putBoolean(final String key, final boolean value) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.putBoolean(key, value);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#putByteArray(java.lang.String, byte[])
-	 */
 	@Override
 	public void putByteArray(final String key, final byte[] value) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.putByteArray(key, value);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#putDouble(java.lang.String, double)
-	 */
 	@Override
 	public void putDouble(final String key, final double value) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.putDouble(key, value);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#putFloat(java.lang.String, float)
-	 */
 	@Override
 	public void putFloat(final String key, final float value) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.putFloat(key, value);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#putInt(java.lang.String, int)
-	 */
 	@Override
 	public void putInt(final String key, final int value) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.putInt(key, value);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#putLong(java.lang.String, long)
-	 */
 	@Override
 	public void putLong(final String key, final long value) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.putLong(key, value);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#remove(java.lang.String)
-	 */
 	@Override
 	public void remove(final String key) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.remove(key);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences#removeNode()
-	 */
 	@Override
 	public void removeNode() throws BackingStoreException {
 		removed = true;
 		instanceNode.removeNode();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences#removeNodeChangeListener(org.eclipse.core.runtime.preferences.IEclipsePreferences.INodeChangeListener)
-	 */
 	@Override
 	public void removeNodeChangeListener(final INodeChangeListener listener) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.removeNodeChangeListener(new NodeChangeListenerWrapper(listener));
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences#removePreferenceChangeListener(org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener)
-	 */
 	@Override
 	public void removePreferenceChangeListener(final IPreferenceChangeListener listener) {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.removePreferenceChangeListener(listener);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.osgi.service.prefs.Preferences#sync()
-	 */
 	@Override
 	public void sync() throws BackingStoreException {
+		// illegal state if the node has been removed
 		checkRemoved();
 		instanceNode.sync();
 	}
 
+	@Override
+	public String toString() {
+		return absolutePath();
+	}
 }
