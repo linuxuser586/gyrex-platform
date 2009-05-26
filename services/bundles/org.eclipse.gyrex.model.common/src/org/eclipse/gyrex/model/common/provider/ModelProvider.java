@@ -51,8 +51,10 @@ import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
  * <p>
  * This class must be subclassed by clients that want to contribute
  * {@link IModelManager} implementations. It is part of a model provider API and
- * should never be used directly by clients. Model providers must be made
- * available as OSGi services using type {@link ModelProvider}.
+ * should never be used directly by clients. Note, a {@link ModelProvider} is
+ * essentially a {@link RuntimeContextObjectProvider}. Therefore providers must
+ * be made available as OSGi services using the
+ * {@link RuntimeContextObjectProvider} type name.
  * </p>
  * 
  * @see ModelUtil#getManager(Class, IRuntimeContext)
