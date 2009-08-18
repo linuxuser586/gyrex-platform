@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.provider;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -46,8 +47,15 @@ public class TypeRegistration {
 
 	private static final Logger LOG = LoggerFactory.getLogger(TypeRegistration.class);
 
+	/** typeName */
 	private final String typeName;
-	private final ConcurrentNavigableMap<ServiceReference, ProviderRegistration> providersByReference = new ConcurrentSkipListMap<ServiceReference, ProviderRegistration>();
+
+	/**
+	 * the providers, sorted by reverse natural order of
+	 * {@link ServiceReference} to serve providers with a higher service ranking
+	 * first
+	 */
+	private final ConcurrentNavigableMap<ServiceReference, ProviderRegistration> providersByReference = new ConcurrentSkipListMap<ServiceReference, ProviderRegistration>(Collections.reverseOrder());
 	private final Set<TypeRegistrationReference> references = new HashSet<TypeRegistrationReference>(3);
 	private final Lock referencesLock = new ReentrantLock();
 
@@ -115,6 +123,8 @@ public class TypeRegistration {
 	 * @see ProviderRegistration#match(Filter)
 	 */
 	public ProviderRegistration getProvider(final Class<?> type, final Filter filter) {
+		// we rely on the sort order of the providersByReference map to contain
+		// the providers with a higher service ranking first
 		for (final ProviderRegistration providerRegistration : providersByReference.values()) {
 			if (type.isAssignableFrom(providerRegistration.getType()) && providerRegistration.match(filter)) {
 				return providerRegistration;
