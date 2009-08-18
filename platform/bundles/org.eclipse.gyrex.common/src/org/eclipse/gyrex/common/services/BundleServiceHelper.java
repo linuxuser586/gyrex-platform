@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -145,6 +145,18 @@ public final class BundleServiceHelper {
 	 *            The class name under which the service can be located.
 	 * @param service
 	 *            The service object or a <code>ServiceFactory</code> object.
+	 * @param vendor
+	 *            an optional {@link Constants#SERVICE_VENDOR service vendor} to
+	 *            use (may be <code>null</code>)
+	 * @param description
+	 *            an optional {@link Constants#SERVICE_DESCRIPTION service
+	 *            description} to use (may be <code>null</code>)
+	 * @param pid
+	 *            an optional {@link Constants#SERVICE_PID service pid} to use
+	 *            (may be <code>null</code>)
+	 * @param ranking
+	 *            a {@link Constants#SERVICE_RANKING service ranking} to use
+	 *            (may be <code>null</code>)
 	 * @return a <code>ServiceRegistration</code> object for use by the bundle
 	 *         registering the service to update the service's properties or to
 	 *         unregister the service
