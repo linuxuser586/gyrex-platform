@@ -242,6 +242,11 @@ public class ContextualRuntimeBlackBoxTests {
 
 			final IRuntimeContext testContext = contextRegistry.get(SOME_CONTEXT_PATH);
 
+			// get object
+			// this must return the object from provider 1 because of the higher service ranking
+			final DummyObject dummyObject1 = testContext.get(DummyObject.class);
+			assertFalse("The returned object was not provided by the expected provider (DummyObjectProvider 1)! Please verify that service ranking is taken into account when having multiple providers!", dummyObject1 instanceof DummyObject2);
+
 			// configure context
 			try {
 				contextManager.set(testContext, DummyObject.class, FrameworkUtil.createFilter("(service.pid=" + SERVICE_PID_DUMMY2 + ")"));
@@ -250,15 +255,17 @@ public class ContextualRuntimeBlackBoxTests {
 			}
 
 			// get object
-			final DummyObject dummyObject = testContext.get(DummyObject.class);
-			assertTrue("The returned object was not provided by the configured provider (DummyObjectProvider 2)!", dummyObject instanceof DummyObject2);
+			// this must return the object from provider 2 because of the defined filter
+			final DummyObject dummyObject2 = testContext.get(DummyObject.class);
+			assertTrue("The returned object was not provided by the configured provider (DummyObjectProvider 2)! Please verify that configured filters are verified correctly when having multiple providers!", dummyObject2 instanceof DummyObject2);
 
 			// reconfigure
 			contextManager.set(testContext, DummyObject.class, null);
 
 			// get object
-			final DummyObject dummyObject2 = testContext.get(DummyObject.class);
-			assertFalse("The returned object was not provided by the expected provider (DummyObjectProvider 1)!", dummyObject2 instanceof DummyObject2);
+			// this time the object from provider 1 must be returned because of a higher service ranking
+			final DummyObject dummyObject3 = testContext.get(DummyObject.class);
+			assertFalse("The returned object was not provided by the expected provider (DummyObjectProvider 1)! Please verify that service ranking is taken into account when having multiple providers!", dummyObject3 instanceof DummyObject2);
 
 		} finally {
 			safeUnregister(serviceRegistration);
