@@ -102,7 +102,7 @@ public interface IRuntimeContext extends IAdaptable {
 	 * sensitive information which is not intended for end users.
 	 * </p>
 	 * 
-	 * @return a string representation of the
+	 * @return a string representation of the context
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
