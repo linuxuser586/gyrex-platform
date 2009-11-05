@@ -15,7 +15,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.osgi.util.NLS;
 
 /**
- * This class may be used to obtain te context preferences.
+ * This class may be used to obtain the context preferences.
  * <p>
  * This class is not intended to be subclassed or instantiated. It provides
  * static methods to streamline the preferences access.
@@ -66,7 +66,7 @@ public final class PreferencesUtil {
 	}
 
 	/**
-	 * Hidden constructors
+	 * Hidden constructor
 	 */
 	private PreferencesUtil() {
 		// empty

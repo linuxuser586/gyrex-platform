@@ -16,12 +16,13 @@ import java.util.Arrays;
 import org.eclipse.gyrex.context.IRuntimeContext;
 
 /**
- * Base class for a provider of contextual objects to Gyrex contextual runtime.
+ * Base class for a provider of contextual objects to the Gyrex contextual
+ * runtime.
  * <p>
  * A context object provider allows to contribute context specific objects to
  * the contextual runtime in Gyrex. It is essentially a factory for objects
  * which are to be made available in a context. Those context objects have a
- * defined lifecycle which is bound to the context they were retreived for. See
+ * defined lifecycle which is bound to the context they were retrieved for. See
  * {@link #getObject(Class, IRuntimeContext)} for details.
  * </p>
  * <p>
