@@ -14,9 +14,9 @@
  * offerings.
  * </p>
  * <p>
- * Let's look at an example. In an e-commerce shopping system the shopping cart
+ * Let's look at an example. In an online shopping system the shopping cart
  * calculation could be made extensible using the extension registry or using
- * OSGi services. A default implementation would e provided which does a simple
+ * OSGi services. A default implementation would be provided which does a simple
  * total calculation. This will be the default for all shops served by your
  * system. The other day a new client comes along and has very special
  * requirements for the shopping cart calculation. With OSGi or the Eclipse
@@ -44,7 +44,7 @@
  * <p>
  * Contexts are hierarchical organized in a path like structure. There is a root
  * context ("/") which typically defines the core pieces of a system. In a
- * single system it's acutally possible to just work with the root context.
+ * single system it's actually possible to just work with the root context.
  * </p>
  * <p>
  * Context values are inherited. Thus, if a context does not have a value
@@ -61,7 +61,7 @@
  * The objects ("values") provided by the context are pure Java objects. They
  * can be OSGi services, Eclipse extensions, Eclipse adapters from the
  * IAdapterFactory or other contextual objects. Contextual objects are objects
- * provided specifically for a context. A provider can be registred as an OSGi
+ * provided specifically for a context. A provider can be registered as an OSGi
  * service which will provide context specific objects. To some extend, this can
  * be compare to OSGi service factories. The only difference is, that the
  * service implementation is not bound to the bundle requesting the service but
