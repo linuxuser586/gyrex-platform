@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -40,10 +40,10 @@ import org.osgi.service.http.HttpContext;
 /**
  * A Gyrex HTTP application.
  * <p>
- * Gyrex defines HTTP applications as a point for bundling a
- * set of functionality offered via HTTP operating in a specific
- * {@link IRuntimeContext context}. Applications are contributed to the platform by
- * {@link ApplicationProvider providers}.
+ * Gyrex defines HTTP applications as a point for bundling a set of
+ * functionality offered via HTTP operating in a specific
+ * {@link IRuntimeContext context}. Applications are contributed to the platform
+ * by {@link ApplicationProvider providers}.
  * </p>
  * <p>
  * Applications are created lazily the first time a request for an application
@@ -53,14 +53,14 @@ import org.osgi.service.http.HttpContext;
  * instance for the same {@link #getId() id}.
  * </p>
  * <p>
- * Although it may be possible to compare Gyrex HTTP applications to JavaEE
- * web applications, they do not provide the full set of functionality provided
- * by a JavaEE web application. The central point of entrance of a HTTP request
- * is {@link #handleRequest(HttpServletRequest, HttpServletResponse)}. From
- * there on its the responsibility of the application to deal with the request.
- * This allows for a great flexibility but also comes with big responsibility.
- * It's the task of the application to handle security and to deal with
- * Servlets, their registrations and filters and such things.
+ * Although it may be possible to compare Gyrex HTTP applications to JavaEE web
+ * applications, they do not provide the full set of functionality provided by a
+ * JavaEE web application. The central point of entrance of a HTTP request is
+ * {@link #handleRequest(HttpServletRequest, HttpServletResponse)}. From there
+ * on its the responsibility of the application to deal with the request. This
+ * allows for a great flexibility but also comes with big responsibility. It's
+ * the task of the application to handle security and to deal with Servlets,
+ * their registrations and filters and such things.
  * </p>
  * <p>
  * Similar to the OSGi Http Service, an application may allow to register
@@ -432,7 +432,7 @@ public abstract class Application extends PlatformObject {
 		// get the service support
 		final IApplicationServiceSupport serviceSupport = getApplicationServiceSupport();
 		if (null == serviceSupport) {
-			// if there is no service support this method 
+			// if there is no service support this method
 			// should not be the default implementation
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			return;

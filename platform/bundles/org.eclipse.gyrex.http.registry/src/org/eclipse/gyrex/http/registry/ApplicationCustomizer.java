@@ -1,11 +1,11 @@
 /**
  * Copyright (c) 2009 AGETO Service GmbH and others.
- * All rights reserved. 
- * 
- * This program and the accompanying materials are made available under the terms of the 
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the terms of the
  * Eclipse Public License v1.0 which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
@@ -24,26 +24,26 @@ import org.eclipse.gyrex.http.application.Application;
 public abstract class ApplicationCustomizer {
 
 	/**
-	 * Called when the application has been destroyed.
+	 * Called when an application instance has been destroyed.
 	 * <p>
 	 * Default implementation does nothing. Subclasses may overwrite.
 	 * </p>
 	 * 
 	 * @param application
-	 *            the application
+	 *            the application instance
 	 */
 	public void onDestroy(final Application application) {
 		// empty
 	}
 
 	/**
-	 * Called when the application has been initialized.
+	 * Called when an application instance has been initialized.
 	 * <p>
 	 * Default implementation does nothing. Subclasses may overwrite.
 	 * </p>
 	 * 
 	 * @param application
-	 *            the application
+	 *            the application instance
 	 */
 	public void onInit(final Application application) {
 		// empty

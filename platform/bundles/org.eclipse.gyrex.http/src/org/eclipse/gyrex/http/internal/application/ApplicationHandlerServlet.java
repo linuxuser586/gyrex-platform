@@ -47,8 +47,8 @@ import org.slf4j.LoggerFactory;
  * <p>
  * The application servlet handles all HTTP requests and calls the registered
  * applications. Typically, an instance of this class is registered with the
- * OSGi Http Service. It then takes control over the URI namespace below its
- * registration.
+ * OSGi Http Service or any other web container. It then takes control over the
+ * URI namespace below its registration.
  * </p>
  * <p>
  * Under the covers, the application handler servlet maintains a registry of

@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -21,16 +21,15 @@ import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 /**
  * A management interface for Gyrex HTTP applications.
  * <p>
- * Gyrex offers applications which run in a specific context
- * (eg. a tenant specific context). Thus, multiple instances of the
- * <em>same</em> application may be running. Each instance may expose
- * differences in its behavior and functionality depending on the context it is
- * running in. The manager allows to mount applications to the OSGi HTTP
- * service(s) used by Gyrex.
+ * Gyrex offers applications which run in a specific context (eg. a tenant
+ * specific context). Thus, multiple instances of the <em>same</em> application
+ * may be running. Each instance may expose differences in its behavior and
+ * functionality depending on the context it is running in. The manager allows
+ * to mount applications to the OSGi HTTP service(s) used by Gyrex.
  * </p>
  * <p>
- * The manager is provided as an OSGi service. Gyrex may use
- * security restrictions to limit the registration of applications.
+ * The manager is provided as an OSGi service. A Gyrex based platform may use
+ * OSGi security restrictions to limit the registration of applications.
  * </p>
  * 
  * @see Application
@@ -41,13 +40,13 @@ import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 public interface IApplicationManager {
 
 	/**
-	 * Registers an application at the specified URL.
+	 * Mounts an application at the specified URL.
 	 * <p>
 	 * An URL must begin with a protocol (<code>http://</code> or
 	 * <code>https://</code>) followed by a domain name with a port and a path
-	 * (eg. <code>http://shop.gyrex.net/admin/</code>). The domain name,
-	 * port and path may be optional. Everything below the specified URL is
-	 * intended to be controlled by the application.
+	 * (eg. <code>http://shop.gyrex.net/admin/</code>). The domain name, port
+	 * and path may be optional. Everything below the specified URL is intended
+	 * to be controlled by the application.
 	 * </p>
 	 * <p>
 	 * HTTP requests will be mapped to applications similar to how the OSGi Http

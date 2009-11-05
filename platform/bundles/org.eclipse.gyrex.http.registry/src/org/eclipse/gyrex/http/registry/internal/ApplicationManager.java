@@ -1,13 +1,13 @@
 /*******************************************************************************
  * Copyright (c) 2008 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
- *     Cognos Incorporated, IBM Corporation - concept/implementation from 
+ *     Cognos Incorporated, IBM Corporation - concept/implementation from
  *                                            org.eclipse.equinox.http.registry
  *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
@@ -31,10 +31,6 @@ public class ApplicationManager implements Listener {
 	private static final String CONTEXT_PATH = "contextPath"; //$NON-NLS-1$
 	private static final String CUSTOMIZER_CLASS = "customizerClass"; //$NON-NLS-1$
 
-	/**
-	 * @param configurationElement
-	 * @return
-	 */
 	public static ApplicationCustomizer createCustomizer(final IConfigurationElement configurationElement) {
 		try {
 			if (StringUtils.isBlank(configurationElement.getAttribute(CUSTOMIZER_CLASS))) {

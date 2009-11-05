@@ -6,7 +6,7 @@
          <meta.schema plugin="org.eclipse.gyrex.http.registry" id="org.eclipse.gyrex.http.applications" name="Gyrex Http Applications"/>
       </appInfo>
       <documentation>
-         Allows to register Gyrex Http Applications identified by id.
+         Allows to register Gyrex Http Applications capable of handling servlets, resources and filters.
       </documentation>
    </annotation>
 
