@@ -76,11 +76,11 @@ import org.osgi.service.http.HttpContext;
  * similar to those defined in the {@link HttpContext} interface which - in
  * their default implementations - are delegated to the
  * {@link IApplicationServiceSupport}. It allows for better interoperability
- * with the OSGi Http Service, the underlying servlet container and the
- * registered servlets and resources.
+ * with OSGi, the underlying servlet container and the registered servlets and
+ * resources.
  * </p>
  * <p>
- * Sharing resources across application instances is not supported
+ * Sharing servlets and resources across application instances is not supported
  * out-of-the-box for security and proper capsulation reasons.
  * </p>
  * <p>
