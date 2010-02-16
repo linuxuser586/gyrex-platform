@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -401,7 +401,9 @@ public final class ApplicationRequestAdapter implements IApplicationServletConst
 		// compute the path info based on request URI and context path
 		if (null == pathInfo) {
 			final String contextPath = getContextPath();
-			pathInfo = getRequestURI().substring(contextPath.length());
+			// XXX: getRequestURI returns an unencodes URL, however, we want to rely on the container for this!
+			//pathInfo = getRequestURI().substring(contextPath.length());
+			pathInfo = request.getContextPath().concat(request.getPathInfo()).substring(contextPath.length());
 			// make sure path info starts with a slash
 			if ((pathInfo.length() > 0) && (pathInfo.charAt(0) != '/')) {
 				pathInfo = '/' + pathInfo;
