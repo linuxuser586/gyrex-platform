@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -19,7 +19,6 @@ import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.solr.core.CoreContainer;
-import org.apache.solr.core.SolrCore;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
@@ -43,7 +42,6 @@ public class SolrActivator extends BaseBundleActivator {
 	}
 
 	private final AtomicReference<CoreContainer> coreContainerRef = new AtomicReference<CoreContainer>();
-	private final AtomicReference<SolrCore> adminCoreRef = new AtomicReference<SolrCore>();
 	private final AtomicReference<IServiceProxy<Location>> instanceLocationRef = new AtomicReference<IServiceProxy<Location>>();
 	private volatile File solrBase;
 
@@ -77,10 +75,6 @@ public class SolrActivator extends BaseBundleActivator {
 		instance.set(null);
 	}
 
-	public SolrCore getEmbeddedAdminCore() {
-		return adminCoreRef.get();
-	}
-
 	public CoreContainer getEmbeddedCoreContainer() {
 		return coreContainerRef.get();
 	}
@@ -99,10 +93,6 @@ public class SolrActivator extends BaseBundleActivator {
 	}
 
 	private void shutdownEmbeddedSolrServer() {
-		final SolrCore adminCore = adminCoreRef.getAndSet(null);
-		if (null != adminCore) {
-			adminCore.close();
-		}
 		final CoreContainer coreContainer = coreContainerRef.getAndSet(null);
 		if (null != coreContainer) {
 			coreContainer.persist();
@@ -139,9 +129,9 @@ public class SolrActivator extends BaseBundleActivator {
 
 		// get multicore config file
 		final File configFile = new File(solrBase, "solr.xml");
-		if (null == configFile) {
-			throw new IllegalStateException("no file system support available");
-		}
+		//		if (null == configFile) {
+		//			throw new IllegalStateException("no file system support available");
+		//		}
 		if (!configFile.isFile()) {
 			throw new IllegalStateException("config file '" + configFile.getPath() + "' is missing");
 		}
@@ -154,14 +144,6 @@ public class SolrActivator extends BaseBundleActivator {
 
 		final CoreContainer coreContainer = coreContainerRef.get();
 		coreContainer.load(solrBase.getAbsolutePath(), configFile);
-
-		// set admin core
-		adminCoreRef.set(coreContainer.getCore("admin"));
-		final SolrCore adminCore = adminCoreRef.get();
-		if (null == adminCore) {
-			throw new IllegalStateException("admin core not available");
-		}
-		coreContainer.setAdminCore(adminCore);
 
 		// register the embedded repository type
 		getServiceHelper().registerService(RepositoryProvider.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "Gyrex.net", "Embedded Solr Repository", null, null);
