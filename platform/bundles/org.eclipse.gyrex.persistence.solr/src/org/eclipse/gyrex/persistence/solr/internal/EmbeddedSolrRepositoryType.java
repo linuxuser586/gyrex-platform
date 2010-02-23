@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -27,7 +27,6 @@ public class EmbeddedSolrRepositoryType extends RepositoryProvider {
 	public static final String TYPE_ID = "org.eclipse.gyrex.persistence.solr.embedded";
 
 	private final CoreContainer coreContainer;
-	private final SolrServer adminServer;
 
 	/**
 	 * Creates a new instance.
@@ -39,12 +38,6 @@ public class EmbeddedSolrRepositoryType extends RepositoryProvider {
 	public EmbeddedSolrRepositoryType(final CoreContainer coreContainer) {
 		super(TYPE_ID, SolrRepository.class);
 		this.coreContainer = coreContainer;
-		final SolrCore adminCore = coreContainer.getAdminCore();
-		try {
-			adminServer = new EmbeddedSolrServer(coreContainer, adminCore.getName());
-		} finally {
-			adminCore.close();
-		}
 	}
 
 	/* (non-Javadoc)
@@ -57,10 +50,6 @@ public class EmbeddedSolrRepositoryType extends RepositoryProvider {
 		} catch (final Exception e) {
 			throw new IllegalStateException("could not create solr core: '" + repositoryId + "': " + e.getMessage(), e);
 		}
-	}
-
-	public SolrServer getAdminServer() {
-		return adminServer;
 	}
 
 	private SolrServer getServer(final String repositoryId, final IRepositoryPreferences repositoryPreferences) throws Exception {
