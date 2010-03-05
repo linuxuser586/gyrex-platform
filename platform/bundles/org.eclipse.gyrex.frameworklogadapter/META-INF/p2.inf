@@ -10,5 +10,4 @@
 #     Gunnar Wagenknecht - initial API and implementation
 ###############################################################################
 instructions.configure=\
-  setFrameworkDependentProperty(propName:osgi.framework.extensions,propValue:org.eclipse.gyrex.log.frameworklogadapter);\
   setFrameworkDependentProperty(propName:osgi.hook.configurators.exclude,propValue:org.eclipse.core.runtime.internal.adaptor.EclipseLogHook);
