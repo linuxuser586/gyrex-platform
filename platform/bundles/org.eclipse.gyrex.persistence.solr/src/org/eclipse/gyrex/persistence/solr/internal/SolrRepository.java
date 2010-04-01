@@ -85,7 +85,12 @@ public class SolrRepository extends Repository {
 		getSolrRepositoryMetrics().setClosed("doClose called");
 	}
 
-	private SolrRepositoryMetrics getSolrRepositoryMetrics() {
+	/**
+	 * Returns the repository metrics.
+	 * 
+	 * @return the repository metrics
+	 */
+	public SolrRepositoryMetrics getSolrRepositoryMetrics() {
 		return (SolrRepositoryMetrics) getMetrics();
 	}
 
