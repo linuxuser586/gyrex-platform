@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -16,15 +16,16 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.MessageFormat;
 
-
-import org.apache.solr.client.solrj.SolrServerException;
 import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
 import org.eclipse.gyrex.monitoring.metrics.ErrorMetric;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.monitoring.metrics.StatusMetric;
+import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
+
+import org.apache.solr.client.solrj.SolrServerException;
 
 /**
- * 
+ *
  */
 public class SolrRepositoryMetrics extends MetricSet {
 
@@ -69,13 +70,14 @@ public class SolrRepositoryMetrics extends MetricSet {
 	}
 
 	private final StatusMetric statusMetric;
-
 	private final ErrorMetric errorMetric;
+	private final ThroughputMetric queryThroughputMetric;
 
 	protected SolrRepositoryMetrics(final String id, final String initialStatus, final String initialStatusReason) {
-		super(id, new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new ErrorMetric(id + ".error", true) });
+		super(id, new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new ErrorMetric(id + ".error", true), new ThroughputMetric(id + ".query.throughput") });
 		statusMetric = getMetric(0, StatusMetric.class);
 		errorMetric = getMetric(1, ErrorMetric.class);
+		queryThroughputMetric = getMetric(2, ThroughputMetric.class);
 	}
 
 	/**
@@ -85,6 +87,15 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 */
 	public ErrorMetric getErrorMetric() {
 		return errorMetric;
+	}
+
+	/**
+	 * Returns the query throughput metric.
+	 * 
+	 * @return the query throughput metric
+	 */
+	public ThroughputMetric getQueryThroughputMetric() {
+		return queryThroughputMetric;
 	}
 
 	/**
