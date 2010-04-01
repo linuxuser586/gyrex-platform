@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -51,8 +51,8 @@ public class ErrorMetric extends BaseMetric {
 		 *            the error details
 		 */
 		/*package*/ErrorStats(final String error, final String errorDetails) {
-			this.error = error.intern();
-			this.errorDetails = errorDetails.intern();
+			this.error = error;
+			this.errorDetails = errorDetails;
 		}
 
 		/**
@@ -270,7 +270,7 @@ public class ErrorMetric extends BaseMetric {
 
 			// update stats
 			if (null != errorStats) {
-				final String key = error.concat(errorDetails).intern();
+				final String key = error.concat(errorDetails);
 				if (!errorStats.containsKey(key)) {
 					errorStats.put(key, new ErrorStats(error, errorDetails));
 				}
