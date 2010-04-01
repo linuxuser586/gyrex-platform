@@ -92,6 +92,16 @@ public class ErrorMetric extends BaseMetric {
 		public long getErrorOccuredCount() {
 			return errorOccuredCount;
 		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder();
+			builder.append("Error [").append(error).append("] with details [").append(errorDetails).append("] occured ").append(errorOccuredCount).append(" time(s).");
+			return builder.toString();
+		}
 	}
 
 	private static final ErrorStats[] NO_STATS = new ErrorStats[0];
