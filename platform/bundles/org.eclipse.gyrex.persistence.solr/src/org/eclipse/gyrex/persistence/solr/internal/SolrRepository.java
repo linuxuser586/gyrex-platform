@@ -33,7 +33,7 @@ public class SolrRepository extends Repository {
 	private final SolrServer solrServer;
 
 	SolrRepository(final String repositoryId, final EmbeddedSolrRepositoryType repositoryType, final SolrServer solrServer) throws IllegalArgumentException {
-		super(repositoryId, repositoryType, new SolrRepositoryMetrics("org.eclipse.gyrex.persistence.solr.repository." + repositoryId + repositoryId + ".metrics", "not initialized", "repository created"));
+		super(repositoryId, repositoryType, new SolrRepositoryMetrics("org.eclipse.gyrex.persistence.solr.repository." + repositoryId + repositoryId + ".metrics", "open", "repository created"));
 		this.solrServer = solrServer;
 	}
 
