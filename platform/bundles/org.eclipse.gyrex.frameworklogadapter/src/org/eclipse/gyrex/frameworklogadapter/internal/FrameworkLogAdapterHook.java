@@ -110,12 +110,12 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 
 		final FrameworkLog frameworkLog = baseAdaptor.getFrameworkLog();
 		if (frameworkLog != log) {
-			System.err.println(NLS.bind("[Eclipse.org - Gyrex] Failed to install the GyrexFrameworkLog. FrameworkLog is of type \"{0}\". It seems that another framework hook already created the FrameworkLog. Please check the hook configuration.", frameworkLog.getClass().getName()));
+			System.err.println(NLS.bind("[Eclipse Gyrex] Failed to install the GyrexFrameworkLog. FrameworkLog is of type \"{0}\". It seems that another framework hook already created the FrameworkLog. Please check the hook configuration.", frameworkLog.getClass().getName()));
 			return;
 		}
 
 		final Hashtable<String, Object> properties = new Hashtable<String, Object>(3);
-		properties.put(org.osgi.framework.Constants.SERVICE_VENDOR, "Eclipse.org - Gyrex");//$NON-NLS-1$
+		properties.put(org.osgi.framework.Constants.SERVICE_VENDOR, "Eclipse Gyrex");//$NON-NLS-1$
 		properties.put(org.osgi.framework.Constants.SERVICE_RANKING, new Integer(Integer.MAX_VALUE));
 		properties.put(org.osgi.framework.Constants.SERVICE_PID, "org.eclipse.gyrex.log.frameworklogadapter"); //$NON-NLS-1$
 		logServiceRegistration = context.registerService(FrameworkLog.class.getName(), frameworkLog, null);
@@ -125,7 +125,7 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 			context.addServiceListener(slf4jBridge, "(objectClass=org.slf4j.LoggerFactory)");
 		} catch (final InvalidSyntaxException e) {
 			// should not happen, we hardcoded the filter
-			System.err.println("[Eclipse.org - Gyrex] Please inform the developers. There is an implementation error: " + e);
+			System.err.println("[Eclipse Gyrex] Please inform the developers. There is an implementation error: " + e);
 		}
 	}
 
@@ -187,7 +187,7 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 			// no logger available
 			log.setSLF4JLogger(null);
 		} catch (final Throwable e) {
-			System.err.println(NLS.bind("[Eclipse.org - Gyrex] Failed to get SLF4J Logger. {0}", e));
+			System.err.println(NLS.bind("[Eclipse Gyrex] Failed to get SLF4J Logger. {0}", e));
 			// don't update logger, assume current one is still good
 		} finally {
 			if (null != highestLoggerReference) {

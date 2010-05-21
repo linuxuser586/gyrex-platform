@@ -106,7 +106,7 @@ public class HttpActivator extends BaseBundleActivator {
 
 		// start the application registry
 		startApplicationManager(context);
-		getServiceHelper().registerService(IApplicationManager.class.getName(), applicationManager, "Gyrex.net", "Gyrex Application Manager", null, null);
+		getServiceHelper().registerService(IApplicationManager.class.getName(), applicationManager, "Eclipse Gyrex", "Gyrex Application Manager", null, null);
 
 		// open the http tracker
 		if (null == httpServiceTracker) {

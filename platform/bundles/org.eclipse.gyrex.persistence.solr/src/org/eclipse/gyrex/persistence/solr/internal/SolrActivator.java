@@ -146,6 +146,6 @@ public class SolrActivator extends BaseBundleActivator {
 		coreContainer.load(solrBase.getAbsolutePath(), configFile);
 
 		// register the embedded repository type
-		getServiceHelper().registerService(RepositoryProvider.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "Gyrex.net", "Embedded Solr Repository", null, null);
+		getServiceHelper().registerService(RepositoryProvider.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "Eclipse Gyrex", "Embedded Solr Repository", null, null);
 	}
 }
