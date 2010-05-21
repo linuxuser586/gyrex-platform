@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,21 +16,24 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.common.internal.fixme.RuntimeLogAccess;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.gyrex.common.internal.fixme.RuntimeLogAccess;
-import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.osgi.util.NLS;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.util.tracker.ServiceTracker;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 /**
- * The bundle specific logger.
+ * A bundle helper for logging.
  * <p>
  * Gyrex takes logging seriously. It strictly separates logging from debugging.
  * Typically, logging may not be limited to technical message logging about the
@@ -50,7 +53,7 @@ import org.slf4j.MarkerFactory;
  * 
  * @noextend This class is not intended to be subclassed by clients.
  */
-public final class BundleLog {
+public final class BundleLogHelper {
 
 	/** default tag if no tags are provided */
 	protected static final LogTag UNCLASSIFIED = new LogTag() {
@@ -109,7 +112,7 @@ public final class BundleLog {
 	 * @param symbolicName
 	 *            the owner's bundle symbolic name.
 	 */
-	public BundleLog(final String symbolicName) {
+	public BundleLogHelper(final String symbolicName) {
 		this.symbolicName = symbolicName;
 		logger = LoggerFactory.getLogger(symbolicName);
 	}

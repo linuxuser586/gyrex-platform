@@ -19,7 +19,7 @@ import org.eclipse.core.runtime.ListenerList;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
-import org.eclipse.gyrex.common.logging.BundleLog;
+import org.eclipse.gyrex.common.logging.BundleLogHelper;
 import org.eclipse.gyrex.common.logging.LogAudience;
 import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.common.services.BundleServiceHelper;
@@ -65,7 +65,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	private final AtomicReference<Version> bundleVersion = new AtomicReference<Version>();
 
 	/** the plug-in log */
-	private final AtomicReference<BundleLog> log = new AtomicReference<BundleLog>();
+	private final AtomicReference<BundleLogHelper> log = new AtomicReference<BundleLogHelper>();
 
 	/** the status util */
 	private final AtomicReference<BundleStatusUtil> statusUtil = new AtomicReference<BundleStatusUtil>();
@@ -249,10 +249,10 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 * 
 	 * @return the bundle log
 	 */
-	public final BundleLog getLog() {
+	public final BundleLogHelper getLog() {
 		checkActive();
 		if (null == log.get()) {
-			log.compareAndSet(null, new BundleLog(symbolicName));
+			log.compareAndSet(null, new BundleLogHelper(symbolicName));
 		}
 		return log.get();
 	}
