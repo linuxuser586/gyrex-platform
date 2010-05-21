@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -33,36 +33,33 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 /**
- * A bundle helper for logging.
+ * A helper for logging.
  * <p>
  * Gyrex takes logging seriously. It strictly separates logging from debugging.
  * Typically, logging may not be limited to technical message logging about the
  * system which usually targets developers or system administrators. Logging is
  * also suitable for logging application logic specific messages targeted at a
- * difference audience (eg. application users). Therefore, Gyrex comes with a
- * different approach to logging.
+ * difference audience (eg. application users).
  * </p>
  * <p>
- * Under the covers, Gyrex provides integrations into different logging
- * implementations.
+ * Under the covers, the Gyrex log system integrates with SLF4J and various
+ * other logging APIs and implementations available. Gyrex itself also uses
+ * SLF4J for its logging.
  * </p>
  * <p>
  * This class may be instantiated directly by clients. However, the use through
- * {@link BaseBundleActivator} is encouraged.
+ * {@link BaseBundleActivator#getLog()} is encouraged.
  * </p>
  * 
  * @noextend This class is not intended to be subclassed by clients.
  */
-public final class BundleLogHelper {
+public final class LogHelper {
 
 	/** default tag if no tags are provided */
-	protected static final LogTag UNCLASSIFIED = new LogTag() {
+	public static final LogTag UNCLASSIFIED = new LogTag() {
 
 		private static final String STRING_UNCLASSIFIED = "unclassified";
 
-		/* (non-Javadoc)
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
 		@Override
 		public boolean equals(final Object obj) {
 			if (this == obj) {
@@ -77,9 +74,6 @@ public final class BundleLogHelper {
 			return STRING_UNCLASSIFIED.equals(obj.toString());
 		}
 
-		/* (non-Javadoc)
-		 * @see java.lang.Object#hashCode()
-		 */
 		@Override
 		public int hashCode() {
 			return 17 * STRING_UNCLASSIFIED.hashCode();
@@ -103,8 +97,8 @@ public final class BundleLogHelper {
 	/** the plug-in id */
 	private final String symbolicName;
 
-	/** the logger */
-	private final Logger logger;
+	/** the default logger */
+	private final Logger defaultLogger;
 
 	/**
 	 * Creates a new instance.
@@ -112,9 +106,9 @@ public final class BundleLogHelper {
 	 * @param symbolicName
 	 *            the owner's bundle symbolic name.
 	 */
-	public BundleLogHelper(final String symbolicName) {
+	public LogHelper(final String symbolicName) {
 		this.symbolicName = symbolicName;
-		logger = LoggerFactory.getLogger(symbolicName);
+		defaultLogger = LoggerFactory.getLogger(symbolicName);
 	}
 
 	/**
@@ -237,18 +231,18 @@ public final class BundleLogHelper {
 
 		switch (status.getSeverity()) {
 			case IStatus.WARNING:
-				logger.warn(toMarker(allTags), status.getMessage(), status.getException());
+				defaultLogger.warn(toMarker(allTags), status.getMessage(), status.getException());
 				break;
 			case IStatus.ERROR:
-				logger.error(toMarker(allTags), status.getMessage(), status.getException());
+				defaultLogger.error(toMarker(allTags), status.getMessage(), status.getException());
 				break;
 			case IStatus.CANCEL:
-				logger.error(toMarker(allTags), status.getMessage(), status.getException());
+				defaultLogger.error(toMarker(allTags), status.getMessage(), status.getException());
 				break;
 			case IStatus.OK:
 			case IStatus.INFO:
 			default:
-				logger.info(toMarker(allTags), status.getMessage(), status.getException());
+				defaultLogger.info(toMarker(allTags), status.getMessage(), status.getException());
 				break;
 		}
 	}

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -14,17 +14,19 @@ package org.eclipse.gyrex.common.runtime;
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.ListenerList;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
-import org.eclipse.gyrex.common.logging.BundleLogHelper;
 import org.eclipse.gyrex.common.logging.LogAudience;
+import org.eclipse.gyrex.common.logging.LogHelper;
 import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.common.services.BundleServiceHelper;
 import org.eclipse.gyrex.common.status.BundleStatusUtil;
+
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.ListenerList;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -39,13 +41,14 @@ import org.osgi.framework.Version;
  * followed in Gyrex.
  * </p>
  * <p>
- * This class should be subclassed by clients providing a bundle to the Gyrex.
+ * This class should be subclassed by clients providing a bundle to Gyrex.
  * However, its usage is not mandatory.
  * </p>
  * <p>
  * Clients subclassing this class must provide a parameterless public
  * constructor when specifying the class as their bundle activator in their
- * bundle manifest.
+ * bundle manifest so that instances can be created using
+ * {@link Class#newInstance()}.
  * </p>
  * 
  * @see BundleActivator
@@ -65,7 +68,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	private final AtomicReference<Version> bundleVersion = new AtomicReference<Version>();
 
 	/** the plug-in log */
-	private final AtomicReference<BundleLogHelper> log = new AtomicReference<BundleLogHelper>();
+	private final AtomicReference<LogHelper> log = new AtomicReference<LogHelper>();
 
 	/** the status util */
 	private final AtomicReference<BundleStatusUtil> statusUtil = new AtomicReference<BundleStatusUtil>();
@@ -249,10 +252,10 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 * 
 	 * @return the bundle log
 	 */
-	public final BundleLogHelper getLog() {
+	public final LogHelper getLog() {
 		checkActive();
 		if (null == log.get()) {
-			log.compareAndSet(null, new BundleLogHelper(symbolicName));
+			log.compareAndSet(null, new LogHelper(symbolicName));
 		}
 		return log.get();
 	}

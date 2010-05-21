@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.internal.services.ServiceProxyPool;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -29,7 +30,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 
 /**
- * A bundle helper for working with OSGi services.
+ * A helper for working with OSGi services.
  * <p>
  * This class provides methods for registering and consuming OSGi services in a
  * way that makes development easier.
