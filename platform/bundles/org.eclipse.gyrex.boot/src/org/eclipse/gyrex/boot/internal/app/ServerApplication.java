@@ -15,15 +15,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.commons.lang.StringUtils;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
+
 import org.eclipse.gyrex.common.logging.LogAudience;
 import org.eclipse.gyrex.common.logging.LogImportance;
 import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.preferences.PlatformScope;
+
 import org.osgi.framework.Bundle;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +51,9 @@ public class ServerApplication implements IApplication {
 	 */
 	public static void signalRelaunch() {
 		relaunch = true;
+		if (AppDebug.debug) {
+			LOG.debug("Relaunch request received!");
+		}
 		final CountDownLatch signal = stopOrRestartSignal;
 		if (null != signal) {
 			signal.countDown();
@@ -59,6 +65,9 @@ public class ServerApplication implements IApplication {
 	 */
 	public static void signalShutdown() {
 		relaunch = false;
+		if (AppDebug.debug) {
+			LOG.debug("Shutdown request received!");
+		}
 		final CountDownLatch signal = stopOrRestartSignal;
 		if (null != signal) {
 			signal.countDown();
@@ -67,7 +76,7 @@ public class ServerApplication implements IApplication {
 
 	private void bootstrap() throws Exception {
 		if (AppDebug.debug) {
-			LOG.debug("Bootstrapping platform...");
+			LOG.debug("Bootstrapping platform.");
 		}
 
 		// make sure that the configuration is initialized
@@ -181,19 +190,32 @@ public class ServerApplication implements IApplication {
 		if (!(args instanceof String[])) {
 			throw new IllegalStateException("application arguments of wrong type");
 		}
+		final String[] arguments = (String[]) args;
 
-		if (AppDebug.debug) {
-			LOG.debug("Starting platform...");
+		// configure logging
+		try {
+			LogbackConfigurator.configureDefaultContext(arguments);
+		} catch (final ClassNotFoundException e) {
+			// logback not available
+			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+		} catch (final NoClassDefFoundError e) {
+			// logback not available
+			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+		} catch (final Exception e) {
+			// error (but do not fail)
+			LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
 		}
 
 		// relaunch flag
 		boolean relaunch = false;
 
 		try {
+			if (AppDebug.debug) {
+				LOG.debug("Starting platform...");
+			}
+
 			// bootstrap the platform
 			bootstrap();
-
-			final String[] arguments = (String[]) args;
 
 			// read enabled server roles from configuration
 			final String[] roles = getEnabledServerRoles(arguments);
@@ -212,7 +234,7 @@ public class ServerApplication implements IApplication {
 			context.applicationRunning();
 
 			if (AppDebug.debug) {
-				LOG.debug("Platform started.");
+				LOG.info("Platform started.");
 			}
 
 			// note, this application is configured to run only ONCE
@@ -242,8 +264,20 @@ public class ServerApplication implements IApplication {
 			}
 
 			// TODO should evaluate and suggest solution to Ops
-			AppActivator.getInstance().getLog().log("Error while starting server: " + e.getMessage(), e);
+			LOG.error("Error while starting server: " + e.getMessage(), e);
 			return EXIT_ERROR;
+		}
+
+		// de-configure logging
+		try {
+			LogbackConfigurator.reset();
+		} catch (final ClassNotFoundException e) {
+			// logback not available
+		} catch (final NoClassDefFoundError e) {
+			// logback not available
+		} catch (final Exception e) {
+			// error (but do not fail)
+			LOG.warn("Error while de-configuring logback. Please re-configure logging manually. ({})", e.getMessage());
 		}
 
 		return relaunch ? EXIT_RESTART : EXIT_OK;

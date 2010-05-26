@@ -1,5 +1,5 @@
 # global debug option
-org.eclipse.cloudfree.boot/debug=true
+org.eclipse.gyrex.boot/debug=true
 
 # debug roles
-org.eclipse.cloudfree.boot/debugRoles=true
+org.eclipse.gyrex.boot/debugRoles=true

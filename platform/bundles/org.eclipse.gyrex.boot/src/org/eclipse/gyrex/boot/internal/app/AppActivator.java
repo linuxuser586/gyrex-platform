@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -16,18 +16,23 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.osgi.service.datalocation.Location;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -57,6 +62,7 @@ public class AppActivator extends BaseBundleActivator {
 	private ServiceTracker bundleTracker;
 	private Job shutdownListener;
 	private ServerSocket serverSocket;
+	private volatile IServiceProxy<Location> instanceLocationProxy;
 
 	/**
 	 * The constructor
@@ -78,6 +84,8 @@ public class AppActivator extends BaseBundleActivator {
 		if (shutdownPort > 0) {
 			startShutdownListener(shutdownPort);
 		}
+
+		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
 	}
 
 	/* (non-Javadoc)
@@ -118,12 +126,17 @@ public class AppActivator extends BaseBundleActivator {
 		return (PackageAdmin) bundleTracker.getService();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#getDebugOptions()
-	 */
 	@Override
 	protected Class getDebugOptions() {
 		return AppDebug.class;
+	}
+
+	public Location getInstanceLocation() {
+		final IServiceProxy<Location> proxy = instanceLocationProxy;
+		if (null == proxy) {
+			throw createBundleInactiveException();
+		}
+		return proxy.getService();
 	}
 
 	private void startShutdownListener(final int shutdownPort) throws Exception {
