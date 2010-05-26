@@ -11,10 +11,11 @@
  *******************************************************************************/
 package org.eclipse.gyrex.preferences;
 
+import org.eclipse.gyrex.preferences.internal.PreferencesActivator;
+
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IScopeContext;
-import org.eclipse.gyrex.preferences.internal.PreferencesActivator;
 
 /**
  * Object representing the platform scope in the Eclipse preferences hierarchy.
@@ -22,16 +23,15 @@ import org.eclipse.gyrex.preferences.internal.PreferencesActivator;
  * IPreferencesService APIs) or for determining the correct preference node to
  * set values in the store.
  * <p>
- * Platform preferences are stored on a per cluster basis. Usually they are
- * shared across a whole cluster of nodes and stored in an LDAP system. However,
- * the actual storage type is an deployment detail which clients should not
- * depend on. It's a decision made by operators of the system. For example, for
- * a standalone system it's perfectly valid to just store the preferences on the
- * local disc. A clustered system with distributed nodes might use an LDAP
- * server or a database.
+ * Platform preferences are stored on a global basis. Usually they are shared
+ * across a whole cluster of nodes. The actual storage type is an deployment
+ * detail which clients should not depend on. It's a decision made by operators
+ * of the system. For example, for a standalone system it's perfectly valid to
+ * just store the preferences on the local disc. A clustered system with
+ * distributed nodes might use an LDAP server or a database.
  * </p>
  * <p>
- * No location is provided for platform preferences.
+ * No {@link #getLocation() location} is provided for platform preferences.
  * </p>
  * <p>
  * The path for preferences defined in the platform scope hierarchy is as
@@ -53,14 +53,15 @@ public final class PlatformScope implements IScopeContext {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(final Object obj) {
-		if (this == obj) {
+	public boolean equals(final Object o) {
+		// org.eclipse.core.internal.preferences.AbstractScope#equals(Object o)
+		if (this == o) {
 			return true;
 		}
-		if (!(obj instanceof IScopeContext)) {
+		if ((null == o) || !(o instanceof IScopeContext)) {
 			return false;
 		}
-		final IScopeContext other = (IScopeContext) obj;
+		final IScopeContext other = (IScopeContext) o;
 		if (!getName().equals(other.getName())) {
 			return false;
 		}
@@ -68,8 +69,11 @@ public final class PlatformScope implements IScopeContext {
 		return location == null ? other.getLocation() == null : location.equals(other.getLocation());
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IScopeContext#getLocation()
+	/**
+	 * Returns <code>null</code> to indicate that the platform scope does not
+	 * support a file system location for sharing files/content.
+	 * 
+	 * @return <code>null</code> (no location)
 	 */
 	@Override
 	public IPath getLocation() {
@@ -105,7 +109,8 @@ public final class PlatformScope implements IScopeContext {
 	 */
 	@Override
 	public int hashCode() {
-		return getName().hashCode();
+		// org.eclipse.core.internal.preferences.AbstractScope#hashCode()
+		return NAME.hashCode();
 	}
 
 }
