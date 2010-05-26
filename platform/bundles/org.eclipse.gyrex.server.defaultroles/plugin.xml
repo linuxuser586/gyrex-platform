@@ -17,7 +17,7 @@
       <role
             defaultStart="inDevelopmentMode"
             id="org.eclipse.gyrex.boot.role.admin.gwt"
-            name="Gyrex Admin UI (GWT based)">
+            name="Gyrex Admin Console">
          <requireBundle
                symbolicName="org.eclipse.equinox.http.registry">
          </requireBundle>
@@ -27,19 +27,13 @@
          <requireBundle
                symbolicName="org.eclipse.gyrex.admin.web.gwt">
          </requireBundle>
-         <requireBundle
-               symbolicName="org.eclipse.equinox.log">
-         </requireBundle>
       </role>
       <role
             defaultStart="inDevelopmentMode"
             id="org.eclipse.gyrex.boot.role.http.jetty"
-            name="Gyrex Jetty HTTP Engine">
+            name="Gyrex Jetty-based HTTP Engine">
          <requireBundle
                symbolicName="org.eclipse.gyrex.http.jetty">
-         </requireBundle>
-         <requireBundle
-               symbolicName="org.eclipse.equinox.log">
          </requireBundle>
       </role>
       <role
