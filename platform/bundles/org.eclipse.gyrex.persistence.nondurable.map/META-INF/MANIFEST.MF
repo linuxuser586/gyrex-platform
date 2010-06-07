@@ -6,12 +6,10 @@ Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: %provider.name
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-Localization: plugin
-Import-Package: org.eclipse.core.runtime;version="3.4.0",
- org.eclipse.gyrex.monitoring.metrics,
- org.eclipse.gyrex.persistence.storage,
- org.eclipse.gyrex.persistence.storage.provider,
- org.eclipse.gyrex.persistence.storage.settings
 Export-Package: org.eclipse.gyrex.persistence.nondurable.map;uses:="org.eclipse.gyrex.monitoring.metrics,org.eclipse.gyrex.persistence.storage,org.eclipse.gyrex.persistence.storage.type",
  org.eclipse.gyrex.persistence.nondurable.map.internal;x-internal:=true
 Service-Component: OSGI-INF/repository-type-component.xml
 Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.gyrex.persistence;bundle-version="1.0.0",
+ org.eclipse.gyrex.monitoring;bundle-version="1.0.0",
+ org.eclipse.equinox.common;bundle-version="3.6.0"
