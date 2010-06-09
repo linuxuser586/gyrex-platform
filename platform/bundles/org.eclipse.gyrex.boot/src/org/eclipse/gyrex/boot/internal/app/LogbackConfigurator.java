@@ -61,6 +61,9 @@ public class LogbackConfigurator {
 			ca.start();
 
 			rootLogger.addAppender(ca);
+		} else {
+			// increase level
+			rootLogger.setLevel(Level.INFO);
 		}
 
 		final IPath instanceLogfileDirectory = getLogfileDir();
