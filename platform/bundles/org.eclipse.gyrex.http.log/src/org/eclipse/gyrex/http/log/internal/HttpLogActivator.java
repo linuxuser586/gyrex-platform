@@ -36,7 +36,6 @@ public class HttpLogActivator implements BundleActivator {
 		wa = new WildfireAppender();
 		wa.setContext(lc);
 		wa.setName("wildfire");
-		wa.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
 		wa.start();
 
 		// add appender

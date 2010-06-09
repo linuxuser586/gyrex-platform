@@ -124,8 +124,9 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 
 		final String type = getType(event);
 
-		final String file = event.hasCallerData() ? event.getCallerData()[0].getFileName() : null;
-		final int line = event.hasCallerData() ? event.getCallerData()[0].getLineNumber() : 0;
+		final StackTraceElement[] callerData = event.getCallerData();
+		final String file = null != callerData ? callerData[0].getFileName() : null;
+		final int line = null != callerData ? callerData[0].getLineNumber() : 0;
 		final String label = event.getFormattedMessage();
 
 		// start
@@ -156,12 +157,16 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 		json.writeEndObject();
 
 		// body
-		final Layout<ILoggingEvent> patternLayout = layout;
-		if (null != patternLayout) {
-			json.writeString(patternLayout.doLayout(event));
-		} else {
-			json.writeString("");
-		}
+		json.writeString("");
+		//		final PatternLayout patternLayout = (PatternLayout) layout;
+		//		if (null != patternLayout) {
+		//			patternLayout.stop();
+		//			patternLayout.setPattern("%logger{1}");
+		//			patternLayout.start();
+		//			json.writeString(patternLayout.doLayout(event));
+		//		} else {
+		//			json.writeNull();
+		//		}
 
 		// end
 		json.writeEndArray();
@@ -183,7 +188,7 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 	public void start() {
 		final PatternLayout patternLayout = new PatternLayout();
 		patternLayout.setContext(context);
-		patternLayout.setPattern(getPattern());
+		patternLayout.setPattern("%logger{20}");
 		patternLayout.start();
 		layout = patternLayout;
 		super.start();
