@@ -24,7 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.eclipse.gyrex.log.http.internal.wildfire.FirePHPLogger;
+import org.eclipse.gyrex.log.http.internal.WildfireAppender;
 
 /**
  * A servlet filter which captures log messages and writes them in the HTTP
@@ -74,14 +74,14 @@ public class WidlfireLogWriterFilter implements Filter {
 			// hook with the logging system if active
 			final HttpSession session = httpServletRequest.getSession(false);
 			if (!sessionSpecificLogging.get() || ((null != session) && Boolean.TRUE.equals(session.getAttribute(ATTR_NAME_LOGGING_ENABLED)))) {
-				FirePHPLogger.setResponse((HttpServletResponse) response);
+				WildfireAppender.setResponse((HttpServletResponse) response);
 			}
 
 			// handle the request
 			chain.doFilter(request, response);
 		} finally {
 			// remove from logging
-			FirePHPLogger.setResponse(null);
+			WildfireAppender.setResponse(null);
 		}
 	}
 
