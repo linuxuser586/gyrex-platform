@@ -21,7 +21,6 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Layout;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
@@ -160,9 +159,6 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 		json.writeString("");
 		//		final PatternLayout patternLayout = (PatternLayout) layout;
 		//		if (null != patternLayout) {
-		//			patternLayout.stop();
-		//			patternLayout.setPattern("%logger{1}");
-		//			patternLayout.start();
 		//			json.writeString(patternLayout.doLayout(event));
 		//		} else {
 		//			json.writeNull();
@@ -186,22 +182,22 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 
 	@Override
 	public void start() {
-		final PatternLayout patternLayout = new PatternLayout();
-		patternLayout.setContext(context);
-		patternLayout.setPattern("%logger{20}");
-		patternLayout.start();
-		layout = patternLayout;
+		//		final PatternLayout patternLayout = new PatternLayout();
+		//		patternLayout.setContext(context);
+		//		patternLayout.setPattern("%logger{20}");
+		//		patternLayout.start();
+		//		layout = patternLayout;
 		super.start();
 	}
 
 	@Override
 	public void stop() {
 		super.stop();
-		final PatternLayout patternLayout = (PatternLayout) layout;
-		if (null != patternLayout) {
-			patternLayout.stop();
-			layout = null;
-		}
+		//		final PatternLayout patternLayout = (PatternLayout) layout;
+		//		if (null != patternLayout) {
+		//			patternLayout.stop();
+		//			layout = null;
+		//		}
 	}
 
 }
