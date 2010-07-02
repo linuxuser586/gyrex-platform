@@ -1,11 +1,11 @@
 /**
  * Copyright (c) 2008 AGETO Service GmbH and others.
- * All rights reserved. 
- * 
- * This program and the accompanying materials are made available under the terms of the 
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the terms of the
  * Eclipse Public License v1.0 which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
@@ -14,15 +14,17 @@ package org.eclipse.gyrex.http.jetty.internal;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import org.eclipse.equinox.http.jetty.JettyConfigurator;
+import org.eclipse.equinox.http.jetty.JettyConstants;
+
+import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.gyrex.preferences.PlatformScope;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.equinox.http.jetty.JettyConfigurator;
-import org.eclipse.equinox.http.jetty.JettyConstants;
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
-import org.eclipse.gyrex.configuration.service.IConfigurationService;
-import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 final class JettyStarter extends Job {
 
@@ -36,30 +38,30 @@ final class JettyStarter extends Job {
 	}
 
 	Dictionary createSettings() {
-		final IConfigurationService configurationService = PlatformConfiguration.getConfigurationService();
+		final IEclipsePreferences preferences = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
 
 		final Dictionary<String, Object> settings = new Hashtable<String, Object>(4);
 		settings.put(JettyConstants.OTHER_INFO, HttpActivator.TYPE_WEB);
 		settings.put(JettyConstants.HTTP_ENABLED, Boolean.TRUE);
-		settings.put(JettyConstants.HTTP_PORT, new Integer(configurationService.getInt(HttpJettyActivator.SYMBOLIC_NAME, "port", 80, null)));
-		// note, we use the string here to not depend on inofficial API
-		settings.put("customizer.class", "org.eclipse.gyrex.http.internal.GyrexJettyCustomizer");
+		settings.put(JettyConstants.HTTP_PORT, new Integer(preferences.getInt("port", 80)));
+		settings.put(JettyConstants.CONTEXT_SESSIONINACTIVEINTERVAL, new Integer(preferences.getInt("sessionTimeoutSeconds", 1800)));
+		settings.put(JettyConstants.CUSTOMIZER_CLASS, "org.eclipse.gyrex.http.internal.GyrexJettyCustomizer");
 
 		// enable SSL if necessary
-		final int sslPort = configurationService.getInt(HttpJettyActivator.SYMBOLIC_NAME, JettyConstants.HTTPS_PORT, 0, null);
+		final int sslPort = preferences.getInt(JettyConstants.HTTPS_PORT, 0);
 		if (sslPort > 0) {
 			settings.put(JettyConstants.HTTPS_ENABLED, Boolean.TRUE);
 			settings.put(JettyConstants.HTTPS_PORT, new Integer(sslPort));
-			putOptionalSetting(settings, JettyConstants.SSL_KEYSTORE);
-			putOptionalSetting(settings, JettyConstants.SSL_PASSWORD);
-			putOptionalSetting(settings, JettyConstants.SSL_KEYPASSWORD);
+			putOptionalSetting(settings, JettyConstants.SSL_KEYSTORE, preferences);
+			putOptionalSetting(settings, JettyConstants.SSL_PASSWORD, preferences);
+			putOptionalSetting(settings, JettyConstants.SSL_KEYPASSWORD, preferences);
 		}
 
 		return settings;
 	}
 
-	private void putOptionalSetting(final Dictionary<String, Object> settings, final String key) {
-		final String value = PlatformConfiguration.getConfigurationService().getString(HttpJettyActivator.SYMBOLIC_NAME, key, null, null);
+	private void putOptionalSetting(final Dictionary<String, Object> settings, final String key, final IEclipsePreferences preferences) {
+		final String value = preferences.get(key, null);
 		if (null != value) {
 			settings.put(key, value);
 		}
