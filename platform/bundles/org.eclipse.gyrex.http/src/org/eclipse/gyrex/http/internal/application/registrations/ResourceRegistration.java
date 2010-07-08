@@ -53,6 +53,8 @@ public class ResourceRegistration extends Registration {
 	private static final String IF_NONE_MATCH = "If-None-Match"; //$NON-NLS-1$
 	private static final String ETAG = "ETag"; //$NON-NLS-1$
 
+	private static final String[] INDEX_RESOURCES = new String[] { "index.html", "index.htm", "index.jsp" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+
 	private final String name;
 
 	private IResourceProvider provider;
@@ -133,13 +135,13 @@ public class ResourceRegistration extends Registration {
 				}
 
 				// test if there is an index file
-				final String[] indexResourcePaths = new String[] { resourcePath.concat("index.html"), resourcePath.concat("index.htm"), resourcePath.concat("index.jsp") };
-				for (final String indexResourcePath : indexResourcePaths) {
+				for (final String indexResource : INDEX_RESOURCES) {
+					final String indexResourcePath = resourcePath.concat(indexResource);
 					if (resourcePaths.contains(indexResourcePath)) {
 						// use the index file
 						final URL indexResourceUrl = provider.getResource(indexResourcePath);
 						if (null != indexResourceUrl) {
-							return writeResource(req, resp, indexResourcePath, indexResourceUrl, provider, null != pathInfo ? pathInfo.concat("index.html") : "index.html");
+							return writeResource(req, resp, indexResourcePath, indexResourceUrl, provider, null != pathInfo ? pathInfo.concat(indexResource) : indexResource);
 						}
 					}
 				}
