@@ -1,13 +1,13 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
- *     Cognos Incorporated, IBM Corporation - concept/implementation from 
+ *     Cognos Incorporated, IBM Corporation - concept/implementation from
  *                                            org.eclipse.equinox.http.servlet
  *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
@@ -36,6 +36,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
 import org.eclipse.gyrex.http.internal.application.helpers.ServletUtil;
+
 import org.osgi.framework.Bundle;
 
 /**
@@ -126,18 +127,20 @@ public class ResourceRegistration extends Registration {
 			if (null != resourcePaths) {
 				// enforce that all directories are accessed with URLs ending with a slash (like Apache)
 				if ((null == pathInfo) || !pathInfo.endsWith("/")) {
-					// build URL relative to servlet container root 
+					// build URL relative to servlet container root
 					resp.sendRedirect(req.getContextPath().concat(req.getServletPath()).concat(null != pathInfo ? pathInfo.concat("/") : "/"));
 					return true;
 				}
 
-				// test if there is an index.html
-				final String indexResourcePath = resourcePath.concat("index.html");
-				if (resourcePaths.contains(indexResourcePath)) {
-					// use the index file
-					final URL indexResourceUrl = provider.getResource(indexResourcePath);
-					if (null != indexResourceUrl) {
-						return writeResource(req, resp, indexResourcePath, indexResourceUrl, provider, null != pathInfo ? pathInfo.concat("index.html") : "index.html");
+				// test if there is an index file
+				final String[] indexResourcePaths = new String[] { resourcePath.concat("index.html"), resourcePath.concat("index.htm"), resourcePath.concat("index.jsp") };
+				for (final String indexResourcePath : indexResourcePaths) {
+					if (resourcePaths.contains(indexResourcePath)) {
+						// use the index file
+						final URL indexResourceUrl = provider.getResource(indexResourcePath);
+						if (null != indexResourceUrl) {
+							return writeResource(req, resp, indexResourcePath, indexResourceUrl, provider, null != pathInfo ? pathInfo.concat("index.html") : "index.html");
+						}
 					}
 				}
 			}
@@ -263,7 +266,7 @@ public class ResourceRegistration extends Registration {
 					if (contentType == null) {
 						// ask container
 						if ((null != servletContext) && (null != pathInfo)) {
-							// using the path info because we don't want to expose our 
+							// using the path info because we don't want to expose our
 							// internal path to the container
 							contentType = servletContext.getMimeType(pathInfo);
 						}
