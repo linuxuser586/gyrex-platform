@@ -15,10 +15,12 @@ import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+
+import org.eclipse.core.runtime.PlatformObject;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -71,7 +73,7 @@ public abstract class Repository extends PlatformObject {
 	 * <p>
 	 * By definition, a all identifiers used within the repository API must not
 	 * be <code>null</code> or the empty string and may only contain the
-	 * following printable US-ASCII characters.
+	 * following printable ASCII characters.
 	 * <ul>
 	 * <li>lower- and uppercase letters <code>a..z</code> and <code>A..Z</code></li>
 	 * <li>numbers <code>0..9</code></li>
