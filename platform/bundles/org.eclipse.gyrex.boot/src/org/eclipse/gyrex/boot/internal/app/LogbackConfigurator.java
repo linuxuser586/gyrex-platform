@@ -148,7 +148,7 @@ public class LogbackConfigurator extends Job {
 			if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canExecute()) {
 				final long lastModified = configurationFile.lastModified();
 				final long rememberedLastModifiedValue = lastLastModified.get();
-				if (lastModified > rememberedLastModifiedValue) {
+				if ((lastModified - 2000) > rememberedLastModifiedValue) {
 					if (lastLastModified.compareAndSet(rememberedLastModifiedValue, lastModified)) {
 						// reset LoggerContext
 						final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
