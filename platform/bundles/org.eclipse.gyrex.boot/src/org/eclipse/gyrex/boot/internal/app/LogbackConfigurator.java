@@ -1,11 +1,18 @@
 package org.eclipse.gyrex.boot.internal.app;
 
+import java.io.File;
 import java.nio.charset.Charset;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.service.datalocation.Location;
 
 import org.slf4j.LoggerFactory;
@@ -15,6 +22,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.filter.ThresholdFilter;
+import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
@@ -23,7 +31,10 @@ import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.status.InfoStatus;
 import ch.qos.logback.core.status.StatusManager;
 
-public class LogbackConfigurator {
+public class LogbackConfigurator extends Job {
+
+	private static final AtomicLong lastLastModified = new AtomicLong(-1);
+	static final AtomicBoolean active = new AtomicBoolean();
 
 	public static void configureDefaultContext(final String[] arguments) throws Exception {
 		// determine flags
@@ -101,6 +112,11 @@ public class LogbackConfigurator {
 		rootLogger.addAppender(rfa);
 	}
 
+	private static File getLogConfigurationFile() {
+		final Location instanceLocation = AppActivator.getInstance().getInstanceLocation();
+		return new Path(instanceLocation.getURL().getPath()).append("etc/logback.xml").toFile();
+	}
+
 	private static IPath getLogfileDir() {
 		final Location instanceLocation = AppActivator.getInstance().getInstanceLocation();
 		return new Path(instanceLocation.getURL().getPath()).append("logs");
@@ -110,6 +126,49 @@ public class LogbackConfigurator {
 		// reset LoggerContext
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 		lc.reset();
+	}
+
+	/**
+	 * Creates a new instance.
+	 */
+	public LogbackConfigurator() {
+		super("Logback Configurator");
+		setSystem(true);
+		setPriority(Job.SHORT);
+	}
+
+	@Override
+	protected IStatus run(final IProgressMonitor monitor) {
+		if (!active.get()) {
+			return Status.CANCEL_STATUS;
+		}
+
+		try {
+			final File configurationFile = getLogConfigurationFile();
+			if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canExecute()) {
+				final long lastModified = configurationFile.lastModified();
+				final long rememberedLastModifiedValue = lastLastModified.get();
+				if (lastModified > rememberedLastModifiedValue) {
+					if (lastLastModified.compareAndSet(rememberedLastModifiedValue, lastModified)) {
+						// reset LoggerContext
+						final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+						lc.reset();
+
+						// update configuration
+						final JoranConfigurator configurator = new JoranConfigurator();
+						configurator.setContext(lc);
+						configurator.doConfigure(configurationFile);
+					}
+				}
+			}
+		} catch (final Exception e) {
+			// ignore
+		}
+
+		// re-schedule to run in 60 seconds
+		schedule(60000);
+
+		return Status.OK_STATUS;
 	}
 
 }
