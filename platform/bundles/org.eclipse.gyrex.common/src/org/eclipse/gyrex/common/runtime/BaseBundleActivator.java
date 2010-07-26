@@ -251,7 +251,9 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 * within the platform.
 	 * 
 	 * @return the bundle log
+	 * @deprecated please use SLF4J logging api
 	 */
+	@Deprecated
 	public final LogHelper getLog() {
 		checkActive();
 		if (null == log.get()) {
