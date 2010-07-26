@@ -1,35 +1,35 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal;
 
-
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
-import org.eclipse.gyrex.common.logging.LogAudience;
-import org.eclipse.gyrex.common.logging.LogImportance;
-import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.helper.BaseDefaultHttpServiceTracker;
 import org.eclipse.gyrex.http.internal.application.ApplicationHandlerServlet;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.http.HttpService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A server tracker that registers the root servlet with every tracked HTTP
  * service.
  */
 public class HttpServiceTracker extends BaseDefaultHttpServiceTracker {
+
+	private static final Logger LOG = LoggerFactory.getLogger(HttpServiceTracker.class);
 
 	/** ROOT_ALIAS */
 	private static final String ROOT_ALIAS = "/";
@@ -75,7 +75,7 @@ public class HttpServiceTracker extends BaseDefaultHttpServiceTracker {
 				httpService.registerResources(ALIAS_RESOURCES, "/resources", null);
 				httpService.registerServlet(ROOT_ALIAS, rootServlet, null, null);
 			} catch (final Exception e) {
-				HttpActivator.getInstance().getLog().log(new Status(IStatus.ERROR, HttpActivator.PLUGIN_ID, "An error occurred while registering the root servlet.", e), null, LogImportance.BLOCKER, LogAudience.DEVELOPER, LogAudience.ADMIN, LogSource.PLATFORM);
+				LOG.error("An error occurred while registering the root servlet. {}", e.getMessage(), e);
 			}
 		}
 
@@ -97,7 +97,7 @@ public class HttpServiceTracker extends BaseDefaultHttpServiceTracker {
 	public void removedService(final ServiceReference reference, final Object service) {
 		final HttpService httpService = (HttpService) service;
 
-		// unregister 
+		// unregister
 		if (isAllowedToUse(httpService)) {
 			httpService.unregister(ROOT_ALIAS);
 			httpService.unregister(ALIAS_RESOURCES);

@@ -25,20 +25,19 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.gyrex.common.logging.LogAudience;
-import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
-import org.eclipse.gyrex.http.internal.HttpActivator;
 import org.eclipse.gyrex.http.internal.HttpDebug;
 import org.eclipse.gyrex.http.internal.application.helpers.ApplicationRequestAdapter;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationInstance;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationMount;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
+
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +119,7 @@ public class ApplicationHandlerServlet extends HttpServlet implements IApplicati
 			applicationInstance = applicationRegistration.getApplication(this);
 		} catch (final CoreException e) {
 			// TODO: how do we need to log this?
-			HttpActivator.getInstance().getLog().log("error retreiving application for url" + req, e, (Object) null, LogAudience.ADMIN, LogSource.PLATFORM);
+			LOG.error("Error retreiving application for url {}. {}", url, e.getMessage());
 			throw new ApplicationException(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Error Retreiving Application");
 		}
 

@@ -1,23 +1,23 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.http.application.provider;
 
-
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 
+import org.eclipse.core.runtime.CoreException;
+
 /**
- * A provider for {@link Application applications}.
+ * A provider for {@link Application application instances}.
  * <p>
  * Application providers act like factories. Whenever a new application instance
  * has to be created the provider will be ask to create one.
@@ -47,9 +47,8 @@ public abstract class ApplicationProvider {
 	/**
 	 * Creates a new application instance.
 	 * <p>
-	 * Gyrex calls this method to ask the provider for a new
-	 * application which is intended to handle HTTP requests for the specified
-	 * context.
+	 * Gyrex calls this method to ask the provider for a new application which
+	 * is intended to handle HTTP requests for the specified context.
 	 * </p>
 	 * <p>
 	 * Implementors <strong>must</strong> return a new object every time this

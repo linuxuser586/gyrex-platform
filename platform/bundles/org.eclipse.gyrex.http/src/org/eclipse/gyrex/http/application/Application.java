@@ -27,18 +27,20 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.PlatformObject;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
+
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.PlatformObject;
+import org.eclipse.core.runtime.Status;
+
 import org.osgi.service.http.HttpContext;
 
 /**
- * A Gyrex HTTP application.
+ * A Gyrex HTTP application instance.
  * <p>
  * Gyrex defines HTTP applications as a point for bundling a set of
  * functionality offered via HTTP operating in a specific
