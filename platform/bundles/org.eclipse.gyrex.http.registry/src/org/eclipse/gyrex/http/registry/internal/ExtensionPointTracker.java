@@ -45,24 +45,25 @@ public class ExtensionPointTracker {
 				switch (delta.getKind()) {
 					case IExtensionDelta.ADDED:
 						if (addExtension(extension)) {
-							if (HttpRegistryDebug.extensionRegistration) {
-								LOG.debug("added extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
-							}
 							listener.added(extension);
+							if (HttpRegistryDebug.extensionRegistration) {
+								LOG.debug("Added {}.", toDebugString(extension));
+							}
 						}
 						break;
 					case IExtensionDelta.REMOVED:
 						if (removeExtension(extension)) {
-							if (HttpRegistryDebug.extensionRegistration) {
-								LOG.debug("removed extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
-							}
 							listener.removed(extension);
+							if (HttpRegistryDebug.extensionRegistration) {
+								LOG.debug("Removed {}.", toDebugString(extension));
+							}
 						}
 					default:
 						break;
 				}
 			}
 		}
+
 	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(ExtensionPointTracker.class);
@@ -74,13 +75,25 @@ public class ExtensionPointTracker {
 		public void removed(final IExtension extension) {
 		}
 	};
+
+	static String toDebugString(final IExtension extension) {
+		final StringBuilder string = new StringBuilder();
+		string.append("extension ");
+		string.append("id=").append(extension.getUniqueIdentifier());
+		string.append(" (point ").append(extension.getExtensionPointUniqueIdentifier()).append(") ");
+		string.append("contributed by ");
+		string.append(extension.getContributor());
+		return extension.getUniqueIdentifier();
+	}
+
 	private final IExtensionRegistry registry;
 	private final String extensionPointId;
 	final String namespace;
 	final String simpleIdentifier;
-	final Listener listener;
 
+	final Listener listener;
 	private final RegistryChangeListener registryChangeListener = new RegistryChangeListener();
+
 	private final Set<IExtension> extensionCache = new HashSet<IExtension>();
 
 	private boolean closed = true;
@@ -103,7 +116,7 @@ public class ExtensionPointTracker {
 			return false;
 		}
 		if (HttpRegistryDebug.extensionRegistration) {
-			LOG.debug("adding extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
+			LOG.debug("Adding {}.", toDebugString(extension));
 		}
 		return extensionCache.add(extension);
 	}
@@ -165,7 +178,7 @@ public class ExtensionPointTracker {
 			return false;
 		}
 		if (HttpRegistryDebug.extensionRegistration) {
-			LOG.debug("removing extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
+			LOG.debug("Removing {}.", toDebugString(extension));
 		}
 		return extensionCache.remove(extension);
 	}
