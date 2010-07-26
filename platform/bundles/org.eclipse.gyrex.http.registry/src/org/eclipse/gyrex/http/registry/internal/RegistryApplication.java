@@ -1,11 +1,11 @@
 /**
  * Copyright (c) 2008 AGETO Service GmbH and others.
- * All rights reserved. 
- * 
- * This program and the accompanying materials are made available under the terms of the 
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the terms of the
  * Eclipse Public License v1.0 which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
@@ -13,14 +13,15 @@ package org.eclipse.gyrex.http.registry.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
 import org.eclipse.gyrex.http.registry.ApplicationCustomizer;
 
+import org.eclipse.core.runtime.CoreException;
+
 /**
- * 
+ * Lazy application instance contributed via extension registry.
  */
 public class RegistryApplication extends Application {
 
@@ -30,11 +31,9 @@ public class RegistryApplication extends Application {
 		super(id, context);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.Application#doDestroy()
-	 */
 	@Override
 	protected void doDestroy() {
+		// notify provider
 		RegistryApplicationProvider.getInstance().removeApplication(getId());
 
 		// call customizer after regular destroy
@@ -48,11 +47,9 @@ public class RegistryApplication extends Application {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.Application#doInit()
-	 */
 	@Override
 	protected void doInit() throws CoreException {
+		// notify provider
 		RegistryApplicationProvider.getInstance().initApplication(this);
 
 		// call customizer after initialization
@@ -62,9 +59,6 @@ public class RegistryApplication extends Application {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.Application#getApplicationServiceSupport()
-	 */
 	@Override
 	protected IApplicationServiceSupport getApplicationServiceSupport() {
 		return super.getApplicationServiceSupport();

@@ -1,13 +1,13 @@
 /*******************************************************************************
  * Copyright (c) 2008 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
- *     Cognos Incorporated, IBM Corporation - concept/implementation from 
+ *     Cognos Incorporated, IBM Corporation - concept/implementation from
  *                                            org.eclipse.equinox.http.registry
  *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
@@ -25,7 +25,11 @@ import org.eclipse.core.runtime.IRegistryChangeEvent;
 import org.eclipse.core.runtime.IRegistryChangeListener;
 import org.eclipse.core.runtime.InvalidRegistryObjectException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ExtensionPointTracker {
+
 	public interface Listener {
 		public void added(IExtension extension);
 
@@ -41,11 +45,17 @@ public class ExtensionPointTracker {
 				switch (delta.getKind()) {
 					case IExtensionDelta.ADDED:
 						if (addExtension(extension)) {
+							if (HttpRegistryDebug.extensionRegistration) {
+								LOG.debug("added extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
+							}
 							listener.added(extension);
 						}
 						break;
 					case IExtensionDelta.REMOVED:
 						if (removeExtension(extension)) {
+							if (HttpRegistryDebug.extensionRegistration) {
+								LOG.debug("removed extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
+							}
 							listener.removed(extension);
 						}
 					default:
@@ -54,6 +64,8 @@ public class ExtensionPointTracker {
 			}
 		}
 	}
+
+	private static final Logger LOG = LoggerFactory.getLogger(ExtensionPointTracker.class);
 
 	private static final Listener NULL_LISTENER = new Listener() {
 		public void added(final IExtension extension) {
@@ -66,9 +78,10 @@ public class ExtensionPointTracker {
 	private final String extensionPointId;
 	final String namespace;
 	final String simpleIdentifier;
-	private final Set<IExtension> extensionCache = new HashSet<IExtension>();
-	protected final Listener listener;
+	final Listener listener;
+
 	private final RegistryChangeListener registryChangeListener = new RegistryChangeListener();
+	private final Set<IExtension> extensionCache = new HashSet<IExtension>();
 
 	private boolean closed = true;
 
@@ -89,6 +102,9 @@ public class ExtensionPointTracker {
 		if (closed) {
 			return false;
 		}
+		if (HttpRegistryDebug.extensionRegistration) {
+			LOG.debug("adding extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
+		}
 		return extensionCache.add(extension);
 	}
 
@@ -97,6 +113,9 @@ public class ExtensionPointTracker {
 		synchronized (this) {
 			if (closed) {
 				return;
+			}
+			if (HttpRegistryDebug.extensionRegistration) {
+				LOG.debug("Closing tracker for extension point {} (namespace {}).", extensionPointId, namespace);
 			}
 			closed = true;
 			registry.removeRegistryChangeListener(registryChangeListener);
@@ -117,6 +136,9 @@ public class ExtensionPointTracker {
 		synchronized (this) {
 			if (!closed) {
 				return;
+			}
+			if (HttpRegistryDebug.extensionRegistration) {
+				LOG.debug("Opening tracker for extension point {} (namespace {}).", extensionPointId, namespace);
 			}
 			registry.addRegistryChangeListener(registryChangeListener, namespace);
 			try {
@@ -141,6 +163,9 @@ public class ExtensionPointTracker {
 	synchronized boolean removeExtension(final IExtension extension) {
 		if (closed) {
 			return false;
+		}
+		if (HttpRegistryDebug.extensionRegistration) {
+			LOG.debug("removing extension {} contributed by {}", extension.getUniqueIdentifier(), extension.getContributor());
 		}
 		return extensionCache.remove(extension);
 	}

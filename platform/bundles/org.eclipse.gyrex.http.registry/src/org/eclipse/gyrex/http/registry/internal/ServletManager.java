@@ -1,13 +1,13 @@
 /*******************************************************************************
  * Copyright (c) 2008 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
- *     Cognos Incorporated, IBM Corporation - concept/implementation from 
+ *     Cognos Incorporated, IBM Corporation - concept/implementation from
  *                                            org.eclipse.equinox.http.registry
  *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
@@ -29,7 +29,11 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtension;
 import org.eclipse.core.runtime.IExtensionRegistry;
+
 import org.osgi.framework.ServiceReference;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServletManager implements ExtensionPointTracker.Listener {
 
@@ -95,25 +99,18 @@ public class ServletManager implements ExtensionPointTracker.Listener {
 	}
 
 	private static final String SERVLETS_EXTENSION_POINT = "org.eclipse.gyrex.http.applications"; //$NON-NLS-1$
-
 	private static final String PARAM_VALUE = "value"; //$NON-NLS-1$
-
 	private static final String PARAM_NAME = "name"; //$NON-NLS-1$
-
 	private static final String INIT_PARAM = "init-param"; //$NON-NLS-1$
-
 	private static final String SERVLET = "servlet"; //$NON-NLS-1$
-
 	private static final String ALIAS = "alias"; //$NON-NLS-1$
-
 	private static final String LOAD_ON_STARTUP = "load-on-startup"; //$NON-NLS-1$
-
 	private static final String APPLICATION_ID = "applicationId"; //$NON-NLS-1$
 
+	private static final Logger LOG = LoggerFactory.getLogger(ServletManager.class);
+
 	private final ExtensionPointTracker tracker;
-
 	private final ApplicationRegistryManager httpRegistryManager;
-
 	private final List<IConfigurationElement> registered = new ArrayList<IConfigurationElement>();
 
 	public ServletManager(final ApplicationRegistryManager httpRegistryManager, final ServiceReference reference, final IExtensionRegistry registry) {
@@ -132,6 +129,7 @@ public class ServletManager implements ExtensionPointTracker.Listener {
 			final ServletWrapper wrapper = new ServletWrapper(servletElement);
 			final String alias = servletElement.getAttribute(ALIAS);
 			if (alias == null) {
+				LOG.warn("Ignoring servlet extension element contributed by {}. Does not contain an alias.", servletElement.getContributor());
 				continue; // alias is mandatory - ignore this.
 			}
 
@@ -150,6 +148,7 @@ public class ServletManager implements ExtensionPointTracker.Listener {
 
 			String applicationId = servletElement.getAttribute(APPLICATION_ID);
 			if (applicationId == null) {
+				LOG.warn("Ignoring servlet extension element contributed by {}. Does not contain an application id.", servletElement.getContributor());
 				continue; // alias is mandatory - ignore this.
 			}
 
@@ -157,8 +156,18 @@ public class ServletManager implements ExtensionPointTracker.Listener {
 				applicationId = servletElement.getNamespaceIdentifier() + "." + applicationId; //$NON-NLS-1$
 			}
 
+			if (HttpRegistryDebug.extensionRegistration) {
+				LOG.debug("Trying to add servlet {} to application {} (contributed by {}).", new Object[] { alias, applicationId, servletElement.getContributor() });
+			}
 			if (httpRegistryManager.addServletContribution(alias, wrapper, initparams, applicationId, extension.getContributor())) {
+				if (HttpRegistryDebug.extensionRegistration) {
+					LOG.debug("Successfully added servlet {} to application {} (contributed by {}).", new Object[] { alias, applicationId, servletElement.getContributor() });
+				}
 				registered.add(servletElement);
+			} else {
+				if (HttpRegistryDebug.extensionRegistration) {
+					LOG.debug("Did not add servlet {} to application {} (contributed by {}).", new Object[] { alias, applicationId, servletElement.getContributor() });
+				}
 			}
 		}
 	}
@@ -167,10 +176,34 @@ public class ServletManager implements ExtensionPointTracker.Listener {
 		final IConfigurationElement[] elements = extension.getConfigurationElements();
 		for (int i = 0; i < elements.length; i++) {
 			final IConfigurationElement servletElement = elements[i];
+			if (!SERVLET.equals(servletElement.getName())) {
+				continue;
+			}
+
+			final String alias = servletElement.getAttribute(ALIAS);
+			if (alias == null) {
+				LOG.warn("Ignoring mount extension element contributed by {}. Does not contain an alias.", servletElement.getContributor());
+				continue; // alias is mandatory - ignore this.
+			}
+
+			final String applicationId = servletElement.getAttribute(APPLICATION_ID);
+			if (applicationId == null) {
+				LOG.warn("Ignoring mount extension element contributed by {}. Does not contain an application id.", servletElement.getContributor());
+				continue; // alias is mandatory - ignore this.
+			}
+
+			if (HttpRegistryDebug.extensionRegistration) {
+				LOG.debug("Trying to remove servlet {} to application {} (contributed by {}).", new Object[] { alias, applicationId, servletElement.getContributor() });
+			}
 			if (registered.remove(servletElement)) {
-				final String alias = servletElement.getAttribute(ALIAS);
-				final String applicationId = servletElement.getAttribute(APPLICATION_ID);
+				if (HttpRegistryDebug.extensionRegistration) {
+					LOG.debug("Successfully removed servlet {} to application {} (contributed by {}).", new Object[] { alias, applicationId, servletElement.getContributor() });
+				}
 				httpRegistryManager.removeContribution(alias, applicationId);
+			} else {
+				if (HttpRegistryDebug.extensionRegistration) {
+					LOG.debug("Did not remove servlet {} to application {} (contributed by {}).", new Object[] { alias, applicationId, servletElement.getContributor() });
+				}
 			}
 		}
 	}

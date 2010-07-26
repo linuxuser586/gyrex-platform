@@ -1,0 +1,8 @@
+# global debug option
+org.eclipse.gyrex.http.registry/debug=true
+
+# debug roles
+org.eclipse.gyrex.http.registry/applicationLifecycle=true
+
+# dynamic extensions
+org.eclipse.gyrex.http.registry/extensionRegistration=true
