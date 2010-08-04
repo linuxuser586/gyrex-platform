@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -11,8 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.provider;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -21,8 +23,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
+
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,10 +82,10 @@ public class TypeRegistration {
 			// this should not happen if everything behaves correctly ...
 			// not sure why there would be two service references for us
 			LOG.warn("A provider was added which was already tracked by us. This looks like a programming (concurrency?) error. (old:{}, new:{}, {})", new Object[] { providerRegistration, serviceReference, this });
-		} else {
-			if (ContextDebug.objectLifecycle) {
-				LOG.debug("Adding provider {} to {}", provider, this);
-			}
+		}
+
+		if (ContextDebug.objectLifecycle) {
+			LOG.debug("Adding provider {} to {}", provider, this);
 		}
 
 		// a new provider was registered
@@ -112,27 +116,35 @@ public class TypeRegistration {
 	}
 
 	/**
-	 * Returns a provider for the specified type and matching the specified
-	 * filter.
+	 * Returns a list of providers matching the specified filter.
+	 * <p>
+	 * Returns all available registrations if no filter is specified.
+	 * </p>
 	 * 
-	 * @param type
-	 *            the concrete type class
 	 * @param filter
 	 *            the optional filter to match
-	 * @return the matching provider (maybe <code>null</code>)
+	 * @return the matching providers (or <code>null</code> if non match)
 	 * @see ProviderRegistration#match(Filter)
 	 */
-	public ProviderRegistration getProvider(final Class<?> type, final Filter filter) {
+	public ProviderRegistration[] getMatchingProviders(final Filter filter) {
 		// we rely on the sort order of the providersByReference map to contain
 		// the providers with a higher service ranking first
+
+		// return all if no filter specified
+		if (null == filter) {
+			return providersByReference.values().toArray(new ProviderRegistration[0]);
+		}
+
+		// perform matching
+		final List<ProviderRegistration> providers = new ArrayList<ProviderRegistration>(3);
 		for (final ProviderRegistration providerRegistration : providersByReference.values()) {
-			if (type.isAssignableFrom(providerRegistration.getType()) && providerRegistration.match(filter)) {
-				return providerRegistration;
+			if (providerRegistration.match(filter)) {
+				providers.add(providerRegistration);
 			}
 		}
 
-		// none matched
-		return null;
+		// return matched
+		return providers.isEmpty() ? null : providers.toArray(new ProviderRegistration[providers.size()]);
 	}
 
 	/**

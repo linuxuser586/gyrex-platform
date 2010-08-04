@@ -12,21 +12,20 @@
 package org.eclipse.gyrex.context.internal;
 
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
+import org.eclipse.gyrex.context.internal.di.GyrexContextInjectorImpl;
+import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.PlatformObject;
-import org.eclipse.e4.core.services.IDisposable;
-import org.eclipse.e4.core.services.context.EclipseContextFactory;
-import org.eclipse.e4.core.services.context.IEclipseContext;
-import org.eclipse.e4.core.services.context.spi.IContextConstants;
-import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
+import org.eclipse.e4.core.di.IDisposable;
 
 /**
  * Internal context implementation.
@@ -34,9 +33,17 @@ import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
  * Note, a context must be dynamic, there are potentially long running
  * references to a context. The #get calls need to be dynamic.
  * </p>
+ * <p>
+ * The context implementation relies on preferences to store context
+ * configuration and on the e4 {@link IEclipseContext} to implement the context
+ * behavior na dot allow injection capabilities. There are various elements
+ * which glue the pieces together.
+ * </p>
  */
+@SuppressWarnings("restriction")
 public class GyrexContextImpl extends PlatformObject implements IRuntimeContext, IDisposable {
 
+	/** key for looking up a GyrexContextImpl from an IEclipseContext */
 	static final String ECLIPSE_CONTEXT_KEY = GyrexContextImpl.class.getName();
 
 	@SuppressWarnings("unchecked")
@@ -53,11 +60,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 	private final AtomicBoolean disposed = new AtomicBoolean();
 	private final ContextRegistryImpl contextRegistry;
 	private final Set<IDisposable> disposables = new CopyOnWriteArraySet<IDisposable>();
-	private final Lock initializationLock = new ReentrantLock();
-
-	private volatile IEclipseContext eclipseContext;
-
+	private final GyrexContextInjectorImpl injector;
 	private final AtomicLong lastAccessTime = new AtomicLong();
+	private final ConcurrentMap<Class<?>, GyrexContextObject> computedObjects = new ConcurrentHashMap<Class<?>, GyrexContextObject>();
 
 	/**
 	 * Creates a new instance.
@@ -73,9 +78,10 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		}
 		this.contextPath = contextPath;
 		this.contextRegistry = contextRegistry;
+		injector = new GyrexContextInjectorImpl(this);
 	}
 
-	void addDisposable(final IDisposable disposable) {
+	public void addDisposable(final IDisposable disposable) {
 		checkDisposed();
 		if (!disposables.contains(disposable)) {
 			disposables.add(disposable);
@@ -95,18 +101,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 			return;
 		}
 
-		// dispose underlying context
-		final IEclipseContext context = eclipseContext;
-		if (null != context) {
-			eclipseContext = null;
-
-			// remove reference
-			context.remove(ECLIPSE_CONTEXT_KEY);
-
-			// dispose context
-			if (context instanceof IDisposable) {
-				((IDisposable) context).dispose();
-			}
+		// dispose injector
+		if (injector instanceof IDisposable) {
+			((IDisposable) injector).dispose();
 		}
 
 		// dispose disposables
@@ -114,36 +111,21 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 			disposable.dispose();
 		}
 		disposables.clear();
-
 	}
 
 	@Override
 	public <T> T get(final Class<T> type) throws IllegalArgumentException {
+		checkDisposed();
 		trackAccess();
 
-		// lookup from Eclipse context (always provide the context as argument)
-		final Object value = getEclipseContext().get(type.getName(), new Object[] { type });
-		if (null == value) {
-			return null;
+		// get computed object
+		GyrexContextObject contextObject = computedObjects.get(type);
+		if (null == contextObject) {
+			computedObjects.putIfAbsent(type, new GyrexContextObject(this, type));
+			contextObject = computedObjects.get(type);
 		}
 
-		// return value if possible
-		if (type.isAssignableFrom(value.getClass())) {
-			return safeCast(value);
-		}
-
-		// use first possible value for arrays
-		if (value.getClass().isArray()) {
-			final Object[] values = (Object[]) value;
-			for (final Object value2 : values) {
-				if (type.isAssignableFrom(value2.getClass())) {
-					return safeCast(value2);
-				}
-			}
-		}
-
-		// give up
-		return null;
+		return safeCast(contextObject.compute());
 	}
 
 	@Override
@@ -162,47 +144,6 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return contextRegistry;
 	}
 
-	/*package*/IEclipseContext getEclipseContext() {
-		checkDisposed();
-
-		IEclipseContext context = eclipseContext;
-		if (null != context) {
-			return context;
-		}
-
-		// determine parent (outside of initialization lock)
-		final GyrexContextHandle parent = contextPath.segmentCount() > 0 ? contextRegistry.get(contextPath.removeLastSegments(1)) : null;
-		final IEclipseContext parentEclipseContext = null != parent ? parent.get().getEclipseContext() : null;
-
-		// make sure we stay responsive when acquiring the initialization lock
-		try {
-			initializationLock.tryLock(2, TimeUnit.SECONDS);
-		} catch (final InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new IllegalStateException("concurrent initialization in progress time-out for context " + contextPath);
-		}
-
-		// initialize the context if necessary
-		try {
-			// check if another thread created it
-			context = eclipseContext;
-			if (null != context) {
-				return context;
-			}
-
-			// create eclipse context
-			eclipseContext = EclipseContextFactory.create(parentEclipseContext, GyrexContextStrategy.SINGLETON);
-
-			// set reference to *this* context
-			eclipseContext.set(ECLIPSE_CONTEXT_KEY, this);
-			eclipseContext.set(IContextConstants.DEBUG_STRING, "Eclipse Context [" + contextPath.toString() + "]");
-
-			return eclipseContext;
-		} finally {
-			initializationLock.unlock();
-		}
-	}
-
 	/**
 	 * Returns a handle to this context which should be passed to external API
 	 * clients.
@@ -211,6 +152,13 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 	 */
 	public GyrexContextHandle getHandle() {
 		return contextRegistry.getHandle(contextPath);
+	}
+
+	@Override
+	public IRuntimeContextInjector getInjector() {
+		checkDisposed();
+
+		return injector;
 	}
 
 	/**

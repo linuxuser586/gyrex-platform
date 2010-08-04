@@ -15,25 +15,30 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.math.NumberUtils;
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.eclipse.e4.core.services.IDisposable;
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.internal.configuration.ContextConfiguration;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
+
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The {@link IRuntimeContextPreferences} implementation.
  */
-public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences, IDisposable {
+public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 
 	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextPreferencesImpl.class);
 
@@ -177,11 +182,12 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences, 
 	 * 
 	 * @param context
 	 */
+	@Inject
 	public GyrexContextPreferencesImpl(final IRuntimeContext context) {
 		this.context = context;
 	}
 
-	@Override
+	@PreDestroy
 	public void dispose() {
 		context = null;
 	}

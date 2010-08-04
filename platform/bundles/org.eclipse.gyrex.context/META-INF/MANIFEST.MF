@@ -8,17 +8,20 @@ Bundle-Activator: org.eclipse.gyrex.context.internal.ContextActivator
 Bundle-ActivationPolicy: lazy
 Bundle-Localization: plugin
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Import-Package: org.apache.commons.codec.binary;version="1.3.0",
+Import-Package: javax.annotation,
+ javax.inject;version="1.0.0",
+ org.apache.commons.codec.binary;version="1.3.0",
  org.apache.commons.lang.math;version="2.4.0",
  org.eclipse.core.runtime;common=split;version="3.4.0",
- org.eclipse.e4.core.services,
- org.eclipse.e4.core.services.context,
- org.eclipse.e4.core.services.context.spi,
+ org.eclipse.e4.core.di,
+ org.eclipse.e4.core.di.annotations,
+ org.eclipse.e4.core.di.suppliers,
  org.eclipse.osgi.util;version="1.1.0",
  org.osgi.framework;version="1.3.0",
  org.osgi.util.tracker;version="1.4.2",
  org.slf4j;version="1.5.6"
 Export-Package: org.eclipse.gyrex.context;version="1.0.0",
+ org.eclipse.gyrex.context.di;version="1.0.0",
  org.eclipse.gyrex.context.internal;x-friends:="org.eclipse.gyrex.context.tests",
  org.eclipse.gyrex.context.internal.configuration;x-friends:="org.eclipse.gyrex.context.tests",
  org.eclipse.gyrex.context.internal.manager;x-friends:="org.eclipse.gyrex.context.tests",

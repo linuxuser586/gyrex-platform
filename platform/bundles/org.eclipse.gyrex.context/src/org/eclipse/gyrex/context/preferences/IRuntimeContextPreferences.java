@@ -11,9 +11,11 @@
  */
 package org.eclipse.gyrex.context.preferences;
 
+import org.eclipse.gyrex.context.IRuntimeContext;
+
 import org.eclipse.core.runtime.preferences.DefaultScope;
 import org.eclipse.core.runtime.preferences.IPreferencesService;
-import org.eclipse.gyrex.context.IRuntimeContext;
+
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 

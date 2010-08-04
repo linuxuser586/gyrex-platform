@@ -11,7 +11,9 @@
  */
 package org.eclipse.gyrex.context.internal.preferences;
 
-import org.eclipse.gyrex.context.IRuntimeContext;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 
@@ -20,26 +22,9 @@ import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
  */
 public class GyrexContextPreferencesProvider extends RuntimeContextObjectProvider {
 
-	private static final Class[] TYPES = new Class[] { IRuntimeContextPreferences.class };
-
-	@Override
-	public Object getObject(final Class type, final IRuntimeContext context) {
-		if (IRuntimeContextPreferences.class.equals(type)) {
-			return new GyrexContextPreferencesImpl(context);
-		}
-		return null;
+	public GyrexContextPreferencesProvider() {
+		final Map<Class<?>, Class<?>> config = new HashMap<Class<?>, Class<?>>();
+		config.put(IRuntimeContextPreferences.class, GyrexContextPreferencesImpl.class);
+		configureObjectTypes(config);
 	}
-
-	@Override
-	public Class[] getObjectTypes() {
-		return TYPES;
-	}
-
-	@Override
-	public void ungetObject(final Object object, final IRuntimeContext context) {
-		if (object instanceof GyrexContextPreferencesImpl) {
-			((GyrexContextPreferencesImpl) object).dispose();
-		}
-	}
-
 }

@@ -16,6 +16,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.configuration.ContextConfiguration;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
+
 import org.osgi.framework.Filter;
 
 /**

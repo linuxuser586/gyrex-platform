@@ -13,9 +13,6 @@ package org.eclipse.gyrex.context.internal.configuration;
 
 import java.text.MessageFormat;
 
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.gyrex.common.logging.LogAudience;
 import org.eclipse.gyrex.common.logging.LogImportance;
 import org.eclipse.gyrex.common.logging.LogSource;
@@ -23,11 +20,17 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.preferences.PlatformScope;
+
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
 import org.osgi.framework.Filter;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -159,6 +162,9 @@ public final class ContextConfiguration {
 		} catch (final BackingStoreException e) {
 			ContextActivator.getInstance().getLog().log(MessageFormat.format("Error while accessing the preferences backend for context path \"{0}\": {1}", contextPath, e.getMessage()), e, context, LogAudience.ADMIN, LogImportance.WARNING, LogSource.PLATFORM);
 		}
+
+		// TODO we need to flush the context hierarch for the type name here
+		// the flush can potentially be smart to only flush the contexts which are affected by the change
 	};
 
 	/**

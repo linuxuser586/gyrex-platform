@@ -1,3 +1,14 @@
+/*******************************************************************************
+ * Copyright (c) 2010 AGETO and others.
+ * All rights reserved.
+ *  
+ * This program and the accompanying materials are made available under the 
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html.
+ *
+ * Contributors:
+ *     Gunnar Wagenknecht - initial API and implementation
+ *******************************************************************************/
 /**
  * This package (and its sub-packages) define the Gyrex Contextual Runtime.
  * <p>
@@ -54,7 +65,8 @@
  * <p>
  * Note, for security reasons (see below) a context will not allow simple
  * retrieval of its parent context. Instead always the context registry has to
- * be used to lookup a particular context.
+ * be used to lookup a particular context. For the same reasons, a context
+ * does not offer modification APIs to clients.
  * </p>
  * <h4>Contextual Objects</h4>
  * <p>

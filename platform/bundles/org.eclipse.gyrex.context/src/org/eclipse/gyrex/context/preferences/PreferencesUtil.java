@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.context.preferences;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+
 import org.eclipse.osgi.util.NLS;
 
 /**

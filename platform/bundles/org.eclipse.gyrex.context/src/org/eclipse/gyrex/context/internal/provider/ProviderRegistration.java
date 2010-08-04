@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -21,8 +21,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
+
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

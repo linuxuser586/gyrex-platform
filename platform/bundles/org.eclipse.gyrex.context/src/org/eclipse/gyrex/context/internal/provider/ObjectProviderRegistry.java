@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -64,10 +65,8 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	}
 
 	private final ConcurrentMap<String, TypeRegistration> registrations = new ConcurrentHashMap<String, TypeRegistration>();
-
 	private final AtomicReference<BundleContext> contextRef = new AtomicReference<BundleContext>();
-
-	private ServiceTracker tracker;
+	private ServiceTracker objectProviderTracker;
 
 	/**
 	 * Flushes any cached properties of a provider.
@@ -120,9 +119,6 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.lifecycle.IShutdownParticipant#shutdown()
-	 */
 	@Override
 	public void shutdown() throws Exception {
 		final BundleContext context = contextRef.getAndSet(null);
@@ -130,8 +126,8 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 			return;
 		}
 
-		tracker.close();
-		tracker = null;
+		objectProviderTracker.close();
+		objectProviderTracker = null;
 	}
 
 	/**
@@ -146,8 +142,8 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 			throw new IllegalStateException("already (still?) active");
 		}
 
-		tracker = new RuntimeContextObjectProviderTracker(context);
-		tracker.open();
+		objectProviderTracker = new RuntimeContextObjectProviderTracker(context);
+		objectProviderTracker.open();
 	}
 
 	/**

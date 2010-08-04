@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.context.manager;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+
 import org.osgi.framework.Filter;
 
 /**

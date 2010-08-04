@@ -14,15 +14,17 @@ package org.eclipse.gyrex.context.internal;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
+import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
+
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.PlatformObject;
-import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 
 /**
  * Handle to a Gyrex context.
  * <p>
- * we use handles so that clients can hold onto a "context" for a longer time
+ * We use handles so that clients can hold onto a "context" for a longer time
  * but we can dispose the internal context at any time.
  * </p>
  */
@@ -61,9 +63,6 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 		return gyrexContextImpl;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.context.IRuntimeContext#get(java.lang.Class)
-	 */
 	@Override
 	public <T> T get(final Class<T> type) throws IllegalArgumentException {
 		return get().get(type);
@@ -72,6 +71,11 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 	@Override
 	public IPath getContextPath() {
 		return contextPath;
+	}
+
+	@Override
+	public IRuntimeContextInjector getInjector() {
+		return get().getInjector();
 	}
 
 	@Override

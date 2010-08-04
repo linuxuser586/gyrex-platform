@@ -11,10 +11,11 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.preferences;
 
+import org.eclipse.gyrex.context.internal.ContextActivator;
+
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IPreferencesService;
-import org.eclipse.gyrex.context.internal.ContextActivator;
 
 /**
  * Utility for working with Eclipse preferences.

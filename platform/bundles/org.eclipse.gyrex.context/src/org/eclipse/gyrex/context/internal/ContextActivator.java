@@ -1,8 +1,18 @@
+/*******************************************************************************
+ * Copyright (c) 2009 AGETO Service GmbH and others.
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html.
+ *
+ * Contributors:
+ *     Gunnar Wagenknecht - initial API and implementation
+ *******************************************************************************/
 package org.eclipse.gyrex.context.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.internal.manager.ContextManagerImpl;
@@ -12,7 +22,10 @@ import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+
+import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.eclipse.osgi.util.NLS;
+
 import org.osgi.framework.BundleContext;
 
 public class ContextActivator extends BaseBundleActivator {

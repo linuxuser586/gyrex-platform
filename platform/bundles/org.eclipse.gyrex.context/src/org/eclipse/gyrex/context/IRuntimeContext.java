@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -11,10 +11,12 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context;
 
+import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 
 /**
  * The context for defining the runtime environment.
@@ -44,7 +46,8 @@ import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
  * <p>
  * Note, for security reasons as mentioned previously a context will not allow
  * simple retrieval of its parent context. Instead always the context registry
- * has to be used to lookup a particular context.
+ * has to be used to lookup a particular context. For the same reasons, a
+ * context does not offer modification APIs to clients.
  * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
@@ -54,7 +57,7 @@ import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 public interface IRuntimeContext extends IAdaptable {
 
 	/**
-	 * Returns the context object associated with the given type.
+	 * Returns a context object associated with the given type.
 	 * <p>
 	 * Returns <code>null</code> if no context object could be determined, or if
 	 * the associated object is <code>null</code>.
@@ -77,7 +80,6 @@ public interface IRuntimeContext extends IAdaptable {
 	 * @return the value (maybe <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if the specified type is <code>null</code>
-	 * @see #get(Class, Object...)
 	 */
 	<T> T get(Class<T> type) throws IllegalArgumentException;
 
@@ -94,6 +96,17 @@ public interface IRuntimeContext extends IAdaptable {
 	IPath getContextPath();
 
 	/**
+	 * Returns the {@link IRuntimeContextInjector injector} of a context.
+	 * <p>
+	 * The injector can be used to inject a context content into custom objects.
+	 * </p>
+	 * 
+	 * @return the {@link IRuntimeContextInjector injector} instance of the
+	 *         context
+	 */
+	IRuntimeContextInjector getInjector();
+
+	/**
 	 * Returns a human readable string representation of the context.
 	 * <p>
 	 * Note, the string returned here should only be used for debugging or error
@@ -106,5 +119,5 @@ public interface IRuntimeContext extends IAdaptable {
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
-	public String toString();
+	String toString();
 }

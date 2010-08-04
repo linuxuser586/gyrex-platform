@@ -17,16 +17,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.e4.core.services.IDisposable;
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
@@ -34,12 +32,16 @@ import org.eclipse.gyrex.context.internal.GyrexContextImpl;
 import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.internal.provider.ObjectProviderRegistry;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.e4.core.di.IDisposable;
 import org.eclipse.osgi.util.NLS;
 
 /**
  * The {@link IRuntimeContextRegistry} implementation.
  */
 //TODO: this should be a ServiceFactory which knows about the bundle requesting the manager for context access permission checks
+@SuppressWarnings("restriction")
 public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownParticipant {
 
 	private static final Set<String> forbiddenPathSegments;

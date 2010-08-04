@@ -11,8 +11,9 @@
  */
 package org.eclipse.gyrex.context.registry;
 
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.gyrex.context.IRuntimeContext;
+
+import org.eclipse.core.runtime.IPath;
 
 /**
  * A registry for accessing {@link IRuntimeContext contexts}.
