@@ -11,11 +11,6 @@
  */
 package org.eclipse.gyrex.context.internal.configuration;
 
-import java.text.MessageFormat;
-
-import org.eclipse.gyrex.common.logging.LogAudience;
-import org.eclipse.gyrex.common.logging.LogImportance;
-import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.ContextDebug;
@@ -108,7 +103,7 @@ public final class ContextConfiguration {
 				return null;
 			}
 		} catch (final BackingStoreException e) {
-			ContextActivator.getInstance().getLog().log(MessageFormat.format("Error while accessing the preferences backend for context path \"{0}\": {1}", contextPath, e.getMessage()), e, context, LogAudience.ADMIN, LogImportance.WARNING, LogSource.PLATFORM);
+			LOG.warn("Error while accessing the preferences backend for context path \"{}\": {}", contextPath, e.getMessage());
 			return null;
 		}
 
@@ -122,7 +117,7 @@ public final class ContextConfiguration {
 		try {
 			return FrameworkUtil.createFilter(filterString);
 		} catch (final InvalidSyntaxException e) {
-			ContextActivator.getInstance().getLog().log(MessageFormat.format("Invalid syntax in context path \"{0}\" key \"{1}\": {2} ", contextPath, typeName, e.getMessage()), e, context, LogAudience.ADMIN, LogImportance.WARNING, LogSource.PLATFORM);
+			LOG.warn("Invalid syntax in context path \"{}\" key \"{}\": {} ", new Object[] { contextPath, typeName, e.getMessage() });
 			return null;
 		}
 	}
@@ -160,7 +155,7 @@ public final class ContextConfiguration {
 			}
 			contextPreferences.flush();
 		} catch (final BackingStoreException e) {
-			ContextActivator.getInstance().getLog().log(MessageFormat.format("Error while accessing the preferences backend for context path \"{0}\": {1}", contextPath, e.getMessage()), e, context, LogAudience.ADMIN, LogImportance.WARNING, LogSource.PLATFORM);
+			LOG.warn("Error while accessing the preferences backend for context path \"{}\": {}", contextPath, e.getMessage());
 		}
 
 		// TODO we need to flush the context hierarch for the type name here

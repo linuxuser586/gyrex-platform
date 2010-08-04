@@ -18,9 +18,6 @@ import java.util.concurrent.CountDownLatch;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 
-import org.eclipse.gyrex.common.logging.LogAudience;
-import org.eclipse.gyrex.common.logging.LogImportance;
-import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.preferences.PlatformScope;
 
@@ -92,7 +89,7 @@ public class ServerApplication implements IApplication {
 			dsImplBundle.start(Bundle.START_TRANSIENT);
 		} else {
 			// TODO consider failing startup
-			AppActivator.getInstance().getLog().log("Bundle 'org.eclipse.equinox.ds' not available but may be required by parts of the system. Your system may not function properly.", (Object) null, LogImportance.WARNING, LogAudience.DEVELOPER, LogAudience.ADMIN, LogSource.PLATFORM);
+			LOG.warn("Bundle 'org.eclipse.equinox.ds' not available but may be required by parts of the system. Your system may not function properly.");
 		}
 	}
 

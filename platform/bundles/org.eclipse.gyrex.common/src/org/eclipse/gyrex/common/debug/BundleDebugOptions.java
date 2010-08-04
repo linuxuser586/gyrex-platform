@@ -13,18 +13,20 @@ package org.eclipse.gyrex.common.debug;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
-import org.eclipse.gyrex.common.logging.LogAudience;
-import org.eclipse.gyrex.common.logging.LogImportance;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+
 import org.eclipse.osgi.service.debug.DebugOptions;
 import org.eclipse.osgi.service.debug.DebugOptionsListener;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Common superclass for debug options.
@@ -79,6 +81,8 @@ public abstract class BundleDebugOptions {
 			bundleDebugClass = null;
 		}
 	}
+
+	private static final Logger LOG = LoggerFactory.getLogger(BundleDebugOptions.class);
 
 	private static final int MOD_EXPECTED = Modifier.PUBLIC | Modifier.STATIC;
 	private static final int MOD_MASK = MOD_EXPECTED | Modifier.FINAL;
@@ -165,7 +169,7 @@ public abstract class BundleDebugOptions {
 					// ignore type
 				}
 			} catch (final Exception e) {
-				bundleActivator.getLog().log(MessageFormat.format("Exception setting debug option \"{0}\" in class \"{1}\": {2}", field.getName(), clazz.getName(), e.getMessage()), e, (Object) null, LogImportance.WARNING, LogAudience.DEVELOPER); //$NON-NLS-1$
+				LOG.warn("Exception setting debug option \"{}\" in class \"{}\": {}", new Object[] { field.getName(), clazz.getName(), e.getMessage() }); //$NON-NLS-1$
 			}
 		}
 	}
