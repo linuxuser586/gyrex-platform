@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.internal.app;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -20,6 +22,8 @@ import org.eclipse.equinox.app.IApplicationContext;
 
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.preferences.PlatformScope;
+
+import org.eclipse.osgi.service.datalocation.Location;
 
 import org.osgi.framework.Bundle;
 
@@ -91,6 +95,37 @@ public class ServerApplication implements IApplication {
 			// TODO consider failing startup
 			LOG.warn("Bundle 'org.eclipse.equinox.ds' not available but may be required by parts of the system. Your system may not function properly.");
 		}
+	}
+
+	private boolean checkInstanceLocation(final Location instanceLocation) {
+		// check if a valid location is set
+		if ((instanceLocation == null) || !instanceLocation.isSet()) {
+			System.err.println("Gyrex needs a valid workspace. Please start with the -data option pointing to a valid file system path.");
+			return false;
+		}
+
+		// lock the location
+		try {
+			if (instanceLocation.lock()) {
+				// great
+				return true;
+			}
+
+			// we failed to create the directory.
+			// Two possibilities:
+			// 1. directory is already in use
+			// 2. directory could not be created
+			final File workspaceDirectory = new File(instanceLocation.getURL().getFile());
+			if (workspaceDirectory.exists()) {
+				System.err.println("Could not launch the server because the associated workspace '" + workspaceDirectory.getAbsolutePath() + "' is currently in use by another Eclipse application.");
+			} else {
+				System.err.println("Could not launch the server because the specified workspace cannot be created. The specified workspace directory '" + workspaceDirectory.getAbsolutePath() + "' is either invalid or read-only.");
+			}
+		} catch (final IOException e) {
+			System.err.println("Error verifying the specified workspace directory. " + e.getMessage());
+		}
+		return false;
+
 	}
 
 	/**
@@ -175,9 +210,6 @@ public class ServerApplication implements IApplication {
 		return roles.toArray(new String[roles.size()]);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.equinox.app.IApplication#start(org.eclipse.equinox.app.IApplicationContext)
-	 */
 	@Override
 	public Object start(final IApplicationContext context) throws Exception {
 		final Object args = context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
@@ -189,100 +221,110 @@ public class ServerApplication implements IApplication {
 		}
 		final String[] arguments = (String[]) args;
 
-		// configure logging
+		final Location instanceLocation = AppActivator.getInstance().getInstanceLocation();
 		try {
-			LogbackConfigurator.configureDefaultContext(arguments);
-		} catch (final ClassNotFoundException e) {
-			// logback not available
-			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
-		} catch (final NoClassDefFoundError e) {
-			// logback not available
-			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
-		} catch (final Exception e) {
-			// error (but do not fail)
-			LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
-		}
-
-		// relaunch flag
-		boolean relaunch = false;
-
-		try {
-			if (AppDebug.debug) {
-				LOG.debug("Starting platform...");
+			// check the instance location
+			if (!checkInstanceLocation(instanceLocation)) {
+				return EXIT_ERROR;
 			}
 
-			// bootstrap the platform
-			bootstrap();
+			// configure logging
+			try {
+				LogbackConfigurator.configureDefaultContext(arguments);
+			} catch (final ClassNotFoundException e) {
+				// logback not available
+				LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+			} catch (final NoClassDefFoundError e) {
+				// logback not available
+				LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+			} catch (final Exception e) {
+				// error (but do not fail)
+				LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
+			}
 
-			// read enabled server roles from configuration
-			final String[] roles = getEnabledServerRoles(arguments);
+			// relaunch flag
+			boolean relaunch = false;
 
-			// activate server roles
-			for (final String roleName : roles) {
-				final ServerRole role = ServerRolesRegistry.getDefault().getRole(roleName);
-				if (null == role) {
-					// TODO log unknown role
-					continue;
+			try {
+				if (AppDebug.debug) {
+					LOG.debug("Starting platform...");
 				}
-				role.activate();
-			}
 
-			// signal that we are now up and running
-			context.applicationRunning();
+				// bootstrap the platform
+				bootstrap();
 
-			if (AppDebug.debug) {
-				LOG.info("Platform started.");
-			}
+				// read enabled server roles from configuration
+				final String[] roles = getEnabledServerRoles(arguments);
 
-			// note, this application is configured to run only ONCE
-			// thus, the following code is safe
-			stopOrRestartSignal = new CountDownLatch(1);
-			do {
-				try {
-					stopOrRestartSignal.await();
-				} catch (final InterruptedException e) {
-					// reset interrupted state
-					Thread.currentThread().interrupt();
+				// activate server roles
+				for (final String roleName : roles) {
+					final ServerRole role = ServerRolesRegistry.getDefault().getRole(roleName);
+					if (null == role) {
+						// TODO log unknown role
+						continue;
+					}
+					role.activate();
 				}
-			} while ((stopOrRestartSignal.getCount() > 0) && Thread.interrupted());
-			stopOrRestartSignal = null;
 
-			// get & reset relaunch flag
-			relaunch = ServerApplication.relaunch;
-			ServerApplication.relaunch = false;
+				// signal that we are now up and running
+				context.applicationRunning();
 
-			if (AppDebug.debug) {
-				LOG.debug("Platform closed.");
+				if (AppDebug.debug) {
+					LOG.info("Platform started.");
+				}
+
+				// note, this application is configured to run only ONCE
+				// thus, the following code is safe
+				stopOrRestartSignal = new CountDownLatch(1);
+				do {
+					try {
+						stopOrRestartSignal.await();
+					} catch (final InterruptedException e) {
+						// reset interrupted state
+						Thread.currentThread().interrupt();
+					}
+				} while ((stopOrRestartSignal.getCount() > 0) && Thread.interrupted());
+				stopOrRestartSignal = null;
+
+				// get & reset relaunch flag
+				relaunch = ServerApplication.relaunch;
+				ServerApplication.relaunch = false;
+
+				if (AppDebug.debug) {
+					LOG.debug("Platform closed.");
+				}
+
+			} catch (final Exception e) {
+				if (AppDebug.debug) {
+					LOG.debug("Platform start failed!", e);
+				}
+
+				// TODO should evaluate and suggest solution to Ops
+				LOG.error("Error while starting server: " + e.getMessage(), e);
+				return EXIT_ERROR;
 			}
 
-		} catch (final Exception e) {
-			if (AppDebug.debug) {
-				LOG.debug("Platform start failed!", e);
+			// de-configure logging
+			try {
+				LogbackConfigurator.reset();
+			} catch (final ClassNotFoundException e) {
+				// logback not available
+			} catch (final NoClassDefFoundError e) {
+				// logback not available
+			} catch (final Exception e) {
+				// error (but do not fail)
+				LOG.warn("Error while de-configuring logback. Please re-configure logging manually. ({})", e.getMessage());
 			}
 
-			// TODO should evaluate and suggest solution to Ops
-			LOG.error("Error while starting server: " + e.getMessage(), e);
-			return EXIT_ERROR;
+			return relaunch ? EXIT_RESTART : EXIT_OK;
+		} finally {
+			// release instance location lock
+			if (null != instanceLocation) {
+				instanceLocation.release();
+			}
 		}
-
-		// de-configure logging
-		try {
-			LogbackConfigurator.reset();
-		} catch (final ClassNotFoundException e) {
-			// logback not available
-		} catch (final NoClassDefFoundError e) {
-			// logback not available
-		} catch (final Exception e) {
-			// error (but do not fail)
-			LOG.warn("Error while de-configuring logback. Please re-configure logging manually. ({})", e.getMessage());
-		}
-
-		return relaunch ? EXIT_RESTART : EXIT_OK;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.equinox.app.IApplication#stop()
-	 */
 	@Override
 	public void stop() {
 		final CountDownLatch signal = stopOrRestartSignal;
