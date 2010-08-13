@@ -16,19 +16,26 @@ import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.fail;
 
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
+import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistration;
+
+import org.eclipse.core.runtime.CoreException;
+
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
 
 /**
  *
@@ -50,6 +57,36 @@ public class ApplicationManagerTest {
 		public Application createApplication(final String applicationId, final IRuntimeContext context) throws CoreException {
 			return new TestApp(applicationId, context);
 		}
+	}
+
+	static class TestGateway implements IHttpGateway {
+
+		@Override
+		public String getName() {
+			return "Test";
+		}
+
+		@Override
+		public IUrlRegistry getUrlRegistry(final ApplicationManager applicationManager) {
+			return new TestUrlRegistry();
+		}
+
+	}
+
+	static class TestUrlRegistry implements IUrlRegistry {
+
+		ConcurrentHashMap<URL, String> map = new ConcurrentHashMap<URL, String>();
+
+		@Override
+		public String registerIfAbsent(final URL url, final String applicationId) {
+			return map.putIfAbsent(url, applicationId);
+		}
+
+		@Override
+		public String unregister(final URL url) {
+			return map.remove(url);
+		}
+
 	}
 
 	/**
@@ -75,7 +112,7 @@ public class ApplicationManagerTest {
 	public void testMount() {
 		// create manager
 		final BundleContext context = Activator.getBundleContext();
-		final ApplicationManager applicationManager = new ApplicationManager(context);
+		final ApplicationManager applicationManager = new ApplicationManager(context, new TestGateway());
 
 		ServiceRegistration serviceRegistration = null;
 		try {
@@ -205,7 +242,7 @@ public class ApplicationManagerTest {
 	public void testProviderRegistration() {
 		// create manager
 		final BundleContext context = Activator.getBundleContext();
-		final ApplicationManager applicationManager = new ApplicationManager(context);
+		final ApplicationManager applicationManager = new ApplicationManager(context, new TestGateway());
 		final TestAppProvider appProvider = new TestAppProvider();
 
 		try {

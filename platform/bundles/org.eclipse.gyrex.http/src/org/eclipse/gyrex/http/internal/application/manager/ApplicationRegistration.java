@@ -17,14 +17,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.servlet.ServletContext;
-
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
-import org.eclipse.gyrex.http.internal.application.ApplicationHandlerServlet;
-import org.eclipse.gyrex.http.internal.application.ApplicationServiceSupport;
-import org.eclipse.gyrex.http.internal.application.helpers.ApplicationServletContextAdapter;
+import org.eclipse.gyrex.http.application.context.IApplicationContext;
 
 import org.eclipse.core.runtime.CoreException;
 
@@ -42,7 +38,7 @@ public class ApplicationRegistration {
 	private final String providerId;
 	private final IRuntimeContext context;
 	private final ApplicationConfiguration configuration;
-	private final ConcurrentMap<ApplicationHandlerServlet, ApplicationInstance> activeApplications = new ConcurrentHashMap<ApplicationHandlerServlet, ApplicationInstance>(1);
+	private final ConcurrentMap<IApplicationContext, ApplicationInstance> activeApplications = new ConcurrentHashMap<IApplicationContext, ApplicationInstance>(1);
 	private final ApplicationManager applicationManager;
 
 	private final Lock applicationCreationLock = new ReentrantLock();
@@ -88,9 +84,9 @@ public class ApplicationRegistration {
 	 * @param applicationHandlerServlet
 	 * @return an application instance.
 	 */
-	public ApplicationInstance getApplication(final ApplicationHandlerServlet applicationHandlerServlet) throws CoreException {
+	public ApplicationInstance getApplication(final IApplicationContext applicationContext) throws CoreException {
 		// get application
-		ApplicationInstance instance = activeApplications.get(applicationHandlerServlet);
+		ApplicationInstance instance = activeApplications.get(applicationContext);
 		if (null != instance) {
 			return instance;
 		}
@@ -108,7 +104,7 @@ public class ApplicationRegistration {
 		final Lock lock = applicationCreationLock;
 		lock.lock();
 		try {
-			instance = activeApplications.get(applicationHandlerServlet);
+			instance = activeApplications.get(applicationContext);
 			if (null != instance) {
 				return instance;
 			}
@@ -120,15 +116,9 @@ public class ApplicationRegistration {
 				return null;
 			}
 
-			// adapt the servlet context
-			final ServletContext adaptedServletContext = new ApplicationServletContextAdapter(application, getConfiguration(), applicationHandlerServlet.getServletContext());
-
-			// initialize the application service support
-			final ApplicationServiceSupport applicationServiceSupport = new ApplicationServiceSupport(adaptedServletContext, application, getContext());
-
 			// initialize the application
 			try {
-				application.initialize(applicationServiceSupport);
+				application.initialize(applicationContext);
 			} catch (final Exception e) {
 				// error while initializing application
 				LOG.error("Error while initliazing application '" + applicationId + "': " + e.getMessage(), application.getContext());
@@ -136,8 +126,8 @@ public class ApplicationRegistration {
 			}
 
 			// remember the instance
-			instance = new ApplicationInstance(application, adaptedServletContext);
-			activeApplications.put(applicationHandlerServlet, instance);
+			instance = new ApplicationInstance(application, applicationContext);
+			activeApplications.put(applicationContext, instance);
 		} finally {
 			lock.unlock();
 		}

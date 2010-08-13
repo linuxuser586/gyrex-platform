@@ -21,26 +21,16 @@ Require-Bundle: org.eclipse.gyrex.common;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.configuration;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.monitoring;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.core.jobs;bundle-version="[3.4.100,4.0.0)",
- org.eclipse.equinox.http.registry;bundle-version="[1.0.100,2.0.0)"
-Export-Package: org.eclipse.gyrex.http.application;
-  uses:="org.eclipse.gyrex.context,
-   org.eclipse.core.runtime,
-   org.eclipse.gyrex.http.application.servicesupport,
-   javax.servlet.http",
- org.eclipse.gyrex.http.application.manager;uses:="org.eclipse.gyrex.context,org.eclipse.core.runtime",
- org.eclipse.gyrex.http.application.provider;uses:="org.eclipse.gyrex.context,org.eclipse.gyrex.http.application",
- org.eclipse.gyrex.http.application.servicesupport;uses:="javax.servlet,org.eclipse.core.runtime,javax.servlet.http",
- org.eclipse.gyrex.http.helper;
-  uses:="org.osgi.util.tracker,
-   org.osgi.framework,
-   org.osgi.service.http,
-   javax.servlet.http",
+ org.eclipse.equinox.http.servlet;bundle-version="[1.1.0,2.0.0)"
+Export-Package: org.eclipse.gyrex.http.application,
+ org.eclipse.gyrex.http.application.context,
+ org.eclipse.gyrex.http.application.manager,
+ org.eclipse.gyrex.http.application.provider,
+ org.eclipse.gyrex.http.helper,
  org.eclipse.gyrex.http.internal;x-friends:="org.eclipse.gyrex.http.errorpagehandler,org.eclipse.gyrex.http.tests,org.eclipse.gyrex.http.jetty",
- org.eclipse.gyrex.http.internal.application;x-friends:="org.eclipse.gyrex.http.tests",
- org.eclipse.gyrex.http.internal.application.helpers;x-friends:="org.eclipse.gyrex.http.tests",
- org.eclipse.gyrex.http.internal.application.manager;x-friends:="org.eclipse.gyrex.http.tests",
- org.eclipse.gyrex.http.internal.application.registrations;x-friends:="org.eclipse.gyrex.http.tests",
- org.eclipse.gyrex.http.internal.apps.dummy;x-friends:="org.eclipse.gyrex.http.tests",
- org.eclipse.gyrex.http.services;uses:="org.eclipse.core.runtime"
+ org.eclipse.gyrex.http.internal.application.defaultapp;x-friends:="org.eclipse.gyrex.http.tests,org.eclipse.equinox.http.jetty",
+ org.eclipse.gyrex.http.internal.application.gateway;x-friends:="org.eclipse.gyrex.http.tests,org.eclipse.gyrex.http.jetty",
+ org.eclipse.gyrex.http.internal.application.manager;x-friends:="org.eclipse.gyrex.http.tests,org.eclipse.gyrex.http.jetty",
+ org.eclipse.gyrex.http.services
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 

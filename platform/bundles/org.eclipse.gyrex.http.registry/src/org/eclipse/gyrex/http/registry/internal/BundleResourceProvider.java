@@ -1,13 +1,13 @@
 /*******************************************************************************
  * Copyright (c) 2008 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
- *     Cognos Incorporated, IBM Corporation - concept/implementation from 
+ *     Cognos Incorporated, IBM Corporation - concept/implementation from
  *                                            org.eclipse.equinox.http.registry
  *     Gunnar Wagenknecht - adaption to Gyrex
  *******************************************************************************/
@@ -19,7 +19,8 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
+import org.eclipse.gyrex.http.application.context.IResourceProvider;
+
 import org.osgi.framework.Bundle;
 
 public class BundleResourceProvider implements IResourceProvider {
@@ -31,14 +32,6 @@ public class BundleResourceProvider implements IResourceProvider {
 	 */
 	public BundleResourceProvider(final Bundle bundle) {
 		this.bundle = bundle;
-	}
-
-	public void addMimeMapping(final String mimeExtension, final String mimeType) {
-		if (mimeMappings == null) {
-			mimeMappings = new Properties();
-		}
-
-		mimeMappings.put(mimeExtension, mimeType);
 	}
 
 	public String getMimeType(final String name) {

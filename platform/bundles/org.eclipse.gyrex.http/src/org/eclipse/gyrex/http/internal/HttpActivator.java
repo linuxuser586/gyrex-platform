@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -16,12 +16,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.configuration.constraints.PlatformConfigurationConstraint;
-import org.eclipse.gyrex.http.application.manager.IApplicationManager;
-import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.application.defaultapp.DefaultApplicationProvider;
+
 import org.eclipse.osgi.service.datalocation.Location;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
 import org.osgi.framework.Version;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
@@ -67,11 +68,8 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 	}
 
-	private HttpServiceTracker httpServiceTracker;
-
-	private ApplicationManager applicationManager;
 	private ServiceTracker packageAdminTracker;
-	private ServiceRegistration dummyProviderRegistration;
+	private ServiceTracker gatewayTracker;
 	private final AtomicReference<IServiceProxy<Location>> instanceLocationRef = new AtomicReference<IServiceProxy<Location>>();
 
 	/**
@@ -85,9 +83,6 @@ public class HttpActivator extends BaseBundleActivator {
 		super(PLUGIN_ID);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected synchronized void doStart(final BundleContext context) throws Exception {
 		sharedInstance = this;
@@ -104,45 +99,23 @@ public class HttpActivator extends BaseBundleActivator {
 			packageAdminTracker.open();
 		}
 
-		// start the application registry
-		startApplicationManager(context);
-		getServiceHelper().registerService(IApplicationManager.class.getName(), applicationManager, "Eclipse Gyrex", "Gyrex Application Manager", null, null);
-
-		// open the http tracker
-		if (null == httpServiceTracker) {
-			httpServiceTracker = new HttpServiceTracker(context, applicationManager);
-			httpServiceTracker.open();
+		// track the http gateway
+		if (null == gatewayTracker) {
+			gatewayTracker = new HttpGatewayTracker(context);
+			gatewayTracker.open();
 		}
 
-		// register our dummy app provider
-		//		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
-		//		properties.put(Constants.SERVICE_DESCRIPTION, "Dummy Application");
-		//		properties.put(Constants.SERVICE_VENDOR, "Gyrex");
-		//		dummyProviderRegistration = context.registerService(ApplicationProvider.class.getName(), new DummyAppProvider(), properties);
-		//
-		//		applicationManager.register("default", DummyAppProvider.ID, new RootContext(), null);
-		//		applicationManager.setDefaultApplication("default");
+		// register our default application provider
+		getServiceHelper().registerService(ApplicationProvider.class.getName(), new DefaultApplicationProvider(), "Eclipse Gyrex", "Default Application Provider", null, null);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected synchronized void doStop(final BundleContext context) throws Exception {
-		// unregister the dummy app provider
-		if (null != dummyProviderRegistration) {
-			dummyProviderRegistration.unregister();
-			dummyProviderRegistration = null;
+		// stop gateway tracker
+		if (null != gatewayTracker) {
+			gatewayTracker.close();
+			gatewayTracker = null;
 		}
-
-		// stop the HTTP service tracker
-		if (null != httpServiceTracker) {
-			httpServiceTracker.close();
-			httpServiceTracker = null;
-		}
-
-		// stop the application registry
-		stopApplicationManager();
 
 		// stop package admin tracker
 		if (null != packageAdminTracker) {
@@ -211,9 +184,6 @@ public class HttpActivator extends BaseBundleActivator {
 		return new BundleFinder(packageAdmin, bundle).getCallingBundle();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#getDebugOptions()
-	 */
 	@Override
 	protected Class getDebugOptions() {
 		return HttpDebug.class;
@@ -226,19 +196,5 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 
 		return serviceProxy.getService();
-	}
-
-	private void startApplicationManager(final BundleContext context) {
-		if (null == applicationManager) {
-			applicationManager = new ApplicationManager(context);
-			applicationManager.open();
-		}
-	}
-
-	private void stopApplicationManager() {
-		if (null != applicationManager) {
-			applicationManager.close();
-			applicationManager = null;
-		}
 	}
 }

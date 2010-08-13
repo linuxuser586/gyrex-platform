@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
-import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
+import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.registry.ApplicationCustomizer;
 
 import org.eclipse.core.runtime.CoreException;
@@ -60,7 +60,7 @@ public class RegistryApplication extends Application {
 	}
 
 	@Override
-	protected IApplicationServiceSupport getApplicationServiceSupport() {
+	protected IApplicationContext getApplicationServiceSupport() {
 		return super.getApplicationServiceSupport();
 	}
 

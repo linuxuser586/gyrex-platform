@@ -23,11 +23,11 @@ import javax.servlet.ServletException;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+import org.eclipse.gyrex.http.application.context.IResourceProvider;
+import org.eclipse.gyrex.http.application.context.NamespaceException;
 import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
-import org.eclipse.gyrex.http.application.servicesupport.IResourceProvider;
-import org.eclipse.gyrex.http.application.servicesupport.NamespaceException;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;

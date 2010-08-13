@@ -28,9 +28,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
-import org.eclipse.gyrex.http.application.servicesupport.IApplicationServiceSupport;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
@@ -69,7 +69,7 @@ import org.osgi.service.http.HttpContext;
  * servlets and resources dynamically. However, it's the decision and
  * responsibility of the application to enable and support that dynamic
  * behavior. The creation of such dynamic behavior is supported by an
- * application through {@link IApplicationServiceSupport}.
+ * application through {@link IApplicationContext}.
  * </p>
  * <p>
  * An application defines a scope for all servlets and resources registered with
@@ -77,9 +77,8 @@ import org.osgi.service.http.HttpContext;
  * within an application's boundaries. Therefore this class implements methods
  * similar to those defined in the {@link HttpContext} interface which - in
  * their default implementations - are delegated to the
- * {@link IApplicationServiceSupport}. It allows for better interoperability
- * with OSGi, the underlying servlet container and the registered servlets and
- * resources.
+ * {@link IApplicationContext}. It allows for better interoperability with OSGi,
+ * the underlying servlet container and the registered servlets and resources.
  * </p>
  * <p>
  * Sharing servlets and resources across application instances is not supported
@@ -100,8 +99,8 @@ public abstract class Application extends PlatformObject {
 	/** the context */
 	private final IRuntimeContext context;
 
-	/** the application service support */
-	private final AtomicReference<IApplicationServiceSupport> applicationServiceSupport = new AtomicReference<IApplicationServiceSupport>();
+	/** the application context */
+	private final AtomicReference<IApplicationContext> applicationContext = new AtomicReference<IApplicationContext>();
 
 	/** the application status */
 	private final AtomicReference<IStatus> status = new AtomicReference<IStatus>();
@@ -162,9 +161,8 @@ public abstract class Application extends PlatformObject {
 	 * <p>
 	 * The implementation first sets an internal flag so that it stops receiving
 	 * requests. Next, it calls {@link #doDestroy()} and after that it releases
-	 * the reference to the {@link IApplicationServiceSupport} if available.
-	 * Subclasses may override {@link #doDestroy()} to perform necessary
-	 * cleanup.
+	 * the reference to the {@link IApplicationContext} if available. Subclasses
+	 * may override {@link #doDestroy()} to perform necessary cleanup.
 	 * </p>
 	 * 
 	 * @noreference This method is not intended to be referenced by clients.
@@ -178,7 +176,7 @@ public abstract class Application extends PlatformObject {
 			doDestroy();
 		} finally {
 			// unset
-			applicationServiceSupport.set(null);
+			applicationContext.set(null);
 		}
 	}
 
@@ -194,7 +192,7 @@ public abstract class Application extends PlatformObject {
 	}
 
 	/**
-	 * Called by {@link #initialize(IApplicationServiceSupport)} to perform any
+	 * Called by {@link #initialize(IApplicationContext)} to perform any
 	 * application specific initialization.
 	 * <p>
 	 * The default implementation does nothing. Subclasses may override.
@@ -206,15 +204,14 @@ public abstract class Application extends PlatformObject {
 	}
 
 	/**
-	 * Returns the application service support passed to
-	 * {@link #initialize(IApplicationServiceSupport)}.
+	 * Returns the application context passed to
+	 * {@link #initialize(IApplicationContext)}.
 	 * 
-	 * @return the application service support (maybe <code>null</code> if not
-	 *         supported by the application or the application has been
-	 *         destroyed)
+	 * @return the application context (maybe <code>null</code> if not supported
+	 *         by the application or the application has been destroyed)
 	 */
-	protected IApplicationServiceSupport getApplicationServiceSupport() {
-		return applicationServiceSupport.get();
+	protected IApplicationContext getApplicationServiceSupport() {
+		return applicationContext.get();
 	}
 
 	/**
@@ -240,17 +237,16 @@ public abstract class Application extends PlatformObject {
 	 * Maps a file to a MIME type.
 	 * <p>
 	 * Called by the platform to determine the MIME type for the file. For
-	 * servlet registrations registered with the
-	 * {@link IApplicationServiceSupport}, the platform will call this method to
-	 * support the {@link ServletContext} method
-	 * {@link ServletContext#getMimeType(String)} of the
+	 * servlet registrations registered with the {@link IApplicationContext},
+	 * the platform will call this method to support the {@link ServletContext}
+	 * method {@link ServletContext#getMimeType(String)} of the
 	 * <code>ServletContext</code> returned be
-	 * {@link IApplicationServiceSupport#getServletContext()}. For resource
+	 * {@link IApplicationContext#getServletContext()}. For resource
 	 * registrations, the platform will call this method to determine the MIME
 	 * type for the Content-Type header in the response.
 	 * </p>
 	 * <p>
-	 * The default implementation delegates to the application service support.
+	 * The default implementation delegates to the application context.
 	 * </p>
 	 * 
 	 * @param file
@@ -261,14 +257,14 @@ public abstract class Application extends PlatformObject {
 	 * @see HttpContext#getMimeType(String)
 	 */
 	public String getMimeType(final String file) {
-		// get application service support
-		final IApplicationServiceSupport serviceSupport = getApplicationServiceSupport();
-		if (null == serviceSupport) {
+		// get application context
+		final IApplicationContext applicationContext = getApplicationServiceSupport();
+		if (null == applicationContext) {
 			return null;
 		}
 
-		// delegate to application service support
-		return serviceSupport.getMimeType(file);
+		// delegate to application context
+		return applicationContext.getMimeType(file);
 	}
 
 	/**
@@ -279,7 +275,7 @@ public abstract class Application extends PlatformObject {
 	 * {@link ServletContext} methods {@link ServletContext#getResource(String)}
 	 * and {@link ServletContext#getResourceAsStream(String)} of the
 	 * <code>ServletContext</code> returned be
-	 * {@link IApplicationServiceSupport#getServletContext()}. For resource
+	 * {@link IApplicationContext#getServletContext()}. For resource
 	 * registrations, the platform will call this method to locate the resource.
 	 * </p>
 	 * <p>
@@ -291,7 +287,7 @@ public abstract class Application extends PlatformObject {
 	 * bundle.
 	 * </p>
 	 * <p>
-	 * The default implementation delegates to the application service support.
+	 * The default implementation delegates to the application context.
 	 * </p>
 	 * 
 	 * @param path
@@ -305,13 +301,13 @@ public abstract class Application extends PlatformObject {
 	 */
 
 	public URL getResource(final String path) throws MalformedURLException {
-		// get application service support
-		final IApplicationServiceSupport serviceSupport = getApplicationServiceSupport();
+		// get application context
+		final IApplicationContext serviceSupport = getApplicationServiceSupport();
 		if (null == serviceSupport) {
 			return null;
 		}
 
-		// delegate to application service support
+		// delegate to application context
 		return serviceSupport.getResource(path);
 	}
 
@@ -324,7 +320,7 @@ public abstract class Application extends PlatformObject {
 	 * {@link ServletContext} methods
 	 * {@link ServletContext#getResourcePaths(String)} of the
 	 * <code>ServletContext</code> returned be
-	 * {@link IApplicationServiceSupport#getServletContext()}. For resource
+	 * {@link IApplicationContext#getServletContext()}. For resource
 	 * registrations, the platform will call this method to get a directory
 	 * listening.
 	 * </p>
@@ -337,7 +333,7 @@ public abstract class Application extends PlatformObject {
 	 * bundle.
 	 * </p>
 	 * <p>
-	 * The default implementation delegates to the application service support.
+	 * The default implementation delegates to the application context.
 	 * </p>
 	 * 
 	 * @param path
@@ -349,13 +345,13 @@ public abstract class Application extends PlatformObject {
 	 * @see ServletContext#getResourcePaths(String)
 	 */
 	public Set getResourcePaths(final String path) {
-		// get application service support
-		final IApplicationServiceSupport serviceSupport = getApplicationServiceSupport();
+		// get application context
+		final IApplicationContext serviceSupport = getApplicationServiceSupport();
 		if (null == serviceSupport) {
 			return null;
 		}
 
-		// delegate to application service support
+		// delegate to application context
 		return serviceSupport.getResourcePaths(path);
 	}
 
@@ -403,7 +399,7 @@ public abstract class Application extends PlatformObject {
 	 * The default implementation first calls
 	 * {@link #handleSecurity(HttpServletRequest, HttpServletResponse)} to
 	 * ensure that the request is allowed to be handled. It then asks the
-	 * {@link IApplicationServiceSupport} to handle the request.
+	 * {@link IApplicationContext} to handle the request.
 	 * </p>
 	 * 
 	 * @param request
@@ -431,21 +427,20 @@ public abstract class Application extends PlatformObject {
 			return;
 		}
 
-		// get the service support
-		final IApplicationServiceSupport serviceSupport = getApplicationServiceSupport();
-		if (null == serviceSupport) {
-			// if there is no service support this method
-			// should not be the default implementation
-			response.sendError(HttpServletResponse.SC_NOT_FOUND);
+		// get the context
+		final IApplicationContext context = getApplicationServiceSupport();
+		if (null == context) {
+			// if there is no context this method should not be overridden
+			response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED);
 			return;
 		}
 
-		// let the application service support handle the request
-		if (serviceSupport.handleRequest(request, response)) {
+		// let the application context handle the request
+		if (context.handleRequest(request, response)) {
 			return;
 		}
 
-		// give up
+		// return 404, no resource registered
 		response.sendError(HttpServletResponse.SC_NOT_FOUND);
 	}
 
@@ -529,19 +524,19 @@ public abstract class Application extends PlatformObject {
 	/**
 	 * Called by the platform to initialize the application.
 	 * <p>
-	 * This implementations remembers the {@link IApplicationServiceSupport} and
-	 * then calls {@link #doInit()}. Subclasses may override {@link #doInit()}.
+	 * This implementations remembers the {@link IApplicationContext} and then
+	 * calls {@link #doInit()}. Subclasses may override {@link #doInit()}.
 	 * </p>
 	 * 
-	 * @param applicationServiceSupport
-	 *            the application service support.
+	 * @param applicationContext
+	 *            the application context.
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	public final void initialize(final IApplicationServiceSupport applicationServiceSupport) throws CoreException {
-		if (null == applicationServiceSupport) {
-			throw new IllegalArgumentException("application service support must not be null");
+	public final void initialize(final IApplicationContext applicationContext) throws CoreException {
+		if (null == applicationContext) {
+			throw new IllegalArgumentException("application context must not be null");
 		}
-		this.applicationServiceSupport.set(applicationServiceSupport);
+		this.applicationContext.set(applicationContext);
 
 		try {
 			doInit();
@@ -563,9 +558,6 @@ public abstract class Application extends PlatformObject {
 		this.status.set(status);
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
 		final StringBuilder toString = new StringBuilder();

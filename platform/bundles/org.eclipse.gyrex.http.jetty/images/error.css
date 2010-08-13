@@ -1,0 +1,40 @@
+body {
+	max-width: 800px;
+}
+
+.list-desc {
+	font-weight: bold;
+}
+
+ul {
+	list-style-type: square;
+}
+
+ul.status, li.statusitem { list-style-type: none; list-style-image: none; margin-bottom: 0.5em; }
+ul.status li.statusitem { margin: 0 0 0.6em 0; padding: 0; text-indent: -24px; }
+ul.status li.statusitem:before  { font-size: 1.2em; line-height: 1em;  }
+
+.blue	{ color: #0000FF; }
+.red	{ color: #FF0000; }
+.green	{ color: #359946; }
+.orange	{ color: #cc9933; }
+
+.dev_note {
+	border: 1px solid #B3A000;
+	background-color: #FFF280;
+	padding: 1em;
+	margin-bottom: 1em;
+}
+
+pre {
+	font-size: .8em;
+	display:block;
+	overflow: auto;
+	padding: 0;
+	border: 1px #B3A000 dotted;
+	max-height: 10em;
+}
+
+li pre {
+	margin: 0;
+}
