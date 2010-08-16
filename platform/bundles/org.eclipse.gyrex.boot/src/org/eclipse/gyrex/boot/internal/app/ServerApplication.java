@@ -99,8 +99,11 @@ public class ServerApplication implements IApplication {
 
 	private boolean checkInstanceLocation(final Location instanceLocation) {
 		// check if a valid location is set
-		if ((instanceLocation == null) || !instanceLocation.isSet()) {
-			System.err.println("Gyrex needs a valid workspace. Please start with the -data option pointing to a valid file system path.");
+		// note, just checking Location#isSet isn't enough, we need to check the full URL
+		// we also allow a default to apply, thus #getURL is better then just #isSet to initialize with a default
+		// (we might later set our own here if we want this)
+		if ((instanceLocation == null) || (null == instanceLocation.getURL()) || !instanceLocation.getURL().toExternalForm().startsWith("file:")) {
+			System.err.println("Gyrex needs a valid local instance location (aka. 'workspace'). Please start with the -data option pointing to a valid file system path.");
 			return false;
 		}
 
