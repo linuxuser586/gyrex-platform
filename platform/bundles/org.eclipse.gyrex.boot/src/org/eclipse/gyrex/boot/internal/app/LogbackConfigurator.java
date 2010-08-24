@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2010 AGETO and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -41,6 +41,7 @@ import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.status.InfoStatus;
 import ch.qos.logback.core.status.StatusManager;
+import ch.qos.logback.core.util.StatusPrinter;
 
 public class LogbackConfigurator extends Job {
 
@@ -121,6 +122,9 @@ public class LogbackConfigurator extends Job {
 		rfa.start();
 
 		rootLogger.addAppender(rfa);
+
+		// print logback's internal status
+		StatusPrinter.print(lc);
 	}
 
 	private static File getLogConfigurationFile() {
@@ -137,6 +141,9 @@ public class LogbackConfigurator extends Job {
 		// reset LoggerContext
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 		lc.reset();
+
+		// print logback's internal status
+		StatusPrinter.printInCaseOfErrorsOrWarnings(lc);
 	}
 
 	/**
@@ -169,6 +176,9 @@ public class LogbackConfigurator extends Job {
 						final JoranConfigurator configurator = new JoranConfigurator();
 						configurator.setContext(lc);
 						configurator.doConfigure(configurationFile);
+
+						// print logback's internal status
+						StatusPrinter.print(lc);
 					}
 				}
 			}
