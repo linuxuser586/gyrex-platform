@@ -26,6 +26,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.service.datalocation.Location;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
@@ -49,6 +50,11 @@ public class LogbackConfigurator extends Job {
 	static final AtomicBoolean active = new AtomicBoolean();
 
 	public static void configureDefaultContext(final String[] arguments) throws Exception {
+		// don't perform any configuration if a config file is specified
+		if (StringUtils.isNotBlank(System.getProperty("logback.configurationFile"))) {
+			return;
+		}
+
 		// determine flags
 		boolean debug = PlatformConfiguration.isOperatingInDevelopmentMode();
 		for (final String arg : arguments) {
@@ -152,7 +158,7 @@ public class LogbackConfigurator extends Job {
 	public LogbackConfigurator() {
 		super("Logback Configurator");
 		setSystem(true);
-		setPriority(Job.SHORT);
+		setPriority(Job.LONG);
 	}
 
 	@Override
@@ -163,7 +169,7 @@ public class LogbackConfigurator extends Job {
 
 		try {
 			final File configurationFile = getLogConfigurationFile();
-			if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canExecute()) {
+			if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canRead()) {
 				final long lastModified = configurationFile.lastModified();
 				final long rememberedLastModifiedValue = lastLastModified.get();
 				if ((lastModified - 2000) > rememberedLastModifiedValue) {
