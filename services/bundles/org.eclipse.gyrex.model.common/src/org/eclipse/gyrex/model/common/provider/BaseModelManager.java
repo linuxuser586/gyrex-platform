@@ -14,12 +14,14 @@ package org.eclipse.gyrex.model.common.provider;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.model.common.IModelManager;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.persistence.storage.Repository;
+
+import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.PlatformObject;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -31,6 +33,10 @@ import org.osgi.framework.ServiceRegistration;
  * <p>
  * In addition to the {@link IModelManager} interface it enforces model manager
  * implementors to include central Gyrex concepts (eg., monitoring and metrics).
+ * </p>
+ * <p>
+ * A {@link BaseModelManager} indicates if modifications are supported by the
+ * back-end.
  * </p>
  * <p>
  * Clients that want to contribute a model manager implementation must subclass
