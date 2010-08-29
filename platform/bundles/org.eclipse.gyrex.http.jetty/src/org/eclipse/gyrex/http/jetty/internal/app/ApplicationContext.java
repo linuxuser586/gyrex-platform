@@ -162,7 +162,9 @@ public class ApplicationContext implements IApplicationContext {
 
 		// create holder
 		final ApplicationRegisteredServletHolder holder = new ApplicationRegisteredServletHolder(servlet);
-		holder.setInitParameters(initparams);
+		if (null != initparams) {
+			holder.setInitParameters(initparams);
+		}
 
 		// register servlet
 		registryModificationLock.lock();
