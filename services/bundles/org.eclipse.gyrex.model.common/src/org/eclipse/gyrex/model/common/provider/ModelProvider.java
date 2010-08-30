@@ -14,8 +14,6 @@ package org.eclipse.gyrex.model.common.provider;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.core.runtime.IAdapterManager;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.gyrex.model.common.IModelManager;
@@ -30,12 +28,9 @@ import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
  * <p>
  * A {@link ModelProvider} provides {@link IModelManager} objects. These model
  * manager objects may be obtained from a {@link IRuntimeContext context} using
- * the the standard {@link IAdaptable#getAdapter(Class) Eclipse adapter
- * mechanise}. In the background, a model provider registry maintains
- * registrations with the the Eclipse {@link IAdapterManager} because it will
- * not always be possible to register adapters directly (eg., because of
- * security constraints enforced by the platform). Thus, a registration of model
- * providers using this class is enforced.
+ * the standard {@link IRuntimeContext#get(Class) context object mechanise}. In
+ * the background, a model provider registry maintains registrations. Thus, a
+ * registration of model providers using this class is enforced.
  * </p>
  * <p>
  * All model managers created by a provider share the same
