@@ -13,31 +13,24 @@ package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.text.MessageFormat;
 
-import org.eclipse.gyrex.configuration.ConfigurationMode;
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.context.preferences.PreferencesUtil;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
 
+import org.osgi.service.prefs.BackingStoreException;
+
 /**
  * The default {@link IRepositoryLookupStrategy repository lookup strategy}.
  * <p>
- * The default repository lookup strategy is a configurable strategy with
- * different defaults depending on the
- * {@link PlatformConfiguration#getConfigurationMode() configuration mode}. The
- * following default behavior is available:
- * <dl>
- * <dt>{@link ConfigurationMode#DEVELOPMENT}</dt>
- * <dd>One repository is used for all model objects.</dd>
- * <dt>{@link ConfigurationMode#PRODUCTION}</dt>
- * <dd>A configured repository is used depending on the
- * {@link IRuntimeContext#getContextPath() context path}. If no repository is
- * configured for a particular context path the path is traversed upwards till a
- * repository is found.</dd>
- * </dl>
+ * The default repository lookup strategy is a configurable strategy which looks
+ * up the repository from the context preferences. A configured repository is
+ * used depending on the {@link IRuntimeContext#getContextPath() context path}.
+ * If no repository is configured for a particular context path the path is
+ * traversed upwards till a repository is found.
  * </p>
  * <p>
  * This class is not intended to be subclassed or instantiated. It provides a
@@ -59,6 +52,18 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	private static DefaultRepositoryLookupStrategy sharedInstance;
 
 	/**
+	 * Composes and returns a preference key for the specified content type.
+	 * 
+	 * @param contentType
+	 *            the content type
+	 * @return the preferences keys
+	 */
+	private static String getContextPreferenceKey(final RepositoryContentType contentType) {
+		// just the media type
+		return PREF_PATH_REPORITORIES.concat(contentType.getMediaType());
+	}
+
+	/**
 	 * Returns the shared instance of the default repository lookup strategy.
 	 * 
 	 * @return the shared instance
@@ -68,6 +73,29 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 			return sharedInstance = new DefaultRepositoryLookupStrategy();
 		}
 		return sharedInstance;
+	}
+
+	/**
+	 * Sets a repository for the specified content type in a given context
+	 * 
+	 * @param context
+	 *            the context to set the repository in
+	 * @param contentType
+	 *            the content type to set the repository for
+	 * @param repositoryId
+	 *            the repository id to set (maybe <code>null</code> to unset)
+	 * @throws BackingStoreException
+	 *             when thrown by
+	 *             {@link IRuntimeContextPreferences#flush(String)}
+	 */
+	public static void setRepository(final IRuntimeContext context, final RepositoryContentType contentType, final String repositoryId) throws BackingStoreException {
+		final IRuntimeContextPreferences preferences = PreferencesUtil.getPreferences(context);
+		if (null != repositoryId) {
+			preferences.put(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType), repositoryId, false);
+		} else {
+			preferences.remove(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType));
+		}
+		preferences.flush(PersistenceActivator.PLUGIN_ID);
 	}
 
 	/**
@@ -112,10 +140,7 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	}
 
 	private String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) {
-		// TODO: incorporate repository type from content type into lookup
 		// lookup the repository id based on the context from the preferences
-		final String peferenceKey = PREF_PATH_REPORITORIES.concat(contentType.getMediaType());
-		return PreferencesUtil.getPreferences(context).get(PersistenceActivator.PLUGIN_ID, peferenceKey, null);
+		return PreferencesUtil.getPreferences(context).get(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType), null);
 	}
-
 }
