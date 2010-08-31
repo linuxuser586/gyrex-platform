@@ -124,11 +124,14 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 
 		// get the repository
 		final Repository repository = getRepository(repositoryId);
+		if (null == repository) {
+			throw new IllegalStateException(MessageFormat.format("Failed creating repository ''{0}'' in context ''{1}'' for content of type ''{2}''.", repositoryId, contentType.getMediaType(), context.getContextPath()));
+		}
 
 		// check that the repository can handle the content type
 		final RepositoryContentTypeSupport contentTypeSupport = repository.getContentTypeSupport();
-		if ((null != contentTypeSupport) && !contentTypeSupport.isSupported(contentType)) {
-			throw new IllegalStateException(MessageFormat.format("The repository ''{0}'' in context ''{1}'' does not support content of type ''{2}''.", repository, context.getContextPath(), contentType));
+		if ((null == contentTypeSupport) || !contentTypeSupport.isSupported(contentType)) {
+			throw new IllegalStateException(MessageFormat.format("The repository ''{0}'' in context ''{1}'' of type ''{2}'' does not support content of type ''{3}''.", repository, context.getContextPath(), repository.getRepositoryProvider().getRepositoryTypeName(), contentType));
 		}
 
 		// return the repository

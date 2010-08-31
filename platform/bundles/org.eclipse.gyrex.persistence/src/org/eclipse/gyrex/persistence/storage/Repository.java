@@ -16,6 +16,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.persistence.storage.content.BasicRepositoryContentTypeSupport;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 
@@ -129,6 +130,9 @@ public abstract class Repository extends PlatformObject {
 	/** the repository metrics registration */
 	private volatile ServiceRegistration metricsRegistration;
 
+	/** the content type support */
+	private volatile RepositoryContentTypeSupport repositoryContentTypeSupport;
+
 	/**
 	 * Creates and returns a new repository instance.
 	 * <p>
@@ -210,11 +214,22 @@ public abstract class Repository extends PlatformObject {
 	}
 
 	/**
-	 * @return
+	 * Returns the {@link RepositoryContentTypeSupport} for the repository.
+	 * <p>
+	 * The default implementation returns a
+	 * {@link BasicRepositoryContentTypeSupport basic support strategy}.
+	 * Subclasses should override to provide a more sophisticated support
+	 * strategy.
+	 * </p>
+	 * 
+	 * @return the {@link RepositoryContentTypeSupport} (may not be
+	 *         <code>null</code>)
 	 */
 	public RepositoryContentTypeSupport getContentTypeSupport() {
-		// TODO Auto-generated method stub
-		return null;
+		if (null != repositoryContentTypeSupport) {
+			return repositoryContentTypeSupport;
+		}
+		return repositoryContentTypeSupport = new BasicRepositoryContentTypeSupport(this);
 	}
 
 	/**
@@ -276,7 +291,7 @@ public abstract class Repository extends PlatformObject {
 	 * 
 	 * @return the repository provider
 	 */
-	protected final RepositoryProvider getRepositoryProvider() {
+	public final RepositoryProvider getRepositoryProvider() {
 		return repositoryProvider;
 	}
 
