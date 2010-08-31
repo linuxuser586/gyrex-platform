@@ -65,8 +65,11 @@ public abstract class RepositoryContentTypeSupport {
 	 *            supported (may be <code>null</code> if progress reporting is
 	 *            not desired)
 	 * @return a status indicating the result of the provisioning operation
+	 * @throws IllegalArgumentException
+	 *             if the content type is not supported at all (eg.
+	 *             incompatible)
 	 */
-	public final IStatus provision(final RepositoryContentType contentType, final IProgressMonitor progressMonitor) {
+	public final IStatus provision(final RepositoryContentType contentType, final IProgressMonitor progressMonitor) throws IllegalArgumentException {
 		return Status.CANCEL_STATUS;
 	}
 
