@@ -1,19 +1,21 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.storage.content;
 
-
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.gyrex.persistence.storage.Repository;
+
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 /**
  * Provides support for working with content types in a repository.
@@ -58,11 +60,14 @@ public abstract class RepositoryContentTypeSupport {
 	 * 
 	 * @param contentType
 	 *            the content type (may not be <code>null</code>)
+	 * @param progressMonitor
+	 *            a monitor for reporting progress an checking cancellation if
+	 *            supported (may be <code>null</code> if progress reporting is
+	 *            not desired)
 	 * @return a status indicating the result of the provisioning operation
 	 */
-	public final IStatus provision(final RepositoryContentType contentType) {
-		// TODO Auto-generated method stub
-		return null;
+	public final IStatus provision(final RepositoryContentType contentType, final IProgressMonitor progressMonitor) {
+		return Status.CANCEL_STATUS;
 	}
 
 }
