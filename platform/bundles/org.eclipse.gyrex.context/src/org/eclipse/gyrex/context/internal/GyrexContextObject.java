@@ -11,6 +11,9 @@
  */
 package org.eclipse.gyrex.context.internal;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -129,6 +132,7 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 			Thread.currentThread().interrupt();
 			throw new IllegalStateException("timeout");
 		}
+		final List<Throwable> errors = new ArrayList<Throwable>(3);
 		try {
 			// ensure that no other thread created an object instance yet
 			if (isComputed) {
@@ -138,74 +142,92 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 				return computedObject;
 			}
 
-			// use a nested try-finally to mark computed upon completion
-			try {
-				if (ContextDebug.objectLifecycle) {
-					LOG.debug("Computing object for {}", this);
-				}
-
-				Object object = null;
-				ProviderRegistration provider = null;
-
-				// check that there is a type registration
-				final String typeName = type.getName();
-				final TypeRegistration typeRegistration = context.getContextRegistry().getObjectProviderRegistry().getType(typeName);
-				if (null == typeRegistration) {
-					return null;
-				}
-
-				// find the filter
-				final Filter filter = ContextConfiguration.findFilter(context, typeName);
-
-				// get all matching provider
-				final ProviderRegistration[] providers = typeRegistration.getMatchingProviders(filter);
-				if (null == providers) {
-					return null;
-				}
-
-				// iterate and use the first compatible one
-				for (int i = 0; (i < providers.length) && (null == object); i++) {
-					provider = providers[i];
-					object = provider.getProvider().getObject(type, context.getHandle());
-				}
-
-				// give up if no object found
-				if (null == object) {
-					return null;
-				}
-
-				// remember the object and its provider
-				computedObject = object;
-				computedObjectProvider = provider;
-
-				// hook with the context for disposal
-				context.addDisposable(this);
-
-				// hook with the type registration to get informed of updates
-				typeRegistration.addReference(this);
-
-				// hook with the provider registration to get informed of updates
-				provider.addReference(this);
-
-				// return the object
-				return object;
-			} finally {
-				// set computed
-				isComputed = true;
+			if (ContextDebug.objectLifecycle) {
+				LOG.debug("Computing object for {}", this);
 			}
-		} catch (final RuntimeException e) {
-			// clear computation on error
-			clearComputedObject();
-			// re-throw
-			throw e;
-		} catch (final Error e) {
-			// clear computation on error
-			clearComputedObject();
-			// re-throw
-			throw e;
+
+			Object object = null;
+			ProviderRegistration provider = null;
+
+			// check that there is a type registration
+			final String typeName = type.getName();
+			final TypeRegistration typeRegistration = context.getContextRegistry().getObjectProviderRegistry().getType(typeName);
+			if (null == typeRegistration) {
+				return null;
+			}
+
+			// find the filter
+			final Filter filter = ContextConfiguration.findFilter(context, typeName);
+
+			// get all matching provider
+			final ProviderRegistration[] providers = typeRegistration.getMatchingProviders(filter);
+			if (null == providers) {
+				return null;
+			}
+
+			// iterate and use the first compatible one
+			for (int i = 0; (i < providers.length) && (null == object); i++) {
+				provider = providers[i];
+				try {
+					object = provider.getProvider().getObject(type, context.getHandle());
+				} catch (final Throwable t) {
+					if (ContextDebug.objectLifecycle) {
+						LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider.toString(), t.toString(), t });
+					} else {
+						LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider.toString(), t.getMessage() });
+					}
+					errors.add(t);
+					object = null;
+				}
+			}
+
+			// give up if no object found
+			if (null == object) {
+				if (ContextDebug.objectLifecycle) {
+					LOG.debug("No object computed for {}, assuming NULL", this);
+				}
+				return null;
+			}
+
+			// we found an object so we ignore any error in failing providers
+			errors.clear();
+
+			// remember the object and its provider
+			computedObject = object;
+			computedObjectProvider = provider;
+
+			// hook with the context for disposal
+			context.addDisposable(this);
+
+			// hook with the type registration to get informed of updates
+			typeRegistration.addReference(this);
+
+			// hook with the provider registration to get informed of updates
+			provider.addReference(this);
+
+			// return the object
+			return object;
 		} finally {
+			// mark computed when no errors occurred
+			isComputed = errors.isEmpty();
+
 			// release lock
 			objectCreationLock.unlock();
+
+			// re-throw errors
+			if (!errors.isEmpty()) {
+				final StringBuilder errorMessage = new StringBuilder();
+				errorMessage.append("Could not compute context object.");
+				for (final Iterator stream = errors.iterator(); stream.hasNext();) {
+					final Throwable t = (Throwable) stream.next();
+					if (t instanceof VirtualMachineError) {
+						throw (VirtualMachineError) t;
+					} else {
+						errorMessage.append(" Caused by: ").append(t.getMessage());
+					}
+				}
+				throw new IllegalStateException(errorMessage.toString());
+			}
 		}
 	}
 
