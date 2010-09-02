@@ -132,6 +132,10 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 	@Override
 	protected void writeErrorPage(final HttpServletRequest request, final Writer writer, final int code, String internalMessage, final boolean showStacks) throws IOException {
+		// handle empty message
+		if ((null == internalMessage) && (code == 500) && (null != getException(request))) {
+			internalMessage = getException(request).toString();
+		}
 		// decode message
 		if (internalMessage != null) {
 			internalMessage = URLDecoder.decode(internalMessage, "UTF-8");
