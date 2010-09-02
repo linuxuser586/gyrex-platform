@@ -222,8 +222,10 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 					final Throwable t = (Throwable) stream.next();
 					if (t instanceof VirtualMachineError) {
 						throw (VirtualMachineError) t;
+					} else if (null != t.getMessage()) {
+						errorMessage.append(' ').append(t.getMessage());
 					} else {
-						errorMessage.append(" Caused by: ").append(t.getMessage());
+						errorMessage.append(" Caused by: ").append(t.toString());
 					}
 				}
 				throw new IllegalStateException(errorMessage.toString());
