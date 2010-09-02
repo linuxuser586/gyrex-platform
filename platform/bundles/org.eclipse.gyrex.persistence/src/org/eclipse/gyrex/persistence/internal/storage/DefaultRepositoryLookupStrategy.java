@@ -131,7 +131,7 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		// check that the repository can handle the content type
 		final RepositoryContentTypeSupport contentTypeSupport = repository.getContentTypeSupport();
 		if ((null == contentTypeSupport) || !contentTypeSupport.isSupported(contentType)) {
-			throw new IllegalStateException(MessageFormat.format("The repository ''{0}'' in context ''{1}'' of type ''{2}'' does not support content of type ''{3}''.", repository, context.getContextPath(), repository.getRepositoryProvider().getRepositoryTypeName(), contentType));
+			throw new IllegalStateException(MessageFormat.format("The repository ''{0}'' in context ''{1}'' of type ''{2}'' does not support content of type ''{3}''.", repositoryId, context.getContextPath(), repository.getRepositoryProvider().getRepositoryTypeName(), contentType));
 		}
 
 		// return the repository
