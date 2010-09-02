@@ -112,7 +112,6 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 	 * @return the actual object
 	 */
 	public Object compute() {
-
 		// use computed object if available
 		if (isComputed) {
 			if (ContextDebug.objectLifecycle) {
@@ -139,59 +138,72 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 				return computedObject;
 			}
 
-			if (ContextDebug.objectLifecycle) {
-				LOG.debug("Computing object for {}", this);
+			// use a nested try-finally to mark computed upon completion
+			try {
+				if (ContextDebug.objectLifecycle) {
+					LOG.debug("Computing object for {}", this);
+				}
+
+				Object object = null;
+				ProviderRegistration provider = null;
+
+				// check that there is a type registration
+				final String typeName = type.getName();
+				final TypeRegistration typeRegistration = context.getContextRegistry().getObjectProviderRegistry().getType(typeName);
+				if (null == typeRegistration) {
+					return null;
+				}
+
+				// find the filter
+				final Filter filter = ContextConfiguration.findFilter(context, typeName);
+
+				// get all matching provider
+				final ProviderRegistration[] providers = typeRegistration.getMatchingProviders(filter);
+				if (null == providers) {
+					return null;
+				}
+
+				// iterate and use the first compatible one
+				for (int i = 0; (i < providers.length) && (null == object); i++) {
+					provider = providers[i];
+					object = provider.getProvider().getObject(type, context.getHandle());
+				}
+
+				// give up if no object found
+				if (null == object) {
+					return null;
+				}
+
+				// remember the object and its provider
+				computedObject = object;
+				computedObjectProvider = provider;
+
+				// hook with the context for disposal
+				context.addDisposable(this);
+
+				// hook with the type registration to get informed of updates
+				typeRegistration.addReference(this);
+
+				// hook with the provider registration to get informed of updates
+				provider.addReference(this);
+
+				// return the object
+				return object;
+			} finally {
+				// set computed
+				isComputed = true;
 			}
-
-			Object object = null;
-			ProviderRegistration provider = null;
-
-			// check that there is a type registration
-			final String typeName = type.getName();
-			final TypeRegistration typeRegistration = context.getContextRegistry().getObjectProviderRegistry().getType(typeName);
-			if (null == typeRegistration) {
-				return null;
-			}
-
-			// find the filter
-			final Filter filter = ContextConfiguration.findFilter(context, typeName);
-
-			// get all matching provider
-			final ProviderRegistration[] providers = typeRegistration.getMatchingProviders(filter);
-			if (null == providers) {
-				return null;
-			}
-
-			// iterate and use the first compatible one
-			for (int i = 0; (i < providers.length) && (null == object); i++) {
-				provider = providers[i];
-				object = provider.getProvider().getObject(type, context.getHandle());
-			}
-
-			// give up if no object found
-			if (null == object) {
-				return null;
-			}
-
-			// remember the object and its provider
-			computedObject = object;
-			computedObjectProvider = provider;
-
-			// hook with the context for disposal
-			context.addDisposable(this);
-
-			// hook with the type registration to get informed of updates
-			typeRegistration.addReference(this);
-
-			// hook with the provider registration to get informed of updates
-			provider.addReference(this);
-
-			// return the object
-			return object;
+		} catch (final RuntimeException e) {
+			// clear computation on error
+			clearComputedObject();
+			// re-throw
+			throw e;
+		} catch (final Error e) {
+			// clear computation on error
+			clearComputedObject();
+			// re-throw
+			throw e;
 		} finally {
-			// set computed
-			isComputed = true;
-
 			// release lock
 			objectCreationLock.unlock();
 		}
