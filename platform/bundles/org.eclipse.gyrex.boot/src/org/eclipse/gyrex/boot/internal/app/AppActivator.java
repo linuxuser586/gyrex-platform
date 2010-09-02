@@ -83,24 +83,10 @@ public class AppActivator extends BaseBundleActivator {
 		}
 
 		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
-
-		// schedule logback configuration job to watch for logback.xml in instance location
-		try {
-			LogbackConfigurator.active.set(true);
-			new LogbackConfigurator().schedule(5000);
-		} catch (final Throwable e) {
-			// TODO should not catch throwable here
-		}
-
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
-		try {
-			LogbackConfigurator.active.set(false);
-		} catch (final Throwable e) {
-			// TODO should not catch throwable here
-		}
 		sharedInstance = null;
 		stopShutdownListener();
 	}

@@ -13,17 +13,11 @@ package org.eclipse.gyrex.boot.internal.app;
 
 import java.io.File;
 import java.nio.charset.Charset;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.service.datalocation.Location;
 
 import org.apache.commons.lang.StringUtils;
@@ -44,23 +38,12 @@ import ch.qos.logback.core.status.InfoStatus;
 import ch.qos.logback.core.status.StatusManager;
 import ch.qos.logback.core.util.StatusPrinter;
 
-public class LogbackConfigurator extends Job {
-
-	private static final AtomicLong lastLastModified = new AtomicLong(-1);
-	static final AtomicBoolean active = new AtomicBoolean();
+public class LogbackConfigurator {
 
 	public static void configureDefaultContext(final String[] arguments) throws Exception {
 		// don't perform any configuration if a config file is specified
 		if (StringUtils.isNotBlank(System.getProperty("logback.configurationFile"))) {
 			return;
-		}
-
-		// determine flags
-		boolean debug = PlatformConfiguration.isOperatingInDevelopmentMode();
-		for (final String arg : arguments) {
-			if ("-debug".equalsIgnoreCase(arg)) {
-				debug = true;
-			}
 		}
 
 		// reset LoggerContext
@@ -71,6 +54,32 @@ public class LogbackConfigurator extends Job {
 		final StatusManager sm = lc.getStatusManager();
 		if (sm != null) {
 			sm.add(new InfoStatus("Setting up Gyrex log configuration.", lc));
+		}
+
+		// prefer configuration file from workspace
+		final File configurationFile = getLogConfigurationFile();
+		if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canRead()) {
+
+			sm.add(new InfoStatus("Loading configuration from Workspace.", lc));
+
+			// update configuration
+			final JoranConfigurator configurator = new JoranConfigurator();
+			configurator.setContext(lc);
+			configurator.doConfigure(configurationFile);
+
+			// print logback's internal status
+			StatusPrinter.printIfErrorsOccured(lc);
+
+			// done'
+			return;
+		}
+
+		// determine flags
+		boolean debug = PlatformConfiguration.isOperatingInDevelopmentMode();
+		for (final String arg : arguments) {
+			if ("-debug".equalsIgnoreCase(arg)) {
+				debug = true;
+			}
 		}
 
 		// get root logger
@@ -130,7 +139,7 @@ public class LogbackConfigurator extends Job {
 		rootLogger.addAppender(rfa);
 
 		// print logback's internal status
-		StatusPrinter.print(lc);
+		StatusPrinter.printIfErrorsOccured(lc);
 	}
 
 	private static File getLogConfigurationFile() {
@@ -149,53 +158,6 @@ public class LogbackConfigurator extends Job {
 		lc.reset();
 
 		// print logback's internal status
-		StatusPrinter.printInCaseOfErrorsOrWarnings(lc);
+		StatusPrinter.printIfErrorsOccured(lc);
 	}
-
-	/**
-	 * Creates a new instance.
-	 */
-	public LogbackConfigurator() {
-		super("Logback Configurator");
-		setSystem(true);
-		setPriority(Job.LONG);
-	}
-
-	@Override
-	protected IStatus run(final IProgressMonitor monitor) {
-		if (!active.get()) {
-			return Status.CANCEL_STATUS;
-		}
-
-		try {
-			final File configurationFile = getLogConfigurationFile();
-			if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canRead()) {
-				final long lastModified = configurationFile.lastModified();
-				final long rememberedLastModifiedValue = lastLastModified.get();
-				if ((lastModified - 2000) > rememberedLastModifiedValue) {
-					if (lastLastModified.compareAndSet(rememberedLastModifiedValue, lastModified)) {
-						// reset LoggerContext
-						final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-						lc.reset();
-
-						// update configuration
-						final JoranConfigurator configurator = new JoranConfigurator();
-						configurator.setContext(lc);
-						configurator.doConfigure(configurationFile);
-
-						// print logback's internal status
-						StatusPrinter.print(lc);
-					}
-				}
-			}
-		} catch (final Exception e) {
-			// ignore
-		}
-
-		// re-schedule to run in 60 seconds
-		schedule(60000);
-
-		return Status.OK_STATUS;
-	}
-
 }
