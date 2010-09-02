@@ -217,7 +217,7 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 			// re-throw errors
 			if (!errors.isEmpty()) {
 				final StringBuilder errorMessage = new StringBuilder();
-				errorMessage.append("Could not compute context object.");
+				errorMessage.append("Could not compute context object ").append(type.getName()).append('.');
 				for (final Iterator stream = errors.iterator(); stream.hasNext();) {
 					final Throwable t = (Throwable) stream.next();
 					if (t instanceof VirtualMachineError) {
