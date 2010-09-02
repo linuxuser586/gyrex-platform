@@ -16,6 +16,10 @@ import org.eclipse.gyrex.persistence.storage.Repository;
 /**
  * A basic repository content type support strategy which allows compatible
  * content types but does not support provisioning of new content types.
+ * <p>
+ * This class may be be subclassed by clients that contribute a repository type
+ * to Gyrex instead of subclassing {@link RepositoryContentTypeSupport}.
+ * </p>
  */
 public class BasicRepositoryContentTypeSupport extends RepositoryContentTypeSupport {
 

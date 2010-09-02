@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -13,19 +13,19 @@ package org.eclipse.gyrex.persistence.storage.provider;
 
 import java.text.MessageFormat;
 
-import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
+
+import org.eclipse.core.runtime.PlatformObject;
 
 /**
  * A repository provider base class which provides {@link Repository repository}
  * instances to Gyrex.
  * <p>
- * Repository providers can be dynamically registered to Gyrex
- * by registering {@link RepositoryProvider} instances as OSGi services.
- * Repository providers are considered core elements of Gyrex.
- * Security restrictions may be used to only allow a set of well known (i.e.
- * trusted) providers.
+ * Repository providers can be dynamically registered to Gyrex by registering
+ * {@link RepositoryProvider} instances as OSGi services. Repository providers
+ * are considered core elements of Gyrex. Security restrictions may be used to
+ * only allow a set of well known (i.e. trusted) providers.
  * </p>
  * <p>
  * Repository providers do not represent a concrete repository. They will be
@@ -33,11 +33,14 @@ import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
  * </p>
  * <p>
  * This class must be subclassed by clients that want to contribute a repository
- * provider to Gyrex. However, it is typically not referenced
- * directly outside Gyrex.
+ * provider to Gyrex. However, it is typically not referenced directly outside
+ * Gyrex.
  * </p>
  */
 public abstract class RepositoryProvider extends PlatformObject {
+
+	/** the OSGi service name */
+	public static final String SERVICE_NAME = RepositoryProvider.class.getName();
 
 	/** repository provider providerId */
 	private final String providerId;
