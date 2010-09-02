@@ -110,6 +110,15 @@ public class DefaultErrorHandler extends ErrorHandler {
 		}
 	}
 
+	private final boolean developmentMode = PlatformConfiguration.isOperatingInDevelopmentMode();
+
+	/**
+	 * Creates a new instance.
+	 */
+	public DefaultErrorHandler() {
+		setShowStacks(PlatformConfiguration.isOperatingInDevelopmentMode());
+	}
+
 	/**
 	 * Returns the admin server URL
 	 * 
@@ -122,25 +131,21 @@ public class DefaultErrorHandler extends ErrorHandler {
 	}
 
 	@Override
-	protected void writeErrorPage(final HttpServletRequest request, final Writer writer, final int code, String message, final boolean showStacks) throws IOException {
-		// fallback to a default message
-		if (message != null) {
-			message = URLDecoder.decode(message, "UTF-8");
-		} else {
-			message = HttpStatus.getMessage(code);
+	protected void writeErrorPage(final HttpServletRequest request, final Writer writer, final int code, String internalMessage, final boolean showStacks) throws IOException {
+		// decode message
+		if (internalMessage != null) {
+			internalMessage = URLDecoder.decode(internalMessage, "UTF-8");
 		}
 
-		// note, we do not want to hand out internal details in production mode
-		if ((code == 500) && (null != getException(request))) {
-			message = "Internal Server Error";
-		}
+		// we do not want to hand out internal details in production mode
+		final String officialMessage = HttpStatus.getMessage(code);
 
 		final String serverName = getServerName(request);
 
 		writer.write("<html>\n\r<head>\n\r<title>Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
-		write(writer, message);
+		write(writer, officialMessage);
 		writer.write("</title>\n\r");
 		writer.write("<meta name=\"generator\" content=\"" + GENERATOR + "\">");
 		writer.write("<link rel=\"stylesheet\" href=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_CSS + "\" type=\"text/css\">\n\r");
@@ -149,7 +154,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writer.write("<h2>Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
-		write(writer, message);
+		write(writer, officialMessage);
 		writer.write("</h2>\n\r\n\r");
 		switch (code) {
 			case 404:
@@ -157,12 +162,11 @@ public class DefaultErrorHandler extends ErrorHandler {
 				break;
 
 			default:
-				writer.write("<p>\n\r\n\r");
-				writer.write("Error ");
-				writer.write(Integer.toString(code));
-				writer.write(": ");
-				write(writer, message);
-				writer.write("</p>\n\r");
+				if (developmentMode && (null != internalMessage)) {
+					writer.write("<p>\n\r\n\r");
+					writeFormattedMessage(writer, internalMessage);
+					writer.write("</p>\n\r");
+				}
 				break;
 		}
 		writer.write("\n\r\n\r");
@@ -172,15 +176,17 @@ public class DefaultErrorHandler extends ErrorHandler {
 			final Throwable exception = getException(request);
 			if (null != exception) {
 				writer.write("<div class=\"dev_note\">\n\r");
-				writer.write("<div><img src=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_IMAGE + "\" style=\"float:left;padding-right:1em;\">The server throw an exception while processing the request.</div>\n\r");
+				writer.write("<div><img src=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_IMAGE + "\" style=\"float:left;padding-right:1em;\">The server throw an exception while processing the request. <span id=\"showstack\"><small><a href=\"#stack-trace\" onclick=\"javascript:document.getElementById('stack').style.display='block';document.getElementById('showstack').style.display='none';return false;\">Show stack.</a></small></span></div>\n\r");
+				writer.write("<div id=\"stack\" style=\"display:none;\">\n\r");
 				writer.write("<div style=\"clear:both;\"></div>\n\r");
 				//writer.write("<p><code>");
 				//writer.write(escapeHtml(exception.toString()));
 				//writer.write("</code>:\n\r");
+				writer.write("<a name=\"stack-trace\" />\n\r");
 				writer.write("<pre>");
 				writeException(exception, writer);
 				writer.write("</pre>\n\r");
-				writer.write("</p>\n\r");
+				writer.write("</div>\n\r");
 				writer.write("</div>\n\r\n\r\n\r");
 			}
 
@@ -214,6 +220,27 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 	private void writeException(final Throwable exception, final Writer writer) {
 		exception.printStackTrace(new PrintWriter(writer));
+	}
+
+	private void writeFormattedMessage(final Writer writer, final String internalMessage) throws IOException {
+		boolean inQuote = false;
+		for (int i = 0; i < internalMessage.length(); i++) {
+			final char c = internalMessage.charAt(i);
+			if (c == '\'') {
+				if (!inQuote) {
+					writer.write("'<code>");
+					inQuote = true;
+				} else {
+					inQuote = false;
+					writer.write("</code>'");
+				}
+			} else {
+				write(writer, c + "");
+			}
+		}
+		if (inQuote) {
+			writer.write("</code>'");
+		}
 	}
 
 	private void writeStackTrace(final Writer writer, final Throwable t) throws IOException {
