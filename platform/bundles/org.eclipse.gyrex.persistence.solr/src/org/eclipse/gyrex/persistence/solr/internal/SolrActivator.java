@@ -14,18 +14,19 @@ package org.eclipse.gyrex.persistence.solr.internal;
 import java.io.File;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.solr.core.CoreContainer;
-import org.eclipse.core.runtime.FileLocator;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+
+import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.osgi.service.datalocation.Location;
+
 import org.osgi.framework.BundleContext;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.solr.core.CoreContainer;
 
 public class SolrActivator extends BaseBundleActivator {
 
@@ -105,11 +106,6 @@ public class SolrActivator extends BaseBundleActivator {
 		//		if (!PlatformConfiguration.isOperatingInDevelopmentMode()) {
 		//			return;
 		//		}
-
-		// disable Solr logging
-		final Logger log = Logger.getLogger("org.apache.solr");
-		log.log(Level.INFO, "Changing log level to WARNING");
-		log.setLevel(Level.WARNING);
 
 		// the configuration template
 		final File configTemplate = new File(FileLocator.toFileURL(context.getBundle().getEntry("conf-embeddedsolr")).getFile());
