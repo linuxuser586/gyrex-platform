@@ -73,7 +73,7 @@ public class LogbackConfigurator {
 				protected void addImplicitRules(final Interpreter interpreter) {
 					super.addImplicitRules(interpreter);
 					// set some properties for log file substitution
-					interpreter.getInterpretationContext().addSubstitutionProperty("gyrex.instance.area.path", instanceLogfileDirectory.addTrailingSeparator().toOSString());
+					interpreter.getInterpretationContext().addSubstitutionProperty("gyrex.instance.area.logs", instanceLogfileDirectory.addTrailingSeparator().toOSString());
 				}
 			};
 			configurator.setContext(lc);
