@@ -31,6 +31,7 @@ import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.joran.spi.Interpreter;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
@@ -56,17 +57,26 @@ public class LogbackConfigurator {
 			sm.add(new InfoStatus("Setting up Gyrex log configuration.", lc));
 		}
 
+		// ensure log directory exists
+		final IPath instanceLogfileDirectory = getLogfileDir();
+		instanceLogfileDirectory.toFile().mkdirs();
+
 		// prefer configuration file from workspace
 		final File configurationFile = getLogConfigurationFile();
 		if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canRead()) {
 
 			sm.add(new InfoStatus("Loading configuration from workspace.", lc));
 
-			final JoranConfigurator configurator = new JoranConfigurator();
+			// create our customized configurator
+			final JoranConfigurator configurator = new JoranConfigurator() {
+				@Override
+				protected void addImplicitRules(final Interpreter interpreter) {
+					super.addImplicitRules(interpreter);
+					// set some properties for log file substitution
+					interpreter.getInterpretationContext().addSubstitutionProperty("gyrex.instance.area.path", instanceLogfileDirectory.addTrailingSeparator().toOSString());
+				}
+			};
 			configurator.setContext(lc);
-
-			// set some properties for log file substitution
-			configurator.getExecutionContext().addSubstitutionProperty("gyrex.instance.area.path", getLogfileDir().addTrailingSeparator().toString());
 
 			// configuration
 			configurator.doConfigure(configurationFile);
@@ -107,8 +117,6 @@ public class LogbackConfigurator {
 			// increase level
 			rootLogger.setLevel(Level.INFO);
 		}
-
-		final IPath instanceLogfileDirectory = getLogfileDir();
 
 		// add error logger
 		final RollingFileAppender<ILoggingEvent> rfa = new RollingFileAppender<ILoggingEvent>();
