@@ -60,11 +60,15 @@ public class LogbackConfigurator {
 		final File configurationFile = getLogConfigurationFile();
 		if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canRead()) {
 
-			sm.add(new InfoStatus("Loading configuration from Workspace.", lc));
+			sm.add(new InfoStatus("Loading configuration from workspace.", lc));
 
-			// update configuration
 			final JoranConfigurator configurator = new JoranConfigurator();
 			configurator.setContext(lc);
+
+			// set some properties for log file substitution
+			configurator.getExecutionContext().addSubstitutionProperty("gyrex.instance.area.path", getLogfileDir().addTrailingSeparator().toString());
+
+			// configuration
 			configurator.doConfigure(configurationFile);
 
 			// print logback's internal status
