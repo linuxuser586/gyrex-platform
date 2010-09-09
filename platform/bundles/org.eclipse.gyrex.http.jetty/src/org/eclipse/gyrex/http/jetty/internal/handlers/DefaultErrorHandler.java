@@ -160,23 +160,14 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writer.write(" - ");
 		write(writer, officialMessage);
 		writer.write("</h2>\n\r\n\r");
-		switch (code) {
-			case 404:
-				writer.write(ErrorPageMessages.get404Message());
-				break;
-
-			default:
-				if (developmentMode && (null != internalMessage)) {
-					writer.write("<p>\n\r\n\r");
-					writeFormattedMessage(writer, internalMessage);
-					writer.write("</p>\n\r");
-				}
-				break;
+		if (developmentMode && (null != internalMessage)) {
+			writer.write("<p>\n\r\n\r");
+			writeFormattedMessage(writer, internalMessage);
+			writer.write("</p>\n\r");
 		}
 		writer.write("\n\r\n\r");
 
-		// display configuration information in development mode.
-		if (showStacks) {
+		if (developmentMode) {
 			final Throwable exception = getException(request);
 			if (null != exception) {
 				writer.write("<div class=\"dev_note\">\n\r");
@@ -212,9 +203,9 @@ public class DefaultErrorHandler extends ErrorHandler {
 				writer.write("</div>\n\r\n\r\n\r");
 			}
 		} else {
-			writer.write("<p class=\"list-desc\">If you think you\'ve reached this page in error:</p>\n\r" + "<ul>\n\r" + "<li>Make sure the URL you\'re trying to reach is correct.</li>\n\r" + "<li>Check <a href=\"http://" + serverName + "/status/\">http://" + serverName + "/status/</a> to view our current system status.</li>\n\r" + "</ul>\n\r" + "\n\r" + "<p class=\"list-desc\">Otherwise, you can: </p>\n\r" + "<ul>\n\r" + "<li>Go <a href=\"javascript:history.back()\">back to the previous page</a></li>\n\r" + "<li>Go to the <a href=\"http://" + serverName + "/\">Gyrex Homepage</a>.</li>\n\r" + "</ul>\n\r\n\r");
+			writer.write("<p class=\"list-desc\">If you think you\'ve reached this page in error:</p>\n\r" + "<ul>\n\r" + "<li>Make sure the URL you\'re trying to reach is correct.</li>\n\r" + "</ul>\n\r" + "\n\r" + "<p class=\"list-desc\">Otherwise, you can: </p>\n\r" + "<ul>\n\r" + "<li>Go <a href=\"javascript:history.back()\">back to the previous page</a></li>\n\r" + "</ul>\n\r\n\r");
 		}
-		writer.write("<p align=\"right\"><em>Powered by Gyrex, Jetty and Equinox.</em></p>");
+		writer.write("<p align=\"right\"><em>Brought to you by Gyrex. Powered by Jetty and Equinox.</em></p>");
 		for (int i = 0; i < 20; i++) {
 			writer.write("\n\r                                                ");
 		}
