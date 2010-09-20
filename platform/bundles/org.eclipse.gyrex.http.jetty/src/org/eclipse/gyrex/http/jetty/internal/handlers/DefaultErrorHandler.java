@@ -174,9 +174,6 @@ public class DefaultErrorHandler extends ErrorHandler {
 				writer.write("<div><img src=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_IMAGE + "\" style=\"float:left;padding-right:1em;\">The server throw an exception while processing the request. <span id=\"showstack\"><small><a href=\"#stack-trace\" onclick=\"javascript:document.getElementById('stack').style.display='block';document.getElementById('showstack').style.display='none';return false;\">Show stack.</a></small></span></div>\n\r");
 				writer.write("<div id=\"stack\" style=\"display:none;\">\n\r");
 				writer.write("<div style=\"clear:both;\"></div>\n\r");
-				//writer.write("<p><code>");
-				//writer.write(escapeHtml(exception.toString()));
-				//writer.write("</code>:\n\r");
 				writer.write("<a name=\"stack-trace\" />\n\r");
 				writer.write("<pre>");
 				writeException(exception, writer);
@@ -206,11 +203,14 @@ public class DefaultErrorHandler extends ErrorHandler {
 		} else {
 			writer.write("<p class=\"list-desc\">If you think you\'ve reached this page in error:</p>\n\r" + "<ul>\n\r" + "<li>Make sure the URL you\'re trying to reach is correct.</li>\n\r" + "</ul>\n\r" + "\n\r" + "<p class=\"list-desc\">Otherwise, you can: </p>\n\r" + "<ul>\n\r" + "<li>Go <a href=\"javascript:history.back()\">back to the previous page</a></li>\n\r" + "</ul>\n\r\n\r");
 		}
+
 		writer.write("<p align=\"right\"><em>Brought to you by Gyrex. Powered by Jetty and Equinox.</em></p>");
+
+		// IE issue workaround
 		for (int i = 0; i < 20; i++) {
 			writer.write("\n\r                                                ");
 		}
-//		writer.write("</div>\n\r");
+
 		writer.write("</body>\n\r</html>\n\r");
 	}
 
