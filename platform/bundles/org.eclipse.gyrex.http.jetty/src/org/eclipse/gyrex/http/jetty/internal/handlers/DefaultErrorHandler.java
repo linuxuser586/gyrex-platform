@@ -154,7 +154,6 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writer.write("<meta name=\"generator\" content=\"" + GENERATOR + "\">");
 		writer.write("<link rel=\"stylesheet\" href=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_CSS + "\" type=\"text/css\">\n\r");
 		writer.write("</head>\n\r<body>\n\r");
-//		writer.write("<div id=\"box\">\n\r");
 		writer.write("<h2>Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
