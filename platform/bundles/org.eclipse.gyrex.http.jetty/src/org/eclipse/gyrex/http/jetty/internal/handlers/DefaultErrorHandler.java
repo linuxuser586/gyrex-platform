@@ -159,15 +159,15 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
 		write(writer, officialMessage);
-		writer.write("</h2>\n\r\n\r");
-		if (developmentMode && (null != internalMessage)) {
-			writer.write("<p>\n\r\n\r");
-			writeFormattedMessage(writer, internalMessage);
-			writer.write("</p>\n\r");
-		}
-		writer.write("\n\r\n\r");
+		writer.write("</h2>\n\r\n\r\n\r");
 
 		if (developmentMode) {
+			if (null != internalMessage) {
+				writer.write("<p>\n\r");
+				writeFormattedMessage(writer, internalMessage);
+				writer.write("</p>\n\r\n\r\n\r");
+			}
+
 			final Throwable exception = getException(request);
 			if (null != exception) {
 				writer.write("<div class=\"dev_note\">\n\r");
@@ -202,6 +202,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 				writer.write("<div style=\"clear:both;\"></div>\n\r");
 				writer.write("</div>\n\r\n\r\n\r");
 			}
+
 		} else {
 			writer.write("<p class=\"list-desc\">If you think you\'ve reached this page in error:</p>\n\r" + "<ul>\n\r" + "<li>Make sure the URL you\'re trying to reach is correct.</li>\n\r" + "</ul>\n\r" + "\n\r" + "<p class=\"list-desc\">Otherwise, you can: </p>\n\r" + "<ul>\n\r" + "<li>Go <a href=\"javascript:history.back()\">back to the previous page</a></li>\n\r" + "</ul>\n\r\n\r");
 		}
