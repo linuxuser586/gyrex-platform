@@ -18,6 +18,8 @@ import java.net.URL;
 import java.util.Set;
 
 import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.application.Application;
@@ -30,6 +32,9 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.jetty.http.PathMap;
 import org.eclipse.jetty.http.PathMap.Entry;
+import org.eclipse.jetty.server.DispatcherType;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.util.StringUtil;
@@ -126,6 +131,54 @@ public class ApplicationContextHandler extends ServletContextHandler {
 		this.applicationId = applicationId;
 		this.applicationManager = applicationManager;
 		applicationServletHandler = new ApplicationServletHandler(this);
+	}
+
+	@Override
+	public void doScope(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
+		/*
+		 * this method is overridden to customize the path handling;
+		 * normally, a ContextHandler has a context path; however, the ApplicationContextHandler
+		 * must inherit the context path from the calling UrlToApplicationHandler
+		 */
+
+		ContextHandler.Context old_context = null;
+		Thread current_thread = null;
+		ClassLoader old_classloader = null;
+		final DispatcherType dispatch = baseRequest.getDispatcherType();
+
+		old_context = baseRequest.getContext();
+
+		// Are we already in this context?
+		if (old_context != _scontext) {
+			// check the target.
+			if (DispatcherType.REQUEST.equals(dispatch) || DispatcherType.ASYNC.equals(dispatch)) {
+				if (!checkContext(target, baseRequest, response)) {
+					return;
+				}
+			}
+
+			// Set the classloader to application loader
+			current_thread = Thread.currentThread();
+			old_classloader = current_thread.getContextClassLoader();
+			current_thread.setContextClassLoader(application.getClass().getClassLoader());
+		}
+
+		try {
+			// Update the paths
+			baseRequest.setContext(_scontext);
+
+			// next scope
+			// note, we don't inline here in order not to break when Jetty changes something
+			nextScope(target, baseRequest, request, response);
+		} finally {
+			if (old_context != _scontext) {
+				// reset the classloader
+				current_thread.setContextClassLoader(old_classloader);
+
+				// reset the context and servlet path.
+				baseRequest.setContext(old_context);
+			}
+		}
 	}
 
 	/**
@@ -226,6 +279,7 @@ public class ApplicationContextHandler extends ServletContextHandler {
 
 		// register the default servlet at / to handle resources last
 		// note, in Jetty (JavaEE?) "/*" is matched before "/"; "/" really means the last match
+		// TODO: investigate what would be the benefits of this... JSP support?
 //		final ServletHolder defaultServlet = new ServletHolder(new ApplicationResourceServlet(this));
 //		defaultServlet.setInitParameter("dirAllowed", String.valueOf(PlatformConfiguration.isOperatingInDevelopmentMode()));
 //		defaultServlet.setInitParameter("maxCacheSize", "2000000");
