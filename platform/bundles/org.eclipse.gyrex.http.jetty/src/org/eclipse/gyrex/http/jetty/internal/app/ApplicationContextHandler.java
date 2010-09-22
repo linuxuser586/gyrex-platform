@@ -101,9 +101,6 @@ public class ApplicationContextHandler extends ServletContextHandler {
 			}
 		}
 
-		/* (non-Javadoc)
-		 * @see org.eclipse.jetty.server.handler.ContextHandler.Context#getResourcePaths(java.lang.String)
-		 */
 		@Override
 		public Set getResourcePaths(final String path) {
 			// delegate to the application
@@ -131,6 +128,7 @@ public class ApplicationContextHandler extends ServletContextHandler {
 		this.applicationId = applicationId;
 		this.applicationManager = applicationManager;
 		applicationServletHandler = new ApplicationServletHandler(this);
+		_scontext = new Context();
 	}
 
 	@Override
@@ -144,8 +142,8 @@ public class ApplicationContextHandler extends ServletContextHandler {
 		ContextHandler.Context old_context = null;
 		Thread current_thread = null;
 		ClassLoader old_classloader = null;
-		final DispatcherType dispatch = baseRequest.getDispatcherType();
 
+		final DispatcherType dispatch = baseRequest.getDispatcherType();
 		old_context = baseRequest.getContext();
 
 		// Are we already in this context?
