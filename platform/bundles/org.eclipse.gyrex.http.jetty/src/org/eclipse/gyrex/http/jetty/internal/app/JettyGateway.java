@@ -85,9 +85,14 @@ public class JettyGateway implements IHttpGateway {
 	 * Adds an URL handler to the underlying Jetty server.
 	 * 
 	 * @param urlToApplicationHandler
+	 * @throws Exception
+	 *             if the handler could not be started
 	 */
-	public void addUrlHandler(final UrlToApplicationHandler urlToApplicationHandler) {
+	public void addUrlHandler(final UrlToApplicationHandler urlToApplicationHandler) throws Exception {
 		urlToApplicationHandlerCollection.addHandler(urlToApplicationHandler);
+		if (urlToApplicationHandlerCollection.isStarted() && !urlToApplicationHandler.isStarted() && !urlToApplicationHandler.isStarting()) {
+			urlToApplicationHandler.start();
+		}
 	}
 
 	/**
@@ -150,9 +155,14 @@ public class JettyGateway implements IHttpGateway {
 	 * Removes n URL handler from the underlying Jetty server.
 	 * 
 	 * @param urlToApplicationHandler
+	 * @throws Exception
+	 *             if the handler could not be stopped
 	 */
-	public void removeUrlHandler(final UrlToApplicationHandler urlToApplicationHandler) {
+	public void removeUrlHandler(final UrlToApplicationHandler urlToApplicationHandler) throws Exception {
 		urlToApplicationHandlerCollection.removeHandler(urlToApplicationHandler);
+		if (urlToApplicationHandlerCollection.isStarted() && !urlToApplicationHandler.isStopped() && !urlToApplicationHandler.isStopping()) {
+			urlToApplicationHandler.stop();
+		}
 	}
 
 }

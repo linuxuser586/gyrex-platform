@@ -19,6 +19,7 @@ import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 
 import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.util.log.Log;
 
 /**
  * A URL registry which maintains Jetty contexts for registered URLs.
@@ -67,7 +68,18 @@ public class UrlRegistry implements IUrlRegistry {
 		applicationHandler.configure(this);
 
 		// register handler
-		jettyGateway.addUrlHandler(applicationHandler);
+		try {
+			jettyGateway.addUrlHandler(applicationHandler);
+		} catch (final Exception e) {
+			// try immediate unregistering
+			try {
+				jettyGateway.removeUrlHandler(applicationHandler);
+			} catch (final Exception e2) {
+				// ignore
+			}
+			// throw exception
+			throw new IllegalStateException("Error while binding application '" + applicationId + "' to url '" + url.toExternalForm() + "' with the underlying Jetty engine. " + e.getMessage(), e);
+		}
 
 		// no application previously registered using that url
 		return null;
@@ -81,7 +93,11 @@ public class UrlRegistry implements IUrlRegistry {
 		}
 
 		// unregister handler
-		jettyGateway.removeUrlHandler(handler);
+		try {
+			jettyGateway.removeUrlHandler(handler);
+		} catch (final Exception e) {
+			Log.warn("Error while unbinding url '" + url.toExternalForm() + "' from the underlying Jetty engine. There might be resources leaking. {}", e.getMessage());
+		}
 
 		// return app id
 		return handler.getApplicationId();
