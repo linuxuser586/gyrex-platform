@@ -21,6 +21,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -40,6 +41,21 @@ public class SolrRepository extends Repository {
 	public UpdateResponse add(final Collection<SolrInputDocument> docs) {
 		try {
 			return getSolrServer().add(docs);
+		} catch (final SolrServerException e) {
+			getSolrRepositoryMetrics().recordException("add()", e);
+			throw new RuntimeException(e.getMessage(), e);
+		} catch (final IOException e) {
+			getSolrRepositoryMetrics().recordException("add()", e);
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+
+	public UpdateResponse add(final Collection<SolrInputDocument> docs, final int commitWithi) {
+		try {
+			final UpdateRequest req = new UpdateRequest();
+			req.add(docs);
+			req.setCommitWithin(commitWithi); // TODO: should be configurable
+			return req.process(getSolrServer());
 		} catch (final SolrServerException e) {
 			getSolrRepositoryMetrics().recordException("add()", e);
 			throw new RuntimeException(e.getMessage(), e);
