@@ -42,7 +42,6 @@ import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.resource.Resource;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +60,7 @@ public class ApplicationContextHandler extends ServletContextHandler {
 		@Override
 		public String getContextPath() {
 			// TODO need to use a "default" url mount point
-			throw new NotImplementedException();
+			return null;
 		}
 
 		@Override
