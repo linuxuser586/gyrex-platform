@@ -219,13 +219,20 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 				final StringBuilder errorMessage = new StringBuilder();
 				errorMessage.append("Could not compute context object ").append(type.getName()).append('.');
 				for (final Iterator stream = errors.iterator(); stream.hasNext();) {
-					final Throwable t = (Throwable) stream.next();
+					Throwable t = (Throwable) stream.next();
+					// re-throw VM errors
 					if (t instanceof VirtualMachineError) {
 						throw (VirtualMachineError) t;
-					} else if (null != t.getMessage()) {
-						errorMessage.append(' ').append(t.getMessage());
-					} else {
-						errorMessage.append(" Caused by: ").append(t.toString());
+					}
+					// otherwise capture as formatted string
+					errorMessage.append(" ");
+					while (null != t) {
+						if (null != t.getMessage()) {
+							errorMessage.append(' ').append(t.getMessage());
+						} else {
+							errorMessage.append(" Caused by: ").append(t.toString());
+						}
+						t = t.getCause();
 					}
 				}
 				throw new IllegalStateException(errorMessage.toString());
