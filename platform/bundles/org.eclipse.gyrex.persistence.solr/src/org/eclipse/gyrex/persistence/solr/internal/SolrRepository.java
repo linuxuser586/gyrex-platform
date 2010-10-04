@@ -154,6 +154,7 @@ public class SolrRepository extends Repository {
 		} catch (final SolrServerException e) {
 			queryThroughputMetric.requestFailed();
 			getSolrRepositoryMetrics().recordException(query, e);
+			// TODO: exception handling
 			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
