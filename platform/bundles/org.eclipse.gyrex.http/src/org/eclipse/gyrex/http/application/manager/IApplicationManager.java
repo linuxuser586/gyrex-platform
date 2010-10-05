@@ -39,6 +39,9 @@ import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
  */
 public interface IApplicationManager {
 
+	/** OSGi service name constant for the application manager service */
+	String SERVICE_NAME = IApplicationManager.class.getName();
+
 	/**
 	 * Mounts an application at the specified URL.
 	 * <p>
@@ -147,10 +150,10 @@ public interface IApplicationManager {
 	void unmount(String url) throws IllegalArgumentException, MalformedURLException, IllegalStateException;
 
 	/**
-	 * Unregisters an application.
+	 * Unregisters an application and removes any mounts associated with it.
 	 * 
 	 * @param applicationId
-	 *            the application id
+	 *            the id of the application which should be unregistered
 	 */
 	void unregister(String applicationId);
 }
