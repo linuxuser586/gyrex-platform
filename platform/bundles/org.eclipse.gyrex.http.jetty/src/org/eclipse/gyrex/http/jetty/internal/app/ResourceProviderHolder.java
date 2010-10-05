@@ -30,7 +30,7 @@ public class ResourceProviderHolder extends Holder {
 	ResourceProviderHolder(final String internalName, final IResourceProvider provider) {
 		this.internalName = internalName;
 		this.provider = provider;
-		setName(provider.getClass().getName() + "@" + super.hashCode());
+		setName(provider.getClass().getName() + "-" + super.hashCode());
 	}
 
 	public URL getResource(final String pathInfo) throws MalformedURLException {

@@ -44,6 +44,7 @@ public class ApplicationRegisteredServletHolder extends ServletHolder implements
 	 */
 	public ApplicationRegisteredServletHolder(final Class servlet) {
 		super(servlet);
+		setName(servlet.getName() + "-" + super.hashCode());
 	}
 
 	/**
@@ -53,6 +54,7 @@ public class ApplicationRegisteredServletHolder extends ServletHolder implements
 	 */
 	public ApplicationRegisteredServletHolder(final Servlet servlet) {
 		super(servlet);
+		setName(servlet.getClass().getName() + "-" + super.hashCode());
 	}
 
 	@Override

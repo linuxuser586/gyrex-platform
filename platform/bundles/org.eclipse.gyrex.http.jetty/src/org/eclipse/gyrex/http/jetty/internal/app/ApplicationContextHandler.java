@@ -66,7 +66,7 @@ public class ApplicationContextHandler extends ServletContextHandler {
 		@Override
 		public String getMimeType(final String file) {
 			// delegate to the application
-			// the application may delegate back to ApplicationContextHandler via our JettyApplicationContext
+			// the application may delegate back to ApplicationContextHandler via our Jetty IApplicationContext
 			return application.getMimeType(file);
 		}
 
