@@ -57,6 +57,13 @@ public class JettyGateway implements IHttpGateway {
 
 		final HandlerCollection serverHandlers = new HandlerCollection();
 
+		// handler for serving error page resource
+		// (takes precedence over all other handlers for proper serving of error resources)
+		serverHandlers.addHandler(new DefaultErrorHandlerResourcesHandler());
+
+		// set server error handling
+		server.addBean(new DefaultErrorHandler());
+
 		// primary handler for UrlToApplicationHandlers
 		urlToApplicationHandlerCollection = new ContextHandlerCollection();
 		urlToApplicationHandlerCollection.setContextClass(UrlToApplicationHandler.class);
@@ -64,10 +71,6 @@ public class JettyGateway implements IHttpGateway {
 
 		// default favicon handler
 		serverHandlers.addHandler(new DefaultFaviconHandler());
-
-		// default error handling
-		serverHandlers.addHandler(new DefaultErrorHandlerResourcesHandler());
-		server.addBean(new DefaultErrorHandler());
 
 		// default handler for all other requests
 		final DefaultHandler defaultHandler = new DefaultHandler();
