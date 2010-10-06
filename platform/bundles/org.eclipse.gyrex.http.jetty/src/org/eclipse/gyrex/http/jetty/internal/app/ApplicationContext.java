@@ -148,8 +148,13 @@ public class ApplicationContext implements IApplicationContext {
 		// register resource
 		registryModificationLock.lock();
 		try {
+			// reserve alias
 			registerAlias(alias);
+
+			// register resource provider
 			applicationContextHandler.resourcesMap.put(pathSpec, new ResourceProviderHolder(name, provider));
+
+			// register resource servlet
 			applicationContextHandler.applicationServletHandler.addServletWithMapping(ApplicationResourceServlet.newHolder(applicationContextHandler), pathSpec);
 		} finally {
 			registryModificationLock.unlock();
@@ -160,16 +165,19 @@ public class ApplicationContext implements IApplicationContext {
 	public void registerServlet(final String alias, final Servlet servlet, final Map<String, String> initparams) throws ServletException, NamespaceException {
 		final String pathSpec = normalizeAliasToPathSpec(alias);
 
-		// create holder
-		final ApplicationRegisteredServletHolder holder = new ApplicationRegisteredServletHolder(servlet);
-		if (null != initparams) {
-			holder.setInitParameters(initparams);
-		}
-
 		// register servlet
 		registryModificationLock.lock();
 		try {
+			// reserve alias
 			registerAlias(alias);
+
+			// create holder
+			final ApplicationRegisteredServletHolder holder = new ApplicationRegisteredServletHolder(servlet);
+			if (null != initparams) {
+				holder.setInitParameters(initparams);
+			}
+
+			// register servlet
 			applicationContextHandler.applicationServletHandler.addServletWithMapping(holder, pathSpec);
 		} finally {
 			registryModificationLock.unlock();

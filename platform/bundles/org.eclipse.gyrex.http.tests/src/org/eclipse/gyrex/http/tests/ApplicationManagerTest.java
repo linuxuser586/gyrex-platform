@@ -77,6 +77,15 @@ public class ApplicationManagerTest {
 
 		ConcurrentHashMap<URL, String> map = new ConcurrentHashMap<URL, String>();
 
+		/* (non-Javadoc)
+		 * @see org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry#applicationUnregistered(java.lang.String)
+		 */
+		@Override
+		public void applicationUnregistered(final String applicationId) {
+			// TODO Auto-generated method stub
+
+		}
+
 		@Override
 		public String registerIfAbsent(final URL url, final String applicationId) {
 			return map.putIfAbsent(url, applicationId);

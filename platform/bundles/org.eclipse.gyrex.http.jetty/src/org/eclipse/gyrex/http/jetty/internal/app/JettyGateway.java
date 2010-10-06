@@ -19,6 +19,7 @@ import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandlerResourcesHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultFaviconHandler;
@@ -33,10 +34,15 @@ import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.eclipse.osgi.service.datalocation.Location;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Jetty based HTTP gateway.
  */
 public class JettyGateway implements IHttpGateway {
+
+	private static final Logger LOG = LoggerFactory.getLogger(JettyGateway.class);
 
 	private final ConcurrentMap<ApplicationManager, UrlRegistry> urlRegistryByManager = new ConcurrentHashMap<ApplicationManager, UrlRegistry>(1);
 	private final Server server;
@@ -95,6 +101,10 @@ public class JettyGateway implements IHttpGateway {
 		urlToApplicationHandlerCollection.addHandler(urlToApplicationHandler);
 		if (urlToApplicationHandlerCollection.isStarted() && !urlToApplicationHandler.isStarted() && !urlToApplicationHandler.isStarting()) {
 			urlToApplicationHandler.start();
+		}
+		if (HttpJettyDebug.handlers) {
+			LOG.debug("Added URL handler {}", urlToApplicationHandler.getDisplayName());
+			LOG.debug(server.dump());
 		}
 	}
 
@@ -165,6 +175,10 @@ public class JettyGateway implements IHttpGateway {
 		urlToApplicationHandlerCollection.removeHandler(urlToApplicationHandler);
 		if (urlToApplicationHandlerCollection.isStarted() && !urlToApplicationHandler.isStopped() && !urlToApplicationHandler.isStopping()) {
 			urlToApplicationHandler.stop();
+		}
+		if (HttpJettyDebug.handlers) {
+			LOG.debug("Removed URL handler {}", urlToApplicationHandler.getDisplayName());
+			LOG.debug(server.dump());
 		}
 	}
 

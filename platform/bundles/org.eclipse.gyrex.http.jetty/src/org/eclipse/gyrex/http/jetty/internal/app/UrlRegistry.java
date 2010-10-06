@@ -12,6 +12,9 @@
 package org.eclipse.gyrex.http.jetty.internal.app;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -29,8 +32,8 @@ public class UrlRegistry implements IUrlRegistry {
 	private final JettyGateway jettyGateway;
 	private final ApplicationManager applicationManager;
 
-	private final ConcurrentMap<String, UrlToApplicationHandler> knownUrls = new ConcurrentHashMap<String, UrlToApplicationHandler>(30);
-	private final ConcurrentMap<String, Handler> contextByAppId = new ConcurrentHashMap<String, Handler>();
+	private final ConcurrentMap<String, UrlToApplicationHandler> urlHandlerByUrl = new ConcurrentHashMap<String, UrlToApplicationHandler>(30);
+	private final ConcurrentMap<String, Handler> applicationContextByAppId = new ConcurrentHashMap<String, Handler>();
 
 	/**
 	 * Creates a new instance.
@@ -43,11 +46,38 @@ public class UrlRegistry implements IUrlRegistry {
 		this.applicationManager = applicationManager;
 	}
 
+	@Override
+	public void applicationUnregistered(final String applicationId) {
+		final List<String> urlsToRemove = new ArrayList<String>();
+		for (final Entry<String, UrlToApplicationHandler> entry : urlHandlerByUrl.entrySet()) {
+			if (entry.getValue().getApplicationId().equals(applicationId)) {
+				urlsToRemove.add(entry.getKey());
+			}
+		}
+		for (final String url : urlsToRemove) {
+			try {
+				unregister(url);
+			} catch (final Exception e) {
+				Log.ignore(e);
+			}
+		}
+
+		final Handler appContextHandler = applicationContextByAppId.remove(applicationId);
+		if (null != appContextHandler) {
+			try {
+				appContextHandler.stop();
+				appContextHandler.destroy();
+			} catch (final Exception e) {
+				Log.ignore(e);
+			}
+		}
+	}
+
 	public Handler getHandler(final String applicationId) {
-		Handler applicationContextHandler = contextByAppId.get(applicationId);
+		Handler applicationContextHandler = applicationContextByAppId.get(applicationId);
 		if (null == applicationContextHandler) {
-			contextByAppId.putIfAbsent(applicationId, jettyGateway.customize(new ApplicationContextHandler(applicationId, applicationManager)));
-			applicationContextHandler = contextByAppId.get(applicationId);
+			applicationContextByAppId.putIfAbsent(applicationId, jettyGateway.customize(new ApplicationContextHandler(applicationId, applicationManager)));
+			applicationContextHandler = applicationContextByAppId.get(applicationId);
 		}
 		return applicationContextHandler;
 	}
@@ -58,7 +88,7 @@ public class UrlRegistry implements IUrlRegistry {
 		final UrlToApplicationHandler applicationHandler = new UrlToApplicationHandler(applicationId, url);
 
 		// try to "register" the created app handler
-		final UrlToApplicationHandler existingAppHandler = knownUrls.putIfAbsent(url.toExternalForm(), applicationHandler);
+		final UrlToApplicationHandler existingAppHandler = urlHandlerByUrl.putIfAbsent(url.toExternalForm(), applicationHandler);
 		if (null != existingAppHandler) {
 			// already got an existing handler, abort
 			return existingAppHandler.getApplicationId();
@@ -85,9 +115,8 @@ public class UrlRegistry implements IUrlRegistry {
 		return null;
 	}
 
-	@Override
-	public String unregister(final URL url) {
-		final UrlToApplicationHandler handler = knownUrls.remove(url.toExternalForm());
+	private String unregister(final String url) {
+		final UrlToApplicationHandler handler = urlHandlerByUrl.remove(url);
 		if (null == handler) {
 			return null;
 		}
@@ -96,11 +125,16 @@ public class UrlRegistry implements IUrlRegistry {
 		try {
 			jettyGateway.removeUrlHandler(handler);
 		} catch (final Exception e) {
-			Log.warn("Error while unbinding url '" + url.toExternalForm() + "' from the underlying Jetty engine. There might be resources leaking. {}", e.getMessage());
+			Log.warn("Error while unbinding url '" + url + "' from the underlying Jetty engine. There might be resources leaking. {}", e.getMessage());
 		}
 
 		// return app id
 		return handler.getApplicationId();
+	}
+
+	@Override
+	public String unregister(final URL url) {
+		return unregister(url.toExternalForm());
 	}
 
 }

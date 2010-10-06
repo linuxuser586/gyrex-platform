@@ -1,5 +1,3 @@
 # global debug option
 org.eclipse.gyrex.http/debug=true
 
-# debug roles
-org.eclipse.gyrex.http/handlerServlet=true

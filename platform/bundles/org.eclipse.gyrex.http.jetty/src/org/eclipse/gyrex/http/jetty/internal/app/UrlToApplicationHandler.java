@@ -20,12 +20,18 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.HotSwapHandler;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A handler implementation which delegates to a lazy initialized
@@ -34,22 +40,24 @@ import org.eclipse.jetty.server.handler.HotSwapHandler;
 public class UrlToApplicationHandler extends ContextHandler {
 
 	private class ApplicationDelegator extends HotSwapHandler {
-		/**
-		 *
-		 */
-		private final class DummyHandler extends AbstractHandler {
+		private final Handler NOT_INITIALIZED = new AbstractHandler() {
 			@Override
 			public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
 				throw new IllegalStateException("inactive");
 			}
-		}
+
+			@Override
+			public String toString() {
+				return "NOT_INITIALIZED_HOT_SWAP_HANDLER (workaround for Jetty bug 322575)";
+			};
+		};
 
 		private final Lock handlerLock = new ReentrantLock();
 
 		@Override
 		protected void doStart() throws Exception {
 			// can be removed once bug 322575 is fixed
-			setHandler(new DummyHandler());
+			setHandler(NOT_INITIALIZED);
 			super.doStart();
 		}
 
@@ -66,10 +74,11 @@ public class UrlToApplicationHandler extends ContextHandler {
 			}
 
 			// initialize application context if necessary
-			if ((null == getHandler()) || (getHandler() instanceof DummyHandler)) {
+			if (!isInitialized()) {
 				handlerLock.lock();
+				boolean initialized = false;
 				try {
-					if ((null == getHandler()) || (getHandler() instanceof DummyHandler)) {
+					if (!isInitialized()) {
 						setHandler(urlRegistry.getHandler(getApplicationId()));
 						if ((getServer() != null) && (getServer().isStarting() || getServer().isStarted())) {
 							final Handler[] contextCollections = getServer().getChildHandlersByClass(ContextHandlerCollection.class);
@@ -77,9 +86,17 @@ public class UrlToApplicationHandler extends ContextHandler {
 								((ContextHandlerCollection) contextCollections[h]).mapContexts();
 							}
 						}
+						initialized = true;
 					}
 				} finally {
 					handlerLock.unlock();
+				}
+				if (HttpJettyDebug.handlers && initialized) {
+					LOG.debug("Initialized application handler {}", getApplicationId());
+					final Server server = getServer();
+					if (null != server) {
+						LOG.debug(server.dump());
+					}
 				}
 			}
 
@@ -92,7 +109,26 @@ public class UrlToApplicationHandler extends ContextHandler {
 				baseRequest.setHandled(true);
 			}
 		}
+
+		private boolean isInitialized() {
+			return (getHandler() != null) && (getHandler() != NOT_INITIALIZED);
+		}
+
+		@Override
+		public String toString() {
+			final StringBuilder b = new StringBuilder();
+			b.append("ApplicationDelegator [");
+			if (isInitialized()) {
+				b.append("ACTIVE");
+			} else {
+				b.append("INACTIVE");
+			}
+			b.append("]");
+			return b.toString();
+		}
 	}
+
+	private static final Logger LOG = LoggerFactory.getLogger(UrlToApplicationHandler.class);
 
 	final String applicationId;
 

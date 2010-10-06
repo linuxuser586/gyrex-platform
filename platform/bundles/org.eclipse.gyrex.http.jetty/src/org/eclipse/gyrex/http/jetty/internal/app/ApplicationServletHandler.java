@@ -21,14 +21,22 @@ import javax.servlet.http.HttpServletResponse;
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlet.ServletMapping;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.log.Log;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ApplicationServletHandler extends ServletHandler {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ApplicationServletHandler.class);
+
 	/** applicationContextHandler */
 	final ApplicationContextHandler applicationContextHandler;
 	final ThreadLocal<String> currentTarget = new ThreadLocal<String>();
@@ -97,5 +105,16 @@ public class ApplicationServletHandler extends ServletHandler {
 
 	public void removeServlet(final ServletHolder holder) {
 		setServlets((ServletHolder[]) LazyList.removeFromArray(getServlets(), holder));
+	}
+
+	@Override
+	public void setServletMappings(final ServletMapping[] servletMappings) {
+		// update
+		super.setServletMappings(servletMappings);
+
+		// log
+		if (HttpJettyDebug.handlers) {
+			LOG.debug("Updated servlet mappings {}", dump());
+		}
 	}
 }

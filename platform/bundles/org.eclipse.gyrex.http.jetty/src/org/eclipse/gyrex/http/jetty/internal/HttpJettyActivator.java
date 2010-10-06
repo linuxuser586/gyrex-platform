@@ -51,7 +51,24 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		return httpJettyActivator;
 	}
 
+	public static byte[] readBundleResource(final String bundleResource) {
+		final URL eclipseIconUrl = getInstance().getBundle().getEntry(bundleResource);
+		if (null == eclipseIconUrl) {
+			throw new IllegalStateException("Bundle resource not found: " + bundleResource);
+		}
+		InputStream in = null;
+		try {
+			in = eclipseIconUrl.openStream();
+			return IO.readBytes(in);
+		} catch (final IOException e) {
+			throw new IllegalStateException(NLS.bind("Error reading resource {0}: {1}", bundleResource, e.getMessage()));
+		} finally {
+			IO.close(in);
+		}
+	}
+
 	private JettyGateway gateway;
+
 	private Server server;
 
 	private IServiceProxy<Location> instanceLocationRef;
@@ -99,20 +116,9 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		}
 	}
 
-	public static byte[] readBundleResource(final String bundleResource) {
-		final URL eclipseIconUrl = getInstance().getBundle().getEntry(bundleResource);
-		if (null == eclipseIconUrl) {
-			throw new IllegalStateException("Bundle resource not found: " + bundleResource);
-		}
-		InputStream in = null;
-		try {
-			in = eclipseIconUrl.openStream();
-			return IO.readBytes(in);
-		} catch (final IOException e) {
-			throw new IllegalStateException(NLS.bind("Error reading resource {0}: {1}", bundleResource, e.getMessage()));
-		} finally {
-			IO.close(in);
-		}
+	@Override
+	protected Class getDebugOptions() {
+		return HttpJettyDebug.class;
 	}
 
 }

@@ -19,6 +19,18 @@ import java.net.URL;
 public interface IUrlRegistry {
 
 	/**
+	 * Called when an application has been unregistered.
+	 * <p>
+	 * The URL registry is expected to remove any reference to the running
+	 * application and any URL mappings.
+	 * </p>
+	 * 
+	 * @param applicationId
+	 *            the application id
+	 */
+	void applicationUnregistered(String applicationId);
+
+	/**
 	 * Registers the specified URL with the specified application id if (and
 	 * only if) the URL is not already registered.
 	 * 

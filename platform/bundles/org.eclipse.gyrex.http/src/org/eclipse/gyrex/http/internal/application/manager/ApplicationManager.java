@@ -157,9 +157,6 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 		return parsedUrl;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.registry.IApplicationManager#register(java.lang.String, java.lang.String, org.eclipse.gyrex.context.IRuntimeContext, java.util.Map)
-	 */
 	@Override
 	public void register(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> properties) throws ApplicationRegistrationException {
 		if (null == applicationId) {
@@ -214,12 +211,16 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.registry.IApplicationManager#unregister(java.lang.String)
-	 */
 	@Override
 	public void unregister(final String applicationId) {
-		applicationsById.remove(applicationId);
+		final ApplicationRegistration applicationRegistration = applicationsById.remove(applicationId);
+		if (applicationRegistration != null) {
+			try {
+				applicationRegistration.destroy();
+			} finally {
+				getUrlRegistry().applicationUnregistered(applicationId);
+			}
+		}
 	}
 
 }

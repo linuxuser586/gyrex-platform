@@ -79,10 +79,11 @@ public class ApplicationRegistration {
 
 	/**
 	 * Gets an existing or creates a new application instance for the specified
-	 * application handler servlet.
+	 * application context.
 	 * 
-	 * @param applicationHandlerServlet
-	 * @return an application instance.
+	 * @param applicationContext
+	 *            the application context
+	 * @return an application instance
 	 */
 	public ApplicationInstance getApplication(final IApplicationContext applicationContext) throws CoreException {
 		// get application
