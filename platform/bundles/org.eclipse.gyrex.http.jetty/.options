@@ -1,5 +1,0 @@
-# global debug option
-org.eclipse.gyrex.http.jetty/debug=true
-
-# debug handlers maintained internally
-org.eclipse.gyrex.http.jetty/handlers=true
