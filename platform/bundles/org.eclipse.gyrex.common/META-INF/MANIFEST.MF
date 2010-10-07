@@ -5,15 +5,15 @@ Bundle-Version: 1.0.0.qualifier
 Bundle-Name: %bundle.name
 Bundle-Vendor: %provider.name
 Bundle-Localization: plugin
-Export-Package: org.eclipse.gyrex.common,
- org.eclipse.gyrex.common.debug,
- org.eclipse.gyrex.common.internal.fixme;x-internal:=true,
- org.eclipse.gyrex.common.internal.services;x-internal:=true,
- org.eclipse.gyrex.common.lifecycle,
- org.eclipse.gyrex.common.logging,
- org.eclipse.gyrex.common.runtime,
- org.eclipse.gyrex.common.services,
- org.eclipse.gyrex.common.status
+Export-Package: org.eclipse.gyrex.common;version="1.0.0",
+ org.eclipse.gyrex.common.debug;version="1.0.0",
+ org.eclipse.gyrex.common.internal.fixme;version="1.0.0";x-internal:=true,
+ org.eclipse.gyrex.common.internal.services;version="1.0.0";x-internal:=true,
+ org.eclipse.gyrex.common.lifecycle;version="1.0.0",
+ org.eclipse.gyrex.common.logging;version="1.0.0",
+ org.eclipse.gyrex.common.runtime;version="1.0.0",
+ org.eclipse.gyrex.common.services;version="1.0.0",
+ org.eclipse.gyrex.common.status;version="1.0.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Import-Package: org.eclipse.osgi.service.debug;version="[1.0.0,2.0.0)",
  org.eclipse.osgi.util;version="[1.1.0,2.0.0)",
