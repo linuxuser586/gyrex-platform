@@ -1,24 +1,24 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 
 /**
- * This package defines the Model API of Gyrex.
+ * This package defines a Model API of applications running in Gyrex.
  * <p>
  * <strong>The Model API</strong>
  * </p>
  * <p>
- * The model API is the lowest API level and actually consists of two APIs: the
- * model object API and the model manager API. Although these are two
- * APIs they are considered as the ONE low level API and they are allowed to
+ * The model API is considered the lowest API level and actually consists of two
+ * APIs: the model object API and the model manager API. Although these are two
+ * APIs they are considered as ONE low level API and they are allowed to
  * interact with each other in both directions.
  * </p>
  * <p>
@@ -26,9 +26,9 @@
  * model manager API and the other way around. However, there is one strong
  * requirement for dependencies from the model object API to the model manager
  * API. The model object API is not allowed to depend on model manager API that
- * directly causes repository modifications of any kind! All repository data 
- * modifications must happen explicitly through model managers and not 
- * transparently through model object API usage. 
+ * directly causes repository modifications of any kind! All repository data
+ * modifications must happen explicitly through model managers and not
+ * transparently through model object API usage.
  * </p>
  * <p>
  * The model object API defines model objects and allows low level operations on
@@ -76,14 +76,14 @@
  * </p>
  * <p>
  * Because the model manager API causes repository modifications it participates
- * in transactions as defined by the underlying repository but does NOT implement 
+ * in transactions as defined by the underlying repository but does NOT implement
  * transaction logic. It's also important to note that transaction support
  * is very limited in Gyrex for scalability reasons. Basically,
- * transactions - if supported by the underlying repository - are only available 
+ * transactions - if supported by the underlying repository - are only available
  * within a single repository. This enforces a more scalable approach by moving
  * transaction logic out of the repository into the application. Thus, when
  * using the low-level Model API directly care must be taken to not make wrong
- * assumptions about transaction boundaries. To some extend, the concept of 
+ * assumptions about transaction boundaries. To some extend, the concept of
  * <em>eventual consistency</em> applies to the Gyrex model.
  * </p>
  * <p>
@@ -91,18 +91,18 @@
  * the low-level model managers directly but any higher level API available.
  * Typically implementors of the higher level API know how to deal with the
  * issues around transactions, distribution and persistence and will solve
- * them for you. 
+ * them for you.
  * </p>
  * <p>
  * Again, let's look at an example which should make it easier to understand.
  * (Note, this is purely an example. Similarities to future business APIs are
- * pure fortuity.) 
+ * pure fortuity.)
  * </p>
  * <blockquote>
  * <p>
  * Let's assume there is an order model manager which allows to create and
- * insert new order objects into the repository and add order items to an 
- * order. In a traditional, relational database focused <em>single</em> repository 
+ * insert new order objects into the repository and add order items to an
+ * order. In a traditional, relational database focused <em>single</em> repository
  * environment you would probably have the following logic in place.
  * <ul>
  * <li><em>Begin a transaction</em></li>
@@ -111,20 +111,20 @@
  * <li><em>Commit the transaction</em> (or <em>rollback</em> in case of problems)</li>
  * </ul>
  * But now assume a more distributed world where the actual order items would
- * be in a different repository than the order itself. Suddenly you would 
+ * be in a different repository than the order itself. Suddenly you would
  * have to deal with distributed transactions. However, there are some
  * flaws and pitfalls with distributed transactions especially when it comes
  * to scalability. Thus, it's generally a good idea to avoid distributed transactions
- * where possible. One way possibility would be to move the transaction logic 
+ * where possible. One way possibility would be to move the transaction logic
  * into the application logic using states as in the following example.
  * <ul>
  * <li>(1) Create an order (initial order state will be CREATING)</li>
  * <li>(2) Attach order items</li>
- * <li>(3) Mark order CREATED_SUCCESSFULLY (or leave in CREATING state 
+ * <li>(3) Mark order CREATED_SUCCESSFULLY (or leave in CREATING state
  *         in case of problems)</li>
  * </ul>
- * The obvious difference is that we have an order in the repository after 
- * step (1) finished whereas in the traditional case we only had an order in the 
+ * The obvious difference is that we have an order in the repository after
+ * step (1) finished whereas in the traditional case we only had an order in the
  * repository after step (2) finished successfully. If the application
  * is developed right this won't matter. Orders in the CREATING state are simply
  * ignored. There could be a clean-up job that purges such broken orders and their
@@ -132,10 +132,10 @@
  * </p>
  * </blockquote>
  * <p><em>
- * Note, of course it is also possible to write a model manager/service which 
- * <strong>fully</strong> supports and implements two or three phase commits. 
+ * Note, of course it is also possible to write a model manager/service which
+ * <strong>fully</strong> supports and implements two or three phase commits.
  * That's all possible because of the extensibility and flexibility of this API.
- * However, this style of heavy design is just not developed and promoted initially 
+ * However, this style of heavy design is just not developed initially and promoted
  * in Gyrex <strong>but</strong> it is a supported use-case.
  * </em></p>
  * <p>
