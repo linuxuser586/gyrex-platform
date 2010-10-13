@@ -22,6 +22,8 @@ import org.eclipse.gyrex.persistence.PersistenceUtil;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 
+import org.eclipse.osgi.util.NLS;
+
 /**
  * A model provider base class which provides {@link IModelManager model
  * manager} instances to Gyrex.
@@ -156,16 +158,23 @@ public abstract class ModelProvider extends RuntimeContextObjectProvider {
 	}
 
 	@Override
-	public final Object getObject(final Class type, final IRuntimeContext context) {
+	public <T> T getObject(final Class<T> type, final IRuntimeContext context) throws IllegalStateException {
 		// get the repository
 		final Repository repository = PersistenceUtil.getRepository(context, getContentType());
 
 		// get the model manager for the specified context and repository
-		return createModelManagerInstance(type, repository, context);
+		final BaseModelManager manager = createModelManagerInstance(type, repository, context);
+		if (manager == null) {
+			return null;
+		}
+		if (!type.isInstance(manager)) {
+			throw new IllegalStateException(NLS.bind("Unable to return object of type {0} for context {1}; manager ({2}) of type {3} does not implement {0}", new Object[] { type.getName(), context.getContextPath().toString(), manager.toString(), manager.getClass().getName() }));
+		}
+		return type.cast(manager);
 	}
 
 	@Override
-	public final Class[] getObjectTypes() {
+	public final Class<?>[] getObjectTypes() {
 		return providedManagers;
 	}
 
