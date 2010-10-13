@@ -11,10 +11,12 @@
  *******************************************************************************/
 package org.eclipse.gyrex.model.common.internal;
 
-import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+
+import org.eclipse.osgi.util.NLS;
+
 import org.osgi.framework.BundleContext;
 
 /**
@@ -23,7 +25,7 @@ import org.osgi.framework.BundleContext;
 public class ModelActivator extends BaseBundleActivator {
 
 	/** PLUGIN_ID */
-	public static final String PLUGIN_ID = "org.eclipse.gyrex.model.common";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.model.common";
 
 	/** the shared instance */
 	private static final AtomicReference<ModelActivator> sharedInstance = new AtomicReference<ModelActivator>();
@@ -42,7 +44,7 @@ public class ModelActivator extends BaseBundleActivator {
 	public static ModelActivator getInstance() {
 		final ModelActivator activator = sharedInstance.get();
 		if (null == activator) {
-			throw new IllegalStateException(MessageFormat.format("Bundle {0} has not been started.", PLUGIN_ID));
+			throw new IllegalStateException(NLS.bind("Bundle {0} has not been started.", SYMBOLIC_NAME));
 		}
 
 		return activator;
@@ -56,7 +58,7 @@ public class ModelActivator extends BaseBundleActivator {
 	 * </p>
 	 */
 	public ModelActivator() {
-		super(PLUGIN_ID);
+		super(SYMBOLIC_NAME);
 	}
 
 	@Override
