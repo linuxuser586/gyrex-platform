@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.model.common.contracts;
 
-
 /**
  * A model object which knows about the last time it was modified.
  */
@@ -19,7 +18,8 @@ public interface IModificationAware {
 
 	/**
 	 * Returns the milliseconds from the Java epoch of
-	 * <code>1970-01-01T00:00:00Z</code> when the object was last modified.
+	 * <code>1970-01-01T00:00:00Z</code> when the object was last modified in
+	 * the underlying data store.
 	 * <p>
 	 * Typically, the value is not set externally but computed and stored by the
 	 * underlying model implementation.
