@@ -15,20 +15,19 @@ import static junit.framework.Assert.assertEquals;
 
 import java.util.UUID;
 
-import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.preferences.DefaultScope;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.internal.ContextActivator;
-import org.eclipse.gyrex.context.internal.configuration.ContextConfiguration;
-import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
-import org.eclipse.gyrex.context.preferences.PreferencesUtil;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.preferences.DefaultScope;
+
+import org.osgi.service.prefs.Preferences;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.osgi.service.prefs.Preferences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,25 +64,24 @@ public class PreferencesBlackBoxTests {
 	public void testPreferencesScenario001() throws Exception {
 		// get the root context
 		final IRuntimeContext rootContext = contextRegistry.get(Path.ROOT);
-		final IRuntimeContextPreferences rootPrefs = PreferencesUtil.getPreferences(rootContext);
+		final IRuntimeContextPreferences rootPrefs = rootContext.getPreferences();
 
 		// get another context
 		final IRuntimeContext parentContext = contextRegistry.get(new Path("/parent"));
-		final IRuntimeContextPreferences parentPrefs = PreferencesUtil.getPreferences(parentContext);
+		final IRuntimeContextPreferences parentPrefs = parentContext.getPreferences();
 
 		// get another context
 		final IRuntimeContext childContext = contextRegistry.get(new Path("/parent/child/child"));
-		final IRuntimeContextPreferences childPrefs = PreferencesUtil.getPreferences(childContext);
+		final IRuntimeContextPreferences childPrefs = childContext.getPreferences();
 
 		// generate key + value for test
 		final String key = "testStringConf" + UUID.randomUUID().toString();
 		final String value = "avalue" + System.currentTimeMillis();
 
 		// set a default ... should be available in all
-		final Preferences rootDefaultNode = new DefaultScope().getNode(ContextActivator.SYMBOLIC_NAME).node(ContextConfiguration.CONTEXTS);
-		final String path = GyrexContextPreferencesImpl.getPreferencesPathToSettings(Path.ROOT, GyrexContextPreferencesImpl.getPathToPreferencesKey(Activator.SYMBOLIC_NAME, key));
-		LOG.trace("Setting default for key {} in node {}", key, rootDefaultNode.node(path).absolutePath());
-		rootDefaultNode.node(path).put(key, value);
+		final Preferences defaultNode = new DefaultScope().getNode(Activator.SYMBOLIC_NAME);
+		LOG.trace("Setting default for key {} in node {}", key, defaultNode.node(Activator.SYMBOLIC_NAME).absolutePath());
+		defaultNode.node(Activator.SYMBOLIC_NAME).put(key, value);
 
 		// verify
 		assertEquals("root context default preference lookup failed", value, rootPrefs.get(Activator.SYMBOLIC_NAME, key, null));
