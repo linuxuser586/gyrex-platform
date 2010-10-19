@@ -15,7 +15,6 @@ import java.text.MessageFormat;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
-import org.eclipse.gyrex.context.preferences.PreferencesUtil;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
@@ -89,7 +88,7 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 *             {@link IRuntimeContextPreferences#flush(String)}
 	 */
 	public static void setRepository(final IRuntimeContext context, final RepositoryContentType contentType, final String repositoryId) throws BackingStoreException {
-		final IRuntimeContextPreferences preferences = PreferencesUtil.getPreferences(context);
+		final IRuntimeContextPreferences preferences = context.getPreferences();
 		if (null != repositoryId) {
 			preferences.put(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType), repositoryId, false);
 		} else {
@@ -144,6 +143,6 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 
 	private String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) {
 		// lookup the repository id based on the context from the preferences
-		return PreferencesUtil.getPreferences(context).get(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType), null);
+		return context.getPreferences().get(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType), null);
 	}
 }
