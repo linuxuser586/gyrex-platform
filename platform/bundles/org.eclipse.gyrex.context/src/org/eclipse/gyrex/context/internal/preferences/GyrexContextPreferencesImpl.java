@@ -126,10 +126,7 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	 * </li>
 	 * <li>DEFAULT Scope
 	 * <ul>
-	 * <li>[context path/.../...]/.settings/[key]</li>
-	 * <li>[context path/...]/.settings/[key]</li>
-	 * <li>[context path]/.settings/[key]</li>
-	 * <li>/.settings/[key]</li>
+	 * <li>/[qualifier path]/[key]</li>
 	 * </ul>
 	 * </li>
 	 * </ul>
