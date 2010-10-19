@@ -48,6 +48,37 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	private static final String UTF_8 = "UTF-8";
 
 	/**
+	 * Appends a node to the list of preferences if (and only if) the specified
+	 * path name maps to an existing node.
+	 * 
+	 * @param result
+	 *            the list of preferences
+	 * @param parent
+	 *            the parent node
+	 * @param pathName
+	 *            the path name
+	 */
+	private static void appendIfPathExists(final List<Preferences> result, final Preferences parent, final String pathName) {
+		try {
+			if (parent.nodeExists(pathName)) {
+				if (ContextDebug.preferencesLookup) {
+					LOG.debug("Adding node {}", parent.node(pathName).absolutePath());
+				}
+				result.add(parent.node(pathName));
+			} else {
+				if (ContextDebug.preferencesLookup) {
+					LOG.debug("Ignoring node {} (does not exist)", parent.absolutePath() + "/" + pathName);
+				}
+			}
+		} catch (final BackingStoreException e) {
+			// node has been removed;
+			if (ContextDebug.preferencesLookup) {
+				LOG.debug("Ignoring node {} (has been removed {})", parent.absolutePath() + "/" + pathName, e.getMessage());
+			}
+		}
+	}
+
+	/**
 	 * Returns the node that may be used directly for storing the specified
 	 * preferences key
 	 * 
@@ -108,57 +139,33 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	 *            the name of the preference (optionally including its path)
 	 * @param context
 	 *            the context
-	 * @return a list of preferences nodes
+	 * @return a list of preferences nodes (maybe <code>null</code>)
 	 */
 	public static Preferences[] getNodes(final String qualifier, final String key, final IRuntimeContext context) {
 		if (ContextDebug.preferencesLookup) {
 			LOG.debug("Preferences lookup for {}/{} in context {}", new Object[] { qualifier, key, context });
 		}
 
-		final String[] order = new String[] { PLATFORM, DEFAULT };
 		final IEclipsePreferences rootNode = EclipsePreferencesUtil.getRootNode();
 		final String pathToPreferencesKey = getPathToPreferencesKey(qualifier, key);
 		final List<Preferences> result = new ArrayList<Preferences>();
-		for (int i = 0; i < order.length; i++) {
-			final String scopeString = order[i];
-			final Preferences node = rootNode.node(scopeString).node(ContextConfiguration.CONTEXT_PREF_ROOT.toString());
-			if (null != context) {
-				for (IPath contextPath = context.getContextPath(); !contextPath.isEmpty() && !contextPath.isRoot(); contextPath = contextPath.removeLastSegments(1)) {
-					final String path = getPreferencesPathToSettings(contextPath, pathToPreferencesKey);
-					try {
-						if (node.nodeExists(path)) {
-							if (ContextDebug.preferencesLookup) {
-								LOG.debug("Adding node {}", node.node(path).absolutePath());
-							}
-							result.add(node.node(path));
-						} else {
-							if (ContextDebug.preferencesLookup) {
-								LOG.debug("Ignoring node {}", node.absolutePath() + "/" + path);
-							}
-						}
-					} catch (final BackingStoreException e) {
-						// node has been removed
-					}
-				}
-			}
-			// append always the root preference node
-			final String root = getPreferencesPathToSettings(Path.ROOT, pathToPreferencesKey);
-			try {
-				if (node.nodeExists(root)) {
-					if (ContextDebug.preferencesLookup) {
-						LOG.debug("Adding node {}", node.node(root).absolutePath());
-					}
-					result.add(node.node(root));
-				} else {
-					if (ContextDebug.preferencesLookup) {
-						LOG.debug("Ignoring node {}", node.absolutePath() + "/" + root);
-					}
-				}
-			} catch (final BackingStoreException e) {
-				// node has been removed;
+
+		// build lookup tree from PLATFORM preferences
+		final Preferences platformPrefRoot = rootNode.node(PLATFORM).node(ContextConfiguration.CONTEXT_PREF_ROOT.toString());
+		if (null != context) {
+			for (IPath contextPath = context.getContextPath(); !contextPath.isEmpty() && !contextPath.isRoot(); contextPath = contextPath.removeLastSegments(1)) {
+				appendIfPathExists(result, platformPrefRoot, getPreferencesPathToSettings(contextPath, pathToPreferencesKey));
 			}
 		}
-		return result.toArray(new Preferences[result.size()]);
+
+		// append always the root preference node
+		appendIfPathExists(result, platformPrefRoot, getPreferencesPathToSettings(Path.ROOT, pathToPreferencesKey));
+
+		// append always the default scope
+		appendIfPathExists(result, rootNode.node(DEFAULT), pathToPreferencesKey);
+
+		// done
+		return result.isEmpty() ? null : result.toArray(new Preferences[result.size()]);
 	}
 
 	public static String getPathToPreferencesKey(final String qualifier, final String key) {
