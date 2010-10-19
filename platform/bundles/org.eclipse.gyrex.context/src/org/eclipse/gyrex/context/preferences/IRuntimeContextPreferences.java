@@ -96,6 +96,11 @@ public interface IRuntimeContextPreferences {
 	 * lookup order as defined by the runtime context hierarchy.
 	 * </p>
 	 * <p>
+	 * As a last fallback, the {@link DefaultScope default scope} will be added
+	 * to the lookup list. This allows convenient default settings
+	 * initialization.
+	 * </p>
+	 * <p>
 	 * The specified key may either refer to a simple key or be the
 	 * concatenation of the path of a child node and key. If the key contains a
 	 * slash ("/") character, then a double-slash must be used to denote the end
