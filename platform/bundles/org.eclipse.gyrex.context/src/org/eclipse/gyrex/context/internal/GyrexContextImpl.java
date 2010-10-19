@@ -21,7 +21,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.di.GyrexContextInjectorImpl;
+import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
+import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.PlatformObject;
@@ -61,6 +63,7 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 	private final ContextRegistryImpl contextRegistry;
 	private final Set<IDisposable> disposables = new CopyOnWriteArraySet<IDisposable>();
 	private final GyrexContextInjectorImpl injector;
+	private final GyrexContextPreferencesImpl preferences;
 	private final AtomicLong lastAccessTime = new AtomicLong();
 	private final ConcurrentMap<Class<?>, GyrexContextObject> computedObjects = new ConcurrentHashMap<Class<?>, GyrexContextObject>();
 
@@ -79,6 +82,7 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		this.contextPath = contextPath;
 		this.contextRegistry = contextRegistry;
 		injector = new GyrexContextInjectorImpl(this);
+		preferences = new GyrexContextPreferencesImpl(this);
 	}
 
 	public void addDisposable(final IDisposable disposable) {
@@ -105,6 +109,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		if (injector instanceof IDisposable) {
 			((IDisposable) injector).dispose();
 		}
+
+		// dispose preferences
+		preferences.dispose();
 
 		// dispose disposables
 		for (final IDisposable disposable : disposables) {
@@ -170,6 +177,15 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return lastAccessTime.get();
 	}
 
+	/* (non-Javadoc)
+	 * @see org.eclipse.gyrex.context.IRuntimeContext#getPreferences()
+	 */
+	@Override
+	public IRuntimeContextPreferences getPreferences() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	/**
 	 * Indicates if the context has been disposed.
 	 * 
@@ -195,4 +211,5 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 	private void trackAccess() {
 		lastAccessTime.set(System.currentTimeMillis());
 	}
+
 }

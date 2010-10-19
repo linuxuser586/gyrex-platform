@@ -24,8 +24,7 @@ import org.osgi.service.prefs.Preferences;
  * <p>
  * This class defines a contract for retrieving, updating and removing context
  * specific preferences. It can be retrieved from a context by calling
- * {@link IRuntimeContext#get(Class)} using
- * <code>IRuntimeContextPreferences.class</code> as an argument.
+ * {@link IRuntimeContext#getPreferences()}.
  * </p>
  * <p>
  * For an excellent detailed description of the preferences functionality see

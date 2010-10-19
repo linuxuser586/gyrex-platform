@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.context;
 
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
+import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 
 import org.eclipse.core.runtime.IAdaptable;
@@ -100,11 +101,33 @@ public interface IRuntimeContext extends IAdaptable {
 	 * <p>
 	 * The injector can be used to inject a context content into custom objects.
 	 * </p>
+	 * <p>
+	 * Note, clients must be aware that they run in a dynamic system. Therefore
+	 * they must not hold on the object returned for a longer time but obtain a
+	 * fresh object from the context.
+	 * </p>
 	 * 
 	 * @return the {@link IRuntimeContextInjector injector} instance of the
 	 *         context
 	 */
 	IRuntimeContextInjector getInjector();
+
+	/**
+	 * Returns the {@link IRuntimeContextPreferences preferences} of a context.
+	 * <p>
+	 * The preferences can be used to inject a context content into custom
+	 * objects.
+	 * </p>
+	 * <p>
+	 * Note, clients must be aware that they run in a dynamic system. Therefore
+	 * they must not hold on the object returned for a longer time but obtain a
+	 * fresh object from the context.
+	 * </p>
+	 * 
+	 * @return the {@link IRuntimeContextPreferences preferences} instance of
+	 *         the context
+	 */
+	IRuntimeContextPreferences getPreferences();
 
 	/**
 	 * Returns a human readable string representation of the context.

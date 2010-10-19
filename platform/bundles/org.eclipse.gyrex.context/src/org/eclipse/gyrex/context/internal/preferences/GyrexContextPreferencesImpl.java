@@ -42,6 +42,8 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 
 	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextPreferencesImpl.class);
 
+	public static final String SETTINGS = ".settings";
+
 	private static final String EMPTY = "";
 	private static final String DEFAULT = "default";
 	private static final String PLATFORM = "platform";
@@ -92,14 +94,17 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	 * @return the preferences node for the context.
 	 */
 	public static Preferences getNode(final String qualifier, final String key, final IRuntimeContext context) {
+		if (context == null) {
+			throw new IllegalStateException("context had been disposed");
+		}
+
 		final String pathToPreferencesKey = getPathToPreferencesKey(qualifier, key);
 		final Preferences node = ContextConfiguration.getRootNodeForContextPreferences();
-		if (null != context) {
-			final IPath contextPath = context.getContextPath();
-			if (!contextPath.isEmpty() && !contextPath.isRoot()) {
-				return node.node(getPreferencesPathToSettings(contextPath, pathToPreferencesKey));
-			}
+		final IPath contextPath = context.getContextPath();
+		if (!contextPath.isEmpty() && !contextPath.isRoot()) {
+			return node.node(getPreferencesPathToSettings(contextPath, pathToPreferencesKey));
 		}
+
 		// fallback to root
 		return node.node(getPreferencesPathToSettings(Path.ROOT, pathToPreferencesKey));
 	}
@@ -142,6 +147,10 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	 * @return a list of preferences nodes (maybe <code>null</code>)
 	 */
 	public static Preferences[] getNodes(final String qualifier, final String key, final IRuntimeContext context) {
+		if (context == null) {
+			throw new IllegalStateException("context had been disposed");
+		}
+
 		if (ContextDebug.preferencesLookup) {
 			LOG.debug("Preferences lookup for {}/{} in context {}", new Object[] { qualifier, key, context });
 		}
@@ -152,10 +161,8 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 
 		// build lookup tree from PLATFORM preferences
 		final Preferences platformPrefRoot = rootNode.node(PLATFORM).node(ContextConfiguration.CONTEXT_PREF_ROOT.toString());
-		if (null != context) {
-			for (IPath contextPath = context.getContextPath(); !contextPath.isEmpty() && !contextPath.isRoot(); contextPath = contextPath.removeLastSegments(1)) {
-				appendIfPathExists(result, platformPrefRoot, getPreferencesPathToSettings(contextPath, pathToPreferencesKey));
-			}
+		for (IPath contextPath = context.getContextPath(); !contextPath.isEmpty() && !contextPath.isRoot(); contextPath = contextPath.removeLastSegments(1)) {
+			appendIfPathExists(result, platformPrefRoot, getPreferencesPathToSettings(contextPath, pathToPreferencesKey));
 		}
 
 		// append always the root preference node
@@ -180,9 +187,7 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 		}
 	}
 
-	private IRuntimeContext context;
-
-	public static final String SETTINGS = ".settings";
+	private volatile IRuntimeContext context;
 
 	/**
 	 * Creates a new instance.

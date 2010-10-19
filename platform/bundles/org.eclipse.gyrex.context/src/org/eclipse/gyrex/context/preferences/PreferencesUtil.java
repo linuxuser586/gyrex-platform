@@ -23,7 +23,9 @@ import org.eclipse.osgi.util.NLS;
  * </p>
  * 
  * @noinstantiate This class is not intended to be instantiated by clients.
+ * @deprecated Use {@link IRuntimeContext#getPreferences()}
  */
+@Deprecated
 public final class PreferencesUtil {
 
 	/**
@@ -51,14 +53,16 @@ public final class PreferencesUtil {
 	 * @throws IllegalStateException
 	 *             if no suitable manager implementation is currently available
 	 * @see IRuntimeContext#get(Class)
+	 * @deprecated Use {@link IRuntimeContext#getPreferences()}
 	 */
+	@Deprecated
 	public static IRuntimeContextPreferences getPreferences(final IRuntimeContext context) throws IllegalArgumentException, IllegalStateException {
 		if (null == context) {
 			throw new IllegalArgumentException("context must not be null");
 		}
 
 		// get preferences
-		final IRuntimeContextPreferences preferences = context.get(IRuntimeContextPreferences.class);
+		final IRuntimeContextPreferences preferences = context.getPreferences();
 		if (null == preferences) {
 			throw new IllegalStateException(NLS.bind("no preferences available for context \"{0}\"", context));
 		}

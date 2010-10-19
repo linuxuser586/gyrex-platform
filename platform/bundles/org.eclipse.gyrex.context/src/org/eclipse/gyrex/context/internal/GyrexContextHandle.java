@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
+import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.PlatformObject;
@@ -76,6 +77,11 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 	@Override
 	public IRuntimeContextInjector getInjector() {
 		return get().getInjector();
+	}
+
+	@Override
+	public IRuntimeContextPreferences getPreferences() {
+		return get().getPreferences();
 	}
 
 	@Override

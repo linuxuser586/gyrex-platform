@@ -16,11 +16,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.internal.manager.ContextManagerImpl;
-import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesProvider;
 import org.eclipse.gyrex.context.internal.provider.ObjectProviderRegistry;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
-import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 
 import org.eclipse.core.runtime.preferences.IPreferencesService;
@@ -58,10 +56,6 @@ public class ContextActivator extends BaseBundleActivator {
 
 		// track the preferences service
 		preferencesServiceProxyRef.set(getServiceHelper().trackService(IPreferencesService.class));
-
-		// register the preferences provider first so that it can be found by ObjectProviderRegistry immediately
-		final GyrexContextPreferencesProvider preferencesProvider = new GyrexContextPreferencesProvider();
-		getServiceHelper().registerService(RuntimeContextObjectProvider.class.getName(), preferencesProvider, "Eclipse Gyrex Project", "Contextual preferences object provider for contexts.", null, null);
 
 		// start the object provider registry
 		final ObjectProviderRegistry objectProviderRegistry = new ObjectProviderRegistry();
