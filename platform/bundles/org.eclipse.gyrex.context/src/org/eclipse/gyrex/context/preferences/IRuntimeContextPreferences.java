@@ -239,6 +239,29 @@ public interface IRuntimeContextPreferences {
 	public int getInt(String qualifier, String key, int defaultValue) throws SecurityException;
 
 	/**
+	 * Returns all of the keys that have an associated value in the specified
+	 * namespace locale preference node. (The returned array will be of size
+	 * zero if this node has no preferences and not <code>null</code>!)
+	 * <p>
+	 * An example of a qualifier for a preference is the bundle symbolic name.
+	 * (e.g. "org.eclipse.core.resources" for "description.autobuild")
+	 * </p>
+	 * 
+	 * @param qualifier
+	 *            a namespace qualifier for the preference (eg. typically the
+	 *            symbolic name of the bundle defining the preference)
+	 * @return an array of the keys that have an associated value in the
+	 *         specified namespace locale preference node.
+	 * @throws BackingStoreException
+	 *             if this operation cannot be completed due to a failure in the
+	 *             backing store, or inability to communicate with it.
+	 * @throws SecurityException
+	 *             if the caller does not have permissions to access the
+	 *             preferences in the specified namespace
+	 */
+	public String[] getKeys(String qualifier) throws BackingStoreException, SecurityException;
+
+	/**
 	 * Return the value stored in the preference store for the given key as
 	 * <code>long</code>. See {@link #get(String, String, String)} for a
 	 * complete description of this method.

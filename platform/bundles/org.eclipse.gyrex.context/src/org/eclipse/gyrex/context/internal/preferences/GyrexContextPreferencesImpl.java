@@ -31,6 +31,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -253,6 +254,12 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	}
 
 	@Override
+	public String[] getKeys(final String qualifier) throws BackingStoreException, SecurityException {
+		// simply lookup the node using an empty key
+		return getNode(qualifier, StringUtils.EMPTY, context).keys();
+	}
+
+	@Override
 	public long getLong(final String qualifier, final String key, final long defaultValue) throws SecurityException {
 		final String value = get(key, null, getNodes(qualifier, key, context));
 		return NumberUtils.toLong(value, defaultValue);
@@ -331,5 +338,4 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 		builder.append("GyrexContextPreferencesImpl [context=").append(context).append("]");
 		return builder.toString();
 	}
-
 }
