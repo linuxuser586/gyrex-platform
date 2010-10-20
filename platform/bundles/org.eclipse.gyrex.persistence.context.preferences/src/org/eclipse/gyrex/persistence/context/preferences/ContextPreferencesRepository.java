@@ -11,7 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.context.preferences;
 
-import java.util.Set;
+import java.util.Collection;
 
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
@@ -62,11 +62,14 @@ public abstract class ContextPreferencesRepository extends Repository {
 	public abstract byte[] get(String key) throws IllegalArgumentException;
 
 	/**
-	 * Returns a set of all known keys.
+	 * Returns a collection of all known keys.
 	 * 
-	 * @return an unmodifiable set of keys
+	 * @return an unmodifiable collection of all keys that have data in the
+	 *         repository
+	 * @throws BackingStoreException
+	 *             if an exception occurred accessing the preferences store
 	 */
-	public abstract Set<String> getKeys();
+	public abstract Collection<String> getKeys() throws BackingStoreException;
 
 	/**
 	 * Removes any stored data for the specified {@code key}.

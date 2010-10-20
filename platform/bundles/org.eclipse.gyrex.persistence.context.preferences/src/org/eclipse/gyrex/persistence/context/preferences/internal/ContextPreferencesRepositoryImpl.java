@@ -11,7 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.context.preferences.internal;
 
-import java.util.Set;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
@@ -53,8 +55,8 @@ public class ContextPreferencesRepositoryImpl extends ContextPreferencesReposito
 	}
 
 	@Override
-	public Set<String> getKeys() {
-		return null;
+	public Collection<String> getKeys() throws BackingStoreException {
+		return Collections.unmodifiableCollection(Arrays.asList(context.getPreferences().getKeys(qualifier)));
 	}
 
 	@Override
