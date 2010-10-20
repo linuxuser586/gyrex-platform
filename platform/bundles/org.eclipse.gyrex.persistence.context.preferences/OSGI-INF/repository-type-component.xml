@@ -3,6 +3,6 @@
    <service>
       <provide interface="org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider"/>
    </service>
-   <property name="vendor" type="String" value="Eclipsee Gyrex"/>
-   <property name="description" type="String" value="Repository storing objects in context preferences."/>   <reference bind="setContextRegistry" cardinality="1..1" interface="org.eclipse.gyrex.context.registry.IRuntimeContextRegistry" name="IRuntimeContextRegistry" policy="static"/>
+   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="service.description" type="String" value="Repository storing objects in context preferences."/>   <reference bind="setContextRegistry" cardinality="1..1" interface="org.eclipse.gyrex.context.registry.IRuntimeContextRegistry" name="IRuntimeContextRegistry" policy="static"/>
 </scr:component>
