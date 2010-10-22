@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -11,10 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.MessageFormat;
 
 import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
 import org.eclipse.gyrex.monitoring.metrics.ErrorMetric;
@@ -22,47 +20,31 @@ import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.monitoring.metrics.StatusMetric;
 import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 
-import org.apache.solr.client.solrj.SolrServerException;
+import org.eclipse.osgi.util.NLS;
 
 /**
  *
  */
 public class SolrRepositoryMetrics extends MetricSet {
 
-	private static String getError(final IOException ioException) {
-		return MessageFormat.format("[IOException] {0}", ioException.getMessage());
+	private static String getError(final Exception e) {
+		return NLS.bind("[{0}] {1}", e.getClass().getSimpleName(), e.getMessage());
 	}
 
-	private static String getError(final SolrServerException sqlException) {
-		return MessageFormat.format("[SolrServerException] {0}", sqlException.getMessage());
-	}
-
-	private static String getErrorDetails(final String query, final IOException ioException) {
+	private static String getErrorDetails(final String requestInfo, final Exception e) {
 		final StringWriter errorDetailsStringWriter = new StringWriter(1024);
 		final PrintWriter errorDetailsWriter = new PrintWriter(errorDetailsStringWriter);
-		errorDetailsWriter.append("[query] ").append(query);
+		errorDetailsWriter.append("[request] ").append(requestInfo);
 		errorDetailsWriter.println();
 
-		errorDetailsWriter.append("[IOException]  ").append(ioException.getMessage());//.append("; ");
+		errorDetailsWriter.append("[").append(e.getClass().getSimpleName()).append("]  ").append(e.getMessage());
 		errorDetailsWriter.println();
 
-		errorDetailsWriter.flush();
-		return errorDetailsStringWriter.toString();
-	}
-
-	private static String getErrorDetails(final String query, final SolrServerException solrServerException) {
-		final StringWriter errorDetailsStringWriter = new StringWriter(1024);
-		final PrintWriter errorDetailsWriter = new PrintWriter(errorDetailsStringWriter);
-		errorDetailsWriter.append("[query] ").append(query);
-		errorDetailsWriter.println();
-
-		errorDetailsWriter.append("[SolrServerException]  ").append(solrServerException.getMessage());//.append("; ");
-		errorDetailsWriter.println();
-
-		final Throwable rootCause = solrServerException.getRootCause();
-		if ((null != rootCause) && (rootCause != solrServerException)) {
-			errorDetailsWriter.append("[").append(rootCause.getClass().getSimpleName()).append("]  ").append(rootCause.getMessage());//.append("; ");
+		Throwable cause = e.getCause();
+		while ((null != cause) && (cause != e)) {
+			errorDetailsWriter.append("caused by [").append(cause.getClass().getSimpleName()).append("]  ").append(cause.getMessage());
 			errorDetailsWriter.println();
+			cause = e.getCause();
 		}
 
 		errorDetailsWriter.flush();
@@ -72,12 +54,27 @@ public class SolrRepositoryMetrics extends MetricSet {
 	private final StatusMetric statusMetric;
 	private final ErrorMetric errorMetric;
 	private final ThroughputMetric queryThroughputMetric;
+	private final ThroughputMetric updateThroughputMetric;
+	private final ThroughputMetric adminThroughputMetric;
+	private final ThroughputMetric otherThroughputMetric;
 
 	protected SolrRepositoryMetrics(final String id, final String initialStatus, final String initialStatusReason) {
-		super(id, new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new ErrorMetric(id + ".error", true), new ThroughputMetric(id + ".query.throughput") });
+		super(id, new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new ErrorMetric(id + ".error", true), new ThroughputMetric(id + ".query.throughput"), new ThroughputMetric(id + ".update.throughput"), new ThroughputMetric(id + ".admin.throughput"), new ThroughputMetric(id + ".other.throughput") });
 		statusMetric = getMetric(0, StatusMetric.class);
 		errorMetric = getMetric(1, ErrorMetric.class);
 		queryThroughputMetric = getMetric(2, ThroughputMetric.class);
+		updateThroughputMetric = getMetric(3, ThroughputMetric.class);
+		adminThroughputMetric = getMetric(4, ThroughputMetric.class);
+		otherThroughputMetric = getMetric(5, ThroughputMetric.class);
+	}
+
+	/**
+	 * Returns the throughput metric for admin requests.
+	 * 
+	 * @return the throughput metric for admin requests
+	 */
+	public ThroughputMetric getAdminThroughputMetric() {
+		return adminThroughputMetric;
 	}
 
 	/**
@@ -90,9 +87,18 @@ public class SolrRepositoryMetrics extends MetricSet {
 	}
 
 	/**
-	 * Returns the query throughput metric.
+	 * Returns the throughput metric for all other requests.
 	 * 
-	 * @return the query throughput metric
+	 * @return the throughput metric for all other requests
+	 */
+	public ThroughputMetric getOtherThroughputMetric() {
+		return otherThroughputMetric;
+	}
+
+	/**
+	 * Returns the throughput metric for queries.
+	 * 
+	 * @return the throughput metric for queries
 	 */
 	public ThroughputMetric getQueryThroughputMetric() {
 		return queryThroughputMetric;
@@ -108,24 +114,25 @@ public class SolrRepositoryMetrics extends MetricSet {
 	}
 
 	/**
-	 * Records a {@link IOException}
+	 * Returns the throughput metric for update requests.
 	 * 
-	 * @param e
+	 * @return the throughput metric for update requests
 	 */
-	public void recordException(final String query, final IOException ioException) {
-		final String error = getError(ioException);
-		final String errorDetails = getErrorDetails(query, ioException);
-		getErrorMetric().setLastError(error, errorDetails);
+	public ThroughputMetric getUpdateThroughputMetric() {
+		return updateThroughputMetric;
 	}
 
 	/**
-	 * Records a {@link SolrServerException}
+	 * Records an exception.
 	 * 
-	 * @param e
+	 * @param requestInfo
+	 *            information about the request
+	 * @param exception
+	 *            the exception
 	 */
-	public void recordException(final String query, final SolrServerException solrServerException) {
-		final String error = getError(solrServerException);
-		final String errorDetails = getErrorDetails(query, solrServerException);
+	public void recordException(final String requestInfo, final Exception exception) {
+		final String error = getError(exception);
+		final String errorDetails = getErrorDetails(requestInfo, exception);
 		getErrorMetric().setLastError(error, errorDetails);
 	}
 

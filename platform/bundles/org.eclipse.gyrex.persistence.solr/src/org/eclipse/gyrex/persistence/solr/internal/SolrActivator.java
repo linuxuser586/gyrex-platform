@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -142,6 +142,6 @@ public class SolrActivator extends BaseBundleActivator {
 		coreContainer.load(solrBase.getAbsolutePath(), configFile);
 
 		// register the embedded repository type
-		getServiceHelper().registerService(RepositoryProvider.class.getName(), new EmbeddedSolrRepositoryType(coreContainer), "Eclipse Gyrex", "Embedded Solr Repository", null, null);
+		getServiceHelper().registerService(RepositoryProvider.class.getName(), new SolrRepositoryProvider(coreContainer), "Eclipse Gyrex", "Embedded Solr Repository", null, null);
 	}
 }
