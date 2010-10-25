@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2010 AGETO and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -12,6 +12,10 @@
 package org.eclipse.gyrex.context.tests.internal;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+
 import org.osgi.framework.BundleContext;
 
 public class Activator extends BaseBundleActivator {
@@ -34,27 +38,27 @@ public class Activator extends BaseBundleActivator {
 	}
 
 	private BundleContext context;
+	private IServiceProxy<IRuntimeContextRegistry> contextRegistryProxy;
+	private IServiceProxy<IRuntimeContextManager> contextManagerProxy;
 
 	public Activator() {
 		super(SYMBOLIC_NAME);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		activator = this;
 		this.context = context;
+		contextRegistryProxy = Activator.getActivator().getServiceHelper().trackService(IRuntimeContextRegistry.class);
+		contextManagerProxy = Activator.getActivator().getServiceHelper().trackService(IRuntimeContextManager.class);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		activator = null;
 		this.context = null;
+		contextRegistryProxy = null;
+		contextManagerProxy = null;
 	}
 
 	/**
@@ -69,5 +73,31 @@ public class Activator extends BaseBundleActivator {
 		}
 
 		return context;
+	}
+
+	/**
+	 * Returns the contextManager.
+	 * 
+	 * @return the contextManager
+	 */
+	public IRuntimeContextManager getContextManager() {
+		final IServiceProxy<IRuntimeContextManager> proxy = contextManagerProxy;
+		if (proxy == null) {
+			throw createBundleInactiveException();
+		}
+		return proxy.getService();
+	}
+
+	/**
+	 * Returns the contextRegistry.
+	 * 
+	 * @return the contextRegistry
+	 */
+	public IRuntimeContextRegistry getContextRegistry() {
+		final IServiceProxy<IRuntimeContextRegistry> proxy = contextRegistryProxy;
+		if (proxy == null) {
+			throw createBundleInactiveException();
+		}
+		return proxy.getService();
 	}
 }
