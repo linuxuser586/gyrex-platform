@@ -177,13 +177,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return lastAccessTime.get();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.context.IRuntimeContext#getPreferences()
-	 */
 	@Override
 	public IRuntimeContextPreferences getPreferences() {
-		// TODO Auto-generated method stub
-		return null;
+		return preferences;
 	}
 
 	/**
