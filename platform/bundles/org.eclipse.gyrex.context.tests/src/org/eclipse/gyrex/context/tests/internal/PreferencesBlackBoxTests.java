@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.context.tests.internal;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 
 import java.util.UUID;
 
@@ -64,7 +65,9 @@ public class PreferencesBlackBoxTests {
 	public void testPreferencesScenario001() throws Exception {
 		// get the root context
 		final IRuntimeContext rootContext = contextRegistry.get(Path.ROOT);
+		assertNotNull("nmissing context " + Path.ROOT, rootContext);
 		final IRuntimeContextPreferences rootPrefs = rootContext.getPreferences();
+		assertNotNull("no preferences for context " + rootContext, rootPrefs);
 
 		// get another context
 		final IRuntimeContext parentContext = contextRegistry.get(new Path("/parent"));
@@ -81,7 +84,7 @@ public class PreferencesBlackBoxTests {
 		// set a default ... should be available in all
 		final Preferences defaultNode = new DefaultScope().getNode(Activator.SYMBOLIC_NAME);
 		LOG.trace("Setting default for key {} in node {}", key, defaultNode.node(Activator.SYMBOLIC_NAME).absolutePath());
-		defaultNode.node(Activator.SYMBOLIC_NAME).put(key, value);
+		defaultNode.put(key, value);
 
 		// verify
 		assertEquals("root context default preference lookup failed", value, rootPrefs.get(Activator.SYMBOLIC_NAME, key, null));
