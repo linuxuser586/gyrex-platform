@@ -30,6 +30,12 @@ public class ContextPreferencesRepositoryType extends RepositoryProvider {
 	/** the repository type id */
 	public static final String ID = "org.eclipse.gyrex.persistence.context.preferences";
 
+	/**
+	 * repository preference key of the context path setting (value
+	 * <code>contextPath</code>)
+	 */
+	public static final String PREF_KEY_CONTEXT_PATH = "contextPath";
+
 	private IRuntimeContextRegistry contextRegistry;
 
 	/**
@@ -43,7 +49,7 @@ public class ContextPreferencesRepositoryType extends RepositoryProvider {
 
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
-		final String contextPathStr = repositoryPreferences.getPreferences().get("contextPath", null);
+		final String contextPathStr = repositoryPreferences.getPreferences().get(PREF_KEY_CONTEXT_PATH, null);
 		if (contextPathStr == null) {
 			throw new IllegalStateException(NLS.bind("No context path configured for repository {0}.", repositoryId));
 		}

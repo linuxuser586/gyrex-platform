@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008,2009 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -12,8 +12,6 @@
 package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.text.MessageFormat;
-import java.util.Dictionary;
-import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -30,9 +28,12 @@ import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.gyrex.preferences.PlatformScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.osgi.util.NLS;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * The platform repository manager stores repository information.
@@ -44,7 +45,6 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 	 */
 	private static class RepositoryDefinition {
 		private static final String KEY_TYPE = "type";
-		private static final String NODE_PROPERTIES = "properties";
 		private final RepositoryDefinitionsStore store;
 		private final String repositoryId;
 		private RepositoryPreferences repositoryPreferences;
@@ -64,6 +64,20 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 			if (!exists()) {
 				throw new IllegalStateException(MessageFormat.format("Repository definition for repository ''{0}'' does not exist!", repositoryId));
 			}
+		}
+
+		public void create(final String typeId) {
+			if (exists()) {
+				throw new IllegalStateException(NLS.bind("Repository definition for repository ''{0}'' already exist!", repositoryId));
+			}
+			final Preferences node = getNode();
+			node.put(KEY_TYPE, typeId);
+			try {
+				node.flush();
+			} catch (final BackingStoreException e) {
+				throw new IllegalStateException(NLS.bind("Error creating repository definition ''{0}'': {1}", repositoryId, e.getMessage()));
+			}
+
 		}
 
 		public boolean exists() {
@@ -88,31 +102,22 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 			return repositoryPreferences = new RepositoryPreferences(securePreferences, eclipsePreferences);
 		}
 
-		public Dictionary<String, String> getProperties() {
-			try {
-				final String propertiesNodePath = repositoryId + "/" + NODE_PROPERTIES;
-				if (!store.storage.nodeExists(propertiesNodePath)) {
-					return null;
-				}
-
-				final Preferences node = store.storage.node(propertiesNodePath);
-				final String[] keys = node.keys();
-				final Dictionary<String, String> properties = new Hashtable<String, String>(keys.length);
-				for (final String key : keys) {
-					properties.put(key, node.get(key, ""));
-				}
-				return properties;
-			} catch (final Exception e) {
-				// TODO should log
-				// ignore
-				return null;
-			}
-		}
-
 		public String getType() {
 			checkExist();
 			return getNode().get(KEY_TYPE, null);
 
+		}
+
+		public void remove() {
+			if (!exists()) {
+				throw new IllegalStateException(NLS.bind("Repository definition for repository ''{0}'' does not exist!", repositoryId));
+			}
+			final Preferences node = getNode();
+			try {
+				node.removeNode();
+			} catch (final BackingStoreException e) {
+				throw new IllegalStateException(NLS.bind("Error removing repository definition ''{0}'': {1}", repositoryId, e.getMessage()));
+			}
 		}
 
 	}
@@ -123,6 +128,11 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 	private static class RepositoryDefinitionsStore {
 
 		private IEclipsePreferences storage;
+
+		public void create(final String repositoryId, final String repositoryProviderId) {
+			final RepositoryDefinition repositoryDefinition = new RepositoryDefinition(repositoryId, this);
+			repositoryDefinition.create(repositoryProviderId);
+		}
 
 		public RepositoryDefinition get(final String repositoryId) {
 			if (null == storage) {
@@ -144,6 +154,20 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 			storage = (IEclipsePreferences) new PlatformScope().getNode(PersistenceActivator.PLUGIN_ID).node("repositories");
 		}
 
+		/**
+		 * @param repositoryId
+		 */
+		public void remove(final String repositoryId) {
+			if (null == storage) {
+				throw new IllegalStateException("not loaded");
+			}
+
+			final RepositoryDefinition repositoryDefinition = new RepositoryDefinition(repositoryId, this);
+			if (repositoryDefinition.exists()) {
+				repositoryDefinition.remove();
+			}
+
+		}
 	}
 
 	private static void errorCreatingRepository(final RepositoryDefinition repositoryDef, final String detail) {
@@ -182,6 +206,27 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 		}
 
 		return repository;
+	}
+
+	@Override
+	public IRepositoryPreferences createRepository(final String repositoryId, final String repositoryProviderId) throws IllegalArgumentException {
+		if (!Repository.isValidId(repositoryId)) {
+			throw new IllegalArgumentException("repository id is not valid");
+		}
+		if (StringUtils.isBlank(repositoryProviderId)) {
+			throw new IllegalArgumentException("repository id must not be null");
+		}
+
+		// open store if necessary
+		if (null == repositoryDefinitionsStore) {
+			open();
+		}
+
+		// create
+		repositoryDefinitionsStore.create(repositoryId, repositoryProviderId);
+
+		// load prefs
+		return getRepositoryPreferences(repositoryId);
 	}
 
 	private Lock getOrCreateRepositoryLock(final String repositoryId) {
@@ -252,9 +297,6 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry#getRepositoryPreferences(java.lang.String)
-	 */
 	@Override
 	public IRepositoryPreferences getRepositoryPreferences(final String repositoryId) {
 		if (null == repositoryId) {
@@ -282,6 +324,17 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 
 		repositoryDefinitionsStore = new RepositoryDefinitionsStore();
 		repositoryDefinitionsStore.load();
+	}
+
+	@Override
+	public void removeRepository(final String repositoryId) throws IllegalArgumentException {
+		// open store if necessary
+		if (null == repositoryDefinitionsStore) {
+			open();
+		}
+
+		// remove
+		repositoryDefinitionsStore.remove(repositoryId);
 	}
 
 }
