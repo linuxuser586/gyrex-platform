@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008,2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -19,15 +19,18 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
+
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.gyrex.preferences.PlatformScope;
+
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -209,7 +212,7 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 		}
 
 		// lookup a cached instance
-		Repository repository = repositoryCache.get(repositoryId.intern());
+		Repository repository = repositoryCache.get(repositoryId);
 		if (null != repository) {
 			return repository;
 		}
@@ -230,7 +233,7 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 		repositoryCreationLock.lock();
 		try {
 			// make sure the cache is empty
-			repository = repositoryCache.get(repositoryId.intern());
+			repository = repositoryCache.get(repositoryId);
 			if (null != repository) {
 				// use cached repository
 				return repository;
@@ -240,7 +243,7 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 			repository = createRepository(repositoryDef);
 
 			// put the repository instance in the cache
-			repositoryCache.put(repositoryId.intern(), repository);
+			repositoryCache.put(repositoryId, repository);
 
 			// return the repository
 			return repository;
