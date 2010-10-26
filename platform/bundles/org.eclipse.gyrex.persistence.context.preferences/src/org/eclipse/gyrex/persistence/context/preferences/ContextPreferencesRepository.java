@@ -21,17 +21,21 @@ import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.osgi.service.prefs.BackingStoreException;
 
 /**
- * Base class for repositories backed by {@link IRuntimeContextPreferences}.
+ * A Repository which stores data in {@link IRuntimeContextPreferences}.
  * <p>
  * The repository may be used for small objects. It does not offer any
  * transaction or other rich persistence capabilities.
  * </p>
- * <p>
- * This class may be subclassed by clients that want to contribute a custom
- * repository to the platform.
- * </p>
+ * 
+ * @noextend This class is not intended to be subclassed by clients.
  */
 public abstract class ContextPreferencesRepository extends Repository {
+
+	/** the repository provider id */
+	public static final String PROVIDER_ID = "org.eclipse.gyrex.persistence.context.preferences";
+
+	/** the repository type name */
+	public static final String TYPE_NAME = ContextPreferencesRepository.class.getName();
 
 	/**
 	 * Creates a new map repository instance.

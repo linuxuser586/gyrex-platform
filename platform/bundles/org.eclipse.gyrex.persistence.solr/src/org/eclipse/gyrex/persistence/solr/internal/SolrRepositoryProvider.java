@@ -14,6 +14,7 @@ package org.eclipse.gyrex.persistence.solr.internal;
 import java.net.MalformedURLException;
 
 import org.eclipse.gyrex.persistence.solr.ISolrRepositoryConstants;
+import org.eclipse.gyrex.persistence.solr.SolrServerRepository;
 import org.eclipse.gyrex.persistence.solr.SolrServerType;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
@@ -44,7 +45,7 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 	 * @param repositoryTypeId
 	 */
 	public SolrRepositoryProvider(final CoreContainer coreContainer) {
-		super(ISolrRepositoryConstants.PROVIDER_ID, SolrRepository.class);
+		super(ISolrRepositoryConstants.PROVIDER_ID, SolrServerRepository.class);
 		this.coreContainer = coreContainer;
 	}
 

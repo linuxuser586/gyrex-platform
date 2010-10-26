@@ -84,6 +84,13 @@ public class SolrActivator extends BaseBundleActivator {
 		return solrBase;
 	}
 
+	public File getEmbeddedSolrCoreBase(final String repositoryId) {
+		if (null == solrBase) {
+			throw new IllegalStateException("no Solr base directory");
+		}
+		return new File(solrBase, repositoryId);
+	}
+
 	public Location getInstanceLocation() {
 		final IServiceProxy<Location> serviceProxy = instanceLocationRef.get();
 		if (null == serviceProxy) {

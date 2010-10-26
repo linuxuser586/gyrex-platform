@@ -37,6 +37,9 @@ import org.apache.solr.client.solrj.SolrServer;
  */
 public abstract class SolrServerRepository extends Repository {
 
+	/** the repository type name */
+	public static final String TYPE_NAME = SolrServerRepository.class.getName();
+
 	/**
 	 * Creates a new instance.
 	 * 

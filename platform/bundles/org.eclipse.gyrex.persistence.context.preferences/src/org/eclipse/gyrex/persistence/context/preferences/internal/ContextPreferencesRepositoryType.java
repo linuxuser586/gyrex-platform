@@ -27,9 +27,6 @@ import org.eclipse.osgi.util.NLS;
  */
 public class ContextPreferencesRepositoryType extends RepositoryProvider {
 
-	/** the repository type id */
-	public static final String ID = "org.eclipse.gyrex.persistence.context.preferences";
-
 	/**
 	 * repository preference key of the context path setting (value
 	 * <code>contextPath</code>)
@@ -44,7 +41,7 @@ public class ContextPreferencesRepositoryType extends RepositoryProvider {
 	 * @param id
 	 */
 	public ContextPreferencesRepositoryType() {
-		super(ID, ContextPreferencesRepository.class);
+		super(ContextPreferencesRepository.PROVIDER_ID, ContextPreferencesRepository.class);
 	}
 
 	@Override
