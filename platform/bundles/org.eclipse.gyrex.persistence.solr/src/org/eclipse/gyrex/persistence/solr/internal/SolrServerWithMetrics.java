@@ -21,6 +21,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.request.QueryRequest;
+import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
 
 /**
@@ -62,8 +63,11 @@ public class SolrServerWithMetrics extends SolrServer {
 		requestInfo.append(request.getMethod());
 		requestInfo.append(' ');
 		requestInfo.append(request.getPath());
-		requestInfo.append(' ');
-		requestInfo.append(request.getParams().toNamedList());
+		final SolrParams params = request.getParams();
+		if (params != null) {
+			requestInfo.append(' ');
+			requestInfo.append(request.getParams().toNamedList());
+		}
 		requestInfo.append(']');
 		metrics.recordException(requestInfo.toString(), e);
 	}
