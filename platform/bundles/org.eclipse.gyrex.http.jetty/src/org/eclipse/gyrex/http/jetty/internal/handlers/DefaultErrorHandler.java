@@ -19,13 +19,16 @@ import java.io.Writer;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
 
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.jetty.http.HttpHeaders;
 import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.server.HttpConnection;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.util.log.Log;
@@ -34,6 +37,8 @@ import org.eclipse.jetty.util.log.Log;
  * Some default processing for errors.
  */
 public class DefaultErrorHandler extends ErrorHandler {
+
+	private static final String NEWLINE = "\n";
 
 	/** the generator string */
 	private static final String GENERATOR = "Gyrex Error Handler";
@@ -96,6 +101,20 @@ public class DefaultErrorHandler extends ErrorHandler {
 		return serverName;
 	}
 
+	private static String getStatusBullet(final IStatus status) {
+		switch (status.getSeverity()) {
+			case IStatus.CANCEL:
+			case IStatus.ERROR:
+				return " ! ";
+			case IStatus.WARNING:
+				return " ? ";
+
+			case IStatus.INFO:
+			default:
+				return " * ";
+		}
+	}
+
 	private static String getStatusImage(final IStatus status) {
 		switch (status.getSeverity()) {
 			case IStatus.CANCEL:
@@ -119,6 +138,20 @@ public class DefaultErrorHandler extends ErrorHandler {
 		setShowStacks(PlatformConfiguration.isOperatingInDevelopmentMode());
 	}
 
+	private boolean acceptsHtml(final HttpServletRequest request) {
+		final Enumeration acceptHeaders = request.getHeaders(HttpHeaders.ACCEPT);
+		if (acceptHeaders != null) {
+			// scan all Accept headers for text/html, x-html or */*
+			while (acceptHeaders.hasMoreElements()) {
+				final String accept = (String) acceptHeaders.nextElement();
+				if ((accept.indexOf("text/html") > -1) || (accept.indexOf("application/xhtml") > -1) || (accept.indexOf("*/*") > -1)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Returns the admin server URL
 	 * 
@@ -136,6 +169,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 		if ((null == internalMessage) && (code == 500) && (null != getException(request))) {
 			internalMessage = getException(request).toString();
 		}
+
 		// decode message
 		if (internalMessage != null) {
 			internalMessage = URLDecoder.decode(internalMessage, "UTF-8");
@@ -143,9 +177,16 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 		// we do not want to hand out internal details in production mode
 		final String officialMessage = HttpStatus.getMessage(code);
-
 		final String serverName = getServerName(request);
 
+		if (acceptsHtml(request)) {
+			writeErrorPageHtml(request, writer, code, internalMessage, officialMessage, serverName);
+		} else {
+			writeErrorPagePlain(request, writer, code, internalMessage, officialMessage, serverName);
+		}
+	}
+
+	private void writeErrorPageHtml(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException, UnsupportedEncodingException {
 		writer.write("<html>\n\r<head>\n\r<title>Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
@@ -200,7 +241,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 			}
 
 		} else {
-			writer.write("<p class=\"list-desc\">If you think you\'ve reached this page in error:</p>\n\r" + "<ul>\n\r" + "<li>Make sure the URL you\'re trying to reach is correct.</li>\n\r" + "</ul>\n\r" + "\n\r" + "<p class=\"list-desc\">Otherwise, you can: </p>\n\r" + "<ul>\n\r" + "<li>Go <a href=\"javascript:history.back()\">back to the previous page</a></li>\n\r" + "</ul>\n\r\n\r");
+			writer.write("<p class=\"list-desc\">If you think you\'ve reached this page in error:</p>\n\r" + "<ul>\n\r" + "<li>Make sure the URL you\'re trying to reach is correct.</li>\n\r" + "</ul>\n\r" + NEWLINE + "<p class=\"list-desc\">Otherwise, you can: </p>\n\r" + "<ul>\n\r" + "<li>Go <a href=\"javascript:history.back()\">back to the previous page</a></li>\n\r" + "</ul>\n\r\n\r");
 		}
 
 		writer.write("<p align=\"right\"><em>Brought to you by Gyrex. Powered by Jetty and Equinox.</em></p>");
@@ -211,6 +252,55 @@ public class DefaultErrorHandler extends ErrorHandler {
 		}
 
 		writer.write("</body>\n\r</html>\n\r");
+	}
+
+	private void writeErrorPagePlain(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException {
+		HttpConnection.getCurrentConnection().getResponse().setContentType(MimeTypes.TEXT_PLAIN_8859_1);
+		writer.write("Error ");
+		writer.write(Integer.toString(code));
+		writer.write(" - ");
+		writePlain(writer, officialMessage);
+		writer.write(NEWLINE);
+
+		if (developmentMode) {
+			if (null != internalMessage) {
+				writer.write(NEWLINE);
+				writePlain(writer, internalMessage);
+				writer.write(NEWLINE);
+			}
+
+			final Throwable exception = getException(request);
+			if (null != exception) {
+				writer.write(NEWLINE);
+				writeException(exception, writer);
+				writer.write(NEWLINE);
+			}
+
+			writer.write(NEWLINE);
+			final IStatus platformStatus = PlatformConfiguration.getPlatformStatus();
+			if (!platformStatus.isOK()) {
+				writer.write(getOverallStatusMessage(platformStatus) + NEWLINE);
+				writer.write("You might want to check the server configuration (" + getAdminServerURL(request) + ")." + NEWLINE);
+				writer.write(NEWLINE);
+				writer.write("Issues detected on ");
+				writer.write(serverName);
+				writer.write(":" + NEWLINE);
+				writeStatusPlain(platformStatus, writer);
+				writer.write(NEWLINE);
+			} else {
+				writer.write("A note to developers, this server seems to be configured properly." + NEWLINE + "At least, no issues were detected." + NEWLINE);
+			}
+
+		} else {
+			writer.write("If you think you\'ve reached this page in error:" + NEWLINE + "  * Make sure the URL you\'re trying to reach is correct." + NEWLINE + "</ul>\n\r" + NEWLINE);
+		}
+
+		writer.write(NEWLINE);
+		writer.write(NEWLINE);
+		writer.write("-- ");
+		writer.write(NEWLINE);
+		writer.write("Brought to you by Gyrex. Powered by Jetty and Equinox.");
+		writer.write(NEWLINE);
 	}
 
 	private void writeException(final Throwable exception, final Writer writer) {
@@ -235,6 +325,25 @@ public class DefaultErrorHandler extends ErrorHandler {
 		}
 		if (inQuote) {
 			writer.write("</code>'");
+		}
+	}
+
+	/**
+	 * @param writer
+	 * @param officialMessage
+	 */
+	private void writePlain(final Writer writer, final String string) throws IOException {
+		if (string == null) {
+			return;
+		}
+
+		for (int i = 0; i < string.length(); i++) {
+			final char c = string.charAt(i);
+			if (Character.isISOControl(c) && !Character.isWhitespace(c)) {
+				writer.write('?');
+			} else {
+				writer.write(c);
+			}
 		}
 	}
 
@@ -324,6 +433,66 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 		writer.write(ident);
 		writer.write("</li>\n\r");
+	}
+
+	private void writeStatusItemPlain(final IStatus status, final Writer writer, final int identSize) throws IOException {
+		// ignore OK status
+		if (status.isOK()) {
+			return;
+		}
+
+		// ident
+		String ident = "";
+		for (int i = 0; i < identSize; i++) {
+			ident += " ";
+		}
+
+		// message
+		writer.write(ident);
+		writer.write(getStatusBullet(status));
+		write(writer, status.getMessage());
+		writer.write(" (");
+		write(writer, status.getPlugin());
+		writer.write(", code ");
+		write(writer, String.valueOf(status.getCode()));
+		writer.write(")");
+		final Throwable statusException = status.getException();
+		if (null != statusException) {
+			writer.write(NEWLINE);
+			writer.write(ident);
+			writer.write("   caused by: ");
+			writer.write(statusException.toString());
+		}
+		writer.write(NEWLINE);
+
+		if (status.isMultiStatus()) {
+			final IStatus[] children = status.getChildren();
+			for (final IStatus child : children) {
+				writeStatusItem(child, writer, identSize + 3);
+			}
+		}
+	}
+
+	private void writeStatusPlain(final IStatus status, final Writer writer) throws IOException {
+		// ignore OK status
+		if (status.isOK()) {
+			return;
+		}
+
+		/*
+		 * sometimes we have a multi status with no message but only children;
+		 * in this case we just print out all children
+		 */
+		final String statusMessage = status.getMessage();
+		if (status.isMultiStatus() && ((statusMessage == null) || (statusMessage.trim().length() == 0))) {
+			// write only children if a multi status has no message
+			final IStatus[] children = status.getChildren();
+			for (final IStatus child : children) {
+				writeStatusItemPlain(child, writer, 0);
+			}
+		} else {
+			writeStatusItemPlain(status, writer, 0);
+		}
 	}
 
 }
