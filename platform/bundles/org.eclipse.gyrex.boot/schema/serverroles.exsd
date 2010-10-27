@@ -1,16 +1,26 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.eclipse.cloudfree.app" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="org.eclipse.gyrex.boot" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appinfo>
-         <meta.schema plugin="org.eclipse.cloudfree.app" id="serverroles" name="CloudFree Server Roles"/>
+         <meta.schema plugin="org.eclipse.gyrex.boot" id="serverroles" name="Gyrex Server Roles"/>
       </appinfo>
       <documentation>
          Allows the definition of server roles.
+&lt;p&gt;
+The concept of server roles is used in order to allow specialication of servers. A role typically capsualtes 
+a set of functionally offered by a server. It may require some preparation of the server environment including
+provisioning and management of additional components.
+&lt;/p&gt;
       </documentation>
    </annotation>
 
    <element name="extension">
+      <annotation>
+         <appinfo>
+            <meta.element />
+         </appinfo>
+      </annotation>
       <complexType>
          <choice>
             <element ref="role" minOccurs="1" maxOccurs="unbounded"/>
@@ -85,7 +95,7 @@
    <element name="requireBundle">
       <annotation>
          <documentation>
-            A reference to a bundle that must be started for this role.
+            A reference to a bundle that must be present and started for this role.
          </documentation>
       </annotation>
       <complexType>
@@ -99,41 +109,27 @@
       </complexType>
    </element>
 
-   <annotation>
-      <appinfo>
-         <meta.section type="since"/>
-      </appinfo>
-      <documentation>
-         [Enter the first release in which this extension point appears.]
-      </documentation>
-   </annotation>
+
+
+
 
    <annotation>
       <appinfo>
-         <meta.section type="examples"/>
+         <meta.section type="copyright"/>
       </appinfo>
       <documentation>
-         [Enter extension point usage example here.]
+         &lt;pre&gt;
+Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.&lt;br&gt;
+All rights reserved.
+
+This program and the accompanying materials are made available under the
+terms of the Eclipse Public License v1.0 which accompanies this distribution,
+and is available at http://www.eclipse.org/legal/epl-v10.html.
+
+Contributors:
+    Gunnar Wagenknecht - initial API and implementation
+&lt;/pre&gt;
       </documentation>
    </annotation>
-
-   <annotation>
-      <appinfo>
-         <meta.section type="apiinfo"/>
-      </appinfo>
-      <documentation>
-         [Enter API information here.]
-      </documentation>
-   </annotation>
-
-   <annotation>
-      <appinfo>
-         <meta.section type="implementation"/>
-      </appinfo>
-      <documentation>
-         [Enter information about supplied implementation of this extension point.]
-      </documentation>
-   </annotation>
-
 
 </schema>
