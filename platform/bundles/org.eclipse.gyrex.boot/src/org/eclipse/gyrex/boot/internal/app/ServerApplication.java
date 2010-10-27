@@ -37,10 +37,10 @@ import org.slf4j.LoggerFactory;
 public class ServerApplication implements IApplication {
 
 	/** the stop or restart signal */
-	private static CountDownLatch stopOrRestartSignal;
+	private static volatile CountDownLatch stopOrRestartSignal;
 
 	/** a flag indicating if the application should restart upon shutdown */
-	private static boolean relaunch;
+	private static volatile boolean relaunch;
 
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = new Integer(1);
