@@ -115,7 +115,6 @@ public class CloudActivator extends BaseBundleActivator {
 
 				// register node (asynchronously)
 				try {
-					Thread.sleep(15000);
 					CloudState.registerNode();
 				} catch (final Exception e) {
 					// this is severe

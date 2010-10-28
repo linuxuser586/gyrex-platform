@@ -3,3 +3,6 @@ org.eclipse.gyrex.cloud/debug=true
 
 # debug ZooKeeper server operation
 org.eclipse.gyrex.cloud/zooKeeperServer=true
+
+# debug ZooKeeper client connection lifecycle
+org.eclipse.gyrex.cloud/zooKeeperConnectionLifecycle=true

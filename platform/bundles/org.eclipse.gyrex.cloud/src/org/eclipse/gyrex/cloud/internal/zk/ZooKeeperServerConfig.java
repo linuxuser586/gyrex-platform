@@ -11,7 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.zk;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 
 import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.server.Platform;
@@ -47,7 +49,11 @@ public class ZooKeeperServerConfig extends QuorumPeerConfig {
 		final int clientPort = preferenceService.getInt(CloudActivator.SYMBOLIC_NAME, PREF_KEY_CLIENT_PORT, 2181, null);
 		final String clientPortBindAddress = preferenceService.getString(CloudActivator.SYMBOLIC_NAME, PREF_KEY_CLIENT_PORT_ADDRESS, null, null);
 		if (clientPortBindAddress != null) {
-			clientPortAddress = new InetSocketAddress(clientPortBindAddress, clientPort);
+			try {
+				clientPortAddress = new InetSocketAddress(InetAddress.getByName(clientPortBindAddress), clientPort);
+			} catch (final UnknownHostException e) {
+				throw new ConfigException("Invalid clientPortAddress hostname. " + e.getMessage());
+			}
 		} else {
 			clientPortAddress = new InetSocketAddress(clientPort);
 		}
