@@ -18,8 +18,9 @@
          name="Gyrex Server"
          point="org.eclipse.core.runtime.applications">
       <application
-            cardinality="singleton-global"
-            thread="any">
+            cardinality="singleton-scoped"
+            thread="any"
+            visible="true">
          <run
                class="org.eclipse.gyrex.boot.internal.app.ServerApplication">
          </run></application>

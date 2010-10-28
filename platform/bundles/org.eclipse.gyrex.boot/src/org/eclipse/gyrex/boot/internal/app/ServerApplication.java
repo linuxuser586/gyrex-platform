@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
@@ -28,6 +29,8 @@ import org.eclipse.osgi.service.datalocation.Location;
 import org.osgi.framework.Bundle;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.WordUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,16 +39,54 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerApplication implements IApplication {
 
+	/** Exit object indicating error termination */
+	private static final Integer EXIT_ERROR = new Integer(1);
+
+	/** LOG */
+	private static final Logger LOG = LoggerFactory.getLogger(ServerApplication.class);
+
+	/** running state */
+	private static final AtomicBoolean running = new AtomicBoolean();
+
 	/** the stop or restart signal */
 	private static volatile CountDownLatch stopOrRestartSignal;
 
 	/** a flag indicating if the application should restart upon shutdown */
 	private static volatile boolean relaunch;
 
-	/** Exit object indicating error termination */
-	private static final Integer EXIT_ERROR = new Integer(1);
+	/**
+	 * Indicates if the server is running.
+	 * 
+	 * @return <code>true</code> if running, <code>false</code> otherwise
+	 */
+	public static boolean isRunning() {
+		return running.get();
+	}
 
-	private static final Logger LOG = LoggerFactory.getLogger(ServerApplication.class);
+	private static void printError(final String message, final Throwable cause) {
+		System.err.println();
+		System.err.println();
+		System.err.println(StringUtils.leftPad("", 72, '*'));
+		System.err.println(StringUtils.center(" Server Startup Error ", 72));
+		System.err.println(StringUtils.leftPad("", 72, '*'));
+		System.err.println();
+		System.err.println(WordUtils.wrap(message, 72));
+		System.err.println();
+		if (cause != null) {
+			System.err.println("Reported error:");
+			System.err.println(WordUtils.wrap(cause.getMessage(), 72));
+			final Throwable root = ExceptionUtils.getRootCause(cause);
+			if (root != null) {
+				System.err.println();
+				System.err.println("Caused by:");
+				System.err.println(WordUtils.wrap(ExceptionUtils.getMessage(root), 72));
+			}
+			System.err.println();
+		}
+		System.err.println(StringUtils.leftPad("", 72, '*'));
+		System.err.println();
+		System.err.println();
+	}
 
 	/**
 	 * Signals a restart.
@@ -102,8 +143,8 @@ public class ServerApplication implements IApplication {
 		// note, just checking Location#isSet isn't enough, we need to check the full URL
 		// we also allow a default to apply, thus #getURL is better then just #isSet to initialize with a default
 		// (we might later set our own here if we want this)
-		if ((instanceLocation == null) || (null == instanceLocation.getURL()) || !instanceLocation.getURL().toExternalForm().startsWith("file:")) {
-			System.err.println("Gyrex needs a valid local instance location (aka. 'workspace'). Please start with the -data option pointing to a valid file system path.");
+		if ((instanceLocation == null) || (null == instanceLocation.getURL()) || !instanceLocation.getURL().toExternalForm().startsWith("file:") || instanceLocation.isReadOnly()) {
+			printError("Gyrex needs a valid local instance location (aka. 'workspace'). Please start with the -data option pointing to a valid, writable file system path.", null);
 			return false;
 		}
 
@@ -120,12 +161,12 @@ public class ServerApplication implements IApplication {
 			// 2. directory could not be created
 			final File workspaceDirectory = new File(instanceLocation.getURL().getFile());
 			if (workspaceDirectory.exists()) {
-				System.err.println("Could not launch the server because the associated workspace '" + workspaceDirectory.getAbsolutePath() + "' is currently in use by another Eclipse application.");
+				printError("Could not launch the server because the associated workspace '" + workspaceDirectory.getAbsolutePath() + "' is currently in use by another Eclipse application.", null);
 			} else {
-				System.err.println("Could not launch the server because the specified workspace cannot be created. The specified workspace directory '" + workspaceDirectory.getAbsolutePath() + "' is either invalid or read-only.");
+				printError("Could not launch the server because the specified workspace cannot be created. The specified workspace directory '" + workspaceDirectory.getAbsolutePath() + "' is either invalid or read-only.", null);
 			}
 		} catch (final IOException e) {
-			System.err.println("Error verifying the specified workspace directory. " + e.getMessage());
+			printError("Unable to verify the specified workspace directory " + instanceLocation.getURL().toExternalForm() + ".", e);
 		}
 		return false;
 
@@ -213,6 +254,34 @@ public class ServerApplication implements IApplication {
 		return roles.toArray(new String[roles.size()]);
 	}
 
+	private void logbackOff() {
+		try {
+			LogbackConfigurator.reset();
+		} catch (final ClassNotFoundException e) {
+			// logback not available
+		} catch (final NoClassDefFoundError e) {
+			// logback not available
+		} catch (final Exception e) {
+			// error (but do not fail)
+			LOG.warn("Error while de-configuring logback. Please re-configure logging manually. ({})", e.getMessage());
+		}
+	}
+
+	private void logbackOn(final String[] arguments) {
+		try {
+			LogbackConfigurator.configureDefaultContext(arguments);
+		} catch (final ClassNotFoundException e) {
+			// logback not available
+			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+		} catch (final NoClassDefFoundError e) {
+			// logback not available
+			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+		} catch (final Exception e) {
+			// error (but do not fail)
+			LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
+		}
+	}
+
 	@Override
 	public Object start(final IApplicationContext context) throws Exception {
 		final Object args = context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
@@ -224,26 +293,27 @@ public class ServerApplication implements IApplication {
 		}
 		final String[] arguments = (String[]) args;
 
-		final Location instanceLocation = AppActivator.getInstance().getInstanceLocation();
+		if (isRunning()) {
+			throw new IllegalStateException("server application already running");
+		}
+
+		Location instanceLocation = null;
 		try {
+			// get instance location
+			try {
+				instanceLocation = AppActivator.getInstance().getInstanceLocation();
+			} catch (final Exception e) {
+				printError("An error occurred reading the instance location (aka. 'workspace'). Please verify that the installation is correct and all required components are available.", e);
+				return EXIT_ERROR;
+			}
+
 			// check the instance location
 			if (!checkInstanceLocation(instanceLocation)) {
 				return EXIT_ERROR;
 			}
 
 			// configure logging
-			try {
-				LogbackConfigurator.configureDefaultContext(arguments);
-			} catch (final ClassNotFoundException e) {
-				// logback not available
-				LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
-			} catch (final NoClassDefFoundError e) {
-				// logback not available
-				LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
-			} catch (final Exception e) {
-				// error (but do not fail)
-				LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
-			}
+			logbackOn(arguments);
 
 			// relaunch flag
 			boolean relaunch = false;
@@ -271,6 +341,7 @@ public class ServerApplication implements IApplication {
 
 				// signal that we are now up and running
 				context.applicationRunning();
+				running.set(true);
 
 				if (AppDebug.debug) {
 					LOG.info("Platform started.");
@@ -302,29 +373,26 @@ public class ServerApplication implements IApplication {
 					LOG.debug("Platform start failed!", e);
 				}
 
-				// TODO should evaluate and suggest solution to Ops
-				LOG.error("Error while starting server: " + e.getMessage(), e);
-				return EXIT_ERROR;
-			}
+				// de-configure logging
+				logbackOff();
 
-			// de-configure logging
-			try {
-				LogbackConfigurator.reset();
-			} catch (final ClassNotFoundException e) {
-				// logback not available
-			} catch (final NoClassDefFoundError e) {
-				// logback not available
-			} catch (final Exception e) {
-				// error (but do not fail)
-				LOG.warn("Error while de-configuring logback. Please re-configure logging manually. ({})", e.getMessage());
+				// TODO should evaluate and suggest solution to Ops
+				printError("Unable to start server. Please verify the installation is correct and all required components are available.", e);
+				return EXIT_ERROR;
 			}
 
 			return relaunch ? EXIT_RESTART : EXIT_OK;
 		} finally {
+			// reset running flag
+			running.set(false);
+
 			// release instance location lock
 			if (null != instanceLocation) {
 				instanceLocation.release();
 			}
+
+			// de-configure logging
+			logbackOff();
 		}
 	}
 

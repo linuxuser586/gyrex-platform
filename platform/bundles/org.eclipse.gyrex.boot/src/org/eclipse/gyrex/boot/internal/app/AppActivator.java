@@ -15,12 +15,17 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.service.datalocation.Location;
@@ -49,6 +54,18 @@ public class AppActivator extends BaseBundleActivator {
 	// The shared instance
 	private static AppActivator sharedInstance;
 
+	private static final AtomicBoolean devMode = new AtomicBoolean();
+	private static final AtomicBoolean debugMode = new AtomicBoolean();
+
+	/**
+	 * Returns the bundle context.
+	 * 
+	 * @return the bundle context
+	 */
+	public static BundleContext getContext() {
+		return getInstance().context;
+	}
+
 	/**
 	 * Returns the shared instance
 	 * 
@@ -58,10 +75,19 @@ public class AppActivator extends BaseBundleActivator {
 		return sharedInstance;
 	}
 
+	public static boolean isDebugMode() {
+		return debugMode.get();
+	}
+
+	public static boolean isDevMode() {
+		return devMode.get();
+	}
+
 	private BundleContext context;
 	private ServiceTracker bundleTracker;
 	private Job shutdownListener;
 	private ServerSocket serverSocket;
+
 	private volatile IServiceProxy<Location> instanceLocationProxy;
 
 	/**
@@ -76,6 +102,13 @@ public class AppActivator extends BaseBundleActivator {
 		sharedInstance = this;
 		this.context = context;
 
+		// configure debug mode
+		debugMode.set(context.getProperty("osgi.debug") != null);
+
+		// configure dev mode
+		// TODO this should be changed to be more explicit
+		devMode.set(getContext().getProperty("osgi.dev") != null);
+
 		// open external shutdown listener
 		final int shutdownPort = NumberUtils.toInt(context.getProperty(PROP_SHUTDOWN_PORT), 0);
 		if (shutdownPort > 0) {
@@ -83,6 +116,7 @@ public class AppActivator extends BaseBundleActivator {
 		}
 
 		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
+
 	}
 
 	@Override
@@ -125,12 +159,46 @@ public class AppActivator extends BaseBundleActivator {
 		return AppDebug.class;
 	}
 
+	/**
+	 * Implementation for {@link Platform#getInstanceDataAreaPath(String)}.
+	 */
+	public IPath getInstanceDataAreaPath(final String path) {
+		if (path == null) {
+			throw new IllegalArgumentException("path must not be null");
+		}
+		try {
+			final URL url = getInstanceLocation().getDataArea(path);
+			if (!url.getProtocol().equals("file")) {
+				throw new IllegalStateException("instance location must be on local file system");
+			}
+			return new Path(url.getPath());
+		} catch (final IOException e) {
+			throw new IllegalStateException("instance location not available");
+		}
+	}
+
 	public Location getInstanceLocation() {
 		final IServiceProxy<Location> proxy = instanceLocationProxy;
 		if (null == proxy) {
 			throw createBundleInactiveException();
 		}
 		return proxy.getService();
+	}
+
+	/**
+	 * Implementation of {@link Platform#getInstanceLocationPath()}
+	 * 
+	 * @return path to the instance location
+	 */
+	public IPath getInstanceLocationPath() {
+		final URL url = getInstanceLocation().getURL();
+		if (url == null) {
+			throw new IllegalStateException("instance location not available");
+		}
+		if (!url.getProtocol().equals("file")) {
+			throw new IllegalStateException("instance location must be on local file system");
+		}
+		return new Path(url.getPath());
 	}
 
 	private void startShutdownListener(final int shutdownPort) throws Exception {
