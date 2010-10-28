@@ -1,0 +1,5 @@
+# global debug option
+org.eclipse.gyrex.cloud/debug=true
+
+# debug ZooKeeper server operation
+org.eclipse.gyrex.cloud/zooKeeperServer=true

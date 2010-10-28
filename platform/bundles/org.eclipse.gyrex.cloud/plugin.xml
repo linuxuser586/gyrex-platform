@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.gyrex.boot.serverroles">
+      <role
+            defaultStart="inDevelopmentMode"
+            id="org.eclipse.gyrex.cloud.coordinator"
+            name="Gyrex Cloud Coordinator">
+         <requireBundle
+               symbolicName="org.eclipse.gyrex.cloud">
+         </requireBundle>
+      </role>
+   </extension>
+   <extension
+         id="org.eclipse.gyrex.cloud.zookeeper.server.application"
+         name="ZooKeeper Server"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="false">
+         <run
+               class="org.eclipse.gyrex.cloud.internal.zk.ZooKeeperServerApplication">
+         </run>
+      </application>
+   </extension>
+
+</plugin>
