@@ -130,8 +130,8 @@ public class ApplicationRegisteredServletHolder extends ServletHolder implements
 	}
 
 	@Override
-	public synchronized Object newInstance() throws InstantiationException, IllegalAccessException {
-		final Class<?> heldClass = getHeldClass();
+	public synchronized Servlet newInstance() throws InstantiationException, IllegalAccessException {
+		final Class<? extends Servlet> heldClass = getHeldClass();
 		if (null == heldClass) {
 			throw new InstantiationException("no held class: " + getClassName());
 		}
