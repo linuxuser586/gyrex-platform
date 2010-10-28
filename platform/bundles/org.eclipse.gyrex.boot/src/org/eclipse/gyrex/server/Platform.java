@@ -18,6 +18,8 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.service.environment.EnvironmentInfo;
 
+import org.osgi.framework.Bundle;
+
 /**
  * Central gate of the Gyrex Server Runtime.
  * <p>
@@ -35,32 +37,8 @@ import org.eclipse.osgi.service.environment.EnvironmentInfo;
 public class Platform {
 
 	/**
-	 * Returns a path to a data area for the specified path within
-	 * {@link #getInstanceLocationPath() the instance location}.
-	 * <p>
-	 * The path may not exist yet. It is the responsibility of the client to
-	 * create the content of the data area returned if it does not exist.
-	 * </p>
-	 * <p>
-	 * This method can be used to obtain a private area within the instance
-	 * location. For example use the symbolic name of a bundle to obtain a data
-	 * area specific to that bundle.
-	 * </p>
-	 * 
-	 * @param path
-	 *            the name of the path to get the data area for
-	 * @return the path to the instance data area with the specified path
-	 * @throws IllegalStateException
-	 *             if the server is not running properly or running without an
-	 *             instance location
-	 */
-	public static IPath getInstanceDataAreaPath(final String path) throws IllegalStateException {
-		return AppActivator.getInstance().getInstanceDataAreaPath(path);
-	}
-
-	/**
-	 * Returns the path to location of the server's working directory (also
-	 * known as the instance data area).
+	 * Returns the location in the local file system of the server's working
+	 * directory (also known as the instance data area).
 	 * <p>
 	 * This method is equivalent to acquiring the
 	 * <code>org.eclipse.osgi.service.datalocation.Location</code> service using
@@ -76,8 +54,41 @@ public class Platform {
 	 *             if the server is not running properly or running without an
 	 *             instance location
 	 */
-	public static IPath getInstanceLocationPath() throws IllegalStateException {
+	public static IPath getInstanceLocation() throws IllegalStateException {
 		return AppActivator.getInstance().getInstanceLocationPath();
+	}
+
+	/**
+	 * Returns the location in the local file system of the state area for the
+	 * specified bundle.
+	 * <p>
+	 * Note, the bundle state area might not exist prior to this call. The
+	 * bundle is responsible for creating it if necessary.
+	 * </p>
+	 * <p>
+	 * The bundle state area is a file directory within the
+	 * {@link #getInstanceLocation() server's instance location} where a bundle
+	 * is free to create files. The content and structure of this area is
+	 * defined by the bundle, and the particular bundle is solely responsible
+	 * for any files it puts there. It is recommended for bundle preference
+	 * settings and other configuration parameters.
+	 * </p>
+	 * <p>
+	 * The returned location path is consistent across bundle versions, i.e. the
+	 * same path will be returned for different bundle versions as long as their
+	 * symbolic names are equal. Thus, it's the responsibility of the bundle to
+	 * maintain content for different versions within that location.
+	 * </p>
+	 * 
+	 * @param bundle
+	 *            the bundle whose state location if returned
+	 * @return a local file system path to the bundle's state location
+	 * @throws IllegalStateException
+	 *             if the server is not running properly or running without an
+	 *             instance location
+	 */
+	public static IPath getStateLocation(final Bundle bundle) throws IllegalStateException {
+		return AppActivator.getInstance().getStateLocation(bundle);
 	}
 
 	/**

@@ -326,6 +326,10 @@ public class ServerApplication implements IApplication {
 				// bootstrap the platform
 				bootstrap();
 
+				// set the platform running state early to allow server roles
+				// use Platform#isRunning in their activation logic
+				running.set(true);
+
 				// read enabled server roles from configuration
 				final String[] roles = getEnabledServerRoles(arguments);
 
@@ -341,7 +345,6 @@ public class ServerApplication implements IApplication {
 
 				// signal that we are now up and running
 				context.applicationRunning();
-				running.set(true);
 
 				if (AppDebug.debug) {
 					LOG.info("Platform started.");

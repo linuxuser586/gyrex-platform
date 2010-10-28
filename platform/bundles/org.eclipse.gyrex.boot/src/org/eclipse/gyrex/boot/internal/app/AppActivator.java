@@ -44,6 +44,7 @@ import org.apache.commons.lang.math.NumberUtils;
  */
 public class AppActivator extends BaseBundleActivator {
 
+	private static final String BUNDLE_STATE_LOCATION = ".metadata/.plugins";
 	private static final String PROP_SHUTDOWN_PORT = "eclipse.gyrex.shutdown.port";
 	private static final String UTF8 = "UTF-8";
 	private static final String CMD_SHUTDOWN = "eclipse.gyrex.shutdown.command";
@@ -159,24 +160,6 @@ public class AppActivator extends BaseBundleActivator {
 		return AppDebug.class;
 	}
 
-	/**
-	 * Implementation for {@link Platform#getInstanceDataAreaPath(String)}.
-	 */
-	public IPath getInstanceDataAreaPath(final String path) {
-		if (path == null) {
-			throw new IllegalArgumentException("path must not be null");
-		}
-		try {
-			final URL url = getInstanceLocation().getDataArea(path);
-			if (!url.getProtocol().equals("file")) {
-				throw new IllegalStateException("instance location must be on local file system");
-			}
-			return new Path(url.getPath());
-		} catch (final IOException e) {
-			throw new IllegalStateException("instance location not available");
-		}
-	}
-
 	public Location getInstanceLocation() {
 		final IServiceProxy<Location> proxy = instanceLocationProxy;
 		if (null == proxy) {
@@ -186,7 +169,7 @@ public class AppActivator extends BaseBundleActivator {
 	}
 
 	/**
-	 * Implementation of {@link Platform#getInstanceLocationPath()}
+	 * Implementation of {@link Platform#getInstanceLocation()}
 	 * 
 	 * @return path to the instance location
 	 */
@@ -199,6 +182,16 @@ public class AppActivator extends BaseBundleActivator {
 			throw new IllegalStateException("instance location must be on local file system");
 		}
 		return new Path(url.getPath());
+	}
+
+	/**
+	 * Implementation for {@link Platform#getStateLocation(Bundle)}.
+	 */
+	public IPath getStateLocation(final Bundle bundle) {
+		if (bundle == null) {
+			throw new IllegalArgumentException("bundle must not be null");
+		}
+		return getInstanceLocationPath().append(BUNDLE_STATE_LOCATION).append(bundle.getSymbolicName());
 	}
 
 	private void startShutdownListener(final int shutdownPort) throws Exception {
