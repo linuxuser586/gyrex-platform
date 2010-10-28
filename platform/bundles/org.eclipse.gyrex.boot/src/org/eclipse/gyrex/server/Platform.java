@@ -113,12 +113,20 @@ public class Platform {
 	/**
 	 * Indicates if the server is currently running in development mode.
 	 * <p>
-	 * This relies on the underlying debug capabilities of the OSGi framework.
-	 * Typically, the server is put in development mode using the "-dev" command
-	 * line argument.
+	 * Gyrex uses the concept of configuration modes to behave differently in a
+	 * secure production environment and in a relaxed development environment.
+	 * </p>
 	 * <p>
-	 * Clients are also able to acquire the {@link EnvironmentInfo} service and
-	 * query it to see if they are in development mode.
+	 * Note, although Gyrex is a dynamic platform, the configuration mode is
+	 * static information. It is not anticipated that the platform changes its
+	 * configuration mode. Once set it should be <strong>assumed for
+	 * lifetime</strong>. A new installation has to be made to rebuild a system
+	 * using a different configuration mode. Security and a clean environment
+	 * are some of the reasons for this strict decision.
+	 * </p>
+	 * <p>
+	 * By default a system operates in development mode. It must be configured
+	 * explicitly to not operate in development mode.
 	 * </p>
 	 * 
 	 * @return <code>true</code> if the server is running in development mode,
