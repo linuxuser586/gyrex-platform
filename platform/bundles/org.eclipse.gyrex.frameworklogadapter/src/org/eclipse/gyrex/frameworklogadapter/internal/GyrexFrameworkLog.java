@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.osgi.framework.log.FrameworkLog;
 import org.eclipse.osgi.framework.log.FrameworkLogEntry;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkEvent;
 
@@ -82,7 +83,8 @@ public class GyrexFrameworkLog implements FrameworkLog {
 			final Method[] methods = logger.getClass().getMethods();
 			for (final Method method : methods) {
 				final Class<?>[] parameterTypes = method.getParameterTypes();
-				if ("log".equals(method.getName()) && (parameterTypes.length == 5) && parameterTypes[1].equals(String.class) && parameterTypes[2].equals(Integer.TYPE) && parameterTypes[3].equals(String.class) && parameterTypes[4].equals(Throwable.class)) {
+				// public void log(Marker marker, String fqcn, int level, String message, Object[] argArray, Throwable t);
+				if ("log".equals(method.getName()) && (parameterTypes.length == 6) && parameterTypes[1].equals(String.class) && parameterTypes[2].equals(Integer.TYPE) && parameterTypes[3].equals(String.class) && parameterTypes[5].equals(Throwable.class)) {
 					return method;
 				}
 			}
@@ -90,7 +92,6 @@ public class GyrexFrameworkLog implements FrameworkLog {
 		}
 
 		private final Object logger;
-
 		private final Method logMethod;
 
 		public SLF4JLogger(final Object logger) {
@@ -117,7 +118,8 @@ public class GyrexFrameworkLog implements FrameworkLog {
 		public void log(final FrameworkLogEntry entry) {
 			if (null != logMethod) {
 				try {
-					logMethod.invoke(logger, null, "org.eclipse.osgi.framework.log.FrameworkLogEntry", getLevel(entry), entry.getMessage(), entry.getThrowable());
+					// public void log(Marker marker, String fqcn, int level, String message, Object[] argArray, Throwable t);
+					logMethod.invoke(logger, null, "org.eclipse.osgi.framework.log.FrameworkLogEntry", getLevel(entry), entry.getMessage(), null, entry.getThrowable());
 				} catch (final Throwable e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
