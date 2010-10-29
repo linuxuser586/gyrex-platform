@@ -27,6 +27,7 @@ import org.eclipse.osgi.baseadaptor.hooks.AdaptorHook;
 import org.eclipse.osgi.framework.internal.core.FrameworkProperties;
 import org.eclipse.osgi.framework.log.FrameworkLog;
 import org.eclipse.osgi.util.NLS;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.InvalidSyntaxException;
@@ -190,6 +191,7 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 			System.err.println(NLS.bind("[Eclipse Gyrex] Failed to get SLF4J Logger. {0}", e));
 			// don't update logger, assume current one is still good
 		} finally {
+			// we unget the service here so that it can be released when necessary
 			if (null != highestLoggerReference) {
 				context.ungetService(highestLoggerReference);
 			}
