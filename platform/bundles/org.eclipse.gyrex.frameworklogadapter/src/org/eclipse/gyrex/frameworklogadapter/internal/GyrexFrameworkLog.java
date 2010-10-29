@@ -103,15 +103,15 @@ public class GyrexFrameworkLog implements FrameworkLog {
 			switch (entry.getSeverity()) {
 				case FrameworkLogEntry.CANCEL:
 				case FrameworkLogEntry.ERROR:
-					return Integer.toString(ERROR_INT);
+					return ERROR_INT;
 				case FrameworkLogEntry.WARNING:
-					return Integer.toString(WARN_INT);
+					return WARN_INT;
 				case FrameworkLogEntry.INFO:
-					return Integer.toString(INFO_INT);
+					return INFO_INT;
 
 				case FrameworkLogEntry.OK:
 				default:
-					return Integer.toString(DEBUG_INT);
+					return DEBUG_INT;
 			}
 		}
 
@@ -119,14 +119,16 @@ public class GyrexFrameworkLog implements FrameworkLog {
 			if (null != logMethod) {
 				try {
 					// public void log(Marker marker, String fqcn, int level, String message, Object[] argArray, Throwable t);
-					logMethod.invoke(logger, null, "org.eclipse.osgi.framework.log.FrameworkLogEntry", getLevel(entry), entry.getMessage(), null, entry.getThrowable());
+					logMethod.invoke(logger, null, "org.eclipse.osgi.framework.log.FrameworkLogEntry", getLevel(entry), logMessage(entry, 0), null, entry.getThrowable());
 				} catch (final Throwable e) {
-					// TODO Auto-generated catch block
+					// give up
 					e.printStackTrace();
 				}
 			}
 		}
 	}
+
+	static String NEWLINE = System.getProperty("line.separator");
 
 	private static FrameworkLogEntry createFrameworkLogEntry(final FrameworkEvent frameworkEvent) {
 		final Bundle b = frameworkEvent.getBundle();
@@ -204,9 +206,26 @@ public class GyrexFrameworkLog implements FrameworkLog {
 
 	}
 
+	static String logMessage(final FrameworkLogEntry logEntry, final int level) {
+		final StringBuilder message = new StringBuilder(200);
+		for (int i = 0; i < level; i++) {
+			message.append("\t");
+		}
+		message.append(logEntry.getMessage());
+
+		final FrameworkLogEntry[] children = logEntry.getChildren();
+		if (null != children) {
+			for (final FrameworkLogEntry child : children) {
+				message.append(NEWLINE).append(logMessage(child, level + 1));
+			}
+		}
+
+		return message.toString();
+	}
+
 	final AtomicBoolean consoleLog = new AtomicBoolean(false);
 	final AtomicBoolean closed = new AtomicBoolean(false);
-	final BlockingQueue<FrameworkLogEntry> logBuffer = new LinkedBlockingQueue<FrameworkLogEntry>();
+	final BlockingQueue<FrameworkLogEntry> logBuffer = new LinkedBlockingQueue<FrameworkLogEntry>(150);
 
 	final AtomicReference<SLF4JLogger> activeLogger = new AtomicReference<SLF4JLogger>();
 
@@ -242,7 +261,7 @@ public class GyrexFrameworkLog implements FrameworkLog {
 	@Override
 	public void log(final FrameworkLogEntry logEntry) {
 		if ((null != logEntry) && !closed.get()) {
-			logBuffer.add(logEntry);
+			logBuffer.offer(logEntry);
 			if (consoleLog.get()) {
 				logConsole(logEntry, 0);
 			}
