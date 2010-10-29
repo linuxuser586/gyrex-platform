@@ -20,5 +20,5 @@ public class CloudDebug extends BundleDebugOptions {
 
 	public static boolean debug;
 	public static boolean zooKeeperServer;
-	public static boolean zooKeeperConnectionLifecycle;
+	public static boolean zooKeeperGateLifecycle;
 }

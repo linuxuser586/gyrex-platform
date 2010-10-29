@@ -156,6 +156,9 @@ public class ZooKeeperServerApplication implements IApplication {
 		final Thread zkServerThread = createZooKeeperServerThread(config);
 		zkServerThread.start();
 
+		// signal running
+		context.applicationRunning();
+
 		// wait for stop
 		try {
 			stopSignal.await();

@@ -24,11 +24,11 @@ import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 
 /**
- * ZooKeeper configuration
+ * ZooKeeper server configuration.
  */
 public class ZooKeeperServerConfig extends QuorumPeerConfig {
 
-	public static final String PREF_KEY_CLIENT_PORT = "zookeeper/clientPort";
+	public static final String PREF_KEY_CLIENT_PORT = "zookeeper/server/clientPort";
 	public static final String PREF_KEY_CLIENT_PORT_ADDRESS = "zookeeper/clientPortAddress";
 	public static final String PREF_KEY_TICKTIME = "zookeeper/ticktime";
 

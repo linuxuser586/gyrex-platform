@@ -14,10 +14,6 @@ import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceReference;
-import org.osgi.service.application.ApplicationDescriptor;
-import org.osgi.service.application.ApplicationException;
-import org.osgi.service.application.ApplicationHandle;
 import org.osgi.util.tracker.ServiceTracker;
 
 import org.slf4j.Logger;
@@ -28,7 +24,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CloudActivator extends BaseBundleActivator {
 
-	private static final Logger LOG = LoggerFactory.getLogger(CloudActivator.class);
+	static final Logger LOG = LoggerFactory.getLogger(CloudActivator.class);
 
 	/** SYMBOLIC_NAME */
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.cloud";
@@ -53,7 +49,7 @@ public class CloudActivator extends BaseBundleActivator {
 	private final AtomicReference<IServiceProxy<IPreferencesService>> preferenceServiceRef = new AtomicReference<IServiceProxy<IPreferencesService>>();
 
 	final AtomicReference<ServiceTracker> zkServerAppTrackerRef = new AtomicReference<ServiceTracker>();
-	final AtomicReference<ApplicationHandle> zkServerAppRef = new AtomicReference<ApplicationHandle>();
+	final AtomicReference<ServiceTracker> zkGateAppTrackerRef = new AtomicReference<ServiceTracker>();
 
 	/**
 	 * Creates a new instance.
@@ -74,29 +70,10 @@ public class CloudActivator extends BaseBundleActivator {
 		instanceLocationServiceRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
 		preferenceServiceRef.set(getServiceHelper().trackService(IPreferencesService.class));
 
-		// start ZooKeeper server (if necessary)
+		// prepare ZooKeeper apps tracker
 		// TODO should use a server role for this!
-		zkServerAppTrackerRef.set(new ServiceTracker(context, context.createFilter("(service.pid=org.eclipse.gyrex.cloud.zookeeper.server.application)"), null) {
-			@Override
-			public Object addingService(final ServiceReference reference) {
-				final ApplicationDescriptor appDescriptor = (ApplicationDescriptor) super.addingService(reference);
-				try {
-					zkServerAppRef.set(appDescriptor.launch(null));
-				} catch (final ApplicationException e) {
-					LOG.error("Error starting ZooKeeper Server application! {}", e.getMessage(), e);
-				}
-				return appDescriptor;
-			}
-
-			@Override
-			public void removedService(final ServiceReference reference, final Object service) {
-				final ApplicationHandle applicationHandle = zkServerAppRef.get();
-				if ((applicationHandle != null) && (applicationHandle.getApplicationDescriptor() == service)) {
-					stopZkServerApp();
-				}
-				super.removedService(reference, service);
-			}
-		});
+		zkServerAppTrackerRef.set(new EquinoxApplicationLauncher(context, "org.eclipse.gyrex.cloud.zookeeper.server.application"));
+//		zkGateAppTrackerRef.set(new EquinoxApplicationLauncher(context, "org.eclipse.gyrex.cloud.zookeeper.gate.application"));
 
 		// perform expensive registration asynchronously
 		final Job initCloudJob = new Job("Cloud initialization.") {
@@ -109,17 +86,19 @@ public class CloudActivator extends BaseBundleActivator {
 						tracker.open();
 					} catch (final Exception e) {
 						// log a warning but do not shutdown the platform
-						LOG.warn("Unable to start ZooKeeper server. {}", e.getMessage(), e);
+						LOG.error("Unable to start ZooKeeper server. {}", e.getMessage(), e);
 					}
 				}
 
-				// register node (asynchronously)
-				try {
-					CloudState.registerNode();
-				} catch (final Exception e) {
-					// this is severe
-					// log a warning but do not shutdown the platform
-					LOG.warn("Unable to register node in cloud. Node will be disconnected. {}", e.getMessage(), e);
+				// open tracker for starting ZooKeeper gate
+				final ServiceTracker gateTracker = zkGateAppTrackerRef.get();
+				if (gateTracker != null) {
+					try {
+						gateTracker.open();
+					} catch (final Exception e) {
+						// log a warning but do not shutdown the platform
+						LOG.error("Unable to start ZooKeeper gate. {}", e.getMessage(), e);
+					}
 				}
 				return Status.OK_STATUS;
 			}
@@ -131,8 +110,11 @@ public class CloudActivator extends BaseBundleActivator {
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
-		// unregister node (synchronously)
-		CloudState.unregisterNode();
+		// stop ZooKeeper gate
+		final ServiceTracker gateTracker = zkGateAppTrackerRef.getAndSet(null);
+		if (gateTracker != null) {
+			gateTracker.close();
+		}
 
 		// stop ZooKeeper server
 		final ServiceTracker tracker = zkServerAppTrackerRef.getAndSet(null);
@@ -156,12 +138,5 @@ public class CloudActivator extends BaseBundleActivator {
 			throw createBundleInactiveException();
 		}
 		return serviceProxy.getService();
-	}
-
-	void stopZkServerApp() {
-		final ApplicationHandle applicationHandle = zkServerAppRef.getAndSet(null);
-		if (applicationHandle != null) {
-			applicationHandle.destroy();
-		}
 	}
 }

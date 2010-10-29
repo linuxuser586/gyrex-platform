@@ -14,16 +14,11 @@ package org.eclipse.gyrex.cloud.internal.zk;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.preferences.IPreferencesService;
 
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.CharSetUtils;
@@ -57,51 +52,53 @@ import org.slf4j.LoggerFactory;
  */
 public class ZooKeeperGate {
 
-	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGate.class);
-
-	private static final AtomicReference<ZooKeeperGate> instanceRef = new AtomicReference<ZooKeeperGate>();
-
-	public static ZooKeeperGate get() {
-		final ZooKeeperGate gate = instanceRef.get();
-		if (gate != null) {
-			return gate;
-		}
-		instanceRef.compareAndSet(null, new ZooKeeperGate());
-		return instanceRef.get();
+	public static interface GateListener {
+		void gateDown();
 	}
 
-	private final AtomicReference<ZooKeeper> zkRef = new AtomicReference<ZooKeeper>();
-	private final Lock zkCreationLock = new ReentrantLock();
-	private final AtomicReference<KeeperState> connectionState = new AtomicReference<KeeperState>();
+	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGate.class);
+	private static final AtomicReference<ZooKeeperGate> instanceRef = new AtomicReference<ZooKeeperGate>();
+
+	/**
+	 * Returns the current active gate.
+	 * 
+	 * @return the active gate
+	 * @throws IllegalStateException
+	 *             if the gate is DOWN
+	 */
+	public static ZooKeeperGate get() throws IllegalStateException {
+		final ZooKeeperGate gate = instanceRef.get();
+		if (gate == null) {
+			throw new IllegalStateException("ZooKeeper Gate is DOWN.");
+		}
+		return gate;
+	}
+
+	static ZooKeeperGate getAndSet(final ZooKeeperGate gate) {
+		return instanceRef.getAndSet(gate);
+	}
+
+	private final GateListener listener;
+	private final ZooKeeper zooKeeper;
 
 	private final Watcher connectionMonitor = new Watcher() {
-
 		@Override
 		public void process(final WatchedEvent event) {
-			if (CloudDebug.zooKeeperConnectionLifecycle) {
+			if (CloudDebug.zooKeeperGateLifecycle) {
 				LOG.debug("Connection event: {}", event);
 			}
 
-			final KeeperState newState = event.getState();
-			connectionState.set(newState);
-			switch (newState) {
-				case SyncConnected:
-					LOG.info("Connection to cloud established.");
-					break;
-
-				default:
-					LOG.info("Lost connection to cloud ({}).", newState);
-					reset();
-					break;
+			if (event.getState() == KeeperState.SyncConnected) {
+				LOG.info("ZooKeeper Gate is now UP. Connection to cloud established.");
+			} else {
+				LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost ({}).", event.getState());
 			}
 		}
 	};
 
-	/**
-	 * Creates a new instance.
-	 */
-	private ZooKeeperGate() {
-		// empty
+	ZooKeeperGate(final ZooKeeperGateConfig config, final GateListener listener) throws IOException {
+		zooKeeper = new ZooKeeper(config.getConnectString(), config.getSessionTimeout(), connectionMonitor);
+		this.listener = listener;
 	}
 
 	private void create(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
@@ -229,63 +226,10 @@ public class ZooKeeperGate {
 	}
 
 	final ZooKeeper ensureConnected() {
-		ZooKeeper zk = zkRef.get();
-		if (zk != null) {
-			return zk;
+		if (!zooKeeper.getState().isAlive()) {
+			throw new IllegalStateException("ZooKeeper Gate is DOWN.");
 		}
-
-		/*
-		 * This is a bit misleading. Connections happen asynchronously. We can't reliably ensure
-		 * the connected state here. However, we try out best.
-		 */
-
-		try {
-			// port/address to listen for client connections
-			final IPreferencesService preferenceService = CloudActivator.getInstance().getPreferenceService();
-			final int clientPort = preferenceService.getInt(CloudActivator.SYMBOLIC_NAME, ZooKeeperServerConfig.PREF_KEY_CLIENT_PORT, 2181, null);
-
-			if (!zkCreationLock.tryLock(5, TimeUnit.SECONDS)) {
-				throw new IllegalStateException("unable to connect, connect lock timeout");
-			}
-			try {
-				zk = zkRef.get();
-				if (zk != null) {
-					return zk;
-				}
-				if (CloudDebug.zooKeeperConnectionLifecycle) {
-					LOG.debug("Creating new ZooKeeper instance");
-				}
-
-				zk = new ZooKeeper("localhost:" + clientPort, 5000, connectionMonitor);
-				zkRef.set(zk);
-			} finally {
-				zkCreationLock.unlock();
-			}
-
-			int maxWait = 100;
-			while (!isConnected() && (maxWait-- > 0)) {
-				if (CloudDebug.zooKeeperConnectionLifecycle) {
-					LOG.debug("Waiting for connection...");
-				}
-				Thread.sleep(150);
-			}
-			if (!isConnected()) {
-				// give up
-				zk.close();
-				throw new IllegalStateException("unable to connect, timeout");
-			}
-			return zk;
-		} catch (final InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new IllegalStateException("unable to connect, connect lock interrupted");
-		} catch (final IOException e) {
-			throw new IllegalStateException("unable to connect, connection error: " + e.getMessage(), e);
-		}
-
-	}
-
-	public boolean isConnected() {
-		return connectionState.get() == KeeperState.SyncConnected;
+		return zooKeeper;
 	}
 
 	/**
@@ -337,26 +281,24 @@ public class ZooKeeperGate {
 		}
 	}
 
-	final void reset() {
-		if (CloudDebug.zooKeeperConnectionLifecycle) {
-			LOG.debug("Resetting ZooKeeper gate");
+	/**
+	 * Closes the gate.
+	 */
+	public void shutdown() {
+		if (CloudDebug.zooKeeperGateLifecycle) {
+			LOG.debug("Received stop signal for ZooKeeper Gate.");
 		}
-		zkCreationLock.lock();
+
 		try {
-			connectionState.set(null);
-			final ZooKeeper oldKeeper = zkRef.getAndSet(null);
-			if (oldKeeper != null) {
-				if (CloudDebug.zooKeeperConnectionLifecycle) {
-					LOG.debug("Closing old ZooKeeper instance");
-				}
-				try {
-					oldKeeper.close();
-				} catch (final InterruptedException e) {
-					Thread.currentThread().interrupt();
-				}
-			}
-		} finally {
-			zkCreationLock.unlock();
+			zooKeeper.close();
+		} catch (final InterruptedException e) {
+			Thread.currentThread().interrupt();
+		} catch (final Exception e) {
+			// ignored shutdown exceptions
+			e.printStackTrace();
 		}
+
+		// notify listeners
+		listener.gateDown();
 	}
 }

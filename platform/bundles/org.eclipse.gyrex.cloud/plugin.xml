@@ -10,6 +10,9 @@
          <requireBundle
                symbolicName="org.eclipse.gyrex.cloud">
          </requireBundle>
+         <requireApplication
+               applicationId="org.eclipse.gyrex.cloud.zookeeper.gate.application">
+         </requireApplication>
       </role>
    </extension>
    <extension
@@ -22,6 +25,19 @@
             visible="false">
          <run
                class="org.eclipse.gyrex.cloud.internal.zk.ZooKeeperServerApplication">
+         </run>
+      </application>
+   </extension>
+   <extension
+         id="org.eclipse.gyrex.cloud.zookeeper.gate.application"
+         name="ZooKeeper Gate Manager"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="false">
+         <run
+               class="org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateApplication">
          </run>
       </application>
    </extension>

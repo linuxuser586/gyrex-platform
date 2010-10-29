@@ -74,6 +74,11 @@ public class CloudState {
 	 * Registers this node with the cloud.
 	 */
 	public static void registerNode() throws Exception {
+
+		// TODO: this is wrong, the flow needs to change
+		// someone should trigger a ZooKeeper connection
+		// the ZooKeeper connection would trigger this when connected successfully
+
 		// load / create our node info
 		final NodeInfo nodeInfo = initializeNodeInfo();
 
