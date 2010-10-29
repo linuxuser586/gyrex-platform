@@ -10,6 +10,8 @@
 #     Gunnar Wagenknecht - initial API and implementation
 ###############################################################################
 instructions.configure=\
-  setProgramProperty(propName:osgi.hook.configurators.exclude,propValue:org.eclipse.core.runtime.internal.adaptor.EclipseLogHook);
+  setProgramProperty(propName:osgi.hook.configurators.exclude,propValue:org.eclipse.core.runtime.internal.adaptor.EclipseLogHook);\
+  setProgramProperty(propName:osgi.framework.extensions,propValue:org.eclipse.gyrex.log.frameworklogadapter);
 instructions.unconfigure=\
-  setProgramProperty(propName:osgi.hook.configurators.exclude,propValue:);
+  setProgramProperty(propName:osgi.hook.configurators.exclude,propValue:);\
+  setProgramProperty(propName:osgi.framework.extensions,propValue:);
