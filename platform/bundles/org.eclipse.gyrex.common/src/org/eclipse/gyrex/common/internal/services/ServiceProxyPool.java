@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -14,8 +14,8 @@ package org.eclipse.gyrex.common.internal.services;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-
 import org.eclipse.gyrex.common.services.IServiceProxy;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 
@@ -67,7 +67,7 @@ public class ServiceProxyPool {
 		if (null == bundleContext) {
 			throw new IllegalStateException("inactive");
 		}
-		final String key = filter.toString().intern();
+		final String key = serviceInterface.getName().intern().concat(filter.toString().intern());
 		if (!trackedServices.contains(key)) {
 			synchronized (trackedServices) {
 				if (!trackedServices.contains(key)) {
