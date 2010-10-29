@@ -63,6 +63,9 @@ public class ZooKeeperGateApplication implements IApplication {
 		}
 
 		public void run() {
+			if (CloudDebug.zooKeeperGateLifecycle) {
+				LOG.debug("Connecting to ZooKeeper.");
+			}
 			ZooKeeperGate oldGate = null;
 			try {
 				oldGate = ZooKeeperGate.getAndSet(new ZooKeeperGate(config, this));
