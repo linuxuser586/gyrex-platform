@@ -12,7 +12,6 @@
 package org.eclipse.gyrex.log.frameworklogadapter.internal;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URLConnection;
 import java.util.Hashtable;
 import java.util.NoSuchElementException;
@@ -41,10 +40,6 @@ import org.osgi.framework.ServiceRegistration;
  */
 public class FrameworkLogAdapterHook implements AdaptorHook {
 
-	/** GET_LOGGER */
-	private static final String GET_LOGGER_METHOD_NAME = "getLogger";
-	/** PARAMETER_TYPES */
-	private static final Class[] GET_LOGGER_METHOD_ARGUMENTS = new Class[] { String.class };
 	private static final AtomicReference<FrameworkLogAdapterHook> instanceRef = new AtomicReference<FrameworkLogAdapterHook>();
 
 	/**
@@ -66,17 +61,17 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 	private ServiceRegistration logServiceRegistration;
 	private BundleContext context;
 
-	private final SortedSet<ServiceReference> loggerFactories = new ConcurrentSkipListSet<ServiceReference>();
+	private final SortedSet<ServiceReference> loggers = new ConcurrentSkipListSet<ServiceReference>();
 	private final ServiceListener slf4jBridge = new ServiceListener() {
 		@Override
 		public void serviceChanged(final ServiceEvent event) {
 			switch (event.getType()) {
 				case ServiceEvent.REGISTERED:
-					registerLoggerFactory(event.getServiceReference());
+					registerLogger(event.getServiceReference());
 					break;
 
 				case ServiceEvent.UNREGISTERING:
-					unregisterLoggerFactory(event.getServiceReference());
+					unregisterLogger(event.getServiceReference());
 					break;
 			}
 		}
@@ -123,7 +118,7 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 
 		try {
 			// note, we do not import any SLF4J packages because the dependency is optional
-			context.addServiceListener(slf4jBridge, "(objectClass=org.slf4j.LoggerFactory)");
+			context.addServiceListener(slf4jBridge, "(& (objectClass=org.slf4j.Logger) (service.pid=org.slf4j.Logger.org.eclipse.osgi.framework.log.FrameworkLog) )");
 		} catch (final InvalidSyntaxException e) {
 			// should not happen, we hardcoded the filter
 			System.err.println("[Eclipse Gyrex] Please inform the developers. There is an implementation error: " + e);
@@ -165,13 +160,13 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 		return null;
 	}
 
-	void registerLoggerFactory(final ServiceReference serviceReference) {
-		loggerFactories.add(serviceReference);
+	void registerLogger(final ServiceReference serviceReference) {
+		loggers.add(serviceReference);
 		updateLogger();
 	}
 
-	void unregisterLoggerFactory(final ServiceReference serviceReference) {
-		loggerFactories.remove(serviceReference);
+	void unregisterLogger(final ServiceReference serviceReference) {
+		loggers.remove(serviceReference);
 		updateLogger();
 	}
 
@@ -179,11 +174,8 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 		ServiceReference highestLoggerReference = null;
 		try {
 			// the highest logger wins
-			highestLoggerReference = loggerFactories.last();
-			final Object loggerFactory = context.getService(highestLoggerReference);
-			final Method method = loggerFactory.getClass().getMethod(GET_LOGGER_METHOD_NAME, GET_LOGGER_METHOD_ARGUMENTS);
-			final Object logger = method.invoke(loggerFactory, FrameworkLog.class.getName());
-			log.setSLF4JLogger(logger);
+			highestLoggerReference = loggers.last();
+			log.setSLF4JLogger(context.getService(highestLoggerReference));
 		} catch (final NoSuchElementException e) {
 			// no logger available
 			log.setSLF4JLogger(null);
