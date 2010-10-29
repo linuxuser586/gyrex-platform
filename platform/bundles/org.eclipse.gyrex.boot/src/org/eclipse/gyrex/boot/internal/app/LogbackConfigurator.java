@@ -14,7 +14,7 @@ package org.eclipse.gyrex.boot.internal.app;
 import java.io.File;
 import java.nio.charset.Charset;
 
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -89,12 +89,7 @@ public class LogbackConfigurator {
 		}
 
 		// determine flags
-		boolean debug = PlatformConfiguration.isOperatingInDevelopmentMode();
-		for (final String arg : arguments) {
-			if ("-debug".equalsIgnoreCase(arg)) {
-				debug = true;
-			}
-		}
+		final boolean debug = Platform.inDebugMode() || Platform.inDevelopmentMode();
 
 		// get root logger
 		final Logger rootLogger = lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);

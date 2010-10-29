@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -16,10 +16,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.RegistryFactory;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * A registry that keeps track of registered server roles.
@@ -88,7 +89,6 @@ public class ServerRolesRegistry {
 					// TODO should log invalid roles
 					continue;
 				}
-				final String name = serverRolesElement.getAttribute("name");
 				final IConfigurationElement[] requireBundleElements = serverRolesElement.getChildren("requireBundle");
 				final List<String> requiredBundles = new ArrayList<String>(requireBundleElements.length);
 				for (final IConfigurationElement requireBundleElement : requireBundleElements) {
@@ -99,10 +99,21 @@ public class ServerRolesRegistry {
 					}
 					requiredBundles.add(bundleName);
 				}
+				final String name = serverRolesElement.getAttribute("name");
+				final IConfigurationElement[] requiredAppsElements = serverRolesElement.getChildren("requireApplication");
+				final List<String> requiredApps = new ArrayList<String>(requiredAppsElements.length);
+				for (final IConfigurationElement requireAppElement : requiredAppsElements) {
+					final String appId = requireAppElement.getAttribute("applicationId");
+					if (StringUtils.isBlank(appId)) {
+						// TODO should log invalid bundle name
+						continue;
+					}
+					requiredApps.add(appId);
+				}
 				if ("inDevelopmentMode".equals(serverRolesElement.getAttribute("defaultStart"))) {
 					defaultStartInDevelopmentMode.add(id);
 				}
-				registeredRoles.put(id, new ServerRole(id, name, requiredBundles.toArray(new String[requiredBundles.size()])));
+				registeredRoles.put(id, new ServerRole(id, name, requiredBundles, requiredApps));
 			}
 		}
 	}

@@ -11,9 +11,19 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.internal.app;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.eclipse.osgi.util.NLS;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleException;
+import org.osgi.service.application.ApplicationDescriptor;
+import org.osgi.service.application.ApplicationException;
+import org.osgi.service.application.ApplicationHandle;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,20 +36,19 @@ public class ServerRole {
 
 	private final String id;
 	private final String name;
-	private final String[] bundleSymbolicNames;
+	private final List<String> requiredBundleNames;
+	private final List<String> requiredApplicationIds;
+
+	private final Map<String, ApplicationHandle> launchedApps = new HashMap<String, ApplicationHandle>(3);
 
 	/**
 	 * Creates a new instance.
-	 * 
-	 * @param id
-	 * @param name
-	 * @param requiredBundleSymbolicNames
-	 *            list of bundles which need to be started for this role
 	 */
-	public ServerRole(final String id, final String name, final String[] requiredBundleSymbolicNames) {
+	ServerRole(final String id, final String name, final List<String> requiredBundleNames, final List<String> requiredApplicationIds) {
 		this.id = id;
 		this.name = name;
-		bundleSymbolicNames = requiredBundleSymbolicNames;
+		this.requiredBundleNames = requiredBundleNames;
+		this.requiredApplicationIds = requiredApplicationIds;
 	}
 
 	/**
@@ -51,11 +60,38 @@ public class ServerRole {
 		if (AppDebug.debugRoles) {
 			LOG.debug("Activating server role " + getId());
 		}
-		for (final String bundleName : bundleSymbolicNames) {
+		for (final String bundleName : requiredBundleNames) {
 			try {
 				startBundle(bundleName);
 			} catch (final Exception e) {
 				throw new ActivationException(NLS.bind("Error starting bundle \"{0}\": {1}", bundleName, e.getMessage()), e);
+			}
+		}
+		for (final String applicationId : requiredApplicationIds) {
+			try {
+				startApplication(applicationId);
+			} catch (final Exception e) {
+				throw new ActivationException(NLS.bind("Error starting application \"{0}\": {1}", applicationId, e.getMessage()), e);
+			}
+		}
+	}
+
+	/**
+	 * Deactivates the server role.
+	 */
+	public void deactivate() {
+		if (AppDebug.debugRoles) {
+			LOG.debug("Deactivating server role " + getId());
+		}
+
+		for (final Entry<String, ApplicationHandle> application : launchedApps.entrySet()) {
+			if (AppDebug.debugRoles) {
+				LOG.debug("Stopping application {}", application.getKey());
+			}
+			try {
+				application.getValue().destroy();
+			} catch (final Exception e) {
+				LOG.warn("Error during shutdown of application {} while deactivating role {}. {}", new Object[] { application.getKey(), getId(), e.getMessage() }, e);
 			}
 		}
 	}
@@ -79,6 +115,25 @@ public class ServerRole {
 	}
 
 	/**
+	 * Starts an application and keeps track of started instances.
+	 * 
+	 * @param applicationId
+	 * @throws IllegalStateException
+	 * @throws ApplicationException
+	 */
+	private void startApplication(final String applicationId) throws IllegalStateException, ApplicationException {
+		if (AppDebug.debugRoles) {
+			LOG.debug("Starting application {}", applicationId);
+		}
+		final ApplicationDescriptor applicationDescriptor = AppActivator.getInstance().getEclipseApplication(applicationId);
+		if (applicationDescriptor == null) {
+			throw new IllegalStateException(NLS.bind("Application {0} not found!", applicationId));
+		}
+		final ApplicationHandle handle = applicationDescriptor.launch(null);
+		launchedApps.put(applicationId, handle);
+	}
+
+	/**
 	 * Starts a bundle transient so that it is not restarted automatically on
 	 * the next start.
 	 * 
@@ -86,26 +141,32 @@ public class ServerRole {
 	 * @throws BundleException
 	 */
 	private void startBundle(final String symbolicName) throws BundleException, IllegalStateException {
-		final Bundle bundle = AppActivator.getInstance().getBundle(symbolicName);
-		if (null != bundle) {
-			final int originalState = bundle.getState();
-			if ((originalState & Bundle.ACTIVE) != 0) {
-				return; // bundle is already active
-			}
-			try {
-				// attempt to activate the bundle
-				bundle.start(Bundle.START_TRANSIENT);
-			} catch (final BundleException e) {
-				if ((bundle.getState() & Bundle.ACTIVE) != 0) {
-					// this can happen if the bundle was started by a different thread (the framework) already
-					return;
-				}
-				if (((originalState & Bundle.STARTING) != 0) && ((bundle.getState() & Bundle.STARTING) != 0)) {
-					// this can happen if the bundle was in the process of being activated on this thread, just return
-					return;
-				}
-				throw e;
-			}
+		if (AppDebug.debugRoles) {
+			LOG.debug("Starting bundle {}", symbolicName);
 		}
+		final Bundle bundle = AppActivator.getInstance().getBundle(symbolicName);
+		if (bundle == null) {
+			LOG.warn("Bundle {} not avaiable. Server rolor {} might by dysfunctional!", symbolicName, getId());
+			return;
+		}
+		final int originalState = bundle.getState();
+		if ((originalState & Bundle.ACTIVE) != 0) {
+			return; // bundle is already active
+		}
+		try {
+			// attempt to activate the bundle
+			bundle.start(Bundle.START_TRANSIENT);
+		} catch (final BundleException e) {
+			if ((bundle.getState() & Bundle.ACTIVE) != 0) {
+				// this can happen if the bundle was started by a different thread (the framework) already
+				return;
+			}
+			if (((originalState & Bundle.STARTING) != 0) && ((bundle.getState() & Bundle.STARTING) != 0)) {
+				// this can happen if the bundle was in the process of being activated on this thread, just return
+				return;
+			}
+			throw e;
+		}
+
 	}
 }

@@ -27,6 +27,7 @@ import org.eclipse.gyrex.preferences.PlatformScope;
 import org.eclipse.osgi.service.datalocation.Location;
 
 import org.osgi.framework.Bundle;
+import org.osgi.framework.ServiceRegistration;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.WordUtils;
@@ -115,6 +116,8 @@ public class ServerApplication implements IApplication {
 			signal.countDown();
 		}
 	}
+
+	private ServiceRegistration frameworkLogServiceRegistration;
 
 	private void bootstrap() throws Exception {
 		if (AppDebug.debug) {
@@ -254,7 +257,14 @@ public class ServerApplication implements IApplication {
 		return roles.toArray(new String[roles.size()]);
 	}
 
-	private void logbackOff() {
+	private void loggingOff() {
+		// disable framework logging
+		if (frameworkLogServiceRegistration != null) {
+			frameworkLogServiceRegistration.unregister();
+			frameworkLogServiceRegistration = null;
+		}
+
+		// reset logback
 		try {
 			LogbackConfigurator.reset();
 		} catch (final ClassNotFoundException e) {
@@ -267,7 +277,8 @@ public class ServerApplication implements IApplication {
 		}
 	}
 
-	private void logbackOn(final String[] arguments) {
+	private void loggingOn(final String[] arguments) {
+		// configure logback
 		try {
 			LogbackConfigurator.configureDefaultContext(arguments);
 		} catch (final ClassNotFoundException e) {
@@ -280,6 +291,10 @@ public class ServerApplication implements IApplication {
 			// error (but do not fail)
 			LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
 		}
+
+		// hook with GyrexFrameworkLog
+		// (note, we use strings here in order to not import those classes)
+		frameworkLogServiceRegistration = AppActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.osgi.framework.log.FrameworkLog"), "Eclipse Gyrex", "SLF4J Logger Factory", "org.slf4j.Logger.org.eclipse.osgi.framework.log.FrameworkLog", null);
 	}
 
 	@Override
@@ -313,7 +328,7 @@ public class ServerApplication implements IApplication {
 			}
 
 			// configure logging
-			logbackOn(arguments);
+			loggingOn(arguments);
 
 			// relaunch flag
 			boolean relaunch = false;
@@ -334,13 +349,15 @@ public class ServerApplication implements IApplication {
 				final String[] roles = getEnabledServerRoles(arguments);
 
 				// activate server roles
+				final List<ServerRole> activeRoles = new ArrayList<ServerRole>(roles.length);
 				for (final String roleName : roles) {
 					final ServerRole role = ServerRolesRegistry.getDefault().getRole(roleName);
 					if (null == role) {
-						// TODO log unknown role
+						LOG.warn("Server role {} not found! Please check your installation.", roleName);
 						continue;
 					}
 					role.activate();
+					activeRoles.add(role);
 				}
 
 				// signal that we are now up and running
@@ -363,6 +380,11 @@ public class ServerApplication implements IApplication {
 				} while ((stopOrRestartSignal.getCount() > 0) && Thread.interrupted());
 				stopOrRestartSignal = null;
 
+				// deactivate roles
+				for (final ServerRole role : activeRoles) {
+					role.deactivate();
+				}
+
 				// get & reset relaunch flag
 				relaunch = ServerApplication.relaunch;
 				ServerApplication.relaunch = false;
@@ -377,7 +399,7 @@ public class ServerApplication implements IApplication {
 				}
 
 				// de-configure logging
-				logbackOff();
+				loggingOff();
 
 				// TODO should evaluate and suggest solution to Ops
 				printError("Unable to start server. Please verify the installation is correct and all required components are available.", e);
@@ -395,7 +417,7 @@ public class ServerApplication implements IApplication {
 			}
 
 			// de-configure logging
-			logbackOff();
+			loggingOff();
 		}
 	}
 

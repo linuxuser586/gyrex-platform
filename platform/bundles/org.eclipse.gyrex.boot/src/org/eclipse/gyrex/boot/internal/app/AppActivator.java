@@ -28,10 +28,15 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.osgi.framework.log.FrameworkLog;
 import org.eclipse.osgi.service.datalocation.Location;
+import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.application.ApplicationDescriptor;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 
@@ -158,6 +163,43 @@ public class AppActivator extends BaseBundleActivator {
 	@Override
 	protected Class getDebugOptions() {
 		return AppDebug.class;
+	}
+
+	/**
+	 * Returns an Eclipse application that can be launched on any thread.
+	 * 
+	 * @param applicationId
+	 * @return
+	 * @throws InvalidSyntaxException
+	 */
+	public ApplicationDescriptor getEclipseApplication(final String applicationId) throws IllegalStateException {
+		final String filterString = NLS.bind("(&(objectClass={0})(service.pid={1})(application.container=org.eclipse.equinox.app)(eclipse.application.type=any.thread))", ApplicationDescriptor.class.getName(), applicationId);
+		ServiceReference[] serviceReferences;
+		try {
+			serviceReferences = context.getServiceReferences(ApplicationDescriptor.class.getName(), filterString);
+		} catch (final InvalidSyntaxException e) {
+			throw new IllegalStateException(NLS.bind("Internal error while looking for application {0} using filer {1}. {2}", new Object[] { applicationId, filterString, e.getMessage() }));
+		}
+		if ((serviceReferences == null) || (serviceReferences.length == 0)) {
+			throw new IllegalStateException(NLS.bind("Application {0} not found!", applicationId));
+		} else if (serviceReferences.length > 1) {
+			throw new IllegalStateException(NLS.bind("Multiple applications with id {0} found! Just one expected!", applicationId));
+		}
+		try {
+			return (ApplicationDescriptor) context.getService(serviceReferences[0]);
+		} finally {
+			// immediately unget the service to let the application go away
+			context.ungetService(serviceReferences[0]);
+		}
+	}
+
+	public FrameworkLog getFrameworkLog() {
+		try {
+			return getServiceHelper().trackService(FrameworkLog.class).getService();
+		} catch (final RuntimeException e) {
+			// ignore
+			return null;
+		}
 	}
 
 	public Location getInstanceLocation() {
