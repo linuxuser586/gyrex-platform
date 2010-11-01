@@ -49,9 +49,6 @@ public final class PlatformScope implements IScopeContext {
 	 */
 	public static final String NAME = "platform"; //$NON-NLS-1$
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(final Object o) {
 		// org.eclipse.core.internal.preferences.AbstractScope#equals(Object o)
@@ -80,19 +77,12 @@ public final class PlatformScope implements IScopeContext {
 		return null; // no location
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.runtime.preferences.IScopeContext#getName()
-	 */
 	@Override
 	public String getName() {
 		return NAME;
 	}
 
-	/*
-	 * Default path hierarchy for nodes is /<scope>/<qualifier>.
-	 *
-	 * @see org.eclipse.core.runtime.preferences.IScopeContext#getNode(java.lang.String)
-	 */
+	@Override
 	public IEclipsePreferences getNode(final String qualifier) {
 		if (qualifier == null) {
 			throw new IllegalArgumentException("qualifier must not be null");
@@ -104,9 +94,6 @@ public final class PlatformScope implements IScopeContext {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		// org.eclipse.core.internal.preferences.AbstractScope#hashCode()
