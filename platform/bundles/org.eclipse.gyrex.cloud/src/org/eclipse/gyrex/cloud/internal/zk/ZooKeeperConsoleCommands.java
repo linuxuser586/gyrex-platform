@@ -58,18 +58,18 @@ public class ZooKeeperConsoleCommands implements CommandProvider {
 
 	static final Map<String, Command> zkCommands = new TreeMap<String, Command>();
 	static {
-		zkCommands.put("create", new Command("[-s] [-e] path data") {
+		zkCommands.put("create", new Command("[-s] [-e] path [data]") {
 			@Override
 			public void execute(final ZooKeeper zk, final CommandInterpreter ci) throws Exception {
 				String a1 = ci.nextArgument();
 				String a2 = ci.nextArgument();
-				if ((a1 == null) || (a2 == null)) {
+				if (a1 == null) {
 					printInvalidArgs(ci);
 					return;
 				}
 
 				CreateMode flags = CreateMode.PERSISTENT;
-				if ((a1.equals("-e") && a1.equals("-s")) || (a1.equals("-s") && (a2.equals("-e")))) {
+				if ((a2 != null) && ((a1.equals("-e") && a2.equals("-s")) || (a1.equals("-s") && (a2.equals("-e"))))) {
 					flags = CreateMode.EPHEMERAL_SEQUENTIAL;
 					a1 = ci.nextArgument();
 					a2 = ci.nextArgument();
@@ -83,12 +83,12 @@ public class ZooKeeperConsoleCommands implements CommandProvider {
 					flags = CreateMode.PERSISTENT_SEQUENTIAL;
 				}
 
-				if ((a1 == null) || (a2 == null)) {
+				if (a1 == null) {
 					printInvalidArgs(ci);
 					return;
 				}
 
-				final String newPath = zk.create(a1, a2.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, flags);
+				final String newPath = zk.create(a1, null != a2 ? a2.getBytes() : null, ZooDefs.Ids.OPEN_ACL_UNSAFE, flags);
 				ci.println("Created " + newPath);
 			}
 		});
