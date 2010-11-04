@@ -83,6 +83,10 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void childCreated(final String path) {
+			if (PreferencesDebug.debug) {
+				LOG.debug("Node {} updated remotely: NEW CHILD", path);
+			}
+
 			if (removed) {
 				return;
 			}
@@ -108,6 +112,10 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void pathCreated(final String path) {
+			if (PreferencesDebug.debug) {
+				LOG.debug("Node {} updated remotely: CREATED", path);
+			}
+
 			// process events only for this node
 			if (zkPath.toString().equals(path)) {
 
@@ -131,6 +139,10 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void pathDeleted(final String path) {
+			if (PreferencesDebug.debug) {
+				LOG.debug("Node {} updated remotely: REMOVED", path);
+			}
+
 			if (removed) {
 				return;
 			}
@@ -152,6 +164,10 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void recordChanged(final String path) {
+			if (PreferencesDebug.debug) {
+				LOG.debug("Node {} updated remotely: PROPERTIES", path);
+			}
+
 			if (removed) {
 				return;
 			}
