@@ -21,9 +21,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
-import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.osgi.service.datalocation.Location;
 
 import org.osgi.framework.Bundle;
@@ -221,8 +221,10 @@ public class ServerApplication implements IApplication {
 
 		// read roles from preferences
 		if (!ignoreConfiguredRoles) {
-			// TODO: introduce node specific preferences
-			final String[] rolesToStart = StringUtils.split(new PlatformScope().getNode(AppActivator.PLUGIN_ID).get("rolesToStart", null), ',');
+			// note, we read from the instance scope here
+			// it is assumed that an external entity properly
+			// sets the role for this particular node
+			final String[] rolesToStart = StringUtils.split(new InstanceScope().getNode(AppActivator.PLUGIN_ID).get("rolesToStart", null), ',');
 			if (null != rolesToStart) {
 				for (final String role : rolesToStart) {
 					if (StringUtils.isNotBlank(role)) {
@@ -242,7 +244,7 @@ public class ServerApplication implements IApplication {
 		}
 
 		// add default start roles
-		if (PlatformConfiguration.isOperatingInDevelopmentMode()) {
+		if (Platform.inDevelopmentMode()) {
 			final String[] defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefaultInDevelopmentMode();
 			for (final String role : defaultRoles) {
 				if (!roles.contains(role)) {

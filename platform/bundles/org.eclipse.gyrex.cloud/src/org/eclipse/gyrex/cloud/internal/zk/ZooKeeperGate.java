@@ -13,6 +13,7 @@ package org.eclipse.gyrex.cloud.internal.zk;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -146,10 +147,37 @@ public class ZooKeeperGate {
 	}
 
 	/**
+	 * Creates a record at the specified path in ZooKeeper if one doesn't exist.
+	 * <p>
+	 * If the path parents don't exist they will be created using the specified
+	 * creation mode.
+	 * </p>
+	 * <p>
+	 * If a record already exists, an exception will be thrown.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @param createMode
+	 *            the creation mode
+	 * @param recordData
+	 *            the record data
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public void createRecord(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
+		if (recordData == null) {
+			throw new IllegalArgumentException("recordData must not be null");
+		}
+		create(path, createMode, recordData);
+	}
+
+	/**
 	 * Creates a record at the specified path in ZooKeeper.
 	 * <p>
-	 * If the path parents don't exist they will be created using
-	 * {@link CreateMode#PERSISTENT}.
+	 * If the path parents don't exist they will be created using the specified
+	 * creation mode.
 	 * </p>
 	 * 
 	 * @param path
@@ -167,7 +195,7 @@ public class ZooKeeperGate {
 			throw new IllegalArgumentException("recordData must not be null");
 		}
 		try {
-			create(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
+			createRecord(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalStateException("JVM does not support UTF-8.", e);
 		}
@@ -233,6 +261,86 @@ public class ZooKeeperGate {
 	}
 
 	/**
+	 * Checks if the specified path exists.
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @return <code>true</code> if the path exists, <code>false</code>
+	 *         otherwise
+	 * @throws InterruptedException
+	 * @throws KeeperException
+	 */
+	public boolean exists(final IPath path) throws InterruptedException, KeeperException {
+		return exists(path, null);
+	}
+
+	/**
+	 * Checks if the specified path exists.
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @return <code>true</code> if the path exists, <code>false</code>
+	 *         otherwise
+	 * @throws InterruptedException
+	 * @throws KeeperException
+	 */
+	public boolean exists(final IPath path, final ZooKeeperMonitor monitor) throws InterruptedException, KeeperException {
+		if (path == null) {
+			throw new IllegalArgumentException("path must not be null");
+		}
+		try {
+			return ensureConnected().exists(path.toString(), monitor) != null;
+		} catch (final KeeperException e) {
+			throw e;
+		}
+	}
+
+	/**
+	 * Reads the list of children from the specified path in ZooKeeper if it
+	 * exists.
+	 * 
+	 * @param path
+	 *            the path to the record
+	 * @return the list of children (maybe <code>null</code> the path doesn't
+	 *         exist)
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public Collection<String> readChildrenNames(final IPath path) throws InterruptedException, KeeperException {
+		return readChildrenNames(path, null);
+	}
+
+	/**
+	 * Reads the list of children from the specified path in ZooKeeper if it
+	 * exists.
+	 * 
+	 * @param path
+	 *            the path to the record
+	 * @param watch
+	 *            optional watch to set (may be <code>null</code>)
+	 * @return the list of children (maybe <code>null</code> the path doesn't
+	 *         exist)
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @see {@link ZooKeeper#getChildren(String, Watcher)}
+	 */
+	public Collection<String> readChildrenNames(final IPath path, final Watcher watch) throws InterruptedException, KeeperException {
+		if (path == null) {
+			throw new IllegalArgumentException("path must not be null");
+		}
+		try {
+			return ensureConnected().getChildren(path.toString(), watch);
+		} catch (final KeeperException e) {
+			if (e.code() == KeeperException.Code.NONODE) {
+				return null;
+			}
+			throw e;
+		}
+	}
+
+	/**
 	 * Reads a record from the specified path in ZooKeeper if it exists.
 	 * 
 	 * @param path
@@ -243,17 +351,7 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public byte[] readRecord(final IPath path) throws KeeperException, InterruptedException, IOException {
-		if (path == null) {
-			throw new IllegalArgumentException("path must not be null");
-		}
-		try {
-			return ensureConnected().getData(path.toString(), false, null);
-		} catch (final KeeperException e) {
-			if (e.code() == KeeperException.Code.NONODE) {
-				return null;
-			}
-			throw e;
-		}
+		return readRecord(path, (Watcher) null);
 	}
 
 	/**
@@ -282,6 +380,56 @@ public class ZooKeeperGate {
 	}
 
 	/**
+	 * Reads a record from the specified path in ZooKeeper if it exists.
+	 * 
+	 * @param path
+	 *            the path to the record
+	 * @param watch
+	 *            optional watch to set (may be <code>null</code>)
+	 * @return the record data (maybe <code>null</code> if it doesn't exist)
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @see {@link ZooKeeper#getData(String, Watcher, org.apache.zookeeper.data.Stat)}
+	 */
+	public byte[] readRecord(final IPath path, final Watcher watch) throws KeeperException, InterruptedException, IOException {
+		if (path == null) {
+			throw new IllegalArgumentException("path must not be null");
+		}
+		try {
+			return ensureConnected().getData(path.toString(), watch, null);
+		} catch (final KeeperException e) {
+			if (e.code() == KeeperException.Code.NONODE) {
+				return null;
+			}
+			throw e;
+		}
+	}
+
+	private void setData(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
+		if (path == null) {
+			throw new IllegalArgumentException("path must not be null");
+		}
+		if (createMode == null) {
+			throw new IllegalArgumentException("createMode must not be null");
+		}
+
+		if (!exists(path)) {
+			try {
+				create(path, createMode, data);
+			} catch (final KeeperException e) {
+				if (e.code() != KeeperException.Code.NODEEXISTS) {
+					// rethrow
+					throw e;
+				}
+			}
+		}
+
+		// set data
+		ensureConnected().setData(path.toString(), data, -1);
+	}
+
+	/**
 	 * Closes the gate.
 	 */
 	public void shutdown() {
@@ -300,5 +448,29 @@ public class ZooKeeperGate {
 
 		// notify listeners
 		listener.gateDown();
+	}
+
+	/**
+	 * Writes a record at the specified path in ZooKeeper.
+	 * <p>
+	 * If the path (or any of its parents) doesn't exist it will be created
+	 * using the specified creation mode.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @param createMode
+	 *            the creation mode
+	 * @param recordData
+	 *            the record data
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public void writeRecord(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
+		if (recordData == null) {
+			throw new IllegalArgumentException("recordData must not be null");
+		}
+		setData(path, createMode, recordData);
 	}
 }

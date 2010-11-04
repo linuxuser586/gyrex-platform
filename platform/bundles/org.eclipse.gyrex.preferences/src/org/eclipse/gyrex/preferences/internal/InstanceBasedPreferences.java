@@ -14,16 +14,22 @@ package org.eclipse.gyrex.preferences.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.gyrex.preferences.PlatformScope;
+
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IPreferenceNodeVisitor;
-import org.eclipse.core.runtime.preferences.IScope;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
-public class PlatformPreferences implements IScope, IEclipsePreferences {
+/**
+ * Simple preferences implementation which stores the preferences using
+ * {@link InstanceScope}.
+ */
+public class InstanceBasedPreferences implements IEclipsePreferences {
 
 	private final class NodeChangeListenerWrapper implements INodeChangeListener {
 		private final INodeChangeListener listener;
@@ -34,9 +40,9 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 
 		@Override
 		public void added(final NodeChangeEvent event) {
-			if (event.getParent().equals(storage)) {
-				final IEclipsePreferences child = new PlatformPreferences(PlatformPreferences.this, event.getChild().name(), false);
-				listener.added(new NodeChangeEvent(PlatformPreferences.this, child));
+			if (event.getParent().equals(instanceNode)) {
+				final IEclipsePreferences child = new InstanceBasedPreferences(InstanceBasedPreferences.this, event.getChild().name(), false);
+				listener.added(new NodeChangeEvent(InstanceBasedPreferences.this, child));
 			}
 		}
 
@@ -72,9 +78,9 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 
 		@Override
 		public void removed(final NodeChangeEvent event) {
-			if (event.getParent().equals(storage)) {
-				final IEclipsePreferences child = new PlatformPreferences(PlatformPreferences.this, event.getChild().name(), true);
-				listener.removed(new NodeChangeEvent(PlatformPreferences.this, child));
+			if (event.getParent().equals(instanceNode)) {
+				final IEclipsePreferences child = new InstanceBasedPreferences(InstanceBasedPreferences.this, event.getChild().name(), true);
+				listener.removed(new NodeChangeEvent(InstanceBasedPreferences.this, child));
 			}
 		}
 	}
@@ -83,17 +89,14 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 	private static final String PATH_SEPARATOR = String.valueOf(IPath.SEPARATOR);
 	private static final String EMPTY_STRING = ""; //$NON-NLS-1$
 
-	private final IEclipsePreferences storage;
+	private final IEclipsePreferences instanceNode;
 	private String cachedPath;
 	private final String name;
 	private final IEclipsePreferences parent;
 	private boolean removed;
 
-	/**
-	 * Creates a new instance.
-	 */
-	public PlatformPreferences() {
-		this(null, null, true);
+	public InstanceBasedPreferences(final IEclipsePreferences parent, final String name) {
+		this(parent, name, false);
 	}
 
 	/**
@@ -102,22 +105,22 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 	 * @param parent
 	 * @param name
 	 */
-	protected PlatformPreferences(final IEclipsePreferences parent, final String name, final boolean removed) {
+	InstanceBasedPreferences(final IEclipsePreferences parent, final String name, final boolean removed) {
 		this.parent = parent;
 		this.name = name;
 		this.removed = removed;
 		if ((null != parent) && (null != name)) {
-			if (parent instanceof PlatformPreferences) {
-				storage = (IEclipsePreferences) ((PlatformPreferences) parent).storage.node(name);
+			if (parent instanceof InstanceBasedPreferences) {
+				instanceNode = (IEclipsePreferences) ((InstanceBasedPreferences) parent).instanceNode.node(name);
 			} else {
 				// the parent is the ROOT and the name should be "platform"
-				if (!parent.absolutePath().equals("/platform")) {
-					throw new IllegalArgumentException(NLS.bind("parent {0} not allowed at this point", parent));
+				if (!parent.absolutePath().equals(PATH_SEPARATOR) || !name.equals(PlatformScope.NAME)) {
+					throw new IllegalArgumentException(NLS.bind("name {0} and parent {1} not allowed at this point", name, parent));
 				}
-				storage = (IEclipsePreferences) PreferencesActivator.getInstance().getStorage().getRoot().node(name);
+				instanceNode = (IEclipsePreferences) PreferencesActivator.getInstance().getPreferencesService().getRootNode().node(InstanceScope.SCOPE).node(PreferencesActivator.SYMBOLIC_NAME).node(name);
 			}
 		} else {
-			storage = null;
+			instanceNode = null;
 		}
 	}
 
@@ -158,14 +161,14 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 	public void addNodeChangeListener(final INodeChangeListener listener) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.addNodeChangeListener(new NodeChangeListenerWrapper(listener));
+		instanceNode.addNodeChangeListener(new NodeChangeListenerWrapper(listener));
 	}
 
 	@Override
 	public void addPreferenceChangeListener(final IPreferenceChangeListener listener) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.addPreferenceChangeListener(listener);
+		instanceNode.addPreferenceChangeListener(listener);
 	}
 
 	private IEclipsePreferences calculateRoot() {
@@ -186,47 +189,42 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 	public String[] childrenNames() throws BackingStoreException {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.childrenNames();
+		return instanceNode.childrenNames();
 	}
 
 	@Override
 	public void clear() throws BackingStoreException {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.clear();
-	}
-
-	@Override
-	public IEclipsePreferences create(final IEclipsePreferences parent, final String name) {
-		return new PlatformPreferences(parent, name, false);
+		instanceNode.clear();
 	}
 
 	@Override
 	public void flush() throws BackingStoreException {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.flush();
+		instanceNode.flush();
 	}
 
 	@Override
 	public String get(final String key, final String def) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.get(key, def);
+		return instanceNode.get(key, def);
 	}
 
 	@Override
 	public boolean getBoolean(final String key, final boolean def) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.getBoolean(key, def);
+		return instanceNode.getBoolean(key, def);
 	}
 
 	@Override
 	public byte[] getByteArray(final String key, final byte[] def) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.getByteArray(key, def);
+		return instanceNode.getByteArray(key, def);
 	}
 
 	/**
@@ -240,8 +238,8 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 
 		final String[] names = childrenNames();
 		for (int i = 0; i < names.length; i++) {
-			if (create || storage.nodeExists(name)) {
-				result.add(new PlatformPreferences(this, name, false));
+			if (create || instanceNode.nodeExists(name)) {
+				result.add(new InstanceBasedPreferences(this, name, false));
 			}
 		}
 		return result.toArray(EMPTY_NODE_ARRAY);
@@ -251,35 +249,35 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 	public double getDouble(final String key, final double def) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.getDouble(key, def);
+		return instanceNode.getDouble(key, def);
 	}
 
 	@Override
 	public float getFloat(final String key, final float def) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.getFloat(key, def);
+		return instanceNode.getFloat(key, def);
 	}
 
 	@Override
 	public int getInt(final String key, final int def) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.getInt(key, def);
+		return instanceNode.getInt(key, def);
 	}
 
 	@Override
 	public long getLong(final String key, final long def) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.getLong(key, def);
+		return instanceNode.getLong(key, def);
 	}
 
 	@Override
 	public String[] keys() throws BackingStoreException {
 		// illegal state if the node has been removed
 		checkRemoved();
-		return storage.keys();
+		return instanceNode.keys();
 	}
 
 	@Override
@@ -306,14 +304,14 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 
 		final int index = path.indexOf(IPath.SEPARATOR);
 		final String key = index == -1 ? path : path.substring(0, index);
-		final IEclipsePreferences child = new PlatformPreferences(this, key, false);
+		final IEclipsePreferences child = new InstanceBasedPreferences(this, key, false);
 		return child.node(index == -1 ? EMPTY_STRING : path.substring(index + 1));
 	}
 
 	@Override
 	public boolean nodeExists(final String pathName) throws BackingStoreException {
 		// don't check removed state here, this method can be called at any time
-		return storage.nodeExists(pathName);
+		return instanceNode.nodeExists(pathName);
 	}
 
 	@Override
@@ -327,83 +325,83 @@ public class PlatformPreferences implements IScope, IEclipsePreferences {
 	public void put(final String key, final String value) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.put(key, value);
+		instanceNode.put(key, value);
 	}
 
 	@Override
 	public void putBoolean(final String key, final boolean value) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.putBoolean(key, value);
+		instanceNode.putBoolean(key, value);
 	}
 
 	@Override
 	public void putByteArray(final String key, final byte[] value) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.putByteArray(key, value);
+		instanceNode.putByteArray(key, value);
 	}
 
 	@Override
 	public void putDouble(final String key, final double value) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.putDouble(key, value);
+		instanceNode.putDouble(key, value);
 	}
 
 	@Override
 	public void putFloat(final String key, final float value) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.putFloat(key, value);
+		instanceNode.putFloat(key, value);
 	}
 
 	@Override
 	public void putInt(final String key, final int value) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.putInt(key, value);
+		instanceNode.putInt(key, value);
 	}
 
 	@Override
 	public void putLong(final String key, final long value) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.putLong(key, value);
+		instanceNode.putLong(key, value);
 	}
 
 	@Override
 	public void remove(final String key) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.remove(key);
+		instanceNode.remove(key);
 	}
 
 	@Override
 	public void removeNode() throws BackingStoreException {
 		removed = true;
-		storage.removeNode();
+		instanceNode.removeNode();
 	}
 
 	@Override
 	public void removeNodeChangeListener(final INodeChangeListener listener) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.removeNodeChangeListener(new NodeChangeListenerWrapper(listener));
+		instanceNode.removeNodeChangeListener(new NodeChangeListenerWrapper(listener));
 	}
 
 	@Override
 	public void removePreferenceChangeListener(final IPreferenceChangeListener listener) {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.removePreferenceChangeListener(listener);
+		instanceNode.removePreferenceChangeListener(listener);
 	}
 
 	@Override
 	public void sync() throws BackingStoreException {
 		// illegal state if the node has been removed
 		checkRemoved();
-		storage.sync();
+		instanceNode.sync();
 	}
 
 	@Override

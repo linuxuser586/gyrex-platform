@@ -15,7 +15,7 @@
    <extension
          point="org.eclipse.equinox.preferences.preferences">
       <scope
-            class="org.eclipse.gyrex.preferences.internal.PlatformPreferences"
+            class="org.eclipse.gyrex.preferences.internal.PlatformPreferencesScope"
             name="platform">
       </scope>
    </extension>
