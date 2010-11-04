@@ -251,62 +251,6 @@ public class ZooKeeperGate {
 	}
 
 	/**
-	 * Creates a record at the specified path in ZooKeeper if one doesn't exist.
-	 * <p>
-	 * If the path parents don't exist they will be created using the specified
-	 * creation mode.
-	 * </p>
-	 * <p>
-	 * If a record already exists, an exception will be thrown.
-	 * </p>
-	 * 
-	 * @param path
-	 *            the path to create
-	 * @param createMode
-	 *            the creation mode
-	 * @param recordData
-	 *            the record data
-	 * @throws KeeperException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 */
-	public void createRecord(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
-		if (recordData == null) {
-			throw new IllegalArgumentException("recordData must not be null");
-		}
-		create(path, createMode, recordData);
-	}
-
-	/**
-	 * Creates a record at the specified path in ZooKeeper.
-	 * <p>
-	 * If the path parents don't exist they will be created using the specified
-	 * creation mode.
-	 * </p>
-	 * 
-	 * @param path
-	 *            the path to create
-	 * @param createMode
-	 *            the creation mode
-	 * @param recordData
-	 *            the record data
-	 * @throws KeeperException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 */
-	public void createRecord(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
-		if (recordData == null) {
-			throw new IllegalArgumentException("recordData must not be null");
-		}
-		try {
-			createRecord(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
-		} catch (final UnsupportedEncodingException e) {
-			throw new IllegalStateException("JVM does not support UTF-8.", e);
-		}
-
-	}
-
-	/**
 	 * Removes a path in ZooKeeper.
 	 * <p>
 	 * If the path parents don't exist they will be created using
@@ -489,7 +433,7 @@ public class ZooKeeperGate {
 		}
 	}
 
-	private void setData(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
+	private void setDataOrCreate(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
@@ -500,6 +444,9 @@ public class ZooKeeperGate {
 		if (!exists(path)) {
 			try {
 				create(path, createMode, data);
+
+				// create succeeded, return early
+				return;
 			} catch (final KeeperException e) {
 				if (e.code() != KeeperException.Code.NODEEXISTS) {
 					// rethrow
@@ -554,6 +501,35 @@ public class ZooKeeperGate {
 		if (recordData == null) {
 			throw new IllegalArgumentException("recordData must not be null");
 		}
-		setData(path, createMode, recordData);
+		setDataOrCreate(path, createMode, recordData);
+	}
+
+	/**
+	 * Creates a record at the specified path in ZooKeeper.
+	 * <p>
+	 * If the path parents don't exist they will be created using the specified
+	 * creation mode.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @param createMode
+	 *            the creation mode
+	 * @param recordData
+	 *            the record data
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public void writeRecord(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
+		if (recordData == null) {
+			throw new IllegalArgumentException("recordData must not be null");
+		}
+		try {
+			writeRecord(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("JVM does not support UTF-8.", e);
+		}
+
 	}
 }

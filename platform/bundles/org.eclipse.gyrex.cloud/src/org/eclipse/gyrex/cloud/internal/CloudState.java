@@ -130,7 +130,7 @@ public class CloudState implements ConnectionMonitor {
 		}
 
 		// create an ephemeral pending record
-		ZooKeeperGate.get().createRecord(IZooKeeperLayout.PATH_NODES_PENDING.append(info.getNodeId()), CreateMode.EPHEMERAL, info.getLocation());
+		ZooKeeperGate.get().writeRecord(IZooKeeperLayout.PATH_NODES_PENDING.append(info.getNodeId()), CreateMode.EPHEMERAL, info.getLocation());
 
 		return info;
 	}
@@ -164,7 +164,7 @@ public class CloudState implements ConnectionMonitor {
 
 		// create an ephemeral record for this node
 		try {
-			ZooKeeperGate.get().createRecord(IZooKeeperLayout.PATH_NODES_ONLINE.append(node.getNodeId()), CreateMode.EPHEMERAL, node.getLocation());
+			ZooKeeperGate.get().writeRecord(IZooKeeperLayout.PATH_NODES_ONLINE.append(node.getNodeId()), CreateMode.EPHEMERAL, node.getLocation());
 		} catch (final KeeperException e) {
 			// if the node already exists something is off
 			if (e.code() == KeeperException.Code.NODEEXISTS) {
