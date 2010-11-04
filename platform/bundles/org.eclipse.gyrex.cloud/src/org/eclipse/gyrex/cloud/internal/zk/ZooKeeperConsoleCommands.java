@@ -12,9 +12,9 @@
 package org.eclipse.gyrex.cloud.internal.zk;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -24,6 +24,7 @@ import org.eclipse.osgi.framework.console.CommandProvider;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
@@ -55,7 +56,7 @@ public class ZooKeeperConsoleCommands implements CommandProvider {
 		}
 	}
 
-	static final Map<String, Command> zkCommands = new HashMap<String, Command>();
+	static final Map<String, Command> zkCommands = new TreeMap<String, Command>();
 	static {
 		zkCommands.put("create", new Command("[-s] [-e] path data") {
 			@Override
@@ -89,47 +90,6 @@ public class ZooKeeperConsoleCommands implements CommandProvider {
 
 				final String newPath = zk.create(a1, a2.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, flags);
 				ci.println("Created " + newPath);
-			}
-		});
-		zkCommands.put("delete", new Command("path") {
-			@Override
-			public void execute(final ZooKeeper zk, final CommandInterpreter ci) throws Exception {
-				final String path = ci.nextArgument();
-				if (path == null) {
-					printInvalidArgs(ci);
-					return;
-				}
-
-				zk.delete(path, -1);
-				ci.println("Deleted " + path);
-			}
-		});
-		zkCommands.put("set", new Command("path data") {
-			@Override
-			public void execute(final ZooKeeper zk, final CommandInterpreter ci) throws Exception {
-				final String path = ci.nextArgument();
-				final String data = ci.nextArgument();
-				if ((path == null) || (data == null)) {
-					printInvalidArgs(ci);
-					return;
-				}
-
-				zk.setData(path, data.getBytes(), -1);
-				ci.println("Updated " + path);
-			}
-		});
-		zkCommands.put("get", new Command("path") {
-			@Override
-			public void execute(final ZooKeeper zk, final CommandInterpreter ci) throws Exception {
-				final String path = ci.nextArgument();
-				if (path == null) {
-					printInvalidArgs(ci);
-					return;
-				}
-
-				byte data[] = zk.getData(path, false, null);
-				data = (data == null) ? "null".getBytes() : data;
-				ci.println(new String(data));
 			}
 		});
 		zkCommands.put("ls", new Command("[-r] path") {
@@ -173,6 +133,71 @@ public class ZooKeeperConsoleCommands implements CommandProvider {
 					printTree(path + (path.equals("/") ? "" : "/") + child, indent + 1, zk, ci);
 				}
 
+			}
+		});
+		zkCommands.put("rm", new Command("[-r] path") {
+			private void deleteTree(final ZooKeeper zk, final String path) throws InterruptedException, KeeperException {
+				// delete all children
+				final List<String> children = zk.getChildren(path.toString(), false);
+				for (final String child : children) {
+					deleteTree(zk, path + (path.equals("/") ? "" : "/") + child);
+				}
+				// delete node itself
+				zk.delete(path, -1);
+			}
+
+			@Override
+			public void execute(final ZooKeeper zk, final CommandInterpreter ci) throws Exception {
+				String path = ci.nextArgument();
+				if (path == null) {
+					printInvalidArgs(ci);
+					return;
+				}
+				boolean recursive = false;
+				if (path.equals("-r")) {
+					path = ci.nextArgument();
+					recursive = true;
+				}
+				if (path == null) {
+					printInvalidArgs(ci);
+					return;
+				}
+
+				if (recursive) {
+					deleteTree(zk, path);
+				} else {
+					zk.delete(path, -1);
+				}
+
+				ci.println("Removed " + path);
+			}
+		});
+		zkCommands.put("get", new Command("path") {
+			@Override
+			public void execute(final ZooKeeper zk, final CommandInterpreter ci) throws Exception {
+				final String path = ci.nextArgument();
+				if (path == null) {
+					printInvalidArgs(ci);
+					return;
+				}
+
+				byte data[] = zk.getData(path, false, null);
+				data = (data == null) ? "null".getBytes() : data;
+				ci.println(new String(data));
+			}
+		});
+		zkCommands.put("set", new Command("path data") {
+			@Override
+			public void execute(final ZooKeeper zk, final CommandInterpreter ci) throws Exception {
+				final String path = ci.nextArgument();
+				final String data = ci.nextArgument();
+				if ((path == null) || (data == null)) {
+					printInvalidArgs(ci);
+					return;
+				}
+
+				zk.setData(path, data.getBytes(), -1);
+				ci.println("Updated " + path);
 			}
 		});
 		zkCommands.put("stat", new Command("path") {

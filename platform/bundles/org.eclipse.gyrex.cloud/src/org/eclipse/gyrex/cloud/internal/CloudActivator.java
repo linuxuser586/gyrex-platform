@@ -49,7 +49,6 @@ public class CloudActivator extends BaseBundleActivator {
 	private final AtomicReference<IServiceProxy<IPreferencesService>> preferenceServiceRef = new AtomicReference<IServiceProxy<IPreferencesService>>();
 
 	final AtomicReference<ServiceTracker> zkServerAppTrackerRef = new AtomicReference<ServiceTracker>();
-	final AtomicReference<ServiceTracker> zkGateAppTrackerRef = new AtomicReference<ServiceTracker>();
 
 	/**
 	 * Creates a new instance.
@@ -70,10 +69,12 @@ public class CloudActivator extends BaseBundleActivator {
 		instanceLocationServiceRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
 		preferenceServiceRef.set(getServiceHelper().trackService(IPreferencesService.class));
 
+		// register node with cloud
+		CloudState.registerNode();
+
 		// prepare ZooKeeper apps tracker
 		// TODO should use a server role for this!
 		zkServerAppTrackerRef.set(new EquinoxApplicationLauncher(context, "org.eclipse.gyrex.cloud.zookeeper.server.application"));
-//		zkGateAppTrackerRef.set(new EquinoxApplicationLauncher(context, "org.eclipse.gyrex.cloud.zookeeper.gate.application"));
 
 		// perform expensive registration asynchronously
 		final Job initCloudJob = new Job("Cloud initialization.") {
@@ -89,17 +90,6 @@ public class CloudActivator extends BaseBundleActivator {
 						LOG.error("Unable to start ZooKeeper server. {}", e.getMessage(), e);
 					}
 				}
-
-				// open tracker for starting ZooKeeper gate
-				final ServiceTracker gateTracker = zkGateAppTrackerRef.get();
-				if (gateTracker != null) {
-					try {
-						gateTracker.open();
-					} catch (final Exception e) {
-						// log a warning but do not shutdown the platform
-						LOG.error("Unable to start ZooKeeper gate. {}", e.getMessage(), e);
-					}
-				}
 				return Status.OK_STATUS;
 			}
 		};
@@ -110,11 +100,8 @@ public class CloudActivator extends BaseBundleActivator {
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
-		// stop ZooKeeper gate
-		final ServiceTracker gateTracker = zkGateAppTrackerRef.getAndSet(null);
-		if (gateTracker != null) {
-			gateTracker.close();
-		}
+		// unregister node with cloud
+		CloudState.unregisterNode();
 
 		// stop ZooKeeper server
 		final ServiceTracker tracker = zkServerAppTrackerRef.getAndSet(null);

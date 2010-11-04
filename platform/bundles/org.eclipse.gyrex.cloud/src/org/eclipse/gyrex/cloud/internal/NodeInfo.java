@@ -28,6 +28,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.CharSet;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.text.StrBuilder;
 
 /**
  * Information about this node.
@@ -180,7 +181,7 @@ public class NodeInfo {
 
 		// this node is approved
 		approved = true;
-	}
+	};
 
 	/**
 	 * Returns a human-reable string of the node location.
@@ -208,6 +209,17 @@ public class NodeInfo {
 	 */
 	public boolean isApproved() {
 		return approved;
+	}
+
+	@Override
+	public String toString() {
+		final StrBuilder info = new StrBuilder();
+		info.append(nodeId).append(" (");
+		info.append(location);
+		info.append(", ");
+		info.append(approved ? "APPROVED" : "PENDING");
+		info.append(")");
+		return info.toString();
 	}
 
 }

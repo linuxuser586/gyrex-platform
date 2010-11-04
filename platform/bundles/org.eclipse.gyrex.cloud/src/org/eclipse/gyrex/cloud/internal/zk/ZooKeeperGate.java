@@ -15,11 +15,15 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.ISafeRunnable;
+import org.eclipse.core.runtime.ListenerList;
+import org.eclipse.core.runtime.SafeRunner;
 
 import org.apache.commons.lang.CharEncoding;
 import org.apache.zookeeper.CreateMode;
@@ -48,12 +52,85 @@ import org.slf4j.LoggerFactory;
  */
 public class ZooKeeperGate {
 
-	public static interface GateListener {
+	/**
+	 * Public connection listeners.
+	 */
+	public static interface ConnectionMonitor {
+
+		/**
+		 * the connection has been established
+		 */
+		void connected();
+
+		/**
+		 * the connection has been closed
+		 */
+		void disconnected();
+	}
+
+	/**
+	 * Notifies a connection listener
+	 */
+	private static final class NotifyConnectionListener implements ISafeRunnable {
+		private final boolean connected;
+		private final Object listener;
+
+		/**
+		 * Creates a new instance.
+		 * 
+		 * @param connected
+		 * @param listener
+		 * @param gate
+		 */
+		private NotifyConnectionListener(final boolean connected, final Object listener) {
+			this.connected = connected;
+			this.listener = listener;
+		}
+
+		@Override
+		public void handleException(final Throwable exception) {
+			LOG.warn("Removing bogous connection listener {} due to exception ({}).", listener, exception.toString());
+			removeConnectionMonitor((ConnectionMonitor) listener);
+		}
+
+		@Override
+		public void run() throws Exception {
+			if (connected) {
+				((ConnectionMonitor) listener).connected();
+			} else {
+				((ConnectionMonitor) listener).disconnected();
+			}
+		}
+	}
+
+	static interface ShutdownListener {
 		void gateDown();
 	}
 
+	private static final ListenerList connectionListeners = new ListenerList(ListenerList.IDENTITY);
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGate.class);
+
 	private static final AtomicReference<ZooKeeperGate> instanceRef = new AtomicReference<ZooKeeperGate>();
+	private static final AtomicBoolean connected = new AtomicBoolean();
+
+	/**
+	 * Adds a connection monitor.
+	 * <p>
+	 * If the gate is currently UP, the {@link ConnectionMonitor#connected()}
+	 * will be called as part of the registration.
+	 * </p>
+	 * 
+	 * @param connectionMonitor
+	 */
+	public static void addConnectionMonitor(final ConnectionMonitor connectionMonitor) {
+		// add listener first
+		connectionListeners.add(connectionMonitor);
+
+		// notify
+		if (connected.get()) {
+			SafeRunner.run(new NotifyConnectionListener(true, connectionMonitor));
+		}
+	}
 
 	/**
 	 * Returns the current active gate.
@@ -74,7 +151,29 @@ public class ZooKeeperGate {
 		return instanceRef.getAndSet(gate);
 	}
 
-	private final GateListener listener;
+	/**
+	 * Removed a connection monitor.
+	 * <p>
+	 * If the gate is currently UP, the {@link ConnectionMonitor#disconnected()}
+	 * will be called as part of the registration.
+	 * </p>
+	 * 
+	 * @param connectionMonitor
+	 */
+	public static void removeConnectionMonitor(final ConnectionMonitor connectionMonitor) {
+		// get state first (to ensure that we call a disconnect)
+		final boolean notify = connected.get();
+
+		// remove listener
+		connectionListeners.remove(connectionMonitor);
+
+		// notify
+		if (notify) {
+			SafeRunner.run(new NotifyConnectionListener(false, connectionMonitor));
+		}
+	}
+
+	private final ShutdownListener listener;
 	private final ZooKeeper zooKeeper;
 
 	private final Watcher connectionMonitor = new Watcher() {
@@ -86,13 +185,23 @@ public class ZooKeeperGate {
 
 			if (event.getState() == KeeperState.SyncConnected) {
 				LOG.info("ZooKeeper Gate is now UP. Connection to cloud established.");
+				connected.set(true);
+				final Object[] listeners = connectionListeners.getListeners();
+				for (final Object listener : listeners) {
+					SafeRunner.run(new NotifyConnectionListener(true, listener));
+				}
 			} else {
 				LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost ({}).", event.getState());
+				connected.set(false);
+				final Object[] listeners = connectionListeners.getListeners();
+				for (final Object listener : listeners) {
+					SafeRunner.run(new NotifyConnectionListener(false, listener));
+				}
 			}
 		}
 	};
 
-	ZooKeeperGate(final ZooKeeperGateConfig config, final GateListener listener) throws IOException {
+	ZooKeeperGate(final ZooKeeperGateConfig config, final ShutdownListener listener) throws IOException {
 		zooKeeper = new ZooKeeper(config.getConnectString(), config.getSessionTimeout(), connectionMonitor);
 		this.listener = listener;
 	}
