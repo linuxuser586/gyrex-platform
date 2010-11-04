@@ -22,11 +22,6 @@ import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.core.runtime.IPath;
 
 import org.apache.commons.lang.CharEncoding;
-import org.apache.commons.lang.CharSetUtils;
-import org.apache.commons.lang.CharUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.SystemUtils;
-import org.apache.commons.lang.text.StrBuilder;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -230,27 +225,6 @@ public class ZooKeeperGate {
 
 		// delete node itself
 		ensureConnected().delete(path.toString(), -1);
-	}
-
-	public void dumpTree(final String path, final int indent, final StrBuilder string) throws Exception {
-		final byte[] data = ensureConnected().getData(path, false, null);
-		final List<String> children = ensureConnected().getChildren(path, false);
-		final StringBuilder spaces = new StringBuilder();
-		for (int i = 0; i < indent; i++) {
-			spaces.append(" ");
-		}
-		string.append(spaces).append(path).append(" (").append(children.size()).appendln(")");
-		if (data != null) {
-			String dataString = new String(data, CharEncoding.UTF_8);
-			dataString = CharSetUtils.delete(dataString, "" + CharUtils.CR);
-			dataString = StringUtils.replace(dataString, "" + CharUtils.LF, SystemUtils.LINE_SEPARATOR + spaces + "  ");
-			string.append(spaces).append("D:").appendln(dataString);
-		}
-
-		for (final String child : children) {
-			dumpTree(path + (path.equals("/") ? "" : "/") + child, indent + 1, string);
-		}
-
 	}
 
 	final ZooKeeper ensureConnected() {
