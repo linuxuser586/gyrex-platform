@@ -339,7 +339,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			try {
 
 				if (PreferencesDebug.debug) {
-					LOG.debug("Connecting preference node {}", this);
+					LOG.debug("Connecting preference node {}.", this);
 				}
 
 				// check if path exists
@@ -357,7 +357,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				loadChildren(false);
 			} catch (final Exception e) {
 				if (PreferencesDebug.debug) {
-					LOG.debug("Exception while connecting node {}: {}", this, e);
+					LOG.debug("Exception while connecting node {}: {}", this, e.getMessage());
+					LOG.debug("Stack for connection request for node {}.", this, new Exception("Stack for preference node connection request."));
 				}
 
 				// assume not connected
