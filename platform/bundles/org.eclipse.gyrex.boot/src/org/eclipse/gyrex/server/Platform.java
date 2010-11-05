@@ -16,7 +16,6 @@ import org.eclipse.gyrex.boot.internal.app.ServerApplication;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.osgi.service.datalocation.Location;
-import org.eclipse.osgi.service.environment.EnvironmentInfo;
 
 import org.osgi.framework.Bundle;
 
@@ -99,8 +98,10 @@ public class Platform {
 	 * line argument.
 	 * </p>
 	 * <p>
-	 * Clients are also able to acquire the {@link EnvironmentInfo} service and
-	 * query it to see if they are in debug mode.
+	 * This method always returns <code>true</code> if
+	 * {@link #inDevelopmentMode()} returns <code>true</code>, i.e. development
+	 * mode automatically implies debug mode. In production, debug mode can be
+	 * enabled individually, though.
 	 * </p>
 	 * 
 	 * @return <code>true</code> if the server is running in debug mode,
