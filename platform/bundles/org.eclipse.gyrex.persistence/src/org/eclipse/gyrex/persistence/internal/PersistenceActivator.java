@@ -1,21 +1,21 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.internal;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.persistence.internal.storage.RepositoryProviderRegistry;
 import org.eclipse.gyrex.persistence.internal.storage.RepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
+
 import org.osgi.framework.BundleContext;
 
 /**
@@ -24,8 +24,7 @@ import org.osgi.framework.BundleContext;
 public class PersistenceActivator extends BaseBundleActivator {
 
 	/**
-	 * the plug-in id (value
-	 * <code>org.eclipse.gyrex.common.persistence</code>)
+	 * the plug-in id (value <code>org.eclipse.gyrex.common.persistence</code>)
 	 */
 	public static final String PLUGIN_ID = "org.eclipse.gyrex.persistence";
 
@@ -63,7 +62,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
 	 */
 	@Override
@@ -76,16 +75,12 @@ public class PersistenceActivator extends BaseBundleActivator {
 		// start the repository registry
 		startRepositoryRegistry();
 
-		// TODO: initialize development defaults
-		if (PlatformConfiguration.isOperatingInDevelopmentMode()) {
-			//final IEclipsePreferences defaultPreferences = new DefaultScope().getNode(PLUGIN_ID);
-			//defaultPreferences.put(IPersistenceConstants.PREF_KEY_SINGLE_REPOSITORY_ID, "local");
-		}
+		// TODO: initialize default prefs (using DefaultPeferencesInitializer)
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
 	 */
 	@Override

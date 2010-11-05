@@ -57,7 +57,7 @@ public class ServerRole {
 	 * @throws BundleException
 	 */
 	public void activate() throws ActivationException {
-		if (AppDebug.debugRoles) {
+		if (BootDebug.debugRoles) {
 			LOG.debug("Activating server role " + getId());
 		}
 		for (final String bundleName : requiredBundleNames) {
@@ -80,12 +80,12 @@ public class ServerRole {
 	 * Deactivates the server role.
 	 */
 	public void deactivate() {
-		if (AppDebug.debugRoles) {
+		if (BootDebug.debugRoles) {
 			LOG.debug("Deactivating server role " + getId());
 		}
 
 		for (final Entry<String, ApplicationHandle> application : launchedApps.entrySet()) {
-			if (AppDebug.debugRoles) {
+			if (BootDebug.debugRoles) {
 				LOG.debug("Stopping application {}", application.getKey());
 			}
 			try {
@@ -122,7 +122,7 @@ public class ServerRole {
 	 * @throws ApplicationException
 	 */
 	private void startApplication(final String applicationId) throws IllegalStateException, ApplicationException {
-		if (AppDebug.debugRoles) {
+		if (BootDebug.debugRoles) {
 			LOG.debug("Starting application {}", applicationId);
 		}
 		final ApplicationDescriptor applicationDescriptor = AppActivator.getInstance().getEclipseApplication(applicationId);
@@ -141,7 +141,7 @@ public class ServerRole {
 	 * @throws BundleException
 	 */
 	private void startBundle(final String symbolicName) throws BundleException, IllegalStateException {
-		if (AppDebug.debugRoles) {
+		if (BootDebug.debugRoles) {
 			LOG.debug("Starting bundle {}", symbolicName);
 		}
 		final Bundle bundle = AppActivator.getInstance().getBundle(symbolicName);

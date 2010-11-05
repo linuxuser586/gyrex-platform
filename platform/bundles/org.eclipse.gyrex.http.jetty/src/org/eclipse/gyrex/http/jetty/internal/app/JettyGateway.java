@@ -15,7 +15,6 @@ import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
@@ -23,6 +22,7 @@ import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandlerResourcesHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultFaviconHandler;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jetty.server.Handler;
@@ -80,7 +80,7 @@ public class JettyGateway implements IHttpGateway {
 
 		// default handler for all other requests
 		final DefaultHandler defaultHandler = new DefaultHandler();
-		defaultHandler.setShowContexts(PlatformConfiguration.isOperatingInDevelopmentMode());
+		defaultHandler.setShowContexts(Platform.inDebugMode());
 		defaultHandler.setServeIcon(false);
 		serverHandlers.addHandler(defaultHandler);
 

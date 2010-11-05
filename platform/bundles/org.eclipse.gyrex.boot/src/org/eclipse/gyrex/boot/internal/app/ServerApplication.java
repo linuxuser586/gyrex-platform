@@ -94,7 +94,7 @@ public class ServerApplication implements IApplication {
 	 */
 	public static void signalRelaunch() {
 		relaunch = true;
-		if (AppDebug.debug) {
+		if (BootDebug.debug) {
 			LOG.debug("Relaunch request received!");
 		}
 		final CountDownLatch signal = stopOrRestartSignal;
@@ -108,7 +108,7 @@ public class ServerApplication implements IApplication {
 	 */
 	public static void signalShutdown() {
 		relaunch = false;
-		if (AppDebug.debug) {
+		if (BootDebug.debug) {
 			LOG.debug("Shutdown request received!");
 		}
 		final CountDownLatch signal = stopOrRestartSignal;
@@ -120,7 +120,7 @@ public class ServerApplication implements IApplication {
 	private ServiceRegistration frameworkLogServiceRegistration;
 
 	private void bootstrap() throws Exception {
-		if (AppDebug.debug) {
+		if (BootDebug.debug) {
 			LOG.debug("Bootstrapping platform.");
 		}
 
@@ -209,7 +209,7 @@ public class ServerApplication implements IApplication {
 				for (final String role : specifiedRoles) {
 					if (StringUtils.isNotBlank(role)) {
 						if (!roles.contains(role)) {
-							if (AppDebug.debugRoles) {
+							if (BootDebug.debugRoles) {
 								LOG.debug("Role submitted via command line: " + role);
 							}
 							roles.add(role);
@@ -229,7 +229,7 @@ public class ServerApplication implements IApplication {
 				for (final String role : rolesToStart) {
 					if (StringUtils.isNotBlank(role)) {
 						if (!roles.contains(role)) {
-							if (AppDebug.debugRoles) {
+							if (BootDebug.debugRoles) {
 								LOG.debug("Configured role: " + role);
 							}
 							roles.add(role);
@@ -238,7 +238,7 @@ public class ServerApplication implements IApplication {
 				}
 			}
 		} else {
-			if (AppDebug.debugRoles) {
+			if (BootDebug.debugRoles) {
 				LOG.debug("Ignoring configured roles.");
 			}
 		}
@@ -248,7 +248,7 @@ public class ServerApplication implements IApplication {
 			final String[] defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefaultInDevelopmentMode();
 			for (final String role : defaultRoles) {
 				if (!roles.contains(role)) {
-					if (AppDebug.debugRoles) {
+					if (BootDebug.debugRoles) {
 						LOG.debug("Default start role: " + role);
 					}
 					roles.add(role);
@@ -336,7 +336,7 @@ public class ServerApplication implements IApplication {
 			boolean relaunch = false;
 
 			try {
-				if (AppDebug.debug) {
+				if (BootDebug.debug) {
 					LOG.debug("Starting platform...");
 				}
 
@@ -365,7 +365,7 @@ public class ServerApplication implements IApplication {
 				// signal that we are now up and running
 				context.applicationRunning();
 
-				if (AppDebug.debug) {
+				if (BootDebug.debug) {
 					LOG.info("Platform started.");
 				}
 
@@ -391,12 +391,12 @@ public class ServerApplication implements IApplication {
 				relaunch = ServerApplication.relaunch;
 				ServerApplication.relaunch = false;
 
-				if (AppDebug.debug) {
+				if (BootDebug.debug) {
 					LOG.debug("Platform closed.");
 				}
 
 			} catch (final Exception e) {
-				if (AppDebug.debug) {
+				if (BootDebug.debug) {
 					LOG.debug("Platform start failed!", e);
 				}
 

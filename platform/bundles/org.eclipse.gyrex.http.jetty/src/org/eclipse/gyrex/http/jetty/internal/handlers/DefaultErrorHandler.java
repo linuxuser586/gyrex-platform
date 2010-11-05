@@ -24,6 +24,7 @@ import java.util.Enumeration;
 import javax.servlet.http.HttpServletRequest;
 
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jetty.http.HttpHeaders;
@@ -129,13 +130,13 @@ public class DefaultErrorHandler extends ErrorHandler {
 		}
 	}
 
-	private final boolean developmentMode = PlatformConfiguration.isOperatingInDevelopmentMode();
+	private final boolean debugMode = Platform.inDebugMode();
 
 	/**
 	 * Creates a new instance.
 	 */
 	public DefaultErrorHandler() {
-		setShowStacks(PlatformConfiguration.isOperatingInDevelopmentMode());
+		setShowStacks(Platform.inDevelopmentMode());
 	}
 
 	private boolean acceptsHtml(final HttpServletRequest request) {
@@ -201,7 +202,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 		write(writer, officialMessage);
 		writer.write("</h2>\n\r\n\r\n\r");
 
-		if (developmentMode) {
+		if (debugMode) {
 			if (null != internalMessage) {
 				writer.write("<p>\n\r");
 				writeFormattedMessage(writer, internalMessage);
@@ -262,7 +263,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writePlain(writer, officialMessage);
 		writer.write(NEWLINE);
 
-		if (developmentMode) {
+		if (debugMode) {
 			if (null != internalMessage) {
 				writer.write(NEWLINE);
 				writePlain(writer, internalMessage);

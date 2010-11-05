@@ -13,7 +13,7 @@ package org.eclipse.gyrex.http.jetty.internal.app;
 
 import java.net.MalformedURLException;
 
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -24,7 +24,7 @@ public class ApplicationResourceServlet extends DefaultServlet {
 
 	static ServletHolder newHolder(final ApplicationContextHandler applicationContextHandler) {
 		final ServletHolder defaultServlet = new ServletHolder(new ApplicationResourceServlet(applicationContextHandler));
-		defaultServlet.setInitParameter("dirAllowed", String.valueOf(PlatformConfiguration.isOperatingInDevelopmentMode()));
+		defaultServlet.setInitParameter("dirAllowed", String.valueOf(Platform.inDevelopmentMode()));
 		defaultServlet.setInitParameter("maxCacheSize", "2000000");
 		defaultServlet.setInitParameter("maxCachedFileSize", "254000");
 		defaultServlet.setInitParameter("maxCachedFiles", "1000");

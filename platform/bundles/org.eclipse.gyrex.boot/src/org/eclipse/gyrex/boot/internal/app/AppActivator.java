@@ -17,10 +17,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.server.Platform;
+import org.eclipse.gyrex.server.internal.opsmode.OperationMode;
+import org.eclipse.gyrex.server.internal.opsmode.OpsMode;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -60,17 +63,8 @@ public class AppActivator extends BaseBundleActivator {
 	// The shared instance
 	private static AppActivator sharedInstance;
 
-	private static final AtomicBoolean devMode = new AtomicBoolean();
+	private static final AtomicReference<OpsMode> opsMode = new AtomicReference<OpsMode>();
 	private static final AtomicBoolean debugMode = new AtomicBoolean();
-
-	/**
-	 * Returns the bundle context.
-	 * 
-	 * @return the bundle context
-	 */
-	public static BundleContext getContext() {
-		return getInstance().context;
-	}
 
 	/**
 	 * Returns the shared instance
@@ -81,19 +75,26 @@ public class AppActivator extends BaseBundleActivator {
 		return sharedInstance;
 	}
 
+	public static OpsMode getOpsMode() {
+		return opsMode.get();
+	}
+
 	public static boolean isDebugMode() {
 		return debugMode.get();
 	}
 
 	public static boolean isDevMode() {
-		return devMode.get();
+		final OpsMode mode = getOpsMode();
+		if (mode == null) {
+			return true;
+		}
+		return mode.getMode() != OperationMode.PRODUCTION;
 	}
 
 	private BundleContext context;
 	private ServiceTracker bundleTracker;
 	private Job shutdownListener;
 	private ServerSocket serverSocket;
-
 	private volatile IServiceProxy<Location> instanceLocationProxy;
 
 	/**
@@ -108,12 +109,11 @@ public class AppActivator extends BaseBundleActivator {
 		sharedInstance = this;
 		this.context = context;
 
-		// configure debug mode
-		debugMode.set(context.getProperty("osgi.debug") != null);
-
 		// configure dev mode
-		// TODO this should be changed to be more explicit
-		devMode.set(getContext().getProperty("osgi.dev") != null);
+		opsMode.set(new OpsMode());
+
+		// configure debug mode
+		debugMode.set((context.getProperty("osgi.debug") != null) || (getOpsMode().getMode() == OperationMode.DEVELOPMENT));
 
 		// open external shutdown listener
 		final int shutdownPort = NumberUtils.toInt(context.getProperty(PROP_SHUTDOWN_PORT), 0);
@@ -160,9 +160,18 @@ public class AppActivator extends BaseBundleActivator {
 		return (PackageAdmin) bundleTracker.getService();
 	}
 
+	/**
+	 * Returns the bundle context.
+	 * 
+	 * @return the bundle context
+	 */
+	public BundleContext getContext() {
+		return context;
+	}
+
 	@Override
 	protected Class getDebugOptions() {
-		return AppDebug.class;
+		return BootDebug.class;
 	}
 
 	/**

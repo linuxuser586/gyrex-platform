@@ -18,10 +18,10 @@ import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.servlet.ServletHandler;
@@ -60,7 +60,7 @@ public class ApplicationServletHandler extends ServletHandler {
 		} catch (final IllegalStateException e) {
 			// IllegalStateException are typically used in Gyrex to indicate that something isn't ready
 			// we convert it into UnavailableException to allow recovering on a dynamic platform
-			if (PlatformConfiguration.isOperatingInDevelopmentMode()) {
+			if (Platform.inDebugMode()) {
 				Log.warn("Caught IllegalStateException while processing request '" + request.toString() + ": " + e.getMessage(), e);
 				throw new UnavailableException(e.getMessage(), 5);
 			} else {

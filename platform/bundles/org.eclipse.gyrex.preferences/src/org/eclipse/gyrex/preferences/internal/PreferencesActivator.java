@@ -32,6 +32,7 @@ public class PreferencesActivator extends BaseBundleActivator {
 	}
 
 	private IServiceProxy<IPreferencesService> preferenceServiceProxy;
+	private DefaultPreferencesInitializerTracker defaultPreferencesInitializer;
 
 	/**
 	 * Called by the framework to create a new instance.
@@ -43,7 +44,15 @@ public class PreferencesActivator extends BaseBundleActivator {
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
+
+		// track preferences service
 		preferenceServiceProxy = getServiceHelper().trackService(IPreferencesService.class);
+
+		// start default preferences tracker
+		defaultPreferencesInitializer = new DefaultPreferencesInitializerTracker(context);
+		defaultPreferencesInitializer.open();
+
+		// hook ZooKeeper connection monitor
 		ZooKeeperGate.addConnectionMonitor(ZooKeeperBasedPreferences.connectionMonitor);
 	}
 
@@ -56,8 +65,14 @@ public class PreferencesActivator extends BaseBundleActivator {
 			LOG.warn("Failed to flush platform preferences. Changes migt be lost. {}", e.getMessage());
 		}
 
+		// remove connection listener
 		ZooKeeperGate.removeConnectionMonitor(ZooKeeperBasedPreferences.connectionMonitor);
 
+		// disable default pref tracker
+		defaultPreferencesInitializer.close();
+		defaultPreferencesInitializer = null;
+
+		// deactivate instance
 		instanceRef.set(null);
 
 		preferenceServiceProxy.dispose();
