@@ -29,11 +29,17 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.ConnectionMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
+import org.eclipse.gyrex.preferences.PlatformScope;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.ListenerList;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IPreferenceNodeVisitor;
 
@@ -64,6 +70,33 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private static final String FALSE = Boolean.FALSE.toString();
 	private static final String TRUE = Boolean.TRUE.toString();
 
+	/** connection monitor to sync the loaded preference tree */
+	static final ConnectionMonitor connectionMonitor = new ConnectionMonitor() {
+		@Override
+		public void connected() {
+			final Job job = new Job("Activating preferences hierarchy.") {
+
+				@Override
+				protected IStatus run(final IProgressMonitor monitor) {
+					try {
+						final Preferences node = PreferencesActivator.getInstance().getPreferencesService().getRootNode().node(PlatformScope.NAME);
+						LOG.info("Activating preferences hierarchy for node {}.", node.absolutePath());
+						((ZooKeeperBasedPreferences) node).syncTree();
+					} catch (final BackingStoreException e) {
+						LOG.warn("Unable to activate platform preferences. {}", e.getMessage());
+					}
+					return Status.OK_STATUS;
+				}
+			};
+			job.setSystem(true);
+			job.schedule();
+		}
+
+		@Override
+		public void disconnected() {
+		}
+	};
+
 	private final IEclipsePreferences parent;
 	private final String name;
 	private final IPath path;
@@ -71,6 +104,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private final ConcurrentMap<String, ZooKeeperBasedPreferences> children = new ConcurrentHashMap<String, ZooKeeperBasedPreferences>(4);
 	private final Properties properties = new Properties();
 
+	/** connected state */
 	final AtomicBoolean connected = new AtomicBoolean();
 
 	/** prevent concurrent modifications of children */
@@ -350,11 +384,11 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					return;
 				}
 
-				// load properties
-				loadProperties(false);
+				// load properties (and notify listeners in case we were already active)
+				loadProperties(true);
 
-				// load children
-				loadChildren(false);
+				// load children (and notify listeners in case we were already active)
+				loadChildren(true);
 			} catch (final Exception e) {
 				if (PreferencesDebug.debug) {
 					LOG.debug("Exception while connecting node {}: {}", this, e.getMessage());
@@ -363,6 +397,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 				// assume not connected
 				connected.set(false);
+
 				// throw
 				throw new IllegalStateException(String.format("Error loading node '%s' from ZooKeeper. %s", this, e.getMessage()), e);
 			}
@@ -898,6 +933,14 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	public void sync() throws BackingStoreException {
 		ensureConnected();
 
+		// sync tree
+		syncTree();
+
+		// flush
+		flush();
+	}
+
+	void syncTree() throws BackingStoreException {
 		// load properties & children
 		try {
 			loadProperties(true);
@@ -909,8 +952,19 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new BackingStoreException(String.format("Error loading node data '%s' from ZooKeeper. %s", this, e.getMessage()), e);
 		}
 
-		// flush
-		flush();
+		// sync children
+		childrenModifyLock.lock();
+		try {
+			if (removed) {
+				return;
+			}
+
+			for (final ZooKeeperBasedPreferences child : children.values()) {
+				child.syncTree();
+			}
+		} finally {
+			childrenModifyLock.unlock();
+		}
 	}
 
 	@Override
