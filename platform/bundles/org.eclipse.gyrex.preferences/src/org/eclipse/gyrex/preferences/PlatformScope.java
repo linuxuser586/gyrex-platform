@@ -31,6 +31,13 @@ import org.eclipse.core.runtime.preferences.IScopeContext;
  * distributed nodes might use an LDAP server or a database.
  * </p>
  * <p>
+ * It's important to be aware of the distributed nature of platform preferences.
+ * The preferences may not be available all the time. Instead, clients relying
+ * on platform preferences should implement methods to be resistant against such
+ * issues (eg. by registering listeners or delayed retries after failed
+ * attempts).
+ * </p>
+ * <p>
  * No {@link #getLocation() location} is provided for platform preferences.
  * </p>
  * <p>
@@ -82,8 +89,18 @@ public final class PlatformScope implements IScopeContext {
 		return NAME;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * @see org.eclipse.core.runtime.preferences.IScopeContext#getNode(java.lang.String)
+	 * @throws IllegalArgumentException
+	 *             if the qualifier is invalid
+	 * @throws IllegalStateException
+	 *             if the preference system is in an inactive state (eg. not
+	 *             connected to the cloud)
+	 */
 	@Override
-	public IEclipsePreferences getNode(final String qualifier) {
+	public IEclipsePreferences getNode(final String qualifier) throws IllegalArgumentException, IllegalStateException {
 		if (qualifier == null) {
 			throw new IllegalArgumentException("qualifier must not be null");
 		}
