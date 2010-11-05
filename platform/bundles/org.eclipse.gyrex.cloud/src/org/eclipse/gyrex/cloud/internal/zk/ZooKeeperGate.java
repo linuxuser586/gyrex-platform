@@ -119,8 +119,12 @@ public class ZooKeeperGate {
 	 * If the gate is currently UP, the {@link ConnectionMonitor#connected()}
 	 * will be called as part of the registration.
 	 * </p>
+	 * <p>
+	 * This method has no effect if the monitor is already registered
+	 * </p>
 	 * 
 	 * @param connectionMonitor
+	 *            the monitor to register
 	 */
 	public static void addConnectionMonitor(final ConnectionMonitor connectionMonitor) {
 		// add listener first
@@ -157,8 +161,12 @@ public class ZooKeeperGate {
 	 * If the gate is currently UP, the {@link ConnectionMonitor#disconnected()}
 	 * will be called as part of the registration.
 	 * </p>
+	 * <p>
+	 * This method has no effect if the monitor is not registered
+	 * </p>
 	 * 
 	 * @param connectionMonitor
+	 *            the monitor to unregister
 	 */
 	public static void removeConnectionMonitor(final ConnectionMonitor connectionMonitor) {
 		// get state first (to ensure that we call a disconnect)
