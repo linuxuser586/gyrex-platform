@@ -1,9 +1,0 @@
-Manifest-Version: 1.0
-Bundle-ManifestVersion: 2
-Bundle-SymbolicName: org.eclipse.gyrex.server.defaultroles;singleton:=true
-Bundle-Version: 1.0.0.qualifier
-Bundle-Name: %bundle.name
-Bundle-Vendor: %provider.name
-Bundle-Localization: plugin
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Require-Bundle: org.eclipse.gyrex.boot;bundle-version="[1.0.0,2.0.0)"
