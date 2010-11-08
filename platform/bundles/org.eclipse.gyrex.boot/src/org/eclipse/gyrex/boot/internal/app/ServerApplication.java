@@ -224,7 +224,7 @@ public class ServerApplication implements IApplication {
 			// note, we read from the instance scope here
 			// it is assumed that an external entity properly
 			// sets the role for this particular node
-			final String[] rolesToStart = StringUtils.split(new InstanceScope().getNode(AppActivator.PLUGIN_ID).get("rolesToStart", null), ',');
+			final String[] rolesToStart = StringUtils.split(new InstanceScope().getNode(AppActivator.SYMBOLIC_NAME).get("rolesToStart", null), ',');
 			if (null != rolesToStart) {
 				for (final String role : rolesToStart) {
 					if (StringUtils.isNotBlank(role)) {

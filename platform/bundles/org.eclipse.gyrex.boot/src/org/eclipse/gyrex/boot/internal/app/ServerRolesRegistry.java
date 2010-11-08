@@ -27,7 +27,7 @@ import org.apache.commons.lang.StringUtils;
  */
 public class ServerRolesRegistry {
 
-	private static final String EP_SERVERROLES = AppActivator.PLUGIN_ID.concat(".serverroles");
+	private static final String EP_SERVERROLES = AppActivator.SYMBOLIC_NAME.concat(".serverroles");
 
 	private static ServerRolesRegistry instance = new ServerRolesRegistry();
 

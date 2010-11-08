@@ -58,7 +58,7 @@ public class AppActivator extends BaseBundleActivator {
 	private static final String CMD_SHUTDOWN = "eclipse.gyrex.shutdown.command";
 
 	// The plug-in ID
-	public static final String PLUGIN_ID = "org.eclipse.gyrex.boot";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.boot";
 
 	// The shared instance
 	private static AppActivator sharedInstance;
@@ -101,7 +101,7 @@ public class AppActivator extends BaseBundleActivator {
 	 * The constructor
 	 */
 	public AppActivator() {
-		super(PLUGIN_ID);
+		super(SYMBOLIC_NAME);
 	}
 
 	@Override
@@ -109,11 +109,8 @@ public class AppActivator extends BaseBundleActivator {
 		sharedInstance = this;
 		this.context = context;
 
-		// configure dev mode
-		opsMode.set(new OpsMode());
-
-		// configure debug mode
-		debugMode.set((context.getProperty("osgi.debug") != null) || (getOpsMode().getMode() == OperationMode.DEVELOPMENT));
+		// track instance location
+		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
 
 		// open external shutdown listener
 		final int shutdownPort = NumberUtils.toInt(context.getProperty(PROP_SHUTDOWN_PORT), 0);
@@ -121,8 +118,11 @@ public class AppActivator extends BaseBundleActivator {
 			startShutdownListener(shutdownPort);
 		}
 
-		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
+		// configure dev mode
+		opsMode.set(new OpsMode());
 
+		// configure debug mode
+		debugMode.set((context.getProperty("osgi.debug") != null) || (getOpsMode().getMode() == OperationMode.DEVELOPMENT));
 	}
 
 	@Override
@@ -275,7 +275,7 @@ public class AppActivator extends BaseBundleActivator {
 					}
 
 					// error
-					return new Status(IStatus.ERROR, PLUGIN_ID, 0, "Error while waiting for shutdown. " + e.getMessage(), e);
+					return new Status(IStatus.ERROR, SYMBOLIC_NAME, 0, "Error while waiting for shutdown. " + e.getMessage(), e);
 				} finally {
 					// close socket
 					if (null != socket) {
