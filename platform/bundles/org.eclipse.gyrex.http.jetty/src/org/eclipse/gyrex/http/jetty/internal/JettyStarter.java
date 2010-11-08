@@ -22,6 +22,7 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 
 final class JettyStarter extends Job {
 
@@ -55,15 +56,23 @@ final class JettyStarter extends Job {
 			connector.setForwarded(true);
 			server.addConnector(connector);
 
-//					// enable SSL if necessary
-//					final int sslPort = preferences.getInt(JettyConstants.HTTPS_PORT, 0);
-//					if (sslPort > 0) {
-//						settings.put(JettyConstants.HTTPS_ENABLED, Boolean.TRUE);
-//						settings.put(JettyConstants.HTTPS_PORT, new Integer(sslPort));
-//						putOptionalSetting(settings, JettyConstants.SSL_KEYSTORE, preferences);
-//						putOptionalSetting(settings, JettyConstants.SSL_PASSWORD, preferences);
-//						putOptionalSetting(settings, JettyConstants.SSL_KEYPASSWORD, preferences);
-//					}
+			// enable SSL if necessary
+			final int sslPort = preferences.getInt("https.port", 0);
+			if (sslPort > 0) {
+				final SslSelectChannelConnector sslConnector = new SslSelectChannelConnector();
+				sslConnector.setPort(sslPort);
+				sslConnector.setKeystore(preferences.get("ssl.keystore", null));
+				sslConnector.setPassword(preferences.get("ssl.password", null));
+				sslConnector.setKeyPassword(preferences.get("ssl.keypassword", null));
+				sslConnector.setMaxIdleTime(200000);
+				sslConnector.setAcceptors(2);
+				sslConnector.setStatsOn(false);
+				sslConnector.setConfidentialPort(sslPort);
+				sslConnector.setLowResourcesConnections(20000);
+				sslConnector.setLowResourcesMaxIdleTime(5000);
+				sslConnector.setForwarded(true);
+				server.addConnector(sslConnector);
+			}
 
 			// start the server
 			server.start();
