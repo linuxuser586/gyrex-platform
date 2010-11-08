@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.gyrex.persistence.derby
-Bundle-Version: 1.0.0.qualifiery
+Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: org.eclipse.gyrex.persistence.derby.internal.DerbyActivator
 Bundle-Name: %bundle.name
 Bundle-Vendor: %provider.name
