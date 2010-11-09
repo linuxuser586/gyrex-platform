@@ -65,7 +65,7 @@ public class PlatformPreferencesScope implements IScope {
 	@Override
 	public IEclipsePreferences create(final IEclipsePreferences parent, final String name) {
 		// allow explicit fallback to instance based preferences
-		if (Platform.inDevelopmentMode() && Boolean.getBoolean("eclipse.gyrex.preferences.platform.instancebased")) {
+		if (Platform.inDevelopmentMode() && Boolean.getBoolean("gyrex.preferences.platform.instancebased")) {
 			LOG.info("Using instance based preferences as specified via system property!");
 			return new InstanceBasedPreferences(parent, name);
 		}
