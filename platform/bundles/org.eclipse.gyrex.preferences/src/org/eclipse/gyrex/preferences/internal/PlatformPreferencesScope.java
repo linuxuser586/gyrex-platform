@@ -14,6 +14,8 @@ package org.eclipse.gyrex.preferences.internal;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.eclipse.gyrex.server.Platform;
+
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -62,6 +64,12 @@ public class PlatformPreferencesScope implements IScope {
 
 	@Override
 	public IEclipsePreferences create(final IEclipsePreferences parent, final String name) {
+		// allow explicit fallback to instance based preferences
+		if (Platform.inDevelopmentMode() && Boolean.getBoolean("eclipse.gyrex.preferences.platform.instancebased")) {
+			LOG.info("Using instance based preferences as specified via system property!");
+			return new InstanceBasedPreferences(parent, name);
+		}
+
 		if (PreferencesDebug.debug) {
 			LOG.debug("Creating ZooKeeper preferences '{}' (parent {})", name, parent);
 		}
@@ -120,12 +128,5 @@ public class PlatformPreferencesScope implements IScope {
 		}
 
 		return node;
-
-//
-//		if (Platform.inDevelopmentMode()) {
-//			return new InstanceBasedPreferences(parent, name);
-//		} else {
-//			return ;
-//		}
 	}
 }
