@@ -11,10 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.internal.app;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,11 +22,7 @@ import org.eclipse.gyrex.server.internal.opsmode.OperationMode;
 import org.eclipse.gyrex.server.internal.opsmode.OpsMode;
 
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.framework.log.FrameworkLog;
 import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.util.NLS;
@@ -43,19 +35,12 @@ import org.osgi.service.application.ApplicationDescriptor;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
-
 /**
  * The activator class controls the plug-in life cycle
  */
 public class AppActivator extends BaseBundleActivator {
 
 	private static final String BUNDLE_STATE_LOCATION = ".metadata/.plugins";
-	private static final String PROP_SHUTDOWN_PORT = "eclipse.gyrex.shutdown.port";
-	private static final String UTF8 = "UTF-8";
-	private static final String CMD_SHUTDOWN = "eclipse.gyrex.shutdown.command";
 
 	// The plug-in ID
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.boot";
@@ -93,8 +78,6 @@ public class AppActivator extends BaseBundleActivator {
 
 	private BundleContext context;
 	private ServiceTracker bundleTracker;
-	private Job shutdownListener;
-	private ServerSocket serverSocket;
 	private volatile IServiceProxy<Location> instanceLocationProxy;
 
 	/**
@@ -112,12 +95,6 @@ public class AppActivator extends BaseBundleActivator {
 		// track instance location
 		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
 
-		// open external shutdown listener
-		final int shutdownPort = NumberUtils.toInt(context.getProperty(PROP_SHUTDOWN_PORT), 0);
-		if (shutdownPort > 0) {
-			startShutdownListener(shutdownPort);
-		}
-
 		// configure dev mode
 		opsMode.set(new OpsMode());
 
@@ -128,7 +105,10 @@ public class AppActivator extends BaseBundleActivator {
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		sharedInstance = null;
-		stopShutdownListener();
+		this.context = null;
+
+		instanceLocationProxy.dispose();
+		instanceLocationProxy = null;
 	}
 
 	public Bundle getBundle(final String symbolicName) {
@@ -244,69 +224,4 @@ public class AppActivator extends BaseBundleActivator {
 		}
 		return getInstanceLocationPath().append(BUNDLE_STATE_LOCATION).append(bundle.getSymbolicName());
 	}
-
-	private void startShutdownListener(final int shutdownPort) throws Exception {
-		final ServerSocket serverSocket = this.serverSocket = new ServerSocket(shutdownPort, 1, InetAddress.getByName("127.0.0.1"));
-		shutdownListener = new Job("Shutdown Listener") {
-			@Override
-			protected IStatus run(final IProgressMonitor monitor) {
-				Socket socket = null;
-				try {
-					socket = serverSocket.accept();
-
-					// check if plug-in is shut down (i.e. canceled)
-					if (monitor.isCanceled()) {
-						return Status.CANCEL_STATUS;
-					}
-
-					// read command
-					final String command = IOUtils.toString(socket.getInputStream(), UTF8);
-					if (StringUtils.equals(CMD_SHUTDOWN, command)) {
-						ServerApplication.signalShutdown();
-					} else {
-						// continue waiting
-						schedule();
-						return Status.CANCEL_STATUS;
-					}
-				} catch (final IOException e) {
-					// check if plug-in is shut down (i.e. canceled)
-					if (monitor.isCanceled()) {
-						return Status.CANCEL_STATUS;
-					}
-
-					// error
-					return new Status(IStatus.ERROR, SYMBOLIC_NAME, 0, "Error while waiting for shutdown. " + e.getMessage(), e);
-				} finally {
-					// close socket
-					if (null != socket) {
-						try {
-							socket.close();
-						} catch (final IOException e) {
-							// ignore;
-						}
-					}
-				}
-				return Status.OK_STATUS;
-			}
-		};
-		shutdownListener.setSystem(true);
-		shutdownListener.schedule();
-	}
-
-	private void stopShutdownListener() {
-		if (null != shutdownListener) {
-			shutdownListener.cancel();
-			shutdownListener = null;
-		}
-		if (null != serverSocket) {
-			try {
-				serverSocket.close();
-			} catch (final IOException e) {
-				// ignore
-			}
-			serverSocket = null;
-		}
-
-	}
-
 }
