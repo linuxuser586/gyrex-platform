@@ -53,7 +53,7 @@ public class PreferencesActivator extends BaseBundleActivator {
 		defaultPreferencesInitializer.open();
 
 		// hook ZooKeeper connection monitor
-		ZooKeeperGate.addConnectionMonitor(ZooKeeperBasedPreferences.connectionMonitor);
+		ZooKeeperGate.addConnectionMonitor(ZooKeeperBasedPreferences.iConnectionMonitor);
 	}
 
 	@Override
@@ -66,7 +66,7 @@ public class PreferencesActivator extends BaseBundleActivator {
 		}
 
 		// remove connection listener
-		ZooKeeperGate.removeConnectionMonitor(ZooKeeperBasedPreferences.connectionMonitor);
+		ZooKeeperGate.removeConnectionMonitor(ZooKeeperBasedPreferences.iConnectionMonitor);
 
 		// disable default pref tracker
 		defaultPreferencesInitializer.close();

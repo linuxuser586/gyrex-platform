@@ -29,7 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.ConnectionMonitor;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.preferences.PlatformScope;
 
@@ -71,7 +71,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private static final String TRUE = Boolean.TRUE.toString();
 
 	/** connection monitor to sync the loaded preference tree */
-	static final ConnectionMonitor connectionMonitor = new ConnectionMonitor() {
+	static final IConnectionMonitor iConnectionMonitor = new IConnectionMonitor() {
 		@Override
 		public void connected() {
 			final Job job = new Job("Activating preferences hierarchy.") {

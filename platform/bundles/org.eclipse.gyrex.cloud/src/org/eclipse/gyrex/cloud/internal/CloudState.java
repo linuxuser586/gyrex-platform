@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.ConnectionMonitor;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Captures general state of the cloud.
  */
-public class CloudState implements ConnectionMonitor {
+public class CloudState implements IConnectionMonitor {
 
 	private static final Logger LOG = LoggerFactory.getLogger(CloudState.class);
 

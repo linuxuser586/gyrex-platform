@@ -12,7 +12,7 @@ import org.eclipse.equinox.app.IApplicationContext;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.ConnectionMonitor;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ZooKeeperGateApplication implements IApplication {
 
-	private final class ConnectRunnable implements Runnable, ConnectionMonitor {
+	private final class ConnectRunnable implements Runnable, IConnectionMonitor {
 		private static final int INITIAL_CONNECT_DELAY = 1000;
 		private static final int MAX_CONNECT_DELAY = 240000;
 

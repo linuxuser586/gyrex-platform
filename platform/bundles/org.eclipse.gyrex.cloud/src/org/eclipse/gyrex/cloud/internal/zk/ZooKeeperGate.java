@@ -40,14 +40,14 @@ import org.slf4j.LoggerFactory;
  * Central class within Gyrex to be used for all ZooKeeper related
  * communication.
  * <p>
- * Currently, this class capsulates the connection management. However, it might
- * be better to have a more de-coupled model and use events (connected --> gate
- * up; disconnected --> gate down).
+ * Currently, this class capsulates the connection management and offers clients
+ * to be notified about connection events.
  * </p>
  * <p>
- * On the other hand, each caller has to deal with gate up/down situations. It
- * might likely be necessary to allow registering of arbitrary gate-up/connected
- * listeners and maybe clean-up/disconnected listeners.
+ * Note, this class is not API. It's ZooKeeper specific. Patches are welcome to
+ * restructure the Gyrex cloud stuff. A first step would require to refactor
+ * everything ZooKeeper specific into a separate "implementation" bundle. Based
+ * on this a cloud API could be established.
  * </p>
  */
 public class ZooKeeperGate {
@@ -55,7 +55,7 @@ public class ZooKeeperGate {
 	/**
 	 * Public connection listeners.
 	 */
-	public static interface ConnectionMonitor {
+	public static interface IConnectionMonitor {
 
 		/**
 		 * the connection has been established
@@ -90,15 +90,15 @@ public class ZooKeeperGate {
 		@Override
 		public void handleException(final Throwable exception) {
 			LOG.warn("Removing bogous connection listener {} due to exception ({}).", listener, exception.toString());
-			removeConnectionMonitor((ConnectionMonitor) listener);
+			removeConnectionMonitor((IConnectionMonitor) listener);
 		}
 
 		@Override
 		public void run() throws Exception {
 			if (connected) {
-				((ConnectionMonitor) listener).connected();
+				((IConnectionMonitor) listener).connected();
 			} else {
-				((ConnectionMonitor) listener).disconnected();
+				((IConnectionMonitor) listener).disconnected();
 			}
 		}
 	}
@@ -112,23 +112,23 @@ public class ZooKeeperGate {
 	/**
 	 * Adds a connection monitor.
 	 * <p>
-	 * If the gate is currently UP, the {@link ConnectionMonitor#connected()}
+	 * If the gate is currently UP, the {@link IConnectionMonitor#connected()}
 	 * will be called as part of the registration.
 	 * </p>
 	 * <p>
 	 * This method has no effect if the monitor is already registered
 	 * </p>
 	 * 
-	 * @param connectionMonitor
+	 * @param iConnectionMonitor
 	 *            the monitor to register
 	 */
-	public static void addConnectionMonitor(final ConnectionMonitor connectionMonitor) {
+	public static void addConnectionMonitor(final IConnectionMonitor iConnectionMonitor) {
 		// add listener first
-		connectionListeners.add(connectionMonitor);
+		connectionListeners.add(iConnectionMonitor);
 
 		// notify
 		if (connected.get()) {
-			SafeRunner.run(new NotifyConnectionListener(true, connectionMonitor));
+			SafeRunner.run(new NotifyConnectionListener(true, iConnectionMonitor));
 		}
 	}
 
@@ -162,31 +162,32 @@ public class ZooKeeperGate {
 	/**
 	 * Removed a connection monitor.
 	 * <p>
-	 * If the gate is currently UP, the {@link ConnectionMonitor#disconnected()}
-	 * will be called as part of the registration.
+	 * If the gate is currently UP, the
+	 * {@link IConnectionMonitor#disconnected()} will be called as part of the
+	 * registration.
 	 * </p>
 	 * <p>
 	 * This method has no effect if the monitor is not registered
 	 * </p>
 	 * 
-	 * @param connectionMonitor
+	 * @param iConnectionMonitor
 	 *            the monitor to unregister
 	 */
-	public static void removeConnectionMonitor(final ConnectionMonitor connectionMonitor) {
+	public static void removeConnectionMonitor(final IConnectionMonitor iConnectionMonitor) {
 		// get state first (to ensure that we call a disconnect)
 		final boolean notify = connected.get();
 
 		// remove listener
-		connectionListeners.remove(connectionMonitor);
+		connectionListeners.remove(iConnectionMonitor);
 
 		// notify
 		if (notify) {
-			SafeRunner.run(new NotifyConnectionListener(false, connectionMonitor));
+			SafeRunner.run(new NotifyConnectionListener(false, iConnectionMonitor));
 		}
 	}
 
 	private final ZooKeeper zooKeeper;
-	private final ConnectionMonitor reconnectMonitor;
+	private final IConnectionMonitor reconnectMonitor;
 	private final Watcher connectionMonitor = new Watcher() {
 
 		@Override
@@ -229,7 +230,7 @@ public class ZooKeeperGate {
 
 	};
 
-	ZooKeeperGate(final ZooKeeperGateConfig config, final ConnectionMonitor reconnectMonitor) throws IOException {
+	ZooKeeperGate(final ZooKeeperGateConfig config, final IConnectionMonitor reconnectMonitor) throws IOException {
 		this.reconnectMonitor = reconnectMonitor;
 		zooKeeper = new ZooKeeper(config.getConnectString(), config.getSessionTimeout(), connectionMonitor);
 		if (CloudDebug.zooKeeperGateLifecycle) {
