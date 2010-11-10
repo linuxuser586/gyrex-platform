@@ -174,7 +174,7 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 					if (ContextDebug.objectLifecycle) {
 						LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider.toString(), t.toString(), t });
 					} else {
-						LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider.toString(), t.getMessage() });
+						LOG.warn("Error during object computation in context {} with in provider {}: {}: {}", new Object[] { context.getContextPath(), provider.toString(), t.getClass().getSimpleName(), t.getMessage() });
 					}
 					errors.add(t);
 					object = null;
