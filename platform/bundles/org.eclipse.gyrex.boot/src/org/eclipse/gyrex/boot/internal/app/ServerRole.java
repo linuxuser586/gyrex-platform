@@ -146,7 +146,7 @@ public class ServerRole {
 		}
 		final Bundle bundle = AppActivator.getInstance().getBundle(symbolicName);
 		if (bundle == null) {
-			LOG.warn("Bundle {} not avaiable. Server rolor {} might by dysfunctional!", symbolicName, getId());
+			LOG.warn("Bundle {} not avaiable. Server role {} might by dysfunctional!", symbolicName, getId());
 			return;
 		}
 		final int originalState = bundle.getState();
