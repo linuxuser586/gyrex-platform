@@ -225,14 +225,15 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 						throw (VirtualMachineError) t;
 					}
 					// otherwise capture as formatted string
-					errorMessage.append(" ");
 					while (null != t) {
-						if (null != t.getMessage()) {
-							errorMessage.append(' ').append(t.getMessage());
-						} else {
-							errorMessage.append(" Caused by: ").append(t.toString());
+						errorMessage.append(' ').append(t.getClass().getSimpleName());
+						if (t.getMessage() != null) {
+							errorMessage.append(": ").append(t.getMessage());
 						}
 						t = t.getCause();
+						if (t != null) {
+							errorMessage.append("; caused by");
+						}
 					}
 				}
 				throw new IllegalStateException(errorMessage.toString());
