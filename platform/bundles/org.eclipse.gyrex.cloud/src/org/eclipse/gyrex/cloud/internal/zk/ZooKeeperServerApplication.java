@@ -152,38 +152,45 @@ public class ZooKeeperServerApplication implements IApplication {
 			throw new IllegalStateException("ZooKeeper server already running!");
 		}
 
-		// create && start ZooKeeper server thread
-		final Thread zkServerThread = createZooKeeperServerThread(config);
-		zkServerThread.start();
-
-		// signal running
-		context.applicationRunning();
-
-		// wait for stop
 		try {
-			stopSignal.await();
-		} catch (final InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
 
-		// shutdown ZooKeeper if still running
-		final Factory zkServer = cnxnFactoryRef.getAndSet(null);
-		if (zkServer != null) {
-			zkServer.shutdown();
-		}
+			// create && start ZooKeeper server thread
+			final Thread zkServerThread = createZooKeeperServerThread(config);
+			zkServerThread.start();
 
-		final ThreadGroup threadGroup = zkThreadGroup.getAndSet(null);
-		if (threadGroup != null) {
+			// signal running
+			context.applicationRunning();
+
+			// wait for stop
 			try {
-				threadGroup.destroy();
-			} catch (final Exception e) {
-				LOG.warn("Error while destroying thread group. {}", e.getMessage());
+				stopSignal.await();
+			} catch (final InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
-		}
 
-		// exit
-		final Throwable error = zkErrorRef.getAndSet(null);
-		return error == null ? IApplication.EXIT_OK : EXIT_ERROR;
+			// shutdown ZooKeeper if still running
+			final Factory zkServer = cnxnFactoryRef.getAndSet(null);
+			if (zkServer != null) {
+				zkServer.shutdown();
+			}
+
+			final ThreadGroup threadGroup = zkThreadGroup.getAndSet(null);
+			if (threadGroup != null) {
+				try {
+					threadGroup.destroy();
+				} catch (final Exception e) {
+					LOG.warn("Error while destroying thread group. {}", e.getMessage());
+				}
+			}
+
+			// exit
+			final Throwable error = zkErrorRef.getAndSet(null);
+			return error == null ? IApplication.EXIT_OK : EXIT_ERROR;
+
+		} finally {
+			// done, now reset signal to allow further starts
+			stopSignalRef.compareAndSet(stopSignal, null);
+		}
 	}
 
 	@Override

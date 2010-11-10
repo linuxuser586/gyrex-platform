@@ -143,48 +143,52 @@ public class ZooKeeperGateApplication implements IApplication {
 			throw new IllegalStateException("ZooKeeper Gate already running!");
 		}
 
-		// initialize executor
-		final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(final Runnable r) {
-				final Thread t = new Thread(r, "ZooKeeper Gate Connect Thread");
-				t.setDaemon(true);
-				return t;
-			}
-		});
-
-		// kick off connection procedure
-		scheduleConnect(executor, 1000, config);
-
-		// signal running
-		context.applicationRunning();
-
-		// wait for stop
 		try {
-			stopSignal.await();
-		} catch (final InterruptedException e) {
-			Thread.currentThread().interrupt();
+
+			// initialize executor
+			final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+				@Override
+				public Thread newThread(final Runnable r) {
+					final Thread t = new Thread(r, "ZooKeeper Gate Connect Thread");
+					t.setDaemon(true);
+					return t;
+				}
+			});
+
+			// kick off connection procedure
+			scheduleConnect(executor, 1000, config);
+
+			// signal running
+			context.applicationRunning();
+
+			// wait for stop
+			try {
+				stopSignal.await();
+			} catch (final InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+
+			// shutdown executor
+			executor.shutdownNow();
+
+			// shutdown ZooKeeper if still running
+			final ZooKeeperGate gate = ZooKeeperGate.getAndSet(null);
+			if (gate != null) {
+				gate.shutdown();
+			}
+
+			if (CloudDebug.zooKeeperGateLifecycle) {
+				LOG.debug("ZooKeeper Gate manager shutdown complete.");
+			}
+
+			// exit
+			final Throwable error = zkErrorRef.getAndSet(null);
+			return error == null ? IApplication.EXIT_OK : EXIT_ERROR;
+
+		} finally {
+			// done, now reset signal to allow further starts
+			stopSignalRef.compareAndSet(stopSignal, null);
 		}
-
-		// shutdown executor
-		executor.shutdownNow();
-
-		// shutdown ZooKeeper if still running
-		final ZooKeeperGate gate = ZooKeeperGate.getAndSet(null);
-		if (gate != null) {
-			gate.shutdown();
-		}
-
-		// done, now reset signal to allow further starts
-		stopSignalRef.compareAndSet(stopSignal, null);
-
-		if (CloudDebug.zooKeeperGateLifecycle) {
-			LOG.debug("ZooKeeper Gate manager shutdown complete.");
-		}
-
-		// exit
-		final Throwable error = zkErrorRef.getAndSet(null);
-		return error == null ? IApplication.EXIT_OK : EXIT_ERROR;
 	}
 
 	@Override
