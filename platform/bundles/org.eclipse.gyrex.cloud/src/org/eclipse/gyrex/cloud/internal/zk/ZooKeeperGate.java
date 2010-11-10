@@ -103,10 +103,6 @@ public class ZooKeeperGate {
 		}
 	}
 
-	static interface ShutdownListener {
-		void gateDown();
-	}
-
 	private static final ListenerList connectionListeners = new ListenerList(ListenerList.IDENTITY);
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGate.class);
 
@@ -152,7 +148,15 @@ public class ZooKeeperGate {
 	}
 
 	static ZooKeeperGate getAndSet(final ZooKeeperGate gate) {
-		return instanceRef.getAndSet(gate);
+		final ZooKeeperGate old = instanceRef.getAndSet(gate);
+		if (CloudDebug.zooKeeperGateLifecycle) {
+			LOG.debug("Set new ZooKeeper Gate instance. {} (old {})", new Object[] { gate, old });
+		}
+		return old;
+	}
+
+	static boolean isCurrentGate(final ZooKeeperGate gate) {
+		return (gate != null) && (gate == instanceRef.get());
 	}
 
 	/**
@@ -181,37 +185,56 @@ public class ZooKeeperGate {
 		}
 	}
 
-	private final ShutdownListener listener;
 	private final ZooKeeper zooKeeper;
-
+	private final ConnectionMonitor reconnectMonitor;
 	private final Watcher connectionMonitor = new Watcher() {
+
 		@Override
 		public void process(final WatchedEvent event) {
+			// only process event if we are the active gate
+			if (!isCurrentGate(ZooKeeperGate.this)) {
+				if (CloudDebug.zooKeeperGateLifecycle) {
+					LOG.debug("Ignored connection event for inactive gate: {}, {}", this, event);
+				}
+			}
+
+			// log message
 			if (CloudDebug.zooKeeperGateLifecycle) {
 				LOG.debug("Connection event: {}", event);
 			}
 
+			// handle event
 			if (event.getState() == KeeperState.SyncConnected) {
+				// SyncConnected ==> connection is UP
 				LOG.info("ZooKeeper Gate is now UP. Connection to cloud established.");
 				connected.set(true);
-				final Object[] listeners = connectionListeners.getListeners();
-				for (final Object listener : listeners) {
-					SafeRunner.run(new NotifyConnectionListener(true, listener));
-				}
-			} else {
-				LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost ({}).", event.getState());
+
+				// notify connection listeners
+				fireConnectionEvent(true);
+			} else if (event.getState() == KeeperState.Expired) {
+				// we rely on Expired event for real DOWN detection
+				LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost.", event.getState());
 				connected.set(false);
-				final Object[] listeners = connectionListeners.getListeners();
-				for (final Object listener : listeners) {
-					SafeRunner.run(new NotifyConnectionListener(false, listener));
-				}
+
+				// notify listeners
+				fireConnectionEvent(false);
+
+				// trigger clean shutdown
+				shutdown();
+			} else {
+				// ZooKeeper will re-try on it's own in all other cases
+				LOG.info("ZooKeeper is now {}. Gate is not intervening. ({})", event.getState(), zooKeeper);
 			}
 		}
+
 	};
 
-	ZooKeeperGate(final ZooKeeperGateConfig config, final ShutdownListener listener) throws IOException {
+	ZooKeeperGate(final ZooKeeperGateConfig config, final ConnectionMonitor reconnectMonitor) throws IOException {
+		this.reconnectMonitor = reconnectMonitor;
 		zooKeeper = new ZooKeeper(config.getConnectString(), config.getSessionTimeout(), connectionMonitor);
-		this.listener = listener;
+		if (CloudDebug.zooKeeperGateLifecycle) {
+			LOG.debug("New ZooKeeper Gate instance. {}", this, new Exception("ZooKeeper Gate Constructor Call Stack"));
+		}
 	}
 
 	private void create(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
@@ -328,6 +351,17 @@ public class ZooKeeperGate {
 		} catch (final KeeperException e) {
 			throw e;
 		}
+	}
+
+	void fireConnectionEvent(final boolean connected) {
+		// notify registered listeners
+		final Object[] listeners = connectionListeners.getListeners();
+		for (final Object listener : listeners) {
+			SafeRunner.run(new NotifyConnectionListener(connected, listener));
+		}
+
+		// notify reconnect listener
+		SafeRunner.run(new NotifyConnectionListener(connected, reconnectMonitor));
 	}
 
 	/**
@@ -472,7 +506,7 @@ public class ZooKeeperGate {
 	 */
 	public void shutdown() {
 		if (CloudDebug.zooKeeperGateLifecycle) {
-			LOG.debug("Received stop signal for ZooKeeper Gate.");
+			LOG.debug("Shutdown of ZooKeeper Gate. {}", this, new Exception("ZooKeeper Gate Shutdown Call Stack"));
 		}
 
 		try {
@@ -481,11 +515,21 @@ public class ZooKeeperGate {
 			Thread.currentThread().interrupt();
 		} catch (final Exception e) {
 			// ignored shutdown exceptions
-			e.printStackTrace();
+			if (CloudDebug.zooKeeperGateLifecycle) {
+				LOG.debug("Ignored exception during shutdown: {}", e.getMessage(), e);
+			}
 		}
+	}
 
-		// notify listeners
-		listener.gateDown();
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("ZooKeeperGate [current=");
+		builder.append(isCurrentGate(this));
+		builder.append(", zk=");
+		builder.append(zooKeeper);
+		builder.append("]");
+		return builder.toString();
 	}
 
 	/**

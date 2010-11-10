@@ -12,7 +12,7 @@ import org.eclipse.equinox.app.IApplicationContext;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.ShutdownListener;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.ConnectionMonitor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +22,13 @@ import org.slf4j.LoggerFactory;
  */
 public class ZooKeeperGateApplication implements IApplication {
 
-	private final class ConnectRunnable implements Runnable, ShutdownListener {
+	private final class ConnectRunnable implements Runnable, ConnectionMonitor {
+		private static final int INITIAL_CONNECT_DELAY = 1000;
 		private static final int MAX_CONNECT_DELAY = 240000;
 
 		private final ScheduledExecutorService executor;
 		private final ZooKeeperGateConfig config;
-		private final int delay;
+		private volatile int delay;
 
 		/**
 		 * Creates a new instance.
@@ -43,9 +44,15 @@ public class ZooKeeperGateApplication implements IApplication {
 		}
 
 		@Override
-		public void gateDown() {
+		public void connected() {
+			// reset delay on successful connect
+			delay = INITIAL_CONNECT_DELAY;
+		}
+
+		@Override
+		public void disconnected() {
 			if (CloudDebug.zooKeeperGateLifecycle) {
-				LOG.debug("Received gate down event.");
+				LOG.debug("Processing disconnect event from gate.");
 			}
 
 			// clean-up old gate instance
@@ -88,7 +95,7 @@ public class ZooKeeperGateApplication implements IApplication {
 		private void scheduleReconnectIfPossible() {
 			if (isActive()) {
 				if (CloudDebug.zooKeeperGateLifecycle) {
-					LOG.debug("Will re-connect gate because ZooKeeper Gate manager is still active.");
+					LOG.debug("Will re-connect because ZooKeeper Gate manager is still active.");
 				}
 				scheduleConnect(executor, nextDelay(), config);
 			}
@@ -144,7 +151,6 @@ public class ZooKeeperGateApplication implements IApplication {
 		}
 
 		try {
-
 			// initialize executor
 			final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
 				@Override
@@ -156,7 +162,7 @@ public class ZooKeeperGateApplication implements IApplication {
 			});
 
 			// kick off connection procedure
-			scheduleConnect(executor, 1000, config);
+			scheduleConnect(executor, ConnectRunnable.INITIAL_CONNECT_DELAY, config);
 
 			// signal running
 			context.applicationRunning();
