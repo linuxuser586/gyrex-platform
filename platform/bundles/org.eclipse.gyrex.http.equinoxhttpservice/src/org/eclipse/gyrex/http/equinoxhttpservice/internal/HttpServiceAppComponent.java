@@ -18,8 +18,8 @@ import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
+import org.eclipse.gyrex.server.Platform;
 
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.slf4j.Logger;
@@ -33,7 +33,6 @@ public class HttpServiceAppComponent {
 	private static final String DEFAULT_APP_ID = HttpServiceActivator.SYMBOLIC_NAME.concat(".application");
 
 	private static final Logger LOG = LoggerFactory.getLogger(HttpServiceAppComponent.class);
-	private static final IPath CONTEXT_PATH = new Path("/org/eclipse/gyrex/http/equinoxhttpservice");
 
 	private volatile IRuntimeContextRegistry runtimeContextRegistry;
 	private volatile IApplicationManager applicationManager;
@@ -43,9 +42,16 @@ public class HttpServiceAppComponent {
 	 * the <code>HttpService</code>.
 	 */
 	public void activate() {
-		final IRuntimeContext context = getRuntimeContextRegistry().get(CONTEXT_PATH);
+		// only register in development mode
+		// otherwise it must be manually enabled
+		if (!Platform.inDevelopmentMode()) {
+			return;
+		}
+
+		// get the root context
+		final IRuntimeContext context = getRuntimeContextRegistry().get(Path.ROOT);
 		if (null == context) {
-			LOG.warn("Unable to start default HttpService application; context {} not available", CONTEXT_PATH.toString());
+			LOG.warn("Unable to start default HttpService application; context {} not available", Path.ROOT.toString());
 			return;
 		}
 
@@ -75,7 +81,11 @@ public class HttpServiceAppComponent {
 	 */
 	public void deactivate() {
 		// unregister the application should remove everything else
-		getApplicationManager().unregister(DEFAULT_APP_ID);
+		try {
+			getApplicationManager().unregister(DEFAULT_APP_ID);
+		} catch (final Exception e) {
+			// ignore
+		}
 	}
 
 	/**
