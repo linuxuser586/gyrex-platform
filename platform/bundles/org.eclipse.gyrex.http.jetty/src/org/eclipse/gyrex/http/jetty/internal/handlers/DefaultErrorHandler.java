@@ -47,6 +47,19 @@ public class DefaultErrorHandler extends ErrorHandler {
 	/** serialVersionUID */
 	private static final long serialVersionUID = 1L;
 
+	private static final boolean debugMode = Platform.inDebugMode();
+
+	/**
+	 * Returns the admin server URL
+	 * 
+	 * @return the admin server URL
+	 */
+	private static String getAdminServerURL(final HttpServletRequest request) {
+		// TODO: admin server scheme should be HTTPS (not implemented yet=
+		// TODO: lookup the admin server port from the preferences
+		return "http://".concat(request.getServerName()).concat(":3110/");
+	}
+
 	private static Throwable getException(final HttpServletRequest request) {
 		return (Throwable) request.getAttribute("javax.servlet.error.exception");
 	}
@@ -130,68 +143,11 @@ public class DefaultErrorHandler extends ErrorHandler {
 		}
 	}
 
-	private final boolean debugMode = Platform.inDebugMode();
-
-	/**
-	 * Creates a new instance.
-	 */
-	public DefaultErrorHandler() {
-		setShowStacks(Platform.inDevelopmentMode());
-	}
-
-	private boolean acceptsHtml(final HttpServletRequest request) {
-		final Enumeration acceptHeaders = request.getHeaders(HttpHeaders.ACCEPT);
-		if (acceptHeaders != null) {
-			// scan all Accept headers for text/html, x-html or */*
-			while (acceptHeaders.hasMoreElements()) {
-				final String accept = (String) acceptHeaders.nextElement();
-				if ((accept.indexOf("text/html") > -1) || (accept.indexOf("application/xhtml") > -1) || (accept.indexOf("*/*") > -1)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Returns the admin server URL
-	 * 
-	 * @return the admin server URL
-	 */
-	private String getAdminServerURL(final HttpServletRequest request) {
-		// TODO: admin server scheme should be HTTPS (not implemented yet=
-		// TODO: lookup the admin server port from the preferences
-		return "http://".concat(request.getServerName()).concat(":3110/");
-	}
-
-	@Override
-	protected void writeErrorPage(final HttpServletRequest request, final Writer writer, final int code, String internalMessage, final boolean showStacks) throws IOException {
-		// handle empty message
-		if ((null == internalMessage) && (code == 500) && (null != getException(request))) {
-			internalMessage = getException(request).toString();
-		}
-
-		// decode message
-		if (internalMessage != null) {
-			internalMessage = URLDecoder.decode(internalMessage, "UTF-8");
-		}
-
-		// we do not want to hand out internal details in production mode
-		final String officialMessage = HttpStatus.getMessage(code);
-		final String serverName = getServerName(request);
-
-		if (acceptsHtml(request)) {
-			writeErrorPageHtml(request, writer, code, internalMessage, officialMessage, serverName);
-		} else {
-			writeErrorPagePlain(request, writer, code, internalMessage, officialMessage, serverName);
-		}
-	}
-
-	private void writeErrorPageHtml(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException, UnsupportedEncodingException {
+	static void writeErrorPageHtml(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException, UnsupportedEncodingException {
 		writer.write("<html>\n\r<head>\n\r<title>Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
-		write(writer, officialMessage);
+		writeEscaped(writer, officialMessage);
 		writer.write("</title>\n\r");
 		writer.write("<meta name=\"generator\" content=\"" + GENERATOR + "\">");
 		writer.write("<link rel=\"stylesheet\" href=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_CSS + "\" type=\"text/css\">\n\r");
@@ -199,7 +155,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writer.write("<h2>Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
-		write(writer, officialMessage);
+		writeEscaped(writer, officialMessage);
 		writer.write("</h2>\n\r\n\r\n\r");
 
 		if (debugMode) {
@@ -249,10 +205,200 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 		// IE issue workaround
 		for (int i = 0; i < 20; i++) {
-			writer.write("\n\r                                                ");
+			writer.write(NEWLINE);
+			writer.write("                                                ");
 		}
 
-		writer.write("</body>\n\r</html>\n\r");
+		writer.write("</body>");
+		writer.write(NEWLINE);
+		writer.write("</html>");
+		writer.write(NEWLINE);
+	}
+
+	static void writeEscaped(final Writer writer, final String string) throws IOException {
+		if (string == null) {
+			return;
+		}
+
+		for (int i = 0; i < string.length(); i++) {
+			final char c = string.charAt(i);
+
+			switch (c) {
+				case '&':
+					writer.write("&amp;");
+					break;
+				case '<':
+					writer.write("&lt;");
+					break;
+				case '>':
+					writer.write("&gt;");
+					break;
+
+				default:
+					if (Character.isISOControl(c) && !Character.isWhitespace(c)) {
+						writer.write('?');
+					} else {
+						writer.write(c);
+					}
+			}
+		}
+	}
+
+	static void writeException(final Throwable exception, final Writer writer) {
+		exception.printStackTrace(new PrintWriter(writer));
+	}
+
+	static void writeFormattedMessage(final Writer writer, final String internalMessage) throws IOException {
+		boolean inQuote = false;
+		for (int i = 0; i < internalMessage.length(); i++) {
+			final char c = internalMessage.charAt(i);
+			if (c == '\'') {
+				if (!inQuote) {
+					writer.write("'<code>");
+					inQuote = true;
+				} else {
+					inQuote = false;
+					writer.write("</code>'");
+				}
+			} else {
+				writeEscaped(writer, c + "");
+			}
+		}
+		if (inQuote) {
+			writer.write("</code>'");
+		}
+	}
+
+	static void writeStackTrace(final Writer writer, final Throwable t) throws IOException {
+		if (null != t) {
+			final StringWriter sw = new StringWriter();
+			final PrintWriter pw = new PrintWriter(sw);
+			t.printStackTrace(pw);
+			pw.flush();
+			writeEscaped(writer, sw.getBuffer().toString());
+		}
+	}
+
+	static void writeStatus(final IStatus status, final Writer writer) throws IOException, UnsupportedEncodingException {
+		// ignore OK status
+		if (status.isOK()) {
+			return;
+		}
+
+		// start list
+		writer.write("<ul class=\"status\">\n\r");
+
+		/*
+		 * sometimes we have a multi status with no message but only children;
+		 * in this case we just print out all children
+		 */
+		final String statusMessage = status.getMessage();
+		if (status.isMultiStatus() && ((statusMessage == null) || (statusMessage.trim().length() == 0))) {
+			// write only children if a multi status has no message
+			final IStatus[] children = status.getChildren();
+			for (final IStatus child : children) {
+				writeStatusItem(child, writer, 0);
+			}
+		} else {
+			writeStatusItem(status, writer, 0);
+		}
+
+		// end list
+		writer.write("</ul>\n\r");
+	}
+
+	private static void writeStatusItem(final IStatus status, final Writer writer, final int identSize) throws IOException {
+		// ignore OK status
+		if (status.isOK()) {
+			return;
+		}
+
+		// ident
+		String ident = "";
+		for (int i = 0; i < identSize; i++) {
+			ident += " ";
+		}
+
+		// message
+		writer.write(ident);
+		writer.write("<li class=\"statusitem\">");
+		writer.write("<img class=\"statusimage\" src=\"" + getStatusImage(status) + "\">&nbsp;&nbsp;");
+		writer.write("<span class=\"statusmessage\">");
+		writeEscaped(writer, status.getMessage());
+		writer.write("<br><small><code>(");
+		writeEscaped(writer, status.getPlugin());
+		writer.write(", code ");
+		writeEscaped(writer, String.valueOf(status.getCode()));
+		writer.write(")</code></small>");
+		final Throwable statusException = status.getException();
+		if (null != statusException) {
+			writer.write("<br>\n\r");
+			writer.write(ident);
+			writer.write("<pre>");
+			writeStackTrace(writer, statusException);
+			writer.write(ident);
+			writer.write("</pre></small>\n\r");
+		}
+		writer.write("</span>");
+
+		if (status.isMultiStatus()) {
+			writer.write("<br>\n\r");
+			writer.write(ident);
+			writer.write("<ul>\n\r");
+			final IStatus[] children = status.getChildren();
+			for (final IStatus child : children) {
+				writeStatusItem(child, writer, identSize + 4);
+			}
+			writer.write(ident);
+			writer.write("</ul>\n\r");
+		}
+
+		writer.write(ident);
+		writer.write("</li>\n\r");
+	}
+
+	/**
+	 * Creates a new instance.
+	 */
+	public DefaultErrorHandler() {
+		setShowStacks(Platform.inDevelopmentMode());
+	}
+
+	private boolean acceptsHtml(final HttpServletRequest request) {
+		final Enumeration acceptHeaders = request.getHeaders(HttpHeaders.ACCEPT);
+		if (acceptHeaders != null) {
+			// scan all Accept headers for text/html, x-html or */*
+			while (acceptHeaders.hasMoreElements()) {
+				final String accept = (String) acceptHeaders.nextElement();
+				if ((accept.indexOf("text/html") > -1) || (accept.indexOf("application/xhtml") > -1) || (accept.indexOf("*/*") > -1)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	@Override
+	protected void writeErrorPage(final HttpServletRequest request, final Writer writer, final int code, String internalMessage, final boolean showStacks) throws IOException {
+		// handle empty message
+		if ((null == internalMessage) && (code == 500) && (null != getException(request))) {
+			internalMessage = getException(request).toString();
+		}
+
+		// decode message
+		if (internalMessage != null) {
+			internalMessage = URLDecoder.decode(internalMessage, "UTF-8");
+		}
+
+		// we do not want to hand out internal details in production mode
+		final String officialMessage = HttpStatus.getMessage(code);
+		final String serverName = getServerName(request);
+
+		if (acceptsHtml(request)) {
+			writeErrorPageHtml(request, writer, code, internalMessage, officialMessage, serverName);
+		} else {
+			writeErrorPagePlain(request, writer, code, internalMessage, officialMessage, serverName);
+		}
 	}
 
 	private void writeErrorPagePlain(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException {
@@ -304,31 +450,6 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writer.write(NEWLINE);
 	}
 
-	private void writeException(final Throwable exception, final Writer writer) {
-		exception.printStackTrace(new PrintWriter(writer));
-	}
-
-	private void writeFormattedMessage(final Writer writer, final String internalMessage) throws IOException {
-		boolean inQuote = false;
-		for (int i = 0; i < internalMessage.length(); i++) {
-			final char c = internalMessage.charAt(i);
-			if (c == '\'') {
-				if (!inQuote) {
-					writer.write("'<code>");
-					inQuote = true;
-				} else {
-					inQuote = false;
-					writer.write("</code>'");
-				}
-			} else {
-				write(writer, c + "");
-			}
-		}
-		if (inQuote) {
-			writer.write("</code>'");
-		}
-	}
-
 	/**
 	 * @param writer
 	 * @param officialMessage
@@ -348,94 +469,6 @@ public class DefaultErrorHandler extends ErrorHandler {
 		}
 	}
 
-	private void writeStackTrace(final Writer writer, final Throwable t) throws IOException {
-		if (null != t) {
-			final StringWriter sw = new StringWriter();
-			final PrintWriter pw = new PrintWriter(sw);
-			t.printStackTrace(pw);
-			pw.flush();
-			write(writer, sw.getBuffer().toString());
-		}
-	}
-
-	private void writeStatus(final IStatus status, final Writer writer) throws IOException, UnsupportedEncodingException {
-		// ignore OK status
-		if (status.isOK()) {
-			return;
-		}
-
-		// start list
-		writer.write("<ul class=\"status\">\n\r");
-
-		/*
-		 * sometimes we have a multi status with no message but only children;
-		 * in this case we just print out all children
-		 */
-		final String statusMessage = status.getMessage();
-		if (status.isMultiStatus() && ((statusMessage == null) || (statusMessage.trim().length() == 0))) {
-			// write only children if a multi status has no message
-			final IStatus[] children = status.getChildren();
-			for (final IStatus child : children) {
-				writeStatusItem(child, writer, 0);
-			}
-		} else {
-			writeStatusItem(status, writer, 0);
-		}
-
-		// end list
-		writer.write("</ul>\n\r");
-	}
-
-	private void writeStatusItem(final IStatus status, final Writer writer, final int identSize) throws IOException {
-		// ignore OK status
-		if (status.isOK()) {
-			return;
-		}
-
-		// ident
-		String ident = "";
-		for (int i = 0; i < identSize; i++) {
-			ident += " ";
-		}
-
-		// message
-		writer.write(ident);
-		writer.write("<li class=\"statusitem\">");
-		writer.write("<img class=\"statusimage\" src=\"" + getStatusImage(status) + "\">&nbsp;&nbsp;");
-		writer.write("<span class=\"statusmessage\">");
-		write(writer, status.getMessage());
-		writer.write("<br><small><code>(");
-		write(writer, status.getPlugin());
-		writer.write(", code ");
-		write(writer, String.valueOf(status.getCode()));
-		writer.write(")</code></small>");
-		final Throwable statusException = status.getException();
-		if (null != statusException) {
-			writer.write("<br>\n\r");
-			writer.write(ident);
-			writer.write("<pre>");
-			writeStackTrace(writer, statusException);
-			writer.write(ident);
-			writer.write("</pre></small>\n\r");
-		}
-		writer.write("</span>");
-
-		if (status.isMultiStatus()) {
-			writer.write("<br>\n\r");
-			writer.write(ident);
-			writer.write("<ul>\n\r");
-			final IStatus[] children = status.getChildren();
-			for (final IStatus child : children) {
-				writeStatusItem(child, writer, identSize + 4);
-			}
-			writer.write(ident);
-			writer.write("</ul>\n\r");
-		}
-
-		writer.write(ident);
-		writer.write("</li>\n\r");
-	}
-
 	private void writeStatusItemPlain(final IStatus status, final Writer writer, final int identSize) throws IOException {
 		// ignore OK status
 		if (status.isOK()) {
@@ -451,11 +484,11 @@ public class DefaultErrorHandler extends ErrorHandler {
 		// message
 		writer.write(ident);
 		writer.write(getStatusBullet(status));
-		write(writer, status.getMessage());
+		writeEscaped(writer, status.getMessage());
 		writer.write(" (");
-		write(writer, status.getPlugin());
+		writeEscaped(writer, status.getPlugin());
 		writer.write(", code ");
-		write(writer, String.valueOf(status.getCode()));
+		writeEscaped(writer, String.valueOf(status.getCode()));
 		writer.write(")");
 		final Throwable statusException = status.getException();
 		if (null != statusException) {

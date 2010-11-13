@@ -20,10 +20,14 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.resource.Resource;
 
+/**
+ * A servlet which serves {@link ApplicationHandler#getResource(String)
+ * registered application resources}.
+ */
 public class ApplicationResourceServlet extends DefaultServlet {
 
-	static ServletHolder newHolder(final ApplicationContextHandler applicationContextHandler) {
-		final ServletHolder defaultServlet = new ServletHolder(new ApplicationResourceServlet(applicationContextHandler));
+	static ServletHolder newHolder(final ApplicationHandler applicationHandler) {
+		final ServletHolder defaultServlet = new ServletHolder(new ApplicationResourceServlet(applicationHandler));
 		defaultServlet.setInitParameter("dirAllowed", String.valueOf(Platform.inDevelopmentMode()));
 		defaultServlet.setInitParameter("maxCacheSize", "2000000");
 		defaultServlet.setInitParameter("maxCachedFileSize", "254000");
@@ -32,7 +36,7 @@ public class ApplicationResourceServlet extends DefaultServlet {
 		return defaultServlet;
 	}
 
-	final ApplicationContextHandler applicationContextHandler;
+	final ApplicationHandler applicationHandler;
 
 	/** serialVersionUID */
 	private static final long serialVersionUID = 1L;
@@ -40,14 +44,14 @@ public class ApplicationResourceServlet extends DefaultServlet {
 	/**
 	 * Creates a new instance.
 	 */
-	public ApplicationResourceServlet(final ApplicationContextHandler applicationContextHandler) {
-		this.applicationContextHandler = applicationContextHandler;
+	public ApplicationResourceServlet(final ApplicationHandler applicationHandler) {
+		this.applicationHandler = applicationHandler;
 	}
 
 	@Override
 	public Resource getResource(final String pathInContext) {
 		try {
-			return applicationContextHandler.getResource(pathInContext);
+			return applicationHandler.getResource(pathInContext);
 		} catch (final MalformedURLException e) {
 			Log.ignore(e);
 			return null;

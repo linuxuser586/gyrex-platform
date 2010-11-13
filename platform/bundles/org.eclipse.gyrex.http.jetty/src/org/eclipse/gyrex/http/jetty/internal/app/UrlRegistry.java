@@ -12,28 +12,34 @@
 package org.eclipse.gyrex.http.jetty.internal.app;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.util.log.Log;
+import org.eclipse.osgi.util.NLS;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A URL registry which maintains Jetty contexts for registered URLs.
  */
 public class UrlRegistry implements IUrlRegistry {
 
+	private static final Logger LOG = LoggerFactory.getLogger(UrlRegistry.class);
+
 	private final JettyGateway jettyGateway;
 	private final ApplicationManager applicationManager;
 
-	private final ConcurrentMap<String, UrlToApplicationHandler> urlHandlerByUrl = new ConcurrentHashMap<String, UrlToApplicationHandler>(30);
-	private final ConcurrentMap<String, Handler> applicationContextByAppId = new ConcurrentHashMap<String, Handler>();
+	private final ConcurrentMap<String, String> applicationIdsByUrl = new ConcurrentHashMap<String, String>(30);
+	private final ConcurrentMap<String, Handler> appHandlerByAppId = new ConcurrentHashMap<String, Handler>();
 
 	/**
 	 * Creates a new instance.
@@ -48,67 +54,80 @@ public class UrlRegistry implements IUrlRegistry {
 
 	@Override
 	public void applicationUnregistered(final String applicationId) {
-		final List<String> urlsToRemove = new ArrayList<String>();
-		for (final Entry<String, UrlToApplicationHandler> entry : urlHandlerByUrl.entrySet()) {
-			if (entry.getValue().getApplicationId().equals(applicationId)) {
-				urlsToRemove.add(entry.getKey());
-			}
+		if (HttpJettyDebug.debug) {
+			LOG.debug("application unregistered: {}", applicationId);
 		}
-		for (final String url : urlsToRemove) {
-			try {
-				unregister(url);
-			} catch (final Exception e) {
-				Log.ignore(e);
+
+		// remove all urls
+		for (final Entry<String, String> entry : applicationIdsByUrl.entrySet()) {
+			if (entry.getValue().equals(applicationId)) {
+				applicationIdsByUrl.remove(entry.getKey());
+				if (HttpJettyDebug.debug) {
+					LOG.debug("removed url: {}", entry.getKey());
+				}
 			}
 		}
 
-		final Handler appContextHandler = applicationContextByAppId.remove(applicationId);
-		if (null != appContextHandler) {
-			try {
-				appContextHandler.stop();
-				appContextHandler.destroy();
-			} catch (final Exception e) {
-				Log.ignore(e);
-			}
+		// get handler
+		final Handler handler = appHandlerByAppId.remove(applicationId);
+		if (handler == null) {
+			return;
 		}
+
+		// remove from Jetty
+		try {
+			jettyGateway.removeApplicationHandler(handler, true);
+		} catch (final Exception e) {
+			LOG.warn("Error while removing app '{}' from the underlying Jetty engine. There might be resources leaking. {}", applicationId, e.getMessage());
+		}
+
+		// destroy
+		handler.destroy();
 	}
 
-	public Handler getHandler(final String applicationId) {
-		Handler applicationContextHandler = applicationContextByAppId.get(applicationId);
-		if (null == applicationContextHandler) {
-			applicationContextByAppId.putIfAbsent(applicationId, jettyGateway.customize(new ApplicationContextHandler(applicationId, applicationManager)));
-			applicationContextHandler = applicationContextByAppId.get(applicationId);
+	private Handler ensureHandler(final String applicationId) {
+		Handler applicationContextHandler = appHandlerByAppId.get(applicationId);
+		if (applicationContextHandler == null) {
+			// get the application registration
+			final ApplicationRegistration applicationRegistration = applicationManager.getApplicationRegistration(applicationId);
+			if (null == applicationRegistration) {
+				throw new IllegalStateException(NLS.bind("Application \"{0}\" could not be retreived from the registry!", applicationId));
+			}
+			appHandlerByAppId.putIfAbsent(applicationId, jettyGateway.customize(new ApplicationHandler(applicationRegistration)));
+			applicationContextHandler = appHandlerByAppId.get(applicationId);
 		}
 		return applicationContextHandler;
 	}
 
 	@Override
 	public String registerIfAbsent(final URL url, final String applicationId) {
-		// create an application handler for the specified url
-		final UrlToApplicationHandler applicationHandler = new UrlToApplicationHandler(applicationId, url);
+		final String externalForm = url.toExternalForm();
 
-		// try to "register" the created app handler
-		final UrlToApplicationHandler existingAppHandler = urlHandlerByUrl.putIfAbsent(url.toExternalForm(), applicationHandler);
-		if (null != existingAppHandler) {
+		// try to "register" the url
+		final String existingRegistration = applicationIdsByUrl.putIfAbsent(externalForm, applicationId);
+		if (null != existingRegistration) {
 			// already got an existing handler, abort
-			return existingAppHandler.getApplicationId();
+			return existingRegistration;
 		}
 
-		// activate the handler
-		applicationHandler.configure(this);
+		// create application handle
+		final Handler handler = ensureHandler(applicationId);
 
-		// register handler
+		// add url to handler
+		jettyGateway.getApplicationHandler(handler).addUrl(externalForm);
+
 		try {
-			jettyGateway.addUrlHandler(applicationHandler);
+			// register handler
+			jettyGateway.addApplicationHandlerIfAbsent(handler);
 		} catch (final Exception e) {
 			// try immediate unregistering
 			try {
-				jettyGateway.removeUrlHandler(applicationHandler);
+				jettyGateway.removeApplicationHandler(handler, true);
 			} catch (final Exception e2) {
 				// ignore
 			}
 			// throw exception
-			throw new IllegalStateException("Error while binding application '" + applicationId + "' to url '" + url.toExternalForm() + "' with the underlying Jetty engine. " + e.getMessage(), e);
+			throw new IllegalStateException("Error while binding application '" + applicationId + "' to url '" + externalForm + "' with the underlying Jetty engine. " + e.getMessage(), e);
 		}
 
 		// no application previously registered using that url
@@ -116,20 +135,31 @@ public class UrlRegistry implements IUrlRegistry {
 	}
 
 	private String unregister(final String url) {
-		final UrlToApplicationHandler handler = urlHandlerByUrl.remove(url);
-		if (null == handler) {
+		final String appId = applicationIdsByUrl.remove(url);
+		if (null == appId) {
 			return null;
 		}
 
-		// unregister handler
+		// get handler
+		Handler handler = ensureHandler(appId);
+
+		// remove url from handler
+		jettyGateway.getApplicationHandler(handler).removeUrl(url);
+
+		// remove from Jetty if possible
 		try {
-			jettyGateway.removeUrlHandler(handler);
+			if (jettyGateway.removeApplicationHandler(handler, false)) {
+				// remove from internal map
+				handler = appHandlerByAppId.remove(appId);
+				// destroy
+				handler.destroy();
+			}
 		} catch (final Exception e) {
 			Log.warn("Error while unbinding url '" + url + "' from the underlying Jetty engine. There might be resources leaking. {}", e.getMessage());
 		}
 
 		// return app id
-		return handler.getApplicationId();
+		return appId;
 	}
 
 	@Override

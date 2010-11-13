@@ -20,5 +20,6 @@ public class HttpJettyDebug extends BundleDebugOptions {
 
 	public static boolean debug;
 	public static boolean handlers;
+	public static boolean applicationContext;
 
 }

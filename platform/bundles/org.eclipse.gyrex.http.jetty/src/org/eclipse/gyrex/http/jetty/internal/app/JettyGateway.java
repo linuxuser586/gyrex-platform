@@ -22,14 +22,13 @@ import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandlerResourcesHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultFaviconHandler;
-import org.eclipse.gyrex.server.Platform;
+import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultHandler;
 
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.HandlerContainer;
 import org.eclipse.jetty.server.NCSARequestLog;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.eclipse.osgi.service.datalocation.Location;
@@ -46,7 +45,7 @@ public class JettyGateway implements IHttpGateway {
 
 	private final ConcurrentMap<ApplicationManager, UrlRegistry> urlRegistryByManager = new ConcurrentHashMap<ApplicationManager, UrlRegistry>(1);
 	private final Server server;
-	private final ContextHandlerCollection urlToApplicationHandlerCollection;
+	private final ApplicationHandlerCollection appHandlerCollection;
 	private final File logsBaseDirectory;
 
 	/**
@@ -70,19 +69,15 @@ public class JettyGateway implements IHttpGateway {
 		// set server error handling
 		server.addBean(new DefaultErrorHandler());
 
-		// primary handler for UrlToApplicationHandlers
-		urlToApplicationHandlerCollection = new ContextHandlerCollection();
-		urlToApplicationHandlerCollection.setContextClass(UrlToApplicationHandler.class);
-		serverHandlers.addHandler(urlToApplicationHandlerCollection);
+		// primary handler for applications
+		appHandlerCollection = new ApplicationHandlerCollection(this);
+		serverHandlers.addHandler(appHandlerCollection);
 
 		// default favicon handler
 		serverHandlers.addHandler(new DefaultFaviconHandler());
 
 		// default handler for all other requests
-		final DefaultHandler defaultHandler = new DefaultHandler();
-		defaultHandler.setShowContexts(Platform.inDebugMode());
-		defaultHandler.setServeIcon(false);
-		serverHandlers.addHandler(defaultHandler);
+		serverHandlers.addHandler(new DefaultHandler());
 
 		server.setHandler(serverHandlers);
 		server.setSendServerVersion(true);
@@ -91,21 +86,20 @@ public class JettyGateway implements IHttpGateway {
 	}
 
 	/**
-	 * Adds an URL handler to the underlying Jetty server.
+	 * Adds an application handler to the underlying Jetty server.
 	 * 
-	 * @param urlToApplicationHandler
+	 * @param handler
 	 * @throws Exception
 	 *             if the handler could not be started
 	 */
-	public void addUrlHandler(final UrlToApplicationHandler urlToApplicationHandler) throws Exception {
-		urlToApplicationHandlerCollection.addHandler(urlToApplicationHandler);
-		if (urlToApplicationHandlerCollection.isStarted() && !urlToApplicationHandler.isStarted() && !urlToApplicationHandler.isStarting()) {
-			urlToApplicationHandler.start();
-		}
+	public boolean addApplicationHandlerIfAbsent(final Handler handler) throws Exception {
+		final boolean added = appHandlerCollection.addIfAbsent(handler);
+		appHandlerCollection.mapUrls();
 		if (HttpJettyDebug.handlers) {
-			LOG.debug("Added URL handler {}", urlToApplicationHandler.getDisplayName());
+			LOG.debug("{} URL handler {}", added ? "Added" : "Updated", handler);
 			LOG.debug(server.dump());
 		}
+		return added;
 	}
 
 	/**
@@ -115,15 +109,22 @@ public class JettyGateway implements IHttpGateway {
 		urlRegistryByManager.clear();
 	}
 
-	public Handler customize(final ApplicationContextHandler applicationContextHandler) {
-
+	/**
+	 * Customized the specified {@link ApplicationHandler} with configured
+	 * specifics (eg. request logging).
+	 * 
+	 * @param applicationHandler
+	 *            the handler to customized
+	 * @return a handler which wraps the passed in {@link ApplicationHandler}
+	 */
+	public Handler customize(final ApplicationHandler applicationHandler) {
 		final HandlerCollection applicationHandlers = new HandlerCollection();
 
 		// primary handler
-		applicationHandlers.addHandler(applicationContextHandler);
+		applicationHandlers.addHandler(applicationHandler);
 
 		// request logging
-		final File appLogDir = new File(logsBaseDirectory, applicationContextHandler.getApplicationId());
+		final File appLogDir = new File(logsBaseDirectory, applicationHandler.getApplicationId());
 		appLogDir.mkdirs();
 		final NCSARequestLog requestLog = new NCSARequestLog();
 		requestLog.setFilename(new File(appLogDir, "yyyy_mm_dd.request.log").getAbsolutePath());
@@ -138,6 +139,25 @@ public class JettyGateway implements IHttpGateway {
 		applicationHandlers.addHandler(logHandler);
 
 		return applicationHandlers;
+	}
+
+	/**
+	 * Returns the {@link ApplicationHandler} from the previously
+	 * {@link #customize(ApplicationHandler) customized} handler.
+	 * 
+	 * @param customizedHandler
+	 *            the handler previously customized using
+	 *            {@link #customize(ApplicationHandler)}
+	 * @return the {@link ApplicationHandler}
+	 */
+	public ApplicationHandler getApplicationHandler(final Handler customizedHandler) {
+		if (customizedHandler instanceof ApplicationHandler) {
+			return (ApplicationHandler) customizedHandler;
+		}
+		if (customizedHandler instanceof HandlerContainer) {
+			return (ApplicationHandler) ((HandlerContainer) customizedHandler).getChildHandlerByClass(ApplicationHandler.class);
+		}
+		throw new IllegalArgumentException("unsupported handler: " + customizedHandler);
 	}
 
 	@Override
@@ -165,21 +185,32 @@ public class JettyGateway implements IHttpGateway {
 	}
 
 	/**
-	 * Removes n URL handler from the underlying Jetty server.
+	 * Removes the handler from the underlying Jetty server.
 	 * 
-	 * @param urlToApplicationHandler
+	 * @param appHandler
+	 * @param force
+	 *            <code>true</code> if the handler must be removed,
+	 *            <code>false</code> if it should only be removed when it no
+	 *            longer has urls
 	 * @throws Exception
 	 *             if the handler could not be stopped
 	 */
-	public void removeUrlHandler(final UrlToApplicationHandler urlToApplicationHandler) throws Exception {
-		urlToApplicationHandlerCollection.removeHandler(urlToApplicationHandler);
-		if (urlToApplicationHandlerCollection.isStarted() && !urlToApplicationHandler.isStopped() && !urlToApplicationHandler.isStopping()) {
-			urlToApplicationHandler.stop();
+	public boolean removeApplicationHandler(final Handler appHandler, final boolean force) throws Exception {
+		// remove if forced or no urls
+		boolean removed = false;
+		if (force || !getApplicationHandler(appHandler).hasUrls()) {
+			appHandlerCollection.removeHandler(appHandler);
+			removed = true;
 		}
+
+		// remap URLs
+		appHandlerCollection.mapUrls();
+
 		if (HttpJettyDebug.handlers) {
-			LOG.debug("Removed URL handler {}", urlToApplicationHandler.getDisplayName());
+			LOG.debug("{} URL handler {}", removed ? "Removed" : "Updated", appHandler);
 			LOG.debug(server.dump());
 		}
-	}
 
+		return removed;
+	}
 }

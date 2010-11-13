@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal.application.manager;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -33,13 +34,14 @@ import org.slf4j.LoggerFactory;
 public class ApplicationRegistration {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationRegistration.class);
+	private static final Map<String, String> NO_INIT_PROPERTIES = Collections.emptyMap();
 
 	private final String applicationId;
 	private final String providerId;
 	private final IRuntimeContext context;
-	private final ApplicationConfiguration configuration;
 	private final ConcurrentMap<IApplicationContext, ApplicationInstance> activeApplications = new ConcurrentHashMap<IApplicationContext, ApplicationInstance>(1);
 	private final ApplicationManager applicationManager;
+	private final Map<String, String> initProperties;
 
 	private final Lock applicationCreationLock = new ReentrantLock();
 
@@ -49,14 +51,14 @@ public class ApplicationRegistration {
 	 * @param applicationId
 	 * @param providerId
 	 * @param context
-	 * @param properties
+	 * @param initProperties
 	 */
-	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> properties, final ApplicationManager applicationManager) {
+	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> initProperties, final ApplicationManager applicationManager) {
 		this.applicationManager = applicationManager;
 		this.applicationId = applicationId.intern();
 		this.providerId = providerId.intern();
 		this.context = context;
-		configuration = new ApplicationConfiguration(properties);
+		this.initProperties = initProperties;
 	}
 
 	/**
@@ -80,6 +82,10 @@ public class ApplicationRegistration {
 	/**
 	 * Gets an existing or creates a new application instance for the specified
 	 * application context.
+	 * <p>
+	 * This method ensures that at most one application instance is created for
+	 * the specified context.
+	 * </p>
 	 * 
 	 * @param applicationContext
 	 *            the application context
@@ -146,15 +152,6 @@ public class ApplicationRegistration {
 	}
 
 	/**
-	 * Returns the configuration.
-	 * 
-	 * @return the configuration
-	 */
-	public ApplicationConfiguration getConfiguration() {
-		return configuration;
-	}
-
-	/**
 	 * Returns the context.
 	 * 
 	 * @return the context
@@ -164,12 +161,28 @@ public class ApplicationRegistration {
 	}
 
 	/**
+	 * Returns the initProperties.
+	 * 
+	 * @return the initProperties
+	 */
+	public Map<String, String> getInitProperties() {
+		return initProperties != null ? initProperties : NO_INIT_PROPERTIES;
+	}
+
+	/**
 	 * Returns the providerId.
 	 * 
 	 * @return the providerId
 	 */
 	public String getProviderId() {
 		return providerId;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("ApplicationRegistration [applicationId=").append(applicationId).append(", providerId=").append(providerId).append(", context=").append(context.getContextPath()).append(", activeApplications=").append(activeApplications.size()).append("]");
+		return builder.toString();
 	}
 
 }

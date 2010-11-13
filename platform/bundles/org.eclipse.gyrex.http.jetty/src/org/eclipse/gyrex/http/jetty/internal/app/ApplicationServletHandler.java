@@ -11,24 +11,14 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.jetty.internal.app;
 
-import java.io.IOException;
+import javax.servlet.Servlet;
 
-import javax.servlet.ServletException;
-import javax.servlet.UnavailableException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.eclipse.gyrex.http.application.ApplicationException;
-import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
-import org.eclipse.gyrex.server.Platform;
 
-import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
 import org.eclipse.jetty.util.LazyList;
-import org.eclipse.jetty.util.log.Log;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,69 +28,34 @@ public class ApplicationServletHandler extends ServletHandler {
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationServletHandler.class);
 
 	/** applicationContextHandler */
-	final ApplicationContextHandler applicationContextHandler;
-	final ThreadLocal<String> currentTarget = new ThreadLocal<String>();
+	private final ApplicationHandler applicationHandler;
 
 	/**
 	 * Creates a new instance.
 	 * 
-	 * @param applicationContextHandler
+	 * @param applicationHandler
 	 */
-	public ApplicationServletHandler(final ApplicationContextHandler applicationContextHandler) {
-		this.applicationContextHandler = applicationContextHandler;
-	}
-
-	@Override
-	public void doScope(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
-		// delegated to the application
-		// the application may delegate back to us via ApplicationContext
-		currentTarget.set(target);
-		try {
-			applicationContextHandler.application.handleRequest(request, response);
-		} catch (final IllegalStateException e) {
-			// IllegalStateException are typically used in Gyrex to indicate that something isn't ready
-			// we convert it into UnavailableException to allow recovering on a dynamic platform
-			if (Platform.inDebugMode()) {
-				Log.warn("Caught IllegalStateException while processing request '" + request.toString() + ": " + e.getMessage(), e);
-				throw new UnavailableException(e.getMessage(), 5);
-			} else {
-				throw new UnavailableException(e.getMessage(), 60); // TODO make configurable
-			}
-		} finally {
-			currentTarget.set(null);
-		}
-
-		// in any case, mark the request handled
-		baseRequest.setHandled(true);
+	public ApplicationServletHandler(final ApplicationHandler applicationHandler) {
+		this.applicationHandler = applicationHandler;
 	}
 
 	/**
-	 * Called by the application logic to handle a request using registered
-	 * servlets, resources, etc.
-	 * <p>
-	 * Implements
-	 * {@link IApplicationContext#handleRequest(HttpServletRequest, HttpServletResponse)}
-	 * </p>
+	 * Returns the applicationHandler.
+	 * 
+	 * @return the applicationHandler
 	 */
-	public boolean handleDelegatedRequest(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ApplicationException {
-		final Request baseRequest = Request.getRequest(request);
-		try {
-			final String target = currentTarget.get();
-			super.doScope(null != target ? target : baseRequest.getPathInfo(), baseRequest, request, response);
-		} catch (final ServletException e) {
-			throw new ApplicationException(e);
-		}
-		return baseRequest.isHandled();
+	public ApplicationHandler getApplicationHandler() {
+		return applicationHandler;
 	}
 
 	@Override
 	public ServletHolder newServletHolder() {
-		return new ApplicationRegisteredServletHolder();
+		return new ApplicationServletHolder();
 	}
 
 	@Override
-	public ServletHolder newServletHolder(final Class servlet) {
-		return new ApplicationRegisteredServletHolder(servlet);
+	public ServletHolder newServletHolder(final Class<? extends Servlet> servlet) {
+		return new ApplicationServletHolder(servlet);
 	}
 
 	public void removeServlet(final ServletHolder holder) {

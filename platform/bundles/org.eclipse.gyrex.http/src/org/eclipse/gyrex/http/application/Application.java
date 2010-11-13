@@ -12,9 +12,6 @@
 package org.eclipse.gyrex.http.application;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,7 +20,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -234,128 +230,6 @@ public abstract class Application extends PlatformObject {
 	}
 
 	/**
-	 * Maps a file to a MIME type.
-	 * <p>
-	 * Called by the platform to determine the MIME type for the file. For
-	 * servlet registrations registered with the {@link IApplicationContext},
-	 * the platform will call this method to support the {@link ServletContext}
-	 * method {@link ServletContext#getMimeType(String)} of the
-	 * <code>ServletContext</code> returned be
-	 * {@link IApplicationContext#getServletContext()}. For resource
-	 * registrations, the platform will call this method to determine the MIME
-	 * type for the Content-Type header in the response.
-	 * </p>
-	 * <p>
-	 * The default implementation delegates to the application context.
-	 * </p>
-	 * 
-	 * @param file
-	 *            determine the MIME type for this file
-	 * @return MIME type (e.g. text/html) of the file or <code>null</code> to
-	 *         indicate that the platform should determine the MIME type itself
-	 * @see ServletContext#getMimeType(String)
-	 * @see HttpContext#getMimeType(String)
-	 */
-	public String getMimeType(final String file) {
-		// get application context
-		final IApplicationContext applicationContext = getApplicationServiceSupport();
-		if (null == applicationContext) {
-			return null;
-		}
-
-		// delegate to application context
-		return applicationContext.getMimeType(file);
-	}
-
-	/**
-	 * Maps a resource path to a URL.
-	 * <p>
-	 * Called by the platform to map a resource path to a URL. For servlet
-	 * registrations, the platform will call this method to support the
-	 * {@link ServletContext} methods {@link ServletContext#getResource(String)}
-	 * and {@link ServletContext#getResourceAsStream(String)} of the
-	 * <code>ServletContext</code> returned be
-	 * {@link IApplicationContext#getServletContext()}. For resource
-	 * registrations, the platform will call this method to locate the resource.
-	 * </p>
-	 * <p>
-	 * The application can control from where resources come. For example, the
-	 * resource can be mapped to a file in the application bundle's persistent
-	 * storage area via <code>bundleContext.getDataFile(path).toURL()</code> or
-	 * to a resource in the application's bundle via
-	 * <code>getClass().getResource(path)</code> or contributed via a third
-	 * bundle.
-	 * </p>
-	 * <p>
-	 * The default implementation delegates to the application context.
-	 * </p>
-	 * 
-	 * @param path
-	 *            a <code>String</code> specifying the path to the resource
-	 * @return URL to the resource located at the named path, or
-	 *         <code>null</code> if there is no resource at that path
-	 * @throws MalformedURLException
-	 *             if the pathname is not given in the correct form
-	 * @see ServletContext#getResource(String)
-	 * @see HttpContext#getResource(String)
-	 */
-
-	public URL getResource(final String path) throws MalformedURLException {
-		// get application context
-		final IApplicationContext serviceSupport = getApplicationServiceSupport();
-		if (null == serviceSupport) {
-			return null;
-		}
-
-		// delegate to application context
-		return serviceSupport.getResource(path);
-	}
-
-	/**
-	 * Returns a directory-like listing of all the paths to resources within the
-	 * application whose longest sub-path matches the supplied path argument.
-	 * <p>
-	 * Called by the platform to receive a directory-like listing. For servlet
-	 * registrations, the platform will call this method to support the
-	 * {@link ServletContext} methods
-	 * {@link ServletContext#getResourcePaths(String)} of the
-	 * <code>ServletContext</code> returned be
-	 * {@link IApplicationContext#getServletContext()}. For resource
-	 * registrations, the platform will call this method to get a directory
-	 * listening.
-	 * </p>
-	 * <p>
-	 * The application can control from where resources come. For example,
-	 * resources can be mapped to files in the application bundle's persistent
-	 * storage area via <code>bundleContext.getDataFile(path).toURL()</code> or
-	 * to resources in the application's bundle via
-	 * <code>bundle.getEntryPaths(path)</code> or contributed via a third
-	 * bundle.
-	 * </p>
-	 * <p>
-	 * The default implementation delegates to the application context.
-	 * </p>
-	 * 
-	 * @param path
-	 *            the partial path used to match the resources, which must start
-	 *            with a <code>/</code>
-	 * @return a Set containing the directory listing, or <code>null</code> if
-	 *         there are no resources in the web application whose path begins
-	 *         with the supplied path.
-	 * @see ServletContext#getResourcePaths(String)
-	 */
-	public Set getResourcePaths(final String path) {
-		// get application context
-		final IApplicationContext serviceSupport = getApplicationServiceSupport();
-		if (null == serviceSupport) {
-			return null;
-		}
-
-		// delegate to application context
-		return serviceSupport.getResourcePaths(path);
-	}
-
-	/**
 	 * Returns the status of the application.
 	 * <p>
 	 * The status indicates if the application will operate properly. If any
@@ -518,6 +392,7 @@ public abstract class Application extends PlatformObject {
 	 * @see HttpContext#handleSecurity(HttpServletRequest, HttpServletResponse)
 	 */
 	protected boolean handleSecurity(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
+		// TODO integrate with security from container
 		return true;
 	}
 

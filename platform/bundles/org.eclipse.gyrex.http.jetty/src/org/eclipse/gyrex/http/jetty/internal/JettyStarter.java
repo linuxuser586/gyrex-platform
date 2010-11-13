@@ -25,7 +25,12 @@ import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.util.log.Log;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 final class JettyStarter extends Job {
+
+	private static final Logger LOG = LoggerFactory.getLogger(JettyStarter.class);
 
 	static final String ID_DEFAULT = "default";
 	private final Server server;
@@ -83,6 +88,10 @@ final class JettyStarter extends Job {
 			// (must be set after server started)
 			HttpGenerator.setServerVersion("7");
 
+			if (HttpJettyDebug.debug) {
+				LOG.debug("Jetty Server Started!");
+				LOG.debug(server.dump());
+			}
 		} catch (final IllegalStateException e) {
 			// wait for preferences to come up, retry later
 			Log.warn("Unable to start Jetty due to some inactive dependencies. Will retry in {} seconds. ({})", String.valueOf(delay / 1000), e.getMessage());

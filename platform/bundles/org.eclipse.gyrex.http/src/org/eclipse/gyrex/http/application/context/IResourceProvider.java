@@ -17,11 +17,16 @@ import java.util.Set;
 
 import javax.servlet.ServletContext;
 
-import org.eclipse.gyrex.http.application.Application;
-
 /**
- * This interface defines methods that the application may call to get access to
+ * This interface defines methods that a container may call to get access to
  * registered resources.
+ * <p>
+ * The application can control from where resources come. For example, resources
+ * can be mapped to files in the application bundle's persistent storage area
+ * via <code>bundleContext.getDataFile(path).toURL()</code> or to resources in
+ * the application's bundle via <code>bundle.getEntryPaths(path)</code> or
+ * contributed via a third bundle.
+ * </p>
  * <p>
  * This interface is typically implemented by clients providing resources to an
  * application. It can be contributed to an application using its
@@ -33,11 +38,11 @@ public interface IResourceProvider {
 	/**
 	 * Maps a resource path to a URL.
 	 * <p>
-	 * Called by the application to map a resource path to a URL. For servlet
-	 * registrations, the application will call this method to support the
+	 * Called by the application to map a resource path to a URL. For servlets
+	 * registrations the container will call this method to support the
 	 * {@link ServletContext} methods {@link ServletContext#getResource(String)}
 	 * and {@link ServletContext#getResourceAsStream(String)}. For resource
-	 * registrations, the application will call this method to locate the
+	 * registrations, the container will call this method to locate the
 	 * resource.
 	 * </p>
 	 * 
@@ -47,7 +52,6 @@ public interface IResourceProvider {
 	 *         <code>null</code> if there is no resource at that path
 	 * @throws MalformedURLException
 	 *             if the pathname is not given in the correct form
-	 * @see Application#getResource(String)
 	 */
 	public abstract URL getResource(final String path) throws MalformedURLException;
 
@@ -55,19 +59,17 @@ public interface IResourceProvider {
 	 * Returns a directory-like listing of all the paths to resources of the
 	 * provider whose longest sub-path matches the supplied path argument.
 	 * <p>
-	 * Called by the application to receive a directory-like listing. Typically,
-	 * the application will call this method to support the
-	 * {@link ServletContext} method
-	 * {@link ServletContext#getResourcePaths(String)}.
+	 * Called by the container to receive a directory-like listing. Typically,
+	 * the container will call this method to support the {@link ServletContext}
+	 * method {@link ServletContext#getResourcePaths(String)}.
 	 * </p>
 	 * 
 	 * @param path
 	 *            the partial path used to match the resources, which must start
 	 *            with a <code>/</code>
-	 * @return a Set containing the directory listing, or null if there are no
-	 *         resources in the web application whose path begins with the
-	 *         supplied path.
-	 * @see Application#getResourcePaths(String)
+	 * @return a set containing the directory listing, or <code>null</code> if
+	 *         there are no resources in the application whose path begins with
+	 *         the supplied path.
 	 */
 	public abstract Set getResourcePaths(final String path);
 
