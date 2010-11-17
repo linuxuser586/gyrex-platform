@@ -38,7 +38,7 @@ public class ZooKeeperServerApplication implements IApplication {
 
 	private Thread createZooKeeperServerThread(final ZooKeeperServerConfig config) {
 		final ThreadGroup threadGroup = new ThreadGroup("ZooKeeper Server");
-		threadGroup.setDaemon(true);
+		threadGroup.setDaemon(false); // don't run as daemon in order to allow proper shutdown
 		if (!zkThreadGroup.compareAndSet(null, threadGroup)) {
 			threadGroup.destroy();
 			throw new IllegalStateException("Thread group already created!");
