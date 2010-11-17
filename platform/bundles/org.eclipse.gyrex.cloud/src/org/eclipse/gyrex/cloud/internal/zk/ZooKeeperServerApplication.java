@@ -13,6 +13,7 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.apache.zookeeper.server.NIOServerCnxn;
 import org.apache.zookeeper.server.NIOServerCnxn.Factory;
+import org.apache.zookeeper.server.PurgeTxnLog;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
@@ -82,9 +83,13 @@ public class ZooKeeperServerApplication implements IApplication {
 			}
 
 			private void runStandalone(final ZooKeeperServerConfig config) throws IOException, InterruptedException {
+				// get directories
+				final File dataDir = new File(config.getDataLogDir());
+				final File snapDir = new File(config.getDataDir());
+
 				// create server
 				final ZooKeeperServer zkServer = new ZooKeeperServer();
-				zkServer.setTxnLogFactory(new FileTxnSnapLog(new File(config.getDataLogDir()), new File(config.getDataDir())));
+				zkServer.setTxnLogFactory(new FileTxnSnapLog(dataDir, snapDir));
 				zkServer.setTickTime(config.getTickTime());
 				zkServer.setMinSessionTimeout(config.getMinSessionTimeout());
 				zkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
@@ -102,6 +107,9 @@ public class ZooKeeperServerApplication implements IApplication {
 				if (zkServer.isRunning()) {
 					zkServer.shutdown();
 				}
+
+				// clean up logs
+				PurgeTxnLog.purge(dataDir, snapDir, 3);
 
 				// reset factory ref
 				cnxnFactoryRef.set(null);
