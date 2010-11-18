@@ -17,12 +17,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
 
 import org.eclipse.jetty.http.PathMap;
 import org.eclipse.jetty.http.PathMap.Entry;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.osgi.util.NLS;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Maps request URIs to a context.
@@ -42,6 +46,8 @@ import org.eclipse.osgi.util.NLS;
  * </p>
  */
 public class UrlMap {
+
+	private static final Logger LOG = LoggerFactory.getLogger(UrlMap.class);
 
 	private static final Integer ANY_PORT = new Integer(-1);
 	private static final String EMPTY_STRING = "";
@@ -88,38 +94,80 @@ public class UrlMap {
 		// get domain map based on protocol
 		final Map<String, Map<Integer, PathMap>> hostsToPortsToPathMap = getHostsToPortsToPathMap(protocol);
 		if (hostsToPortsToPathMap == null) {
+			if (HttpJettyDebug.urlMapLookup) {
+				LOG.debug("[URLMAP] no map for protocol {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, null });
+			}
 			return null;
 		}
 
-		// direct domain name lookup
+		// normalize domain
 		domain = UrlUtil.normalizeDomain(domain);
-		Map<Integer, PathMap> portsToPathMap = hostsToPortsToPathMap.get(domain);
 
-		// walk upwards if necessary/possible (suffix matching)
-		while ((portsToPathMap == null) && !domain.isEmpty()) {
-			final int separatorIndex = domain.indexOf('.');
-			domain = separatorIndex >= 0 ? domain.substring(separatorIndex + 1) : EMPTY_STRING;
-			portsToPathMap = hostsToPortsToPathMap.get(domain);
-		}
-		if (portsToPathMap == null) {
-			return null;
-		}
+		// begin the lookup procedure
+		Entry match = null;
+		boolean continueMatching = true;
+		while ((match == null) && continueMatching) {
+			// debug logging
+			if (HttpJettyDebug.urlMapLookup) {
+				LOG.debug("[URLMAP] match loop {}://{}:{}{}", new Object[] { protocol, domain, port, path });
+			}
 
-		// get matching port
-		PathMap pathMap = portsToPathMap.get(UrlUtil.isDefaultPort(port, protocol) ? ANY_PORT : port);
+			// domain name lookup
+			final Map<Integer, PathMap> portsToPathMap = hostsToPortsToPathMap.get(domain);
 
-		// fallback to default port if no match
-		if (pathMap == null) {
+			// walk upwards if necessary/possible (suffix matching)
+			if (!domain.isEmpty()) {
+				final int separatorIndex = domain.indexOf('.');
+				domain = separatorIndex >= 0 ? domain.substring(separatorIndex + 1) : EMPTY_STRING;
+			} else {
+				continueMatching = false;
+			}
+
+			// check if no domain matched at all
+			if (portsToPathMap == null) {
+				if (HttpJettyDebug.urlMapLookup) {
+					LOG.debug("[URLMAP] no map for domain {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
+				}
+				continue;
+			}
+
+			// get direct port match
+			PathMap pathMap = portsToPathMap.get(port);
+			if ((pathMap != null) && !pathMap.isEmpty()) {
+				// get matching handler (don't sanitize path during lookup)
+				match = pathMap.getMatch(path);
+				// return early (if possible)
+				if (match != null) {
+					if (HttpJettyDebug.urlMapLookup) {
+						LOG.debug("[URLMAP] direct port match {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
+					}
+					return match;
+				}
+			}
+
+			// fallback to default port if no direct match
 			pathMap = portsToPathMap.get(ANY_PORT);
+
+			// get matching handler (don't sanitize path during lookup)
+			if ((pathMap != null) && !pathMap.isEmpty()) {
+				match = pathMap.getMatch(path);
+				// return early (if possible)
+				if (match != null) {
+					if (HttpJettyDebug.urlMapLookup) {
+						LOG.debug("[URLMAP] any port match {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
+					}
+					return match;
+				}
+			}
 		}
 
-		// check path
-		if (pathMap.isEmpty()) {
-			return null;
+		// debug logging
+		if (HttpJettyDebug.urlMapLookup) {
+			LOG.debug("[URLMAP] done match {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
 		}
 
-		// get matching handler (don't sanitize path during lookup)
-		return pathMap.getMatch(path);
+		// return what we have
+		return match;
 	}
 
 	public boolean put(final String url, final Handler handler) {

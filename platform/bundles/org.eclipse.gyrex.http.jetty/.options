@@ -4,5 +4,8 @@ org.eclipse.gyrex.http.jetty/debug=true
 # debug handlers maintained internally
 org.eclipse.gyrex.http.jetty/handlers=true
 
-# debug url map
+# debug application context
 org.eclipse.gyrex.http.jetty/applicationContext=true
+
+# debug url map
+org.eclipse.gyrex.http.jetty/urlMapLookup=true

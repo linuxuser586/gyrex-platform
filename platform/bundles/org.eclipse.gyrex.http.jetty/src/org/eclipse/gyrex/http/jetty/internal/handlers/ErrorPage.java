@@ -45,11 +45,12 @@ public class ErrorPage {
 	/** serialVersionUID */
 	private static final long serialVersionUID = 1L;
 
-	public static final void writeEscaped(final Writer writer, final String string) throws IOException {
-		if (string == null) {
+	public static final void writeEscaped(final Writer writer, final Object object) throws IOException {
+		if (object == null) {
 			return;
 		}
 
+		final String string = object.toString();
 		for (int i = 0; i < string.length(); i++) {
 			final char c = string.charAt(i);
 
@@ -91,6 +92,15 @@ public class ErrorPage {
 		// TODO: admin server scheme should be HTTPS (not implemented yet)
 		// TODO: lookup the admin server port from the preferences
 		return "http://".concat(request.getServerName()).concat(":3110/");
+	}
+
+	/**
+	 * Returns the code.
+	 * 
+	 * @return the code
+	 */
+	public int getCode() {
+		return code;
 	}
 
 	private Throwable getException(final HttpServletRequest request) {
@@ -387,6 +397,6 @@ public class ErrorPage {
 
 		writer.write(ident);
 		writer.write("</li>");
-	}
 
+	}
 }

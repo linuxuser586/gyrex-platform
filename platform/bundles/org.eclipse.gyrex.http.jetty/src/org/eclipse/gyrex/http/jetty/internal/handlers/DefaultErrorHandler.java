@@ -13,25 +13,33 @@ package org.eclipse.gyrex.http.jetty.internal.handlers;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.http.jetty.internal.app.ApplicationHandler;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jetty.http.HttpHeaders;
+import org.eclipse.jetty.http.HttpMethods;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConnection;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ErrorHandler;
+import org.eclipse.jetty.util.ByteArrayISO8859Writer;
 import org.eclipse.jetty.util.log.Log;
 
 /**
@@ -41,320 +49,21 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 	private static final String NEWLINE = "\n";
 
-	/** the generator string */
-	private static final String GENERATOR = "Gyrex Error Handler";
-
 	/** serialVersionUID */
 	private static final long serialVersionUID = 1L;
 
 	private static final boolean debugMode = Platform.inDebugMode();
 
-	/**
-	 * Returns the admin server URL
-	 * 
-	 * @return the admin server URL
-	 */
-	private static String getAdminServerURL(final HttpServletRequest request) {
-		// TODO: admin server scheme should be HTTPS (not implemented yet=
-		// TODO: lookup the admin server port from the preferences
-		return "http://".concat(request.getServerName()).concat(":3110/");
-	}
-
-	private static Throwable getException(final HttpServletRequest request) {
-		return (Throwable) request.getAttribute("javax.servlet.error.exception");
-	}
-
-	private static String getOverallStatusImage(final IStatus status) {
-		switch (status.getSeverity()) {
-			case IStatus.CANCEL:
-			case IStatus.ERROR:
-				return DefaultErrorHandlerResourcesHandler.URI_ERROR_IMAGE;
-			case IStatus.WARNING:
-				return DefaultErrorHandlerResourcesHandler.URI_WARNING_IMAGE;
-
-			case IStatus.INFO:
-			default:
-				return DefaultErrorHandlerResourcesHandler.URI_INFORMATION_IMAGE;
-		}
-	}
-
-	private static String getOverallStatusMessage(final IStatus status) {
-		switch (status.getSeverity()) {
-			case IStatus.CANCEL:
-			case IStatus.ERROR:
-				return "It looks like that this server is not configured properly.";
-			case IStatus.WARNING:
-				return "It looks like that the platform configuration is not perfect.";
-
-			case IStatus.INFO:
-			default:
-				return "The platform configuration looks okay. Some hints/notes are available, though.";
-		}
-	}
-
-	private static String getServerName(final HttpServletRequest request) {
-		String serverName = null;
-
-		// try the server name the connection is configured to
-		final HttpConnection httpConnection = HttpConnection.getCurrentConnection();
-		if (null != httpConnection) {
-			serverName = httpConnection.getConnector().getHost();
-		}
-
-		// try the local machine name if bound to 0.0.0.0
-		if ((null == serverName) || serverName.equals("0.0.0.0")) {
-			try {
-				serverName = InetAddress.getLocalHost().getHostName();
-			} catch (final UnknownHostException e) {
-				Log.ignore(e);
-
-				// try the host name provided in the request
-				serverName = request.getServerName();
-			}
-		}
-		return serverName;
-	}
-
-	private static String getStatusBullet(final IStatus status) {
-		switch (status.getSeverity()) {
-			case IStatus.CANCEL:
-			case IStatus.ERROR:
-				return " ! ";
-			case IStatus.WARNING:
-				return " ? ";
-
-			case IStatus.INFO:
-			default:
-				return " * ";
-		}
-	}
-
-	private static String getStatusImage(final IStatus status) {
-		switch (status.getSeverity()) {
-			case IStatus.CANCEL:
-			case IStatus.ERROR:
-				return DefaultErrorHandlerResourcesHandler.URI_ERROR_IMAGE;
-			case IStatus.WARNING:
-				return DefaultErrorHandlerResourcesHandler.URI_WARNING_IMAGE;
-
-			case IStatus.INFO:
-			default:
-				return DefaultErrorHandlerResourcesHandler.URI_INFORMATION_IMAGE;
-		}
-	}
-
-	static void writeErrorPageHtml(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException, UnsupportedEncodingException {
-		writer.write("<html>\n\r<head>\n\r<title>Error ");
-		writer.write(Integer.toString(code));
-		writer.write(" - ");
-		writeEscaped(writer, officialMessage);
-		writer.write("</title>\n\r");
-		writer.write("<meta name=\"generator\" content=\"" + GENERATOR + "\">");
-		writer.write("<link rel=\"stylesheet\" href=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_CSS + "\" type=\"text/css\">\n\r");
-		writer.write("</head>\n\r<body>\n\r");
-		writer.write("<h2>Error ");
-		writer.write(Integer.toString(code));
-		writer.write(" - ");
-		writeEscaped(writer, officialMessage);
-		writer.write("</h2>\n\r\n\r\n\r");
-
-		if (debugMode) {
-			if (null != internalMessage) {
-				writer.write("<p>\n\r");
-				writeFormattedMessage(writer, internalMessage);
-				writer.write("</p>\n\r\n\r\n\r");
-			}
-
-			final Throwable exception = getException(request);
-			if (null != exception) {
-				writer.write("<div class=\"dev_note\">\n\r");
-				writer.write("<div><img src=\"" + DefaultErrorHandlerResourcesHandler.URI_ERROR_IMAGE + "\" style=\"float:left;padding-right:1em;\">The server throw an exception while processing the request. <span id=\"showstack\"><small><a href=\"#stack-trace\" onclick=\"javascript:document.getElementById('stack').style.display='block';document.getElementById('showstack').style.display='none';return false;\">Show stack.</a></small></span></div>\n\r");
-				writer.write("<div id=\"stack\" style=\"display:none;\">\n\r");
-				writer.write("<div style=\"clear:both;\"></div>\n\r");
-				writer.write("<a name=\"stack-trace\" />\n\r");
-				writer.write("<pre>");
-				writeException(exception, writer);
-				writer.write("</pre>\n\r");
-				writer.write("</div>\n\r");
-				writer.write("</div>\n\r\n\r\n\r");
-			}
-
-			final IStatus platformStatus = PlatformConfiguration.getPlatformStatus();
-			if (!platformStatus.isOK()) {
-				writer.write("<div class=\"dev_note\">\n\r");
-				writer.write("<div><img src=\"" + getOverallStatusImage(platformStatus) + "\" style=\"float:left;padding-right:1em;\">" + getOverallStatusMessage(platformStatus) + "<br><em>You might want to check the <a href=\"" + getAdminServerURL(request) + "\">server configuration</a>.</em></div>\n\r");
-				writer.write("<div style=\"clear:both;\"></div>\n\r");
-				writer.write("<p>Issues detected on <code>");
-				writer.write(serverName);
-				writer.write("</code>:\n\r");
-				writeStatus(platformStatus, writer);
-				writer.write("</p>\n\r");
-				writer.write("</div>\n\r\n\r\n\r");
-			} else {
-				writer.write("<div class=\"dev_note\">\n\r");
-				writer.write("<div><img src=\"" + DefaultErrorHandlerResourcesHandler.URI_INFORMATION_IMAGE + "\" style=\"float:left;padding-right:1em;\">A note to developers, this server seems to be configured properly.<br><em>At least, no issues were detected.</em></div>\n\r");
-				writer.write("<div style=\"clear:both;\"></div>\n\r");
-				writer.write("</div>\n\r\n\r\n\r");
-			}
-
-		} else {
-			writer.write("<p class=\"list-desc\">If you think you\'ve reached this page in error:</p>\n\r" + "<ul>\n\r" + "<li>Make sure the URL you\'re trying to reach is correct.</li>\n\r" + "</ul>\n\r" + NEWLINE + "<p class=\"list-desc\">Otherwise, you can: </p>\n\r" + "<ul>\n\r" + "<li>Go <a href=\"javascript:history.back()\">back to the previous page</a></li>\n\r" + "</ul>\n\r\n\r");
-		}
-
-		writer.write("<p align=\"right\"><em>Brought to you by Gyrex. Powered by Jetty and Equinox.</em></p>");
-
-		// IE issue workaround
-		for (int i = 0; i < 20; i++) {
-			writer.write(NEWLINE);
-			writer.write("                                                ");
-		}
-
-		writer.write("</body>");
-		writer.write(NEWLINE);
-		writer.write("</html>");
-		writer.write(NEWLINE);
-	}
-
-	static void writeEscaped(final Writer writer, final String string) throws IOException {
-		if (string == null) {
-			return;
-		}
-
-		for (int i = 0; i < string.length(); i++) {
-			final char c = string.charAt(i);
-
-			switch (c) {
-				case '&':
-					writer.write("&amp;");
-					break;
-				case '<':
-					writer.write("&lt;");
-					break;
-				case '>':
-					writer.write("&gt;");
-					break;
-
-				default:
-					if (Character.isISOControl(c) && !Character.isWhitespace(c)) {
-						writer.write('?');
-					} else {
-						writer.write(c);
-					}
-			}
-		}
-	}
-
-	static void writeException(final Throwable exception, final Writer writer) {
-		exception.printStackTrace(new PrintWriter(writer));
-	}
-
-	static void writeFormattedMessage(final Writer writer, final String internalMessage) throws IOException {
-		boolean inQuote = false;
-		for (int i = 0; i < internalMessage.length(); i++) {
-			final char c = internalMessage.charAt(i);
-			if (c == '\'') {
-				if (!inQuote) {
-					writer.write("'<code>");
-					inQuote = true;
-				} else {
-					inQuote = false;
-					writer.write("</code>'");
-				}
-			} else {
-				writeEscaped(writer, c + "");
-			}
-		}
-		if (inQuote) {
-			writer.write("</code>'");
-		}
-	}
-
-	static void writeStackTrace(final Writer writer, final Throwable t) throws IOException {
-		if (null != t) {
-			final StringWriter sw = new StringWriter();
-			final PrintWriter pw = new PrintWriter(sw);
-			t.printStackTrace(pw);
-			pw.flush();
-			writeEscaped(writer, sw.getBuffer().toString());
-		}
-	}
-
-	static void writeStatus(final IStatus status, final Writer writer) throws IOException, UnsupportedEncodingException {
-		// ignore OK status
-		if (status.isOK()) {
-			return;
-		}
-
-		// start list
-		writer.write("<ul class=\"status\">\n\r");
-
-		/*
-		 * sometimes we have a multi status with no message but only children;
-		 * in this case we just print out all children
-		 */
-		final String statusMessage = status.getMessage();
-		if (status.isMultiStatus() && ((statusMessage == null) || (statusMessage.trim().length() == 0))) {
-			// write only children if a multi status has no message
-			final IStatus[] children = status.getChildren();
-			for (final IStatus child : children) {
-				writeStatusItem(child, writer, 0);
-			}
-		} else {
-			writeStatusItem(status, writer, 0);
-		}
-
-		// end list
-		writer.write("</ul>\n\r");
-	}
-
-	private static void writeStatusItem(final IStatus status, final Writer writer, final int identSize) throws IOException {
-		// ignore OK status
-		if (status.isOK()) {
-			return;
-		}
-
-		// ident
-		String ident = "";
-		for (int i = 0; i < identSize; i++) {
-			ident += " ";
-		}
-
-		// message
-		writer.write(ident);
-		writer.write("<li class=\"statusitem\">");
-		writer.write("<img class=\"statusimage\" src=\"" + getStatusImage(status) + "\">&nbsp;&nbsp;");
-		writer.write("<span class=\"statusmessage\">");
-		writeEscaped(writer, status.getMessage());
-		writer.write("<br><small><code>(");
-		writeEscaped(writer, status.getPlugin());
-		writer.write(", code ");
-		writeEscaped(writer, String.valueOf(status.getCode()));
-		writer.write(")</code></small>");
-		final Throwable statusException = status.getException();
-		if (null != statusException) {
-			writer.write("<br>\n\r");
-			writer.write(ident);
-			writer.write("<pre>");
-			writeStackTrace(writer, statusException);
-			writer.write(ident);
-			writer.write("</pre></small>\n\r");
-		}
-		writer.write("</span>");
-
-		if (status.isMultiStatus()) {
-			writer.write("<br>\n\r");
-			writer.write(ident);
-			writer.write("<ul>\n\r");
-			final IStatus[] children = status.getChildren();
-			for (final IStatus child : children) {
-				writeStatusItem(child, writer, identSize + 4);
-			}
-			writer.write(ident);
-			writer.write("</ul>\n\r");
-		}
-
-		writer.write(ident);
-		writer.write("</li>\n\r");
+	/** handled methods */
+	private static final Set<String> handledMethods;
+	static {
+		final HashSet<String> methods = new HashSet<String>();
+		methods.add(HttpMethods.GET);
+		methods.add(HttpMethods.POST);
+		methods.add(HttpMethods.PUT);
+		methods.add(HttpMethods.HEAD);
+		methods.add(HttpMethods.DELETE);
+		handledMethods = Collections.unmodifiableSet(methods);
 	}
 
 	/**
@@ -378,8 +87,106 @@ public class DefaultErrorHandler extends ErrorHandler {
 		return false;
 	}
 
+	private void generateErrorPagePlain(final HttpServletRequest request, final HttpServletResponse response, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException {
+		response.setContentType(MimeTypes.TEXT_HTML_8859_1);
+		final ByteArrayISO8859Writer writer = new ByteArrayISO8859Writer(4096);
+		writeErrorPagePlain(request, writer, code, internalMessage, officialMessage, serverName);
+		writer.flush();
+		response.setContentLength(writer.size());
+		writer.writeTo(response.getOutputStream());
+		writer.destroy();
+	}
+
+	/**
+	 * Returns the admin server URL
+	 * 
+	 * @return the admin server URL
+	 */
+	private String getAdminServerURL(final HttpServletRequest request) {
+		// TODO: admin server scheme should be HTTPS (not implemented yet=
+		// TODO: lookup the admin server port from the preferences
+		return "http://".concat(request.getServerName()).concat(":3110/");
+	}
+
+	private Throwable getException(final HttpServletRequest request) {
+		return (Throwable) request.getAttribute("javax.servlet.error.exception");
+	}
+
+	private String getOverallStatusMessage(final IStatus status) {
+		switch (status.getSeverity()) {
+			case IStatus.CANCEL:
+			case IStatus.ERROR:
+				return "It looks like that this server is not configured properly.";
+			case IStatus.WARNING:
+				return "It looks like that the platform configuration is not perfect.";
+
+			case IStatus.INFO:
+			default:
+				return "The platform configuration looks okay. Some hints/notes are available, though.";
+		}
+	}
+
+	private String getServerName(final HttpServletRequest request) {
+		String serverName = null;
+
+		// try the server name the connection is configured to
+		final HttpConnection httpConnection = HttpConnection.getCurrentConnection();
+		if (null != httpConnection) {
+			serverName = httpConnection.getConnector().getHost();
+		}
+
+		// try the local machine name if bound to 0.0.0.0
+		if ((null == serverName) || serverName.equals("0.0.0.0")) {
+			try {
+				serverName = InetAddress.getLocalHost().getHostName();
+			} catch (final UnknownHostException e) {
+				Log.ignore(e);
+
+				// try the host name provided in the request
+				serverName = request.getServerName();
+			}
+		}
+		return serverName;
+	}
+
+	private String getStatusBullet(final IStatus status) {
+		switch (status.getSeverity()) {
+			case IStatus.CANCEL:
+			case IStatus.ERROR:
+				return " ! ";
+			case IStatus.WARNING:
+				return " ? ";
+
+			case IStatus.INFO:
+			default:
+				return " * ";
+		}
+	}
+
 	@Override
-	protected void writeErrorPage(final HttpServletRequest request, final Writer writer, final int code, String internalMessage, final boolean showStacks) throws IOException {
+	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException {
+		final HttpConnection connection = HttpConnection.getCurrentConnection();
+		if (connection == null) {
+			throw new IllegalStateException("Called outside request thread! No connection available.");
+		}
+
+		// mark handled
+		connection.getRequest().setHandled(true);
+
+		// only render output for a few methods
+		final String method = request.getMethod();
+		if (!handledMethods.contains(method)) {
+			return;
+		}
+
+		// con't cache error pages
+		response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
+		response.setHeader(HttpHeaders.PRAGMA, "no-cache");
+
+		// get code and message
+		final int code = connection.getResponse().getStatus();
+		String internalMessage = connection.getResponse().getReason();
+
 		// handle empty message
 		if ((null == internalMessage) && (code == 500) && (null != getException(request))) {
 			internalMessage = getException(request).toString();
@@ -392,13 +199,86 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 		// we do not want to hand out internal details in production mode
 		final String officialMessage = HttpStatus.getMessage(code);
-		final String serverName = getServerName(request);
 
-		if (acceptsHtml(request)) {
-			writeErrorPageHtml(request, writer, code, internalMessage, officialMessage, serverName);
-		} else {
-			writeErrorPagePlain(request, writer, code, internalMessage, officialMessage, serverName);
+		// support non-html response
+		if (!acceptsHtml(request)) {
+			generateErrorPagePlain(request, response, code, internalMessage, officialMessage, getServerName(request));
+			return;
 		}
+
+		// create error page
+		final ErrorPage errorPage = new ErrorPage() {
+			@Override
+			protected void writeDebugInfo(final HttpServletRequest request, final Writer writer) throws IOException {
+				// write stack
+				super.writeDebugInfo(baseRequest, writer);
+
+				// write optional debug info if available
+				if (getCode() == 404) {
+					// write application stack
+					final Object debugInfo = request.getAttribute(ApplicationHandler.ATTRIBUTE_DEBUG_INFO);
+					if (debugInfo != null) {
+						writer.write("<div class=\"dev_note\">");
+						writer.write("Resources known to last request handling application are:");
+						writer.write("<pre>");
+						writer.write(NEWLINE);
+						writeEscaped(writer, debugInfo.toString());
+						writer.write("</pre>");
+						writer.write(NEWLINE);
+						writer.write("</div>");
+					}
+
+					// write application list
+					writer.write("<div class=\"dev_note\">");
+					final Server server = getServer();
+					final Handler[] handlers = server == null ? null : server.getChildHandlersByClass(ApplicationHandler.class);
+					if ((handlers != null) && (handlers.length > 0)) {
+						writer.write("Applications known to this server are: <ul>");
+						writer.write(NEWLINE);
+						for (int i = 0; (handlers != null) && (i < handlers.length); i++) {
+							writer.write("<li>");
+							final ApplicationHandler appHandler = (ApplicationHandler) handlers[i];
+							writeEscaped(writer, appHandler.getApplicationId());
+							writer.write(" (");
+							writeEscaped(writer, appHandler.getApplicationRegistration().getProviderId());
+							writer.write('@');
+							writeEscaped(writer, appHandler.getApplicationRegistration().getContext().getContextPath());
+							writer.write(")");
+							if (appHandler.isRunning()) {
+								writer.write(" [running]");
+							} else {
+								if (appHandler.isFailed()) {
+									writer.write(" [failed]");
+								}
+								if (appHandler.isStopped()) {
+									writer.write(" [stopped]");
+								}
+							}
+							final String[] urls = appHandler.getUrls();
+							for (final String url : urls) {
+								writer.write(String.format("<br><small> --&gt; <a href=\"%s\">%s</a></small>", url, url));
+							}
+							writer.write("</li>");
+							writer.write(NEWLINE);
+						}
+						writer.write("</ul>");
+						writer.write(NEWLINE);
+					} else {
+						writer.write("No applications known to this server!");
+						writer.write(NEWLINE);
+					}
+					writer.write("</div>");
+				}
+			}
+		};
+
+		// set page details
+		errorPage.setCode(code);
+		errorPage.setOfficialMessage(officialMessage);
+		errorPage.setInternalMessage(internalMessage);
+
+		// render page
+		errorPage.render(request, response);
 	}
 
 	private void writeErrorPagePlain(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException {
@@ -448,6 +328,39 @@ public class DefaultErrorHandler extends ErrorHandler {
 		writer.write(NEWLINE);
 		writer.write("Brought to you by Gyrex. Powered by Jetty and Equinox.");
 		writer.write(NEWLINE);
+	}
+
+	private void writeEscaped(final Writer writer, final String string) throws IOException {
+		if (string == null) {
+			return;
+		}
+
+		for (int i = 0; i < string.length(); i++) {
+			final char c = string.charAt(i);
+
+			switch (c) {
+				case '&':
+					writer.write("&amp;");
+					break;
+				case '<':
+					writer.write("&lt;");
+					break;
+				case '>':
+					writer.write("&gt;");
+					break;
+
+				default:
+					if (Character.isISOControl(c) && !Character.isWhitespace(c)) {
+						writer.write('?');
+					} else {
+						writer.write(c);
+					}
+			}
+		}
+	}
+
+	private void writeException(final Throwable exception, final Writer writer) {
+		exception.printStackTrace(new PrintWriter(writer));
 	}
 
 	/**
@@ -502,7 +415,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 		if (status.isMultiStatus()) {
 			final IStatus[] children = status.getChildren();
 			for (final IStatus child : children) {
-				writeStatusItem(child, writer, identSize + 3);
+				writeStatusItemPlain(child, writer, identSize + 3);
 			}
 		}
 	}

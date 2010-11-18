@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationInstance;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
@@ -32,6 +33,7 @@ import org.eclipse.gyrex.server.Platform;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.jetty.http.PathMap;
 import org.eclipse.jetty.http.PathMap.Entry;
+import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.server.DispatcherType;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ContextHandler;
@@ -93,6 +95,8 @@ public class ApplicationHandler extends ServletContextHandler {
 		}
 	}
 
+	public static final String ATTRIBUTE_DEBUG_INFO = ApplicationHandler.class.getName().concat(".debugInfo");
+
 	static final String EMPTY_STRING = "";
 
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationHandler.class);
@@ -101,11 +105,11 @@ public class ApplicationHandler extends ServletContextHandler {
 	private final ApplicationRegistration applicationRegistration;
 	private final CopyOnWriteArraySet<String> urls = new CopyOnWriteArraySet<String>();
 	private final PathMap resourcesMap = new PathMap();
+	private final boolean showDebugInfo = Platform.inDebugMode() || Platform.inDevelopmentMode();
 
 	private ApplicationContext applicationContext;
 	private Application application;
 	private ApplicationDelegateHandler applicationDelegateHandler;
-	private ApplicationServletHandler servletHandler;
 	private SessionHandler sessionHandler;
 
 	/**
@@ -232,6 +236,13 @@ public class ApplicationHandler extends ServletContextHandler {
 				}
 				baseRequest.setServletPath(null);
 				baseRequest.setPathInfo(pathInfo);
+			}
+
+			// set application handler debug info reference
+			if (showDebugInfo) {
+				final StringBuilder dump = new StringBuilder();
+				dump(dump);
+				baseRequest.setAttribute(ATTRIBUTE_DEBUG_INFO, dump.toString());
 			}
 
 			// next scope
@@ -362,6 +373,12 @@ public class ApplicationHandler extends ServletContextHandler {
 		}
 	}
 
+	@Override
+	public SecurityHandler getSecurityHandler() {
+		// no security handler
+		return null;
+	}
+
 	/**
 	 * Returns the servlet handler.
 	 * 
@@ -369,7 +386,14 @@ public class ApplicationHandler extends ServletContextHandler {
 	 */
 	@Override
 	public ApplicationServletHandler getServletHandler() {
-		return servletHandler;
+		// out servlet handler
+		return (ApplicationServletHandler) _servletHandler;
+	}
+
+	@Override
+	public SessionHandler getSessionHandler() {
+		// our session handler
+		return sessionHandler;
 	}
 
 	/**
@@ -416,7 +440,7 @@ public class ApplicationHandler extends ServletContextHandler {
 		applicationContext = new ApplicationContext(this);
 
 		// create servlet handler early
-		servletHandler = new ApplicationServletHandler(this);
+		_servletHandler = new ApplicationServletHandler(this);
 
 		// initialize the application instance now (after servlet handler is available)
 		try {
@@ -444,27 +468,28 @@ public class ApplicationHandler extends ServletContextHandler {
 		applicationDelegateHandler = new ApplicationDelegateHandler(application);
 		sessionHandler = new SessionHandler(new HashSessionManager());
 
-		// setup the handler chain
+		// setup the handler chain after super initialization
 		// session -> application -> registered servlets/resources
 		setHandler(sessionHandler);
 		sessionHandler.setHandler(applicationDelegateHandler);
-		applicationDelegateHandler.setHandler(servletHandler);
+		applicationDelegateHandler.setHandler(_servletHandler);
 
-		// support welcome files
-		setWelcomeFiles(new String[] { "index.jsp", "index.html", "index.htm" });
+		// set important attributes
+		setAttribute(IApplicationContext.SERVLET_CONTEXT_ATTRIBUTE_APPLICATION, application);
+		setAttribute(IApplicationContext.SERVLET_CONTEXT_ATTRIBUTE_CONTEXT, application.getContext());
 
 		// perform super initialization
 		super.startContext();
 
-		// initialize registered servlets now
-		servletHandler.initialize();
+		// support welcome files
+		setWelcomeFiles(new String[] { "index.jsp", "index.html", "index.htm" });
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder toString = new StringBuilder();
 		toString.append("ApplicationHandler@").append(Integer.toHexString(hashCode()));
-		toString.append('(').append(applicationRegistration.getApplicationId()).append('[').append(applicationRegistration.getProviderId()).append("])");
+		toString.append('(').append(applicationRegistration.getApplicationId()).append('[').append(applicationRegistration.getProviderId()).append('@').append(applicationRegistration.getContext().getContextPath()).append("])");
 		return toString.toString();
 	}
 }

@@ -25,9 +25,8 @@ import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.HandlerWrapper;
+import org.eclipse.jetty.server.handler.ScopedHandler;
 import org.eclipse.jetty.util.log.Log;
 
 import org.slf4j.Logger;
@@ -39,12 +38,11 @@ import org.slf4j.LoggerFactory;
  * {@link IApplicationContext#handleRequest(HttpServletRequest, HttpServletResponse)}
  * .
  */
-public class ApplicationDelegateHandler extends HandlerWrapper {
+public class ApplicationDelegateHandler extends ScopedHandler {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationDelegateHandler.class);
 
 	private final Application application;
-	private final ThreadLocal<String> currentTarget = new ThreadLocal<String>();
 
 	/**
 	 * Creates a new instance.
@@ -53,11 +51,38 @@ public class ApplicationDelegateHandler extends HandlerWrapper {
 		this.application = application;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.eclipse.jetty.server.handler.ScopedHandler#doHandle(java.lang.String, org.eclipse.jetty.server.Request, javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	@Override
-	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
+	public void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
+		nextHandle(target, baseRequest, request, response);
+	}
+
+	@Override
+	public void doScope(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
+
+		/*
+		 * This scope implementation is different. The we delegate to
+		 * the application immediately. The assumption is, the context,
+		 *  path info and session has been properly set up by scoping
+		 * from previous handlers (scopes).
+		 *
+		 * The next scope would be the servlet handler which handles
+		 * servlets registered via IApplicationContext. However, the
+		 * ServletHandler already modifies the scope by setting
+		 * a servlet path and path info as of the found servlet.
+		 * This is wrong when calling Application#handleRequest.
+		 *
+		 * It's completely up to the Application if the ServletHandler
+		 * should be called or not. It does so via calling the
+		 * IApplicationContext method. This is implemented in this class
+		 * as well (handleApplicationRequest) and continues with the next
+		 * scope.
+		 */
+
 		// delegated to the application
 		// the application may delegate back to us via ApplicationContext
-		currentTarget.set(target);
 		try {
 			if (HttpJettyDebug.handlers) {
 				LOG.debug("routing request to application {}", application);
@@ -90,8 +115,6 @@ public class ApplicationDelegateHandler extends HandlerWrapper {
 			} else {
 				throw new UnavailableException(e.getMessage(), 60); // TODO make configurable
 			}
-		} finally {
-			currentTarget.set(null);
 		}
 
 		// in any case, mark the request handled
@@ -114,13 +137,17 @@ public class ApplicationDelegateHandler extends HandlerWrapper {
 	 */
 	public boolean handleApplicationRequest(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
 		final Request baseRequest = Request.getRequest(request);
+		if (baseRequest == null) {
+			throw new IllegalStateException("Please ensure that this method is called within the request thread!");
+		}
+
 		try {
-			final String target = currentTarget.get();
-			final Handler handler = getHandler();
+			// calculate target based on current path info
+			final String target = baseRequest.getPathInfo();
 			if (HttpJettyDebug.handlers) {
-				LOG.debug("got request back from application {}, routing now to {}", application, handler);
+				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target {})", application, target);
 			}
-			handler.handle(null != target ? target : baseRequest.getPathInfo(), baseRequest, request, response);
+			nextScope(target, baseRequest, baseRequest, response);
 		} catch (final ServletException e) {
 			throw new ApplicationException(e);
 		}

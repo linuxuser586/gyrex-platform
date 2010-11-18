@@ -67,7 +67,9 @@ public class JettyGateway implements IHttpGateway {
 		serverHandlers.addHandler(new DefaultErrorHandlerResourcesHandler());
 
 		// set server error handling
-		server.addBean(new DefaultErrorHandler());
+		final DefaultErrorHandler errorHandler = new DefaultErrorHandler();
+		errorHandler.setServer(server);
+		server.addBean(errorHandler);
 
 		// primary handler for applications
 		appHandlerCollection = new ApplicationHandlerCollection(this);
