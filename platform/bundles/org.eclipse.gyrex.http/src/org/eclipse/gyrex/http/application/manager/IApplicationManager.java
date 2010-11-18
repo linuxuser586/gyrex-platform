@@ -70,7 +70,8 @@ public interface IApplicationManager {
 	 * </p>
 	 * <p>
 	 * If no port is provided the application will match to all ports the
-	 * underlying HttpService listens to after the protocol and domain matched.
+	 * underlying HTTP container listens to after the protocol and domain
+	 * matched and no other application is mount directly to the port.
 	 * </p>
 	 * <p>
 	 * If no path is provided the "root" path (i.e. "/") will be used. Trailing
