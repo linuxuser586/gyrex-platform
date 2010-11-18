@@ -87,6 +87,9 @@ public class ZooKeeperServerApplication implements IApplication {
 				final File dataDir = new File(config.getDataLogDir());
 				final File snapDir = new File(config.getDataDir());
 
+				// clean old logs
+				PurgeTxnLog.purge(dataDir, snapDir, 3);
+
 				// create server
 				final ZooKeeperServer zkServer = new ZooKeeperServer();
 				zkServer.setTxnLogFactory(new FileTxnSnapLog(dataDir, snapDir));
@@ -108,7 +111,7 @@ public class ZooKeeperServerApplication implements IApplication {
 					zkServer.shutdown();
 				}
 
-				// clean up logs
+				// clean logs
 				PurgeTxnLog.purge(dataDir, snapDir, 3);
 
 				// reset factory ref
