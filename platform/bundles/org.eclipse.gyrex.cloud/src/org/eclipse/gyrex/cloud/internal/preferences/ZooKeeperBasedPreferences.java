@@ -51,6 +51,7 @@ import org.apache.commons.lang.CharEncoding;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +112,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private final Lock childrenModifyLock = new ReentrantLock();
 
 	/** prevent concurrent modifications of properties */
-	private final Lock propertiesModifyLock = new ReentrantLock();
+	private final Lock propertiesLoadOrSaveLock = new ReentrantLock();
 
 	private final ZooKeeperMonitor monitor = new ZooKeeperMonitor() {
 
@@ -157,7 +158,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				removed = false;
 
 				try {
-					// refresh properties
+					// refresh properties (and force sync with remote)
 					loadProperties(true);
 
 					// refresh children
@@ -209,8 +210,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// process events only for this node
 			if (zkPath.toString().equals(path)) {
 				try {
-					// refresh properties and notify listeners
-					loadProperties(true);
+					// refresh properties and notify listeners (but only if remote is newer)
+					loadProperties(false);
 				} catch (final Exception e) {
 					// assume not connected
 					connected.set(false);
@@ -222,6 +223,12 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	};
 
 	volatile boolean removed;
+
+	/** ZooKeeper version of the properties object */
+	private volatile int propertiesVersion;
+
+	/** simple attempt to avoid unnecessary flushes */
+	private volatile boolean propertiesDirty;
 
 	private volatile ListenerList nodeListeners;
 	private volatile ListenerList preferenceListeners;
@@ -384,7 +391,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					return;
 				}
 
-				// load properties (and notify listeners in case we were already active)
+				// load properties (and force sync with remote)
 				loadProperties(true);
 
 				// load children (and notify listeners in case we were already active)
@@ -579,33 +586,46 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
-	void loadProperties(final boolean sendEvents) throws KeeperException, InterruptedException, IOException {
+	void loadProperties(final boolean forceSyncWithRemoteVersion) throws KeeperException, InterruptedException, IOException {
 		// don't do anything if removed
 		if (removed) {
 			return;
 		}
 
 		// collect events
-		final List<PreferenceChangeEvent> events = sendEvents ? new ArrayList<PreferenceChangeEvent>() : null;
+		final List<PreferenceChangeEvent> events = new ArrayList<PreferenceChangeEvent>();
 
 		// prevent concurrent property modification (eg. remote _and_ local flush)
-		propertiesModifyLock.lock();
+		propertiesLoadOrSaveLock.lock();
 		try {
 			if (removed) {
 				return;
 			}
 
 			if (PreferencesDebug.debug) {
-				LOG.debug("Loading properties for node {} from {}", this, zkPath);
+				LOG.debug("Reading properties for node {} (version {}) from ZooKeeper {}", new Object[] { this, propertiesVersion, zkPath });
 			}
 
 			// read record data
-			final byte[] bytes = ZooKeeperGate.get().readRecord(zkPath, monitor);
+			final Stat stat = new Stat();
+			final byte[] bytes = ZooKeeperGate.get().readRecord(zkPath, monitor, stat);
 			if (bytes == null) {
 				// node doesn't exist
 				// don't do anything here, complete removal is handled elsewhere
+				if (PreferencesDebug.debug) {
+					LOG.debug("Node {} doesn't exist in ZooKeeper", this);
+				}
 				return;
 			}
+
+			// don't load properties if version is in the past
+			if (!forceSyncWithRemoteVersion && (propertiesVersion >= stat.getVersion())) {
+				if (PreferencesDebug.debug) {
+					LOG.debug("Not updating properties of node {} - local version ({}) >= ZooKeeper version ({})", new Object[] { this, propertiesVersion, stat.getVersion() });
+				}
+				return;
+			}
+			propertiesVersion = stat.getVersion();
 
 			// load remote properties
 			final Properties loadedProps = new Properties();
@@ -615,7 +635,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			final Object version = loadedProps.remove(VERSION_KEY);
 			if ((version == null) || !VERSION_VALUE.equals(version)) {
 				// ignore for now
-				LOG.warn("Properties with incompatible version ({}) found for node {}.", version, this);
+				LOG.warn("Properties with incompatible storage format version ({}) found for node {}.", version, this);
 				return;
 			}
 
@@ -631,26 +651,41 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				if (newValue == null) {
 					// does not exists in ZooKeeper, assume removed
 					properties.remove(key);
+					if (PreferencesDebug.debug) {
+						LOG.debug("Node {} property removed: {}", key);
+					}
+					// create event
+					events.add(new PreferenceChangeEvent(this, key, oldValue, newValue));
 				} else if ((oldValue == null) || !oldValue.equals(newValue)) {
 					// assume added or updated in ZooKeeper
 					properties.put(key, newValue);
-				}
-				// create event
-				if (sendEvents) {
+					if (PreferencesDebug.debug) {
+						if (oldValue == null) {
+							LOG.debug("Node {} property added: {} - {}", key, newValue);
+						} else {
+							LOG.debug("Node {} property updated: {} - {}", key, newValue);
+						}
+					}
+					// create event
 					events.add(new PreferenceChangeEvent(this, key, oldValue, newValue));
 				}
 			}
+
+			// mark clean
+			propertiesDirty = false;
+
+			if (PreferencesDebug.debug) {
+				LOG.debug("Loaded properties for node {} (now at version {})", this, propertiesVersion);
+			}
 		} finally {
-			propertiesModifyLock.unlock();
+			propertiesLoadOrSaveLock.unlock();
 		}
 
 		// fire events outside of lock
 		// TODO we need to understand event ordering better (eg. concurrent remote updates)
 		// (this may result in sending events asynchronously through an ordered queue, but for now we do it directly)
-		if (sendEvents) {
-			for (final PreferenceChangeEvent event : events) {
-				firePreferenceEvent(event);
-			}
+		for (final PreferenceChangeEvent event : events) {
+			firePreferenceEvent(event);
 		}
 	}
 
@@ -759,7 +794,12 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return;
 		}
 
+		if (PreferencesDebug.debug) {
+			LOG.debug("[PUT] {} - {}: {}", new Object[] { this, key, value });
+		}
+
 		properties.setProperty(key, value);
+		propertiesDirty = true;
 		firePreferenceEvent(new PreferenceChangeEvent(this, key, oldValue, value));
 	}
 
@@ -813,7 +853,12 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return;
 		}
 
+		if (PreferencesDebug.debug) {
+			LOG.debug("[REMOVE] {} - {}", new Object[] { this, key });
+		}
+
 		properties.remove(key);
+		propertiesDirty = true;
 		firePreferenceEvent(new PreferenceChangeEvent(this, key, oldValue, null));
 	}
 
@@ -854,6 +899,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				preferenceListeners = null;
 				properties.clear();
 				children.clear();
+				propertiesVersion = -1;
 			}
 		}
 
@@ -901,14 +947,27 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return;
 		}
 
+		if (PreferencesDebug.debug) {
+			LOG.debug("Saving properties of node {} (version {})", this, propertiesVersion);
+		}
+
+		// don't flush if not dirty
+		if (!propertiesDirty) {
+			if (PreferencesDebug.debug) {
+				LOG.debug("Aborting property saving of node {} - properties not dirty", this);
+			}
+			return;
+		}
+
 		// prevent concurrent property modification (eg. remote _and_ local flush)
-		final Properties toSave = new Properties();
-		propertiesModifyLock.lock();
+		propertiesLoadOrSaveLock.lock();
 		try {
 			if (removed) {
 				return;
 			}
 
+			// collect properties to save
+			final Properties toSave = new Properties();
 			final Set<Object> keys = properties.keySet();
 			for (final Object key : keys) {
 				final Object value = properties.get(key);
@@ -918,15 +977,24 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			}
 			toSave.put(VERSION_KEY, VERSION_VALUE);
 
+			// convert to bytes
+			final ByteArrayOutputStream out = new ByteArrayOutputStream();
+			toSave.store(out, null);
+
+			// save record data
+			// (note, we do it within the lock in order to get proper stats/version info)
+			propertiesVersion = ZooKeeperGate.get().writeRecord(zkPath, CreateMode.PERSISTENT, out.toByteArray()).getVersion();
+
+			// mark clean
+			propertiesDirty = false;
+
+			if (PreferencesDebug.debug) {
+				LOG.debug("Saved properties of node {} (now at version {})", this, propertiesVersion);
+			}
+
 		} finally {
-			propertiesModifyLock.unlock();
+			propertiesLoadOrSaveLock.unlock();
 		}
-
-		final ByteArrayOutputStream out = new ByteArrayOutputStream();
-		toSave.store(out, null);
-
-		// save record data
-		ZooKeeperGate.get().writeRecord(zkPath, CreateMode.PERSISTENT, out.toByteArray());
 	}
 
 	@Override

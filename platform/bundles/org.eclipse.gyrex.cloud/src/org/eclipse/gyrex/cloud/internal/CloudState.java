@@ -124,7 +124,7 @@ public class CloudState implements IConnectionMonitor {
 		final NodeInfo info = new NodeInfo();
 
 		// check if there is a recored in the "approved" list
-		final byte[] record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(info.getNodeId()));
+		final byte[] record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(info.getNodeId()), null);
 		if (record != null) {
 			return new NodeInfo(record);
 		}
