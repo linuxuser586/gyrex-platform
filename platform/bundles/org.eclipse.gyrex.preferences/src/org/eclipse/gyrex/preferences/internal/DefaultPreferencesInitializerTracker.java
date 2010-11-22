@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -20,7 +20,7 @@ import org.osgi.util.tracker.ServiceTracker;
 /**
  * A tracker for {@link DefaultPreferencesInitializer}.
  */
-public class DefaultPreferencesInitializerTracker extends ServiceTracker {
+public class DefaultPreferencesInitializerTracker extends ServiceTracker<DefaultPreferencesInitializer, DefaultPreferencesInitializer> {
 
 	/**
 	 * Creates a new instance.
@@ -28,12 +28,12 @@ public class DefaultPreferencesInitializerTracker extends ServiceTracker {
 	 * @param context
 	 */
 	public DefaultPreferencesInitializerTracker(final BundleContext context) {
-		super(context, DefaultPreferencesInitializer.SERVICE_NAME, null);
+		super(context, DefaultPreferencesInitializer.class, null);
 	}
 
 	@Override
-	public Object addingService(final ServiceReference reference) {
-		final DefaultPreferencesInitializer initializer = (DefaultPreferencesInitializer) super.addingService(reference);
+	public DefaultPreferencesInitializer addingService(final ServiceReference<DefaultPreferencesInitializer> reference) {
+		final DefaultPreferencesInitializer initializer = super.addingService(reference);
 		if (null != initializer) {
 			// initialize
 			initializer.initializeDefaultPreferences();

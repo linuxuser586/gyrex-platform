@@ -17,13 +17,11 @@ import org.slf4j.LoggerFactory;
  * A service tracker that launches a singleton instance of an Eclipse
  * application.
  */
-final class EquinoxApplicationLauncher extends ServiceTracker {
+final class EquinoxApplicationLauncher extends ServiceTracker<ApplicationDescriptor, ApplicationDescriptor> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(EquinoxApplicationLauncher.class);
-
-	private ApplicationHandle runingApp;
-
 	private final String applicationExtensionId;
+	private ApplicationHandle runingApp;
 
 	/**
 	 * Creates a new instance.
@@ -36,13 +34,13 @@ final class EquinoxApplicationLauncher extends ServiceTracker {
 	 *             if the applicationExtensionId is invalid
 	 */
 	public EquinoxApplicationLauncher(final BundleContext context, final String applicationExtensionId) throws InvalidSyntaxException {
-		super(context, context.createFilter(NLS.bind("(&(objectClass={0})(service.pid={1}))", ApplicationDescriptor.class.getName(), applicationExtensionId)), null);
+		super(context, context.createFilter(NLS.bind("(&(objectClass={0})(service.pid={1}))", ApplicationDescriptor.class, applicationExtensionId)), null);
 		this.applicationExtensionId = applicationExtensionId;
 	}
 
 	@Override
-	public Object addingService(final ServiceReference reference) {
-		final ApplicationDescriptor appDescriptor = (ApplicationDescriptor) super.addingService(reference);
+	public ApplicationDescriptor addingService(final ServiceReference<ApplicationDescriptor> reference) {
+		final ApplicationDescriptor appDescriptor = super.addingService(reference);
 		try {
 			synchronized (this) {
 				if (runingApp == null) {
@@ -56,7 +54,7 @@ final class EquinoxApplicationLauncher extends ServiceTracker {
 	}
 
 	@Override
-	public void removedService(final ServiceReference reference, final Object service) {
+	public void removedService(final ServiceReference<ApplicationDescriptor> reference, final ApplicationDescriptor service) {
 		synchronized (this) {
 			if ((runingApp != null) && (runingApp.getApplicationDescriptor() == service)) {
 				runingApp.destroy();
