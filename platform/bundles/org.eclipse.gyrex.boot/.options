@@ -1,8 +1,0 @@
-# global debug option
-org.eclipse.gyrex.boot/debug=true
-
-# debug roles
-org.eclipse.gyrex.boot/debugRoles=true
-
-# ops mode
-org.eclipse.gyrex.boot/operationMode=true
