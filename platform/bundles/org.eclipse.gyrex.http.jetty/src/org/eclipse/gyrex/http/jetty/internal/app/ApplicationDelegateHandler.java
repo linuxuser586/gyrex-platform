@@ -88,19 +88,24 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 				LOG.debug("routing request to application {}", application);
 			}
 			application.handleRequest(request, response);
+		} catch (final IOException e) {
+			if (Platform.inDebugMode()) {
+				Log.warn("Caught IOException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
+			}
+			throw e;
 		} catch (final ApplicationException e) {
 			// handle ApplicationException
 			if (e.getStatus() == HttpStatus.SERVICE_UNAVAILABLE_503) {
 				// we convert it into UnavailableException
 				if (Platform.inDebugMode()) {
-					Log.warn("Caught ApplicationException while processing request '" + request.toString() + ": " + e.getMessage(), e);
+					Log.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 					throw new UnavailableException(e.getMessage(), 5);
 				} else {
 					throw new UnavailableException(e.getMessage(), 60); // TODO make configurable
 				}
 			} else {
 				if (Platform.inDebugMode()) {
-					Log.warn("Caught ApplicationException while processing request '" + request.toString() + ": " + e.getMessage(), e);
+					Log.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 					response.sendError(e.getStatus(), e.getMessage());
 				} else {
 					response.sendError(e.getStatus());
@@ -115,9 +120,14 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			} else {
 				throw new UnavailableException(e.getMessage(), 60); // TODO make configurable
 			}
+		} catch (final RuntimeException e) {
+			if (Platform.inDebugMode()) {
+				Log.warn("Caught RuntimeException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
+			}
+			throw e;
 		}
 
-		// in any case, mark the request handled
+		// mark the request handled (if this point is reached)
 		baseRequest.setHandled(true);
 	}
 
