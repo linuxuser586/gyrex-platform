@@ -90,6 +90,10 @@ public class ServerRole {
 			}
 			try {
 				application.getValue().destroy();
+			} catch (final IllegalStateException e) {
+				if (BootDebug.debugRoles) {
+					LOG.debug("Application {} already stopped.", application.getKey());
+				}
 			} catch (final Exception e) {
 				LOG.warn("Error during shutdown of application {} while deactivating role {}. {}", new Object[] { application.getKey(), getId(), e.getMessage() }, e);
 			}
