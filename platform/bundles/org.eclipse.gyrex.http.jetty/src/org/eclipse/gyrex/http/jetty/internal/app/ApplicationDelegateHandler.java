@@ -115,7 +115,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			// IllegalStateException are typically used in Gyrex to indicate that something isn't ready
 			// we convert it into UnavailableException to allow recovering on a dynamic platform
 			if (Platform.inDebugMode()) {
-				Log.warn("Caught IllegalStateException while processing request '" + request.toString() + ": " + e.getMessage(), e);
+				Log.warn("Caught IllegalStateException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 				throw new UnavailableException(e.getMessage(), 5);
 			} else {
 				throw new UnavailableException(e.getMessage(), 60); // TODO make configurable
