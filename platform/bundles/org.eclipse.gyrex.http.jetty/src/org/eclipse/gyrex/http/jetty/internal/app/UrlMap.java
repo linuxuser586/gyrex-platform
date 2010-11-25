@@ -115,7 +115,14 @@ public class UrlMap {
 			// domain name lookup
 			final Map<Integer, PathMap> portsToPathMap = hostsToPortsToPathMap.get(domain);
 
-			// walk upwards if necessary/possible (suffix matching)
+			// log debug message here (before reducing domain name)
+			if (portsToPathMap == null) {
+				if (HttpJettyDebug.urlMapLookup) {
+					LOG.debug("[URLMAP] no map for domain {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
+				}
+			}
+
+			// prepare for next domain name lookup, i.e. walk upwards if necessary/possible (suffix matching)
 			if (!domain.isEmpty()) {
 				final int separatorIndex = domain.indexOf('.');
 				domain = separatorIndex >= 0 ? domain.substring(separatorIndex + 1) : EMPTY_STRING;
@@ -123,11 +130,8 @@ public class UrlMap {
 				continueMatching = false;
 			}
 
-			// check if no domain matched at all
+			// check if no domain matched at all and match next domain
 			if (portsToPathMap == null) {
-				if (HttpJettyDebug.urlMapLookup) {
-					LOG.debug("[URLMAP] no map for domain {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
-				}
 				continue;
 			}
 
