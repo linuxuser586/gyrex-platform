@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -48,6 +49,7 @@ import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.CharEncoding;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -73,28 +75,66 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	/** connection monitor to sync the loaded preference tree */
 	static final IConnectionMonitor iConnectionMonitor = new IConnectionMonitor() {
+		private final AtomicReference<Job> connectJobRef = new AtomicReference<Job>();
+
 		@Override
 		public void connected() {
 			final Job job = new Job("Activating preferences hierarchy.") {
+				private static final int MAX_CONNECT_DELAY = 240000;
+				private volatile int delay = 1000;
+
+				private int nextDelay() {
+					return delay = delay < MAX_CONNECT_DELAY ? delay * 2 : MAX_CONNECT_DELAY;
+				}
 
 				@Override
 				protected IStatus run(final IProgressMonitor monitor) {
 					try {
 						final Preferences node = PreferencesActivator.getInstance().getPreferencesService().getRootNode().node(PlatformScope.NAME);
+
+						// activate
 						LOG.info("Activating preferences hierarchy for node {}.", node.absolutePath());
 						((ZooKeeperBasedPreferences) node).syncTree();
+
+						// clear job references
+						connectJobRef.compareAndSet(this, null);
+
+						// done
+						return Status.OK_STATUS;
 					} catch (final BackingStoreException e) {
-						LOG.warn("Unable to activate platform preferences. {}", e.getMessage());
+						// get back-off delay
+						final int nextDelay = nextDelay();
+
+						// log error
+						LOG.error("Unable to activate platform preferences. Will retry in {} seconds. {}", new Object[] { nextDelay, e.getMessage(), e });
+
+						// re-try later
+						schedule(nextDelay);
+
+						// indicate not successful
+						return Status.CANCEL_STATUS;
 					}
-					return Status.OK_STATUS;
 				}
 			};
 			job.setSystem(true);
-			job.schedule();
+			if (connectJobRef.compareAndSet(null, job)) {
+				job.schedule();
+			}
 		}
 
 		@Override
 		public void disconnected() {
+			// cancel activation job
+			final Job job = connectJobRef.getAndSet(null);
+			if (job != null) {
+				job.cancel();
+			}
+
+			// set dis-connected
+			final Preferences node = PreferencesActivator.getInstance().getPreferencesService().getRootNode().node(PlatformScope.NAME);
+			((ZooKeeperBasedPreferences) node).connected.set(false);
+
+			LOG.info("De-activated ZooKeeper preferences.");
 		}
 	};
 
@@ -561,6 +601,9 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// get list of children
 			final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(zkPath, monitor);
+			if (childrenNames == null) {
+				return;
+			}
 
 			// process new nodes
 			for (final String name : childrenNames) {
@@ -1017,7 +1060,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// assume not connected
 			connected.set(false);
 			// throw
-			throw new BackingStoreException(String.format("Error loading node data '%s' from ZooKeeper. %s", this, e.getMessage()), e);
+			throw new BackingStoreException(String.format("Error loading node data '%s' from ZooKeeper. %s", this, ExceptionUtils.getMessage(e)), e);
 		}
 
 		// sync children
