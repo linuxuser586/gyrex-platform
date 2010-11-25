@@ -131,8 +131,12 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			}
 
 			// set dis-connected
-			final Preferences node = PreferencesActivator.getInstance().getPreferencesService().getRootNode().node(PlatformScope.NAME);
-			((ZooKeeperBasedPreferences) node).connected.set(false);
+			try {
+				final Preferences node = PreferencesActivator.getInstance().getPreferencesService().getRootNode().node(PlatformScope.NAME);
+				((ZooKeeperBasedPreferences) node).connected.set(false);
+			} catch (final Exception e) {
+				// ignore (maybe already disconnected)
+			}
 
 			LOG.info("De-activated ZooKeeper preferences.");
 		}
