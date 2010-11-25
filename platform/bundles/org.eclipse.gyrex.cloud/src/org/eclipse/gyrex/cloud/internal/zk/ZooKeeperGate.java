@@ -26,6 +26,7 @@ import org.eclipse.core.runtime.ListenerList;
 import org.eclipse.core.runtime.SafeRunner;
 
 import org.apache.commons.lang.CharEncoding;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -89,9 +90,11 @@ public class ZooKeeperGate {
 		}
 
 		@Override
-		public void handleException(final Throwable exception) {
-			LOG.warn("Removing bogous connection listener {} due to exception ({}).", listener, exception.toString());
-			removeConnectionMonitor((IConnectionMonitor) listener);
+		public void handleException(final Throwable e) {
+			// log error
+			LOG.error("Removing bogous connection listener {} due to exception ({}).", new Object[] { listener, ExceptionUtils.getMessage(e), e });
+			// remove listener directly
+			connectionListeners.remove(listener);
 		}
 
 		@Override
@@ -265,7 +268,7 @@ public class ZooKeeperGate {
 	}
 
 	/**
-	 * Creates a path in ZooKeeper
+	 * Creates a path in ZooKeeper.
 	 * <p>
 	 * If the path parents don't exist they will be created using
 	 * {@link CreateMode#PERSISTENT}.
@@ -281,6 +284,58 @@ public class ZooKeeperGate {
 	 */
 	public void createPath(final IPath path, final CreateMode createMode) throws KeeperException, InterruptedException, IOException {
 		create(path, createMode, null);
+	}
+
+	/**
+	 * Creates a path in ZooKeeper and sets the specified data.
+	 * <p>
+	 * If the path parents don't exist they will be created using
+	 * {@link CreateMode#PERSISTENT}.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @param createMode
+	 *            the creation mode
+	 * @param recordData
+	 *            the record data
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public void createPath(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
+		if (recordData == null) {
+			throw new IllegalArgumentException("recordData must not be null");
+		}
+		create(path, createMode, recordData);
+	}
+
+	/**
+	 * Creates a path in ZooKeeper and sets the specified data.
+	 * <p>
+	 * If the path parents don't exist they will be created using
+	 * {@link CreateMode#PERSISTENT}.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @param createMode
+	 *            the creation mode
+	 * @param recordData
+	 *            the record data
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public void createPath(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
+		if (recordData == null) {
+			throw new IllegalArgumentException("recordData must not be null");
+		}
+		try {
+			createPath(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("JVM does not support UTF-8.", e);
+		}
 	}
 
 	/**
@@ -444,8 +499,8 @@ public class ZooKeeperGate {
 	 * @throws InterruptedException
 	 * @throws IOException
 	 */
-	public String readRecord(final IPath append, final String defaultValue, final Stat stat) throws KeeperException, InterruptedException, IOException {
-		final byte[] data = readRecord(append, stat);
+	public String readRecord(final IPath path, final String defaultValue, final Stat stat) throws KeeperException, InterruptedException, IOException {
+		final byte[] data = readRecord(path, stat);
 		if (data == null) {
 			return defaultValue;
 		}
@@ -594,6 +649,5 @@ public class ZooKeeperGate {
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalStateException("JVM does not support UTF-8.", e);
 		}
-
 	}
 }
