@@ -34,7 +34,7 @@ final class EquinoxApplicationLauncher extends ServiceTracker<ApplicationDescrip
 	 *             if the applicationExtensionId is invalid
 	 */
 	public EquinoxApplicationLauncher(final BundleContext context, final String applicationExtensionId) throws InvalidSyntaxException {
-		super(context, context.createFilter(NLS.bind("(&(objectClass={0})(service.pid={1}))", ApplicationDescriptor.class, applicationExtensionId)), null);
+		super(context, context.createFilter(NLS.bind("(&(objectClass={0})(service.pid={1}))", ApplicationDescriptor.class.getName(), applicationExtensionId)), null);
 		this.applicationExtensionId = applicationExtensionId;
 	}
 
