@@ -221,11 +221,8 @@ public class ZooKeeperGate {
 				LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost.", event.getState());
 				connected.set(false);
 
-				// notify listeners
-				fireConnectionEvent(false);
-
-				// trigger clean shutdown
-				shutdown();
+				// trigger clean shutdown (and notify listeners)
+				shutdown(true);
 			} else {
 				// ZooKeeper will re-try on it's own in all other cases
 				LOG.info("ZooKeeper is now {}. Gate is not intervening. ({})", event.getState(), zooKeeper);
@@ -568,10 +565,19 @@ public class ZooKeeperGate {
 
 	/**
 	 * Closes the gate.
+	 * 
+	 * @param notify
+	 *            set to <code>true</code> in notify registered connection
+	 *            listeners
 	 */
-	public void shutdown() {
+	void shutdown(final boolean notify) {
 		if (CloudDebug.zooKeeperGateLifecycle) {
 			LOG.debug("Shutdown of ZooKeeper Gate. {}", this, new Exception("ZooKeeper Gate Shutdown Call Stack"));
+		}
+
+		// notify listeners
+		if (notify) {
+			fireConnectionEvent(false);
 		}
 
 		try {

@@ -11,11 +11,17 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,6 +65,14 @@ public class NodeInfo {
 			return new String(Hex.encodeHex(nodeId));
 		} catch (final Exception e) {
 			throw new IllegalStateException(NLS.bind("Unable to generate node id. {0}", e));
+		}
+	}
+
+	private static String getDefaultLocationInfo(final String nodeId) {
+		try {
+			return InetAddress.getLocalHost().getCanonicalHostName();
+		} catch (final UnknownHostException e) {
+			return nodeId + ": " + e.getMessage();
 		}
 	}
 
@@ -134,50 +148,51 @@ public class NodeInfo {
 	}
 
 	private final String nodeId;
-	private boolean approved;
-	private String location;
+	private final boolean approved;
+	private final String location;
+	private final Set<String> roles;
 
 	/**
 	 * Creates a new instance.
 	 */
 	public NodeInfo() {
 		nodeId = initializeNodeId();
-		try {
-			location = InetAddress.getLocalHost().getCanonicalHostName();
-		} catch (final UnknownHostException e) {
-			location = nodeId + ": " + e.getMessage();
-		}
+		location = getDefaultLocationInfo(nodeId);
+		roles = Collections.emptySet();
+		approved = false;
 	}
 
 	/**
-	 * Creates a new instance.
+	 * Creates a new instance using the specified instance data.
 	 * 
 	 * @param data
+	 *            the instance data
 	 * @throws Exception
+	 *             if an error occurred parsing the instance data
 	 */
 	NodeInfo(final byte[] data) throws Exception {
-		this();
+		nodeId = initializeNodeId();
 
-		// TODO de-serialize data
-//		ObjectInputStream in = null;
-//		try {
-//			in = new ObjectInputStream(new ByteArrayInputStream(data));
-//
-//			// location info
-//			final String location = in.readUTF();
-//
-//			// server roles
-//			final int numberOfRoles = in.readInt();
-//			final String[] roles = new String[numberOfRoles];
-//			for (int i = 0; i < numberOfRoles; i++) {
-//				roles[i] = in.readUTF();
-//			}
-//		} catch (final IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} finally {
-//			IOUtils.closeQuietly(in);
-//		}
+		// parse
+		final Properties properties = new Properties();
+		if (data != null) {
+			properties.load(new ByteArrayInputStream(data));
+		}
+
+		// location
+		location = properties.getProperty("location", getDefaultLocationInfo(nodeId));
+
+		// roles
+		final String[] roles = StringUtils.split(properties.getProperty("roles"), ',');
+		if ((roles != null) && (roles.length > 0)) {
+			final Set<String> cloudRoles = new HashSet<String>(roles.length);
+			for (final String role : roles) {
+				cloudRoles.add(role);
+			}
+			this.roles = Collections.unmodifiableSet(cloudRoles);
+		} else {
+			this.roles = Collections.emptySet();
+		}
 
 		// this node is approved
 		approved = true;
@@ -202,6 +217,15 @@ public class NodeInfo {
 	}
 
 	/**
+	 * Returns a collection of roles assigned to the node.
+	 * 
+	 * @return an unmodifiable collection of assigned roles
+	 */
+	public Collection<String> getRoles() {
+		return roles;
+	}
+
+	/**
 	 * Indicates if the node is an approved member.
 	 * 
 	 * @return <code>true</code> if the node membership is approved,
@@ -221,5 +245,4 @@ public class NodeInfo {
 		info.append(")");
 		return info.toString();
 	}
-
 }

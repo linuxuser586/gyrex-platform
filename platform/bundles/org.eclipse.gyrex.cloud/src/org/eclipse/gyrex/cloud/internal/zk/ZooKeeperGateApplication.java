@@ -58,7 +58,7 @@ public class ZooKeeperGateApplication implements IApplication {
 			// clean-up old gate instance
 			final ZooKeeperGate oldGate = ZooKeeperGate.getAndSet(null);
 			if (oldGate != null) {
-				oldGate.shutdown();
+				oldGate.shutdown(false); // don't fire events here (recursion!)
 			}
 
 			// re-connect if active
@@ -86,7 +86,7 @@ public class ZooKeeperGateApplication implements IApplication {
 			} finally {
 				// clean-up old gate instance
 				if (oldGate != null) {
-					oldGate.shutdown();
+					oldGate.shutdown(true);
 				}
 			}
 
@@ -109,6 +109,16 @@ public class ZooKeeperGateApplication implements IApplication {
 
 	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>();
 	private static final AtomicReference<Throwable> zkErrorRef = new AtomicReference<Throwable>();
+
+	/**
+	 * Force a shutdown of the ZooKeeper gate.
+	 */
+	public static void forceShutdown() {
+		final CountDownLatch stopSignal = stopSignalRef.get();
+		if (stopSignal != null) {
+			stopSignal.countDown();
+		}
+	}
 
 	boolean isActive() {
 		final CountDownLatch stopSignal = stopSignalRef.get();
@@ -180,7 +190,7 @@ public class ZooKeeperGateApplication implements IApplication {
 			// shutdown ZooKeeper if still running
 			final ZooKeeperGate gate = ZooKeeperGate.getAndSet(null);
 			if (gate != null) {
-				gate.shutdown();
+				gate.shutdown(true);
 			}
 
 			if (CloudDebug.zooKeeperGateLifecycle) {

@@ -36,7 +36,10 @@ public interface IZooKeeperLayout {
 	/** root path for cloud membership information stored in ZooKeeper */
 	public static final IPath PATH_NODE_ROOT = PATH_GYREX_ROOT.append("nodes").makeAbsolute();
 
-	/** path with ephemeral records for each online node */
+	/** path with ephemeral records for each node */
+	public static final IPath PATH_NODES_ALL = PATH_NODE_ROOT.append("all").makeAbsolute();
+
+	/** path with ephemeral records for each online node (approved only) */
 	public static final IPath PATH_NODES_ONLINE = PATH_NODE_ROOT.append("online").makeAbsolute();
 
 	/**
