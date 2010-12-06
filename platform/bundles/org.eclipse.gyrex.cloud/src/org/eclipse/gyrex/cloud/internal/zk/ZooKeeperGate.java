@@ -120,7 +120,8 @@ public class ZooKeeperGate {
 	 * will be called as part of the registration.
 	 * </p>
 	 * <p>
-	 * This method has no effect if the monitor is already registered
+	 * This method has no effect if the monitor is already registered or the
+	 * specified monitor is <code>null</code>
 	 * </p>
 	 * 
 	 * @param connectionMonitor
@@ -180,12 +181,12 @@ public class ZooKeeperGate {
 	 * </p>
 	 * 
 	 * @param connectionMonitor
-	 *            the monitor to unregister (may be <code>null</code>)
+	 *            the monitor to unregister (must not be <code>null</code>)
 	 */
 	public static void removeConnectionMonitor(final IConnectionMonitor connectionMonitor) {
 		// ignore null monitor
 		if (connectionMonitor == null) {
-			return;
+			throw new IllegalArgumentException("connection monitor must not be null");
 		}
 
 		// get state first (to ensure that we call a disconnect)
