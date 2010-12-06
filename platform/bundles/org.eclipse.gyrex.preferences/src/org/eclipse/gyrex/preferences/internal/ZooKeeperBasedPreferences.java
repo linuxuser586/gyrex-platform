@@ -749,7 +749,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public Preferences node(final String path) {
-		ensureConnected();
+		// check removal
+		checkRemoved();
 
 		// check if this node is requested
 		if (path.length() == 0) {
@@ -761,6 +762,12 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		if (path.charAt(0) == IPath.SEPARATOR) {
 			return calculateRoot().node(path.substring(1));
 		}
+
+		// ensure that the node is connected with ZooKeeper
+		ensureConnected();
+
+		// TODO: investigate behavior when not connected
+		// we should probably allow traversal of *existing* childs but don't allow addition of new nodes
 
 		// get child
 		final int index = path.indexOf(IPath.SEPARATOR);
