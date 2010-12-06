@@ -123,16 +123,21 @@ public class ZooKeeperGate {
 	 * This method has no effect if the monitor is already registered
 	 * </p>
 	 * 
-	 * @param iConnectionMonitor
-	 *            the monitor to register
+	 * @param connectionMonitor
+	 *            the monitor to register (may be <code>null</code>)
 	 */
-	public static void addConnectionMonitor(final IConnectionMonitor iConnectionMonitor) {
+	public static void addConnectionMonitor(final IConnectionMonitor connectionMonitor) {
+		// ignore null monitors
+		if (connectionMonitor == null) {
+			return;
+		}
+
 		// add listener first
-		connectionListeners.add(iConnectionMonitor);
+		connectionListeners.add(connectionMonitor);
 
 		// notify
 		if (connected.get()) {
-			SafeRunner.run(new NotifyConnectionListener(true, iConnectionMonitor));
+			SafeRunner.run(new NotifyConnectionListener(true, connectionMonitor));
 		}
 	}
 
@@ -174,19 +179,24 @@ public class ZooKeeperGate {
 	 * This method has no effect if the monitor is not registered
 	 * </p>
 	 * 
-	 * @param iConnectionMonitor
-	 *            the monitor to unregister
+	 * @param connectionMonitor
+	 *            the monitor to unregister (may be <code>null</code>)
 	 */
-	public static void removeConnectionMonitor(final IConnectionMonitor iConnectionMonitor) {
+	public static void removeConnectionMonitor(final IConnectionMonitor connectionMonitor) {
+		// ignore null monitor
+		if (connectionMonitor == null) {
+			return;
+		}
+
 		// get state first (to ensure that we call a disconnect)
 		final boolean notify = connected.get();
 
 		// remove listener
-		connectionListeners.remove(iConnectionMonitor);
+		connectionListeners.remove(connectionMonitor);
 
 		// notify
 		if (notify) {
-			SafeRunner.run(new NotifyConnectionListener(false, iConnectionMonitor));
+			SafeRunner.run(new NotifyConnectionListener(false, connectionMonitor));
 		}
 	}
 
