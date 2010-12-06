@@ -74,7 +74,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private static final String TRUE = Boolean.TRUE.toString();
 
 	/** connection monitor to sync the loaded preference tree */
-	static final IConnectionMonitor iConnectionMonitor = new IConnectionMonitor() {
+	static final IConnectionMonitor connectionMonitor = new IConnectionMonitor() {
 		private final AtomicReference<Job> connectJobRef = new AtomicReference<Job>();
 
 		@Override
