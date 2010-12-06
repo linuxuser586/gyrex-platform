@@ -515,7 +515,13 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new IllegalArgumentException("key must not be null");
 		}
 
-		ensureConnected();
+		try {
+			ensureConnected();
+		} catch (final IllegalStateException e) {
+			// the node may be off-line
+			// double check for removal but don't fail if off-line
+			checkRemoved();
+		}
 
 		final String value = properties.getProperty(key);
 		return value == null ? def : value;
