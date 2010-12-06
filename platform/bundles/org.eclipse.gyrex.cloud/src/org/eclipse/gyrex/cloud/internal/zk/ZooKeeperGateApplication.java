@@ -24,7 +24,7 @@ public class ZooKeeperGateApplication implements IApplication {
 
 	private final class ConnectRunnable implements Runnable, IConnectionMonitor {
 		private static final int INITIAL_CONNECT_DELAY = 1000;
-		private static final int MAX_CONNECT_DELAY = 240000;
+		private static final int MAX_CONNECT_DELAY = 300000;
 
 		private final ScheduledExecutorService executor;
 		private final ZooKeeperGateConfig config;
@@ -66,7 +66,7 @@ public class ZooKeeperGateApplication implements IApplication {
 		}
 
 		private int nextDelay() {
-			return delay < MAX_CONNECT_DELAY ? delay * 2 : MAX_CONNECT_DELAY;
+			return Math.min(MAX_CONNECT_DELAY, delay * 2);
 		}
 
 		public void run() {
