@@ -28,7 +28,7 @@
 <stringAttribute key="selectedPlugin" value="org.eclipse.gyrex.context"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
-<stringAttribute key="timestamp" value="1288880006687"/>
+<stringAttribute key="timestamp" value="1291705361872"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.eclipse.cloudfree.boot/debug" value="true"/>

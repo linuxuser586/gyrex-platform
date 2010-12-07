@@ -15,8 +15,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
@@ -50,10 +53,13 @@ public class ServerApplication implements IApplication {
 	private static final AtomicBoolean running = new AtomicBoolean();
 
 	/** the stop or restart signal */
-	private static volatile CountDownLatch stopOrRestartSignal;
+	private static final AtomicReference<CountDownLatch> stopOrRestartSignalRef = new AtomicReference<CountDownLatch>();
 
 	/** a flag indicating if the application should restart upon shutdown */
 	private static volatile boolean relaunch;
+
+	/** optional shutdown reason */
+	private static volatile Throwable shutdownReason;
 
 	/**
 	 * Indicates if the server is running.
@@ -93,28 +99,43 @@ public class ServerApplication implements IApplication {
 	 * Signals a restart.
 	 */
 	public static void signalRelaunch() {
-		relaunch = true;
+		final CountDownLatch signal = stopOrRestartSignalRef.get();
+		if (null == signal) {
+			throw new IllegalStateException("Platform not started.");
+		}
+
 		if (BootDebug.debug) {
 			LOG.debug("Relaunch request received!");
 		}
-		final CountDownLatch signal = stopOrRestartSignal;
-		if (null != signal) {
-			signal.countDown();
-		}
+
+		// set relaunch flag
+		relaunch = true;
+
+		// signal shutdown
+		signal.countDown();
 	}
 
 	/**
 	 * Signals a shutdown.
 	 */
-	public static void signalShutdown() {
-		relaunch = false;
+	public static void signalShutdown(final Throwable cause) {
+		final CountDownLatch signal = stopOrRestartSignalRef.get();
+		if (null == signal) {
+			throw new IllegalStateException("Platform not started.");
+		}
+
 		if (BootDebug.debug) {
 			LOG.debug("Shutdown request received!");
 		}
-		final CountDownLatch signal = stopOrRestartSignal;
-		if (null != signal) {
-			signal.countDown();
-		}
+
+		// set shutdown flag
+		relaunch = false;
+
+		// set shutdown reason
+		shutdownReason = cause;
+
+		// signal shutdown
+		signal.countDown();
 	}
 
 	private ServiceRegistration frameworkLogServiceRegistration;
@@ -190,10 +211,10 @@ public class ServerApplication implements IApplication {
 	 *            the arguments
 	 * @return the enabled roles
 	 */
-	private String[] getEnabledServerRoles(final String[] arguments) {
+	private ServerRole[] getEnabledServerRoles(final String[] arguments) {
 		// scan arguments for submitted roles
 		boolean ignoreConfiguredRoles = false;
-		final List<String> roles = new ArrayList<String>();
+		final List<String> roleIds = new ArrayList<String>();
 		for (int i = 0; i < arguments.length; i++) {
 			final String arg = arguments[i];
 			if ("-ignoreConfiguredRoles".equalsIgnoreCase(arg)) {
@@ -208,11 +229,11 @@ public class ServerApplication implements IApplication {
 				}
 				for (final String role : specifiedRoles) {
 					if (StringUtils.isNotBlank(role)) {
-						if (!roles.contains(role)) {
+						if (!roleIds.contains(role)) {
 							if (BootDebug.debugRoles) {
 								LOG.debug("Role submitted via command line: " + role);
 							}
-							roles.add(role);
+							roleIds.add(role);
 						}
 					}
 				}
@@ -228,11 +249,11 @@ public class ServerApplication implements IApplication {
 			if (null != rolesToStart) {
 				for (final String role : rolesToStart) {
 					if (StringUtils.isNotBlank(role)) {
-						if (!roles.contains(role)) {
+						if (!roleIds.contains(role)) {
 							if (BootDebug.debugRoles) {
 								LOG.debug("Configured role: " + role);
 							}
-							roles.add(role);
+							roleIds.add(role);
 						}
 					}
 				}
@@ -247,16 +268,22 @@ public class ServerApplication implements IApplication {
 		if (Platform.inDevelopmentMode()) {
 			final String[] defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefaultInDevelopmentMode();
 			for (final String role : defaultRoles) {
-				if (!roles.contains(role)) {
+				if (!roleIds.contains(role)) {
 					if (BootDebug.debugRoles) {
 						LOG.debug("Default start role: " + role);
 					}
-					roles.add(role);
+					roleIds.add(role);
 				}
 			}
 		}
 
-		return roles.toArray(new String[roles.size()]);
+		// resolve all roles and sort
+		final SortedSet<ServerRole> roles = new TreeSet<ServerRole>();
+		final ServerRolesRegistry registry = ServerRolesRegistry.getDefault();
+		for (final String roleId : roleIds) {
+			roles.add(registry.getRole(roleId));
+		}
+		return roles.toArray(new ServerRole[roles.size()]);
 	}
 
 	private void loggingOff() {
@@ -340,6 +367,13 @@ public class ServerApplication implements IApplication {
 					LOG.debug("Starting platform...");
 				}
 
+				// note, this application is configured to run only ONCE
+				// enforce early
+				final CountDownLatch stopOrRestartSignal = new CountDownLatch(1);
+				if (!stopOrRestartSignalRef.compareAndSet(null, stopOrRestartSignal)) {
+					throw new IllegalStateException("Server application already started!");
+				}
+
 				// bootstrap the platform
 				bootstrap();
 
@@ -348,30 +382,22 @@ public class ServerApplication implements IApplication {
 				running.set(true);
 
 				// read enabled server roles from configuration
-				final String[] roles = getEnabledServerRoles(arguments);
+				final ServerRole[] roles = getEnabledServerRoles(arguments);
 
 				// activate server roles
-				final List<ServerRole> activeRoles = new ArrayList<ServerRole>(roles.length);
-				for (final String roleName : roles) {
-					final ServerRole role = ServerRolesRegistry.getDefault().getRole(roleName);
-					if (null == role) {
-						LOG.warn("Server role {} not found! Please check your installation.", roleName);
-						continue;
-					}
+				for (final ServerRole role : roles) {
 					role.activate();
-					activeRoles.add(role);
 				}
 
 				// signal that we are now up and running
 				context.applicationRunning();
 
+				// log message
 				if (BootDebug.debug) {
 					LOG.info("Platform started.");
 				}
 
-				// note, this application is configured to run only ONCE
-				// thus, the following code is safe
-				stopOrRestartSignal = new CountDownLatch(1);
+				// wait for shutdown
 				do {
 					try {
 						stopOrRestartSignal.await();
@@ -380,10 +406,10 @@ public class ServerApplication implements IApplication {
 						Thread.currentThread().interrupt();
 					}
 				} while ((stopOrRestartSignal.getCount() > 0) && Thread.interrupted());
-				stopOrRestartSignal = null;
 
-				// deactivate roles
-				for (final ServerRole role : activeRoles) {
+				// deactivate roles (in reverse order)
+				for (int i = roles.length - 1; i >= 0; i--) {
+					final ServerRole role = roles[i];
 					role.deactivate();
 				}
 
@@ -395,6 +421,15 @@ public class ServerApplication implements IApplication {
 					LOG.debug("Platform closed.");
 				}
 
+				// de-configure logging
+				loggingOff();
+
+				// print error
+				final Throwable reason = shutdownReason;
+				if (reason != null) {
+					printError("Server shutdown forced due to error in underlying system. Please verify the installation is correct and all required components are available. ", reason);
+					return EXIT_ERROR;
+				}
 			} catch (final Exception e) {
 				if (BootDebug.debug) {
 					LOG.debug("Platform start failed!", e);
@@ -418,17 +453,17 @@ public class ServerApplication implements IApplication {
 				instanceLocation.release();
 			}
 
-			// de-configure logging
-			loggingOff();
+			// allow restart
+			stopOrRestartSignalRef.set(null);
+
+			// reset
+			shutdownReason = null;
 		}
 	}
 
 	@Override
 	public void stop() {
-		final CountDownLatch signal = stopOrRestartSignal;
-		if (null != signal) {
-			signal.countDown();
-		}
+		signalShutdown(null);
 	}
 
 }

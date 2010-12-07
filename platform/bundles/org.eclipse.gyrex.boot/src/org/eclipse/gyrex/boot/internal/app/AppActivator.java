@@ -77,7 +77,7 @@ public class AppActivator extends BaseBundleActivator {
 	}
 
 	private BundleContext context;
-	private ServiceTracker bundleTracker;
+	private ServiceTracker<PackageAdmin, PackageAdmin> bundleTracker;
 	private volatile IServiceProxy<Location> instanceLocationProxy;
 
 	/**
@@ -129,15 +129,16 @@ public class AppActivator extends BaseBundleActivator {
 		return null;
 	}
 
+	@Deprecated
 	private PackageAdmin getBundleAdmin() {
 		if (bundleTracker == null) {
 			if (context == null) {
 				return null;
 			}
-			bundleTracker = new ServiceTracker(context, PackageAdmin.class.getName(), null);
+			bundleTracker = new ServiceTracker<PackageAdmin, PackageAdmin>(context, PackageAdmin.class, null);
 			bundleTracker.open();
 		}
-		return (PackageAdmin) bundleTracker.getService();
+		return bundleTracker.getService();
 	}
 
 	/**

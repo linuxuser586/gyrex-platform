@@ -14,6 +14,18 @@
                applicationId="org.eclipse.gyrex.cloud.zookeeper.gate.application">
          </requireApplication>
       </role>
+      <role
+            defaultStart="inDevelopmentMode"
+            id="org.eclipse.gyrex.cloud.zookeeper.standalone"
+            name="ZooKeeper Standalone Server"
+            startLevel="-1">
+         <requireBundle
+               symbolicName="org.eclipse.gyrex.cloud">
+         </requireBundle>
+         <requireApplication
+               applicationId="org.eclipse.gyrex.cloud.zookeeper.server.application">
+         </requireApplication>
+      </role>
    </extension>
    <extension
          id="org.eclipse.gyrex.cloud.zookeeper.server.application"

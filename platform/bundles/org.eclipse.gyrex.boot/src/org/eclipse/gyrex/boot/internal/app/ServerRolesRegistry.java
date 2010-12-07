@@ -21,6 +21,7 @@ import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.RegistryFactory;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 
 /**
  * A registry that keeps track of registered server roles.
@@ -62,12 +63,12 @@ public class ServerRolesRegistry {
 	/**
 	 * Returns a server role of the specified name
 	 * 
-	 * @param name
+	 * @param id
 	 * @return a server role
 	 */
-	public ServerRole getRole(final String name) {
+	public ServerRole getRole(final String id) {
 		checkInitialized();
-		return registeredRoles.get(name);
+		return registeredRoles.get(id);
 	}
 
 	public String[] getRolesToStartByDefaultInDevelopmentMode() {
@@ -89,6 +90,7 @@ public class ServerRolesRegistry {
 					// TODO should log invalid roles
 					continue;
 				}
+				final int startLevel = NumberUtils.toInt(serverRolesElement.getAttribute("startLevel"), 0);
 				final IConfigurationElement[] requireBundleElements = serverRolesElement.getChildren("requireBundle");
 				final List<String> requiredBundles = new ArrayList<String>(requireBundleElements.length);
 				for (final IConfigurationElement requireBundleElement : requireBundleElements) {
@@ -113,7 +115,7 @@ public class ServerRolesRegistry {
 				if ("inDevelopmentMode".equals(serverRolesElement.getAttribute("defaultStart"))) {
 					defaultStartInDevelopmentMode.add(id);
 				}
-				registeredRoles.put(id, new ServerRole(id, name, requiredBundles, requiredApps));
+				registeredRoles.put(id, new ServerRole(id, name, startLevel, requiredBundles, requiredApps));
 			}
 		}
 	}

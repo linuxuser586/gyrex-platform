@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,7 +28,6 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.osgi.util.NLS;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.CharSet;
@@ -56,16 +54,12 @@ public class NodeInfo {
 	private static final AtomicReference<String> verifiedNodeId = new AtomicReference<String>();
 
 	/**
-	 * @return
+	 * Generates a node id based on {@link UUID#randomUUID()}.
+	 * 
+	 * @return the generated node id
 	 */
-	private static String createNodeId() {
-		try {
-			final MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			final byte[] nodeId = digest.digest(UUID.randomUUID().toString().getBytes(CharEncoding.US_ASCII));
-			return new String(Hex.encodeHex(nodeId));
-		} catch (final Exception e) {
-			throw new IllegalStateException(NLS.bind("Unable to generate node id. {0}", e));
-		}
+	private static String generateNodeId() {
+		return UUID.randomUUID().toString();
 	}
 
 	private static String getDefaultLocationInfo(final String nodeId) {
@@ -110,7 +104,7 @@ public class NodeInfo {
 			}
 
 			// generate new node id
-			final String newNodeId = createNodeId();
+			final String newNodeId = generateNodeId();
 
 			// write to file
 			if (verifiedNodeId.compareAndSet(null, newNodeId)) {
@@ -150,6 +144,7 @@ public class NodeInfo {
 	private final String nodeId;
 	private final boolean approved;
 	private final String location;
+	private final String name;
 	private final Set<String> roles;
 
 	/**
@@ -158,6 +153,7 @@ public class NodeInfo {
 	public NodeInfo() {
 		nodeId = initializeNodeId();
 		location = getDefaultLocationInfo(nodeId);
+		name = "";
 		roles = Collections.emptySet();
 		approved = false;
 	}
@@ -178,6 +174,9 @@ public class NodeInfo {
 		if (data != null) {
 			properties.load(new ByteArrayInputStream(data));
 		}
+
+		// name
+		name = properties.getProperty("name");
 
 		// location
 		location = properties.getProperty("location", getDefaultLocationInfo(nodeId));
@@ -205,6 +204,16 @@ public class NodeInfo {
 	 */
 	public String getLocation() {
 		return location;
+	}
+
+	/**
+	 * Returns the name.
+	 * 
+	 * @return the name (defaults to {@link #getNodeId() node id} if the name is
+	 *         not set)
+	 */
+	public String getName() {
+		return name != null ? name : nodeId;
 	}
 
 	/**
@@ -238,10 +247,12 @@ public class NodeInfo {
 	@Override
 	public String toString() {
 		final StrBuilder info = new StrBuilder();
-		info.append(nodeId).append(" (");
+		info.append(getName()).append(" (");
 		info.append(location);
 		info.append(", ");
 		info.append(approved ? "APPROVED" : "PENDING");
+		info.append(", ");
+		info.append(nodeId);
 		info.append(")");
 		return info.toString();
 	}

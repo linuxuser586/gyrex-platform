@@ -90,6 +90,13 @@ provisioning and management of additional components.
                </restriction>
             </simpleType>
          </attribute>
+         <attribute name="startLevel" type="string">
+            <annotation>
+               <documentation>
+                  Allows to set a start level for roles. The default start level is zero (0).
+               </documentation>
+            </annotation>
+         </attribute>
       </complexType>
    </element>
 

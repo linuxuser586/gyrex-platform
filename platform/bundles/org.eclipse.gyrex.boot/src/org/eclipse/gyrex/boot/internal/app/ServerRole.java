@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -30,23 +31,27 @@ import org.slf4j.LoggerFactory;
 /**
  * A server role
  */
-public class ServerRole {
+public class ServerRole implements Comparable<ServerRole> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerRole.class);
 
 	private final String id;
 	private final String name;
+	private final int startLevel;
 	private final List<String> requiredBundleNames;
 	private final List<String> requiredApplicationIds;
 
 	private final Map<String, ApplicationHandle> launchedApps = new HashMap<String, ApplicationHandle>(3);
 
+	private final AtomicBoolean active = new AtomicBoolean();
+
 	/**
 	 * Creates a new instance.
 	 */
-	ServerRole(final String id, final String name, final List<String> requiredBundleNames, final List<String> requiredApplicationIds) {
+	ServerRole(final String id, final String name, final int startLevel, final List<String> requiredBundleNames, final List<String> requiredApplicationIds) {
 		this.id = id;
 		this.name = name;
+		this.startLevel = startLevel;
 		this.requiredBundleNames = requiredBundleNames;
 		this.requiredApplicationIds = requiredApplicationIds;
 	}
@@ -57,6 +62,10 @@ public class ServerRole {
 	 * @throws BundleException
 	 */
 	public void activate() throws ActivationException {
+		if (!active.compareAndSet(false, true)) {
+			return;
+		}
+
 		if (BootDebug.debugRoles) {
 			LOG.debug("Activating server role " + getId());
 		}
@@ -76,10 +85,19 @@ public class ServerRole {
 		}
 	}
 
+	@Override
+	public int compareTo(final ServerRole o) {
+		return startLevel - o.startLevel;
+	}
+
 	/**
 	 * Deactivates the server role.
 	 */
 	public void deactivate() {
+		if (!active.compareAndSet(true, false)) {
+			return;
+		}
+
 		if (BootDebug.debugRoles) {
 			LOG.debug("Deactivating server role " + getId());
 		}
@@ -172,5 +190,15 @@ public class ServerRole {
 			throw e;
 		}
 
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("ServerRole [id=").append(id).append(", name=").append(name).append(", startLevel=").append(startLevel).append(", active=").append(active).append("]");
+		return builder.toString();
 	}
 }
