@@ -14,9 +14,8 @@ package org.eclipse.gyrex.boot.internal.app;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -211,7 +210,7 @@ public class ServerApplication implements IApplication {
 	 *            the arguments
 	 * @return the enabled roles
 	 */
-	private ServerRole[] getEnabledServerRoles(final String[] arguments) {
+	private List<ServerRole> getEnabledServerRoles(final String[] arguments) {
 		// scan arguments for submitted roles
 		boolean ignoreConfiguredRoles = false;
 		final List<String> roleIds = new ArrayList<String>();
@@ -277,13 +276,21 @@ public class ServerApplication implements IApplication {
 			}
 		}
 
-		// resolve all roles and sort
-		final SortedSet<ServerRole> roles = new TreeSet<ServerRole>();
+		// resolve all roles
+		final List<ServerRole> roles = new ArrayList<ServerRole>(roleIds.size());
 		final ServerRolesRegistry registry = ServerRolesRegistry.getDefault();
 		for (final String roleId : roleIds) {
-			roles.add(registry.getRole(roleId));
+			final ServerRole role = registry.getRole(roleId);
+			if (role == null) {
+				LOG.warn("Role {} not found!", roleId);
+				continue;
+			}
+			roles.add(role);
 		}
-		return roles.toArray(new ServerRole[roles.size()]);
+
+		// sort according to their start level
+		Collections.sort(roles);
+		return roles;
 	}
 
 	private void loggingOff() {
@@ -382,7 +389,7 @@ public class ServerApplication implements IApplication {
 				running.set(true);
 
 				// read enabled server roles from configuration
-				final ServerRole[] roles = getEnabledServerRoles(arguments);
+				final List<ServerRole> roles = getEnabledServerRoles(arguments);
 
 				// activate server roles
 				for (final ServerRole role : roles) {
@@ -408,8 +415,8 @@ public class ServerApplication implements IApplication {
 				} while ((stopOrRestartSignal.getCount() > 0) && Thread.interrupted());
 
 				// deactivate roles (in reverse order)
-				for (int i = roles.length - 1; i >= 0; i--) {
-					final ServerRole role = roles[i];
+				for (int i = roles.size() - 1; i >= 0; i--) {
+					final ServerRole role = roles.get(i);
 					role.deactivate();
 				}
 
