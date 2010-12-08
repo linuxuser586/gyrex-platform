@@ -56,7 +56,7 @@ public class CloudActivator extends BaseBundleActivator {
 
 		// eager read server id in order to prevent activation in case of errors
 		final String nodeId = new NodeInfo().getNodeId();
-		LOG.info("Initializing cloud services for node id {}.", nodeId);
+		LOG.info("Node id: {}", nodeId);
 
 		// track services
 		instanceLocationServiceRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
