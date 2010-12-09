@@ -14,6 +14,7 @@ package org.eclipse.gyrex.persistence.context.preferences.internal;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.persistence.context.preferences.ContextPreferencesRepository;
+import org.eclipse.gyrex.persistence.context.preferences.IContextPreferencesRepositoryConstants;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
@@ -25,13 +26,7 @@ import org.eclipse.osgi.util.NLS;
 /**
  * A repository type which stores objects in a context preferences.
  */
-public class ContextPreferencesRepositoryType extends RepositoryProvider {
-
-	/**
-	 * repository preference key of the context path setting (value
-	 * <code>contextPath</code>)
-	 */
-	public static final String PREF_KEY_CONTEXT_PATH = "contextPath";
+public class ContextPreferencesRepositoryType extends RepositoryProvider implements IContextPreferencesRepositoryConstants {
 
 	private IRuntimeContextRegistry contextRegistry;
 
@@ -41,7 +36,7 @@ public class ContextPreferencesRepositoryType extends RepositoryProvider {
 	 * @param id
 	 */
 	public ContextPreferencesRepositoryType() {
-		super(ContextPreferencesRepository.PROVIDER_ID, ContextPreferencesRepository.class);
+		super(IContextPreferencesRepositoryConstants.PROVIDER_ID, ContextPreferencesRepository.class);
 	}
 
 	@Override

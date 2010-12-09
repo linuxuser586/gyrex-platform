@@ -29,13 +29,7 @@ import org.osgi.service.prefs.BackingStoreException;
  * 
  * @noextend This class is not intended to be subclassed by clients.
  */
-public abstract class ContextPreferencesRepository extends Repository {
-
-	/** the repository provider id */
-	public static final String PROVIDER_ID = "org.eclipse.gyrex.persistence.context.preferences";
-
-	/** the repository type name */
-	public static final String TYPE_NAME = ContextPreferencesRepository.class.getName();
+public abstract class ContextPreferencesRepository extends Repository implements IContextPreferencesRepositoryConstants {
 
 	/**
 	 * Creates a new map repository instance.
