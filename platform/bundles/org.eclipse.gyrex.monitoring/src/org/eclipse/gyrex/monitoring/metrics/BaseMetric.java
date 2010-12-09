@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -17,6 +17,9 @@ import java.util.Date;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.commons.lang.CharSet;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Base class for a metric.
@@ -37,9 +40,58 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public abstract class BaseMetric {
 
+	/** char set of allowed id chars */
+	private static final CharSet ALLOWED_ID_CHARS = CharSet.getInstance(new String[] { "a-z", "A-Z", "0-9", ".", ",", "-", "_", "[", "]", "(", ")", "/" });
+
 	static final String[] NO_METRICS = new String[0];
 
 	protected static final DateFormat ISO_8601_UTC = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
+
+	/**
+	 * Indicates if the specified id is a valid metric id.
+	 * <p>
+	 * By definition, all identifiers used within Metrics APIs must not be
+	 * <code>null</code> or the empty string and may only contain the following
+	 * printable ASCII characters.
+	 * <ul>
+	 * <li>lower- and uppercase letters <code>a..z</code> and <code>A..Z</code></li>
+	 * <li>numbers <code>0..9</code></li>
+	 * <li><code>'.'</code></li>
+	 * <li><code>','</code></li>
+	 * <li><code>'-'</code></li>
+	 * <li><code>'_'</code></li>
+	 * <li><code>'['</code></li>
+	 * <li><code>']'</code></li>
+	 * <li><code>'('</code></li>
+	 * <li><code>')'</code></li>
+	 * <li><code>'/'</code></li>
+	 * </ul>
+	 * </p>
+	 * <p>
+	 * This method is used to validate identifiers within the Gyrex API. Clients
+	 * may call it to verify user entered ids.
+	 * </p>
+	 * 
+	 * @param id
+	 *            the id
+	 * @return <code>true</code> if the id is valid, <code>false</code>
+	 *         otherwise
+	 */
+	public static boolean isValidId(final String id) {
+		// not null or blank
+		if (StringUtils.isBlank(id)) {
+			return false;
+		}
+
+		// scan for invalid chars
+		for (final char c : id.toCharArray()) {
+			if (!ALLOWED_ID_CHARS.contains(c)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	/** the id */
 	private final String id;
@@ -54,11 +106,12 @@ public abstract class BaseMetric {
 	 * Creates a new metric using the specified id.
 	 * 
 	 * @param id
-	 *            the metric id
+	 *            the metric id (must be valid according to
+	 *            {@link #isValidId(String)})
 	 */
 	protected BaseMetric(final String id) {
-		if (null == id) {
-			throw new IllegalArgumentException("id may not be null");
+		if (!isValidId(id)) {
+			throw new IllegalArgumentException("id is invalid (see BaseMetric#isValidId): " + id);
 		}
 		this.id = id;
 

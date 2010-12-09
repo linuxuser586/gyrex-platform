@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -13,6 +13,7 @@ package org.eclipse.gyrex.monitoring.metrics;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -23,14 +24,17 @@ import java.util.List;
  * supported.
  * </p>
  * <p>
- * Metrics must be registered with Gyrex by registering them as
- * OSGi services using this class.
+ * Metrics must be registered with Gyrex by registering them as OSGi services
+ * using {@link #SERVICE_NAME this class name}.
  * </p>
  * <p>
  * This class may be extended by clients to provide a convenient set of metrics.
  * </p>
  */
 public abstract class MetricSet extends BaseMetric {
+
+	/** the OSGi service name */
+	public static final String SERVICE_NAME = MetricSet.class.getName();
 
 	/** the metrics */
 	private final List<BaseMetric> metrics;
@@ -115,6 +119,23 @@ public abstract class MetricSet extends BaseMetric {
 			throw new IllegalArgumentException(MessageFormat.format("metric at position {0} is not of type {1} but of type {2}", position, metricType.getName(), metric.getClass().getName()));
 		}
 		return (T) metric;
+	}
+
+	/**
+	 * Returns the metrics contained in the set.
+	 * <p>
+	 * Although public this method must not be called by clients. It exposed the
+	 * raw list of metrics which isn't of any generally use for clients.
+	 * Typically, sub-classes provide a more suitable accessor API. The
+	 * framework uses this method to obtain the raw metrics for processing
+	 * purposes.
+	 * </p>
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
+	 * @return an unmodifiable list of metrics contained in the set
+	 */
+	public List<BaseMetric> getMetrics() {
+		return Collections.unmodifiableList(metrics);
 	}
 
 	/**

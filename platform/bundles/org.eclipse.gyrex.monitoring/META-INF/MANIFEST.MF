@@ -7,8 +7,11 @@ Bundle-Name: %bundle.name
 Bundle-Vendor: %provider.name
 Bundle-Localization: plugin
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Import-Package: org.osgi.framework;version="[1.3.0,2.0.0)"
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.gyrex.common;bundle-version="[1.0.0,2.0.0)"
 Export-Package: org.eclipse.gyrex.monitoring.internal;x-internal:=true,
  org.eclipse.gyrex.monitoring.metrics
+Import-Package: javax.management;resolution:=optional,
+ org.apache.commons.lang;version="[2.4.0,3.0.0)",
+ org.osgi.framework;version="[1.6.0,2.0.0)",
+ org.osgi.util.tracker;version="[1.5.0,2.0.0)"

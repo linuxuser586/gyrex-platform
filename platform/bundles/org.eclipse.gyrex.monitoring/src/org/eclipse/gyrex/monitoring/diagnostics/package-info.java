@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Gunnar Wagenknecht and others.
+ * Copyright (c) 2010 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -11,12 +11,11 @@
  *******************************************************************************/
 
 /**
- * Metrics for monitoring the system.
+ * Diagnostics for self-monitoring the system.
  * <p>
- * Gyrex uses metrics to provide insights into the system.
- * Metrics are extensible and can be registered to the platform
- * allowing clients to contribute their own metrics.
+ * Gyrex uses status to report system information. For example, clients can
+ * report the availability of an external web service to system operators.
  * </p>
  */
-package org.eclipse.gyrex.monitoring.metrics;
+package org.eclipse.gyrex.monitoring.diagnostics;
 
