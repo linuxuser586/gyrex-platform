@@ -1,16 +1,18 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.monitoring.metrics;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -123,8 +125,7 @@ public class PoolMetric extends CapacityMetric {
 
 	@Override
 	protected Object[] dumpMetrics() {
-		return new Object[] { "used|idle|capacity|min|high|requests|denied|wait|average wait|resources created|resources released|resources destroyed", getChannelsUsed(), getChannelsIdle(), getChannelsCapacity(), getChannelsMinimum(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage(),
-				getResourcesStatsCreated(), getResourcesStatsReleased(), getResourcesStatsDestroyed() };
+		return new Object[] { "used|idle|capacity|min|high|requests|denied|wait|average wait|resources created|resources released|resources destroyed", getChannelsUsed(), getChannelsIdle(), getChannelsCapacity(), getChannelsMinimum(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage(), getResourcesStatsCreated(), getResourcesStatsReleased(), getResourcesStatsDestroyed() };
 	}
 
 	/**
@@ -176,6 +177,26 @@ public class PoolMetric extends CapacityMetric {
 	 */
 	public long getResourcesStatsReleased() {
 		return resourcesStatsReleased;
+	}
+
+	@Override
+	protected void populateAttributes(final List<MetricAttribute> attributes) {
+		super.populateAttributes(attributes);
+		attributes.add(new MetricAttribute("channelsIdle", "the number of idle channels", Long.class));
+		attributes.add(new MetricAttribute("channelsMinimum", "the minimum number of channels available", Long.class));
+		attributes.add(new MetricAttribute("resourcesStatsReleased", "the total number of resources released since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("resourcesStatsDestroyed", "the total number of resources destroyed due to failures since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("resourcesStatsCreated", "the total number of resources created since the last statistics reset", Long.class));
+	}
+
+	@Override
+	protected void populateAttributeValues(final Map<String, Object> values) {
+		super.populateAttributeValues(values);
+		values.put("channelsIdle", getChannelsIdle());
+		values.put("channelsMinimum", getChannelsMinimum());
+		values.put("resourcesStatsReleased", getResourcesStatsReleased());
+		values.put("resourcesStatsDestroyed", getResourcesStatsDestroyed());
+		values.put("resourcesStatsCreated", getResourcesStatsCreated());
 	}
 
 	/**

@@ -148,9 +148,9 @@ public abstract class MetricSet extends BaseMetric {
 	/**
 	 * Returns the metrics contained in the set.
 	 * <p>
-	 * Although public this method must not be called by clients. It exposed the
-	 * raw list of metrics which isn't of any generally use for clients.
-	 * Typically, sub-classes provide a more suitable accessor API. The
+	 * Although public this method must not be called by clients. It exposes the
+	 * raw metrics which isn't of any generally use for clients. Typically,
+	 * sub-classes provide a more suitable API for working with metrics. The
 	 * framework uses this method to obtain the raw metrics for processing
 	 * purposes.
 	 * </p>

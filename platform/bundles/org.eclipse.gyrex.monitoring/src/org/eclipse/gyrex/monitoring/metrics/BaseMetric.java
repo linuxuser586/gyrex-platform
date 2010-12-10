@@ -13,7 +13,12 @@ package org.eclipse.gyrex.monitoring.metrics;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -41,10 +46,12 @@ import org.apache.commons.lang.StringUtils;
 public abstract class BaseMetric {
 
 	/** char set of allowed id chars */
-	private static final CharSet ALLOWED_ID_CHARS = CharSet.getInstance(new String[] { "a-z", "A-Z", "0-9", ".", "-", "_" });
+	static final CharSet ALLOWED_ID_CHARS = CharSet.getInstance(new String[] { "a-z", "A-Z", "0-9", ".", "-", "_" });
 
+	/** helper constant */
 	static final String[] NO_METRICS = new String[0];
 
+	/** common date format */
 	protected static final DateFormat ISO_8601_UTC = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
 
 	/**
@@ -128,6 +135,8 @@ public abstract class BaseMetric {
 	 * Note, this method is called by {@link #resetStats()} and should not be
 	 * invoked directly.
 	 * </p>
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	protected void doResetStats() {
 		// empty
@@ -140,9 +149,50 @@ public abstract class BaseMetric {
 	 * </p>
 	 * 
 	 * @return a text info of the metric
+	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	protected Object[] dumpMetrics() {
 		return NO_METRICS;
+	}
+
+	/**
+	 * Returns a list of attributes contained in the metric.
+	 * <p>
+	 * Although public this method must not be called by clients. The framework
+	 * uses this method to obtain further information about a metric for
+	 * processing purposes.
+	 * </p>
+	 * 
+	 * @return an unmodifiable collection of metric attributes
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public final List<MetricAttribute> getAttributes() {
+		final List<MetricAttribute> attributes = new ArrayList<MetricAttribute>();
+		populateAttributes(attributes);
+		return Collections.unmodifiableList(attributes);
+	}
+
+	/**
+	 * Returns a map of attribute values contained in the metric.
+	 * <p>
+	 * Although public this method must not be called by clients. The framework
+	 * uses this method to obtain further information about a metric for
+	 * processing purposes.
+	 * </p>
+	 * 
+	 * @return an unmodifiable map of metric attribute values
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public Map<String, ?> getAttributeValues() {
+		final Map<String, Object> attributeValues = new HashMap<String, Object>();
+		final Lock lock = getWriteLock();
+		lock.lock();
+		try {
+			populateAttributeValues(attributeValues);
+		} finally {
+			lock.unlock();
+		}
+		return Collections.unmodifiableMap(attributeValues);
 	}
 
 	/**
@@ -164,6 +214,7 @@ public abstract class BaseMetric {
 	 * package name and used by {@link #toString()}.
 	 * 
 	 * @return the name of the metric
+	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	String getName() {
 		String string = getClass().getName();
@@ -220,6 +271,53 @@ public abstract class BaseMetric {
 	 */
 	protected final Lock getWriteLock() {
 		return readWriteLock.writeLock();
+	}
+
+	/**
+	 * Populates the specified map with metric attribute information for use by
+	 * {@link #getAttributes()}.
+	 * <p>
+	 * Subclasses should override and add the attributes they defined. They must
+	 * call <code>super</code> in order to also populate the attributes defined
+	 * in the super class.
+	 * </p>
+	 * <p>
+	 * Note, this method is called by {@link #getAttributes()} and should not be
+	 * invoked directly.
+	 * </p>
+	 * 
+	 * @param attributes
+	 *            the list to populate with the attributes
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	protected void populateAttributes(final List<MetricAttribute> attributes) {
+		attributes.add(new MetricAttribute("statsSince", "the last reset time", String.class));
+	}
+
+	/**
+	 * Populates the specified map with metric attribute values for use by
+	 * {@link #getAttributeValues()}.
+	 * <p>
+	 * Subclasses should override and add values of attributes they defined.
+	 * They must call <code>super</code> in order to also populate the
+	 * attributes defined in the super class.
+	 * </p>
+	 * <p>
+	 * At the time this method is invoked, the current thread has acquired the
+	 * {@link #getWriteLock() write lock} already. Subclasses must
+	 * <strong>not</strong> modify the write lock.
+	 * </p>
+	 * <p>
+	 * Note, this method is called by {@link #getAttributeValues()} and should
+	 * not be invoked directly.
+	 * </p>
+	 * 
+	 * @param values
+	 *            the map to populate with the attribute values
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	protected void populateAttributeValues(final Map<String, Object> values) {
+		values.put("statsSince", getStatsSince());
 	}
 
 	/**

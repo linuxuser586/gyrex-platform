@@ -1,17 +1,19 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.monitoring.metrics;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -138,6 +140,24 @@ public class StatusMetric extends BaseMetric {
 	 */
 	public long getStatusStatsChangeCount() {
 		return statusStatsChangeCount;
+	}
+
+	@Override
+	protected void populateAttributes(final List<MetricAttribute> attributes) {
+		super.populateAttributes(attributes);
+		attributes.add(new MetricAttribute("status", "the status", String.class));
+		attributes.add(new MetricAttribute("statusChangeReason", "the reason for the status change", String.class));
+		attributes.add(new MetricAttribute("statusChangeTime", "the last status change time", String.class));
+		attributes.add(new MetricAttribute("statusStatsChangeCount", "a counter for status changes since the last reset", Long.class));
+	}
+
+	@Override
+	protected void populateAttributeValues(final Map<String, Object> values) {
+		super.populateAttributeValues(values);
+		values.put("status", getStatus());
+		values.put("statusChangeReason", getStatusChangeReason());
+		values.put("statusChangeTime", getStatusChangeTime());
+		values.put("statusStatsChangeCount", getStatusStatsChangeCount());
 	}
 
 	/**

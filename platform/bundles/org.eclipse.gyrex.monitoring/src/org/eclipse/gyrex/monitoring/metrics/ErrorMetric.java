@@ -13,6 +13,8 @@ package org.eclipse.gyrex.monitoring.metrics;
 
 import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -247,6 +249,24 @@ public class ErrorMetric extends BaseMetric {
 	 */
 	public long getTotalNumberOfErrors() {
 		return totalNumberOfErrors;
+	}
+
+	@Override
+	protected void populateAttributes(final List<MetricAttribute> attributes) {
+		super.populateAttributes(attributes);
+		attributes.add(new MetricAttribute("lastError", "the last error", String.class));
+		attributes.add(new MetricAttribute("lastErrorDetails", "the last error details (eg. stack trace)", String.class));
+		attributes.add(new MetricAttribute("lastErrorChangeTime", "the last error time", String.class));
+		attributes.add(new MetricAttribute("totalNumberOfErrors", "a total number of errors since the last reset", Long.class));
+	}
+
+	@Override
+	protected void populateAttributeValues(final Map<String, Object> values) {
+		super.populateAttributeValues(values);
+		values.put("lastError", getLastError());
+		values.put("lastErrorDetails", getLastErrorDetails());
+		values.put("lastErrorChangeTime", getLastErrorChangeTime());
+		values.put("totalNumberOfErrors", getTotalNumberOfErrors());
 	}
 
 	/**

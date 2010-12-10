@@ -1,16 +1,18 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.monitoring.metrics;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -42,8 +44,8 @@ public class ThroughputMetric extends BaseMetric {
 	private volatile long requestsStatsProcessed;
 
 	/**
-	 * the request hit rate per minute (including failed requests) since the
-	 * last statistics reset
+	 * the request hit rate per hour (including failed requests) since the last
+	 * statistics reset
 	 */
 	private volatile long requestsStatsHitRatePerHour;
 
@@ -300,6 +302,40 @@ public class ThroughputMetric extends BaseMetric {
 	 */
 	public long getRequestsStatsSizeAverage() {
 		return requestsStatsSizeAverage;
+	}
+
+	@Override
+	protected void populateAttributes(final List<MetricAttribute> attributes) {
+		super.populateAttributes(attributes);
+		attributes.add(new MetricAttribute("requestsActive", "the number of active requests", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsHigh", "the high water mark since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsProcessed", " the total number of requests processed (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsHitRatePerHour", "the request hit rate per hour (including failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsHitRatePerMinute", "the request hit rate per minute (including failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsHitRatePerSecond", "the request hit rate per second (including failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsFailed", "the total number of failed requests since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsFailureRate", "the request failure rate since the last statistics reset (percentage of failed requests vs. processed + failed requests)", Float.class));
+		attributes.add(new MetricAttribute("requestsStatsSize", "the total number of size units processed by requests (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsSizeAverage", "the average number of size units processed by a request (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsProcessingTime", "the total number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsProcessingTimeAverage", "the average number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
+	}
+
+	@Override
+	protected void populateAttributeValues(final Map<String, Object> values) {
+		super.populateAttributeValues(values);
+		values.put("requestsActive", getRequestsActive());
+		values.put("requestsStatsHigh", getRequestsStatsHigh());
+		values.put("requestsStatsProcessed", getRequestsStatsProcessed());
+		values.put("requestsStatsHitRatePerHour", getRequestsStatsHitRatePerHour());
+		values.put("requestsStatsHitRatePerMinute", getRequestsStatsHitRatePerMinute());
+		values.put("requestsStatsHitRatePerSecond", getRequestsStatsHitRatePerSecond());
+		values.put("requestsStatsFailed", getRequestsStatsFailed());
+		values.put("requestsStatsFailureRate", getRequestsStatsFailureRate());
+		values.put("requestsStatsSize", getRequestsStatsSize());
+		values.put("requestsStatsSizeAverage", getRequestsStatsSizeAverage());
+		values.put("requestsStatsProcessingTime", getRequestsStatsProcessingTime());
+		values.put("requestsStatsProcessingTimeAverage", getRequestsStatsProcessingTimeAverage());
 	}
 
 	/**

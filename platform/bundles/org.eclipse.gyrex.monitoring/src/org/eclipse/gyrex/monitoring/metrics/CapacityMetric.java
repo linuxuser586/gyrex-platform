@@ -1,16 +1,18 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.monitoring.metrics;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -219,6 +221,30 @@ public class CapacityMetric extends BaseMetric {
 	 */
 	public long getChannelsUsed() {
 		return channelsUsed;
+	}
+
+	@Override
+	protected void populateAttributes(final List<MetricAttribute> attributes) {
+		super.populateAttributes(attributes);
+		attributes.add(new MetricAttribute("channelsUsed", "the number of channels in use", Long.class));
+		attributes.add(new MetricAttribute("channelsCapacity", "the total number of channels available", Long.class));
+		attributes.add(new MetricAttribute("channelsStatsHigh", "the high water mark since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("channelsStatsRequests", "the total number of processed requests since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("channelsStatsDenied", "the total number of requests denied since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("channelsStatsWaitTime", "the total time in milliseconds requests had to wait for a channel", Long.class));
+		attributes.add(new MetricAttribute("channelsStatsWaitTimeAverage", "the average time in milliseconds a request had to wait for a channel", Long.class));
+	}
+
+	@Override
+	protected void populateAttributeValues(final Map<String, Object> values) {
+		super.populateAttributeValues(values);
+		values.put("channelsUsed", getChannelsUsed());
+		values.put("channelsCapacity", getChannelsCapacity());
+		values.put("channelsStatsHigh", getChannelsStatsHigh());
+		values.put("channelsStatsRequests", getChannelsStatsRequests());
+		values.put("channelsStatsDenied", getChannelsStatsDenied());
+		values.put("channelsStatsWaitTime", getChannelsStatsWaitTime());
+		values.put("channelsStatsWaitTimeAverage", getChannelsStatsWaitTimeAverage());
 	}
 
 	/**
