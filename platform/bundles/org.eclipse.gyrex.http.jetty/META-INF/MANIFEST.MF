@@ -37,5 +37,6 @@ Require-Bundle: org.eclipse.gyrex.common;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.equinox.preferences;bundle-version="3.3.0",
  org.eclipse.gyrex.preferences;bundle-version="1.0.0",
  org.eclipse.gyrex.configuration;bundle-version="1.0.0",
- org.eclipse.e4.core.di;bundle-version="0.9.0"
+ org.eclipse.e4.core.di;bundle-version="0.9.0",
+ org.eclipse.gyrex.monitoring;bundle-version="1.0.0"
 Export-Package: org.eclipse.gyrex.http.jetty.internal;x-internal:=true

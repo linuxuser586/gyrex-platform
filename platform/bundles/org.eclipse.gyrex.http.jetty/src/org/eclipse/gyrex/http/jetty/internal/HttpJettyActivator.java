@@ -20,6 +20,7 @@ import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
 import org.eclipse.gyrex.http.jetty.internal.app.JettyGateway;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.IO;
@@ -27,6 +28,7 @@ import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +67,10 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		} finally {
 			IO.close(in);
 		}
+	}
+
+	public static ServiceRegistration registerMetrics(final MetricSet metricSet) {
+		return getInstance().getServiceHelper().registerService(MetricSet.SERVICE_NAME, metricSet, "Eclipse Gyrex", metricSet.getDescription(), null, null);
 	}
 
 	private JettyGateway gateway;

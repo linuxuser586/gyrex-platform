@@ -21,16 +21,22 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.PathMap.Entry;
 import org.eclipse.jetty.server.AsyncContinuation;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.handler.AbstractHandlerContainer;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.URIUtil;
+
+import org.osgi.framework.ServiceRegistration;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -54,6 +60,9 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	private final CopyOnWriteArrayList<Handler> handlers = new CopyOnWriteArrayList<Handler>();
 
 	private final JettyGateway jettyGateway;
+	private final ApplicationHandlerCollectionMetrics metrics;
+
+	private final ServiceRegistration metricsRegistration;
 
 	/**
 	 * Creates a new instance.
@@ -62,44 +71,28 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	 */
 	public ApplicationHandlerCollection(final JettyGateway jettyGateway) {
 		this.jettyGateway = jettyGateway;
+		metrics = new ApplicationHandlerCollectionMetrics();
+		metricsRegistration = HttpJettyActivator.registerMetrics(metrics);
 	}
 
 	public boolean addIfAbsent(final Handler handler) {
 		if (handlers.addIfAbsent(handler)) {
 			handler.setServer(getServer());
+			metrics.getApplicationsMetric().channelStarted(0);
 			return true;
 		}
 		return false;
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	protected Object expandChildren(Object list, final Class<?> byClass) {
-		final Handler[] handlers = getHandlers();
-		for (int i = 0; (handlers != null) && (i < handlers.length); i++) {
-			list = expandHandler(handlers[i], list, (Class<Handler>) byClass);
-		}
-		return list;
+	public void destroy() {
+		// super
+		super.destroy();
+		// unregister metrics
+		metricsRegistration.unregister();
 	}
 
-	@Override
-	public Handler[] getHandlers() {
-		return handlers.toArray(new Handler[handlers.size()]);
-	}
-
-	@Override
-	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
-		// don't do anything if already processed
-		if (response.isCommitted() || baseRequest.isHandled()) {
-			return;
-		}
-
-		final Iterator<Handler> handlers = this.handlers.iterator();
-		if (!handlers.hasNext()) {
-			return;
-		}
-
-		// check async requests
+	private void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException { // check async requests
 		final AsyncContinuation async = baseRequest.getAsyncContinuation();
 		if (async.isAsync()) {
 			final ContextHandler context = async.getContextHandler();
@@ -167,6 +160,80 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 		}
 	}
 
+	@Override
+	protected void doStart() throws Exception {
+		try {
+			super.doStart();
+			metrics.setStatus("started", "Handler has been started by Jetty");
+		} catch (final Exception e) {
+			// TODO: handle exception
+		}
+	}
+
+	@Override
+	protected void doStop() throws Exception {
+		try {
+			super.doStop();
+			metrics.setStatus("stopped", "Handler has been stopped by Jetty");
+		} catch (final Exception e) {
+			metrics.error("doStop: " + e.getMessage(), e);
+			throw e;
+		}
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	protected Object expandChildren(Object list, final Class<?> byClass) {
+		final Handler[] handlers = getHandlers();
+		for (int i = 0; (handlers != null) && (i < handlers.length); i++) {
+			list = expandHandler(handlers[i], list, (Class<Handler>) byClass);
+		}
+		return list;
+	}
+
+	@Override
+	public Handler[] getHandlers() {
+		return handlers.toArray(new Handler[handlers.size()]);
+	}
+
+	@Override
+	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
+		// don't do anything if already processed
+		if (response.isCommitted() || baseRequest.isHandled()) {
+			return;
+		}
+
+		final Iterator<Handler> handlers = this.handlers.iterator();
+		if (!handlers.hasNext()) {
+			return;
+		}
+
+		final ThroughputMetric requestsMetric = metrics.getRequestsMetric();
+		final long requestStart = requestsMetric.requestStarted();
+		try {
+			doHandle(target, baseRequest, request, response);
+			if (response instanceof Response) {
+				final int status = ((Response) response).getStatus();
+				if (HttpStatus.isServerError(status)) {
+					metrics.getRequestsMetric().requestFailed();
+					metrics.error(status, ((Response) response).getReason());
+				} else {
+					metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
+				}
+			} else {
+				metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
+			}
+		} catch (final IOException e) {
+			metrics.getRequestsMetric().requestFailed();
+			metrics.error("handle: " + e.toString(), e);
+			throw e;
+		} catch (final ServletException e) {
+			metrics.getRequestsMetric().requestFailed();
+			metrics.error("handle: " + e.toString(), e);
+			throw e;
+		}
+	}
+
 	/**
 	 * Remap the URL.
 	 */
@@ -195,6 +262,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 
 	public boolean removeHandler(final Handler handler) throws Exception {
 		if (handlers.remove(handler)) {
+			metrics.getApplicationsMetric().channelFinished();
 			if (handler.isStarted()) {
 				handler.stop();
 			}
