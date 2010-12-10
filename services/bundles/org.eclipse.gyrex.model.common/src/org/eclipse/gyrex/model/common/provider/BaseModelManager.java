@@ -268,7 +268,7 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 		properties.put(Constants.SERVICE_VENDOR, this.getClass().getName());
 		properties.put(Constants.SERVICE_DESCRIPTION, "Metrics for model manager implementation '" + this.getClass().getName() + "'.");
 		properties.put(IRepositoryContstants.SERVICE_PROPERTY_REPOSITORY_ID, getRepository().getRepositoryId());
-		if (null != getRepository().getDescription()) {
+		if (StringUtils.isNotBlank(getRepository().getDescription())) {
 			properties.put(IRepositoryContstants.SERVICE_PROPERTY_REPOSITORY_DESCRIPTION, getRepository().getDescription());
 		}
 		properties.put(IRuntimeContextConstants.SERVICE_PROPERTY_CONTEXT_PATH, getContext().getContextPath().toString());
@@ -276,5 +276,4 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 		// register service
 		metricsRegistration = bundleContext.registerService(MetricSet.class.getName(), metrics, properties);
 	}
-
 }

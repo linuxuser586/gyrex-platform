@@ -15,6 +15,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.IRuntimeContextConstants;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.services.common.IService;
 import org.eclipse.gyrex.services.common.status.IStatusMonitor;
@@ -254,6 +255,7 @@ public abstract class BaseService extends PlatformObject implements IService {
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
 		properties.put(Constants.SERVICE_VENDOR, this.getClass().getName());
 		properties.put(Constants.SERVICE_DESCRIPTION, "Metrics for service implementation '" + this.getClass().getName() + "'.");
+		properties.put(IRuntimeContextConstants.SERVICE_PROPERTY_CONTEXT_PATH, getContext().getContextPath().toString());
 
 		// register service
 		metricsRegistration = bundleContext.registerService(MetricSet.class.getName(), metrics, properties);
