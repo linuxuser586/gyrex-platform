@@ -28,6 +28,8 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
 
+import org.apache.commons.lang.StringUtils;
+
 /**
  * A repository is a concrete instance of a data store where a particular set of
  * data will be persisted.
@@ -334,7 +336,7 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 		properties.put(SERVICE_PROPERTY_REPOSITORY_ID, getRepositoryId());
 		try {
 			final String description = getDescription();
-			if (description != null) {
+			if (StringUtils.isNotBlank(description)) {
 				properties.put(SERVICE_PROPERTY_REPOSITORY_DESCRIPTION, description);
 			}
 		} catch (final Exception e) {
