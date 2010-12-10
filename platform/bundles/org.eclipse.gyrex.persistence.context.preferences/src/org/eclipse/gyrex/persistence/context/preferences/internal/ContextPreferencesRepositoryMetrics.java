@@ -19,14 +19,8 @@ import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
  */
 public class ContextPreferencesRepositoryMetrics extends MetricSet {
 
-	/**
-	 * Creates a new instance.
-	 * 
-	 * @param id
-	 * @param metrics
-	 */
-	protected ContextPreferencesRepositoryMetrics(final String id) {
-		super(id, new ThroughputMetric(id.concat(".reads")), new ThroughputMetric(id.concat(".writes")));
+	ContextPreferencesRepositoryMetrics(final String id, final String repositoryId) {
+		super(id, String.format("Metrics for repository %s", repositoryId), new ThroughputMetric(id.concat(".reads")), new ThroughputMetric(id.concat(".writes")));
 	}
 
 }

@@ -44,7 +44,7 @@ public class ContextPreferencesRepositoryImpl extends ContextPreferencesReposito
 	 * @throws IllegalArgumentException
 	 */
 	public ContextPreferencesRepositoryImpl(final String repositoryId, final ContextPreferencesRepositoryType repositoryType, final IRuntimeContext context) throws IllegalArgumentException {
-		super(repositoryId, repositoryType, new ContextPreferencesRepositoryMetrics(createMetricsId(repositoryType, repositoryId)));
+		super(repositoryId, repositoryType, new ContextPreferencesRepositoryMetrics(createMetricsId(repositoryType, repositoryId), repositoryId));
 		this.context = context;
 		qualifier = QUALIFIER_PREFIX.concat(repositoryId);
 	}

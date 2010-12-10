@@ -14,17 +14,21 @@ package org.eclipse.gyrex.services.common.provider;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.services.common.IService;
 import org.eclipse.gyrex.services.common.status.IStatusMonitor;
+
+import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.PlatformObject;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Base class for {@link IService services}.
@@ -42,22 +46,36 @@ import org.osgi.framework.ServiceRegistration;
 public abstract class BaseService extends PlatformObject implements IService {
 
 	/**
-	 * Utility method to create a well formated metrics id based on a service id
-	 * (eg. a <code>"com.company.service.xyz.impl"</code>) and a specified
-	 * context.
-	 * <p>
-	 * Note, the service id should not identify the generic service interface
-	 * but the concrete service implementation.
-	 * </p>
+	 * Convenience method to create a human-readable metrics description based
+	 * on a service implementation name (eg. a <code>"MyService"</code>) and a
+	 * specified context.
+	 * 
+	 * @param serviceImplementationName
+	 *            the service implementation name
+	 * @param context
+	 *            the context
+	 * @return a human-readable metrics description
+	 */
+	protected static String createMetricsDescription(final String serviceImplementationName, final IRuntimeContext context) {
+		return String.format("Metrics for %s in context %s.", serviceImplementationName, context.getContextPath());
+	}
+
+	/**
+	 * Convenience method to create a well formated metrics id based on a
+	 * service implementation identifier (eg. a
+	 * <code>"com.company.xyz.services.impl"</code>) and a specified context.
 	 * 
 	 * @param serviceImplementationId
-	 *            an identifier for the service implementation
+	 *            the service implementation identifier
 	 * @param context
 	 *            the context
 	 * @return a well formatted metrics id
 	 */
 	protected static String createMetricsId(final String serviceImplementationId, final IRuntimeContext context) {
-		return serviceImplementationId + "[" + context.getContextPath().toString() + "].metrics";
+		// handle context paths
+		final String contextPath = StringUtils.replaceChars(context.getContextPath().removeTrailingSeparator().makeRelative().toString(), '/', '.');
+		// create id
+		return serviceImplementationId + "." + contextPath + ".metrics";
 	}
 
 	/** the context */

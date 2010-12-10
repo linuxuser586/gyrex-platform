@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -72,7 +72,7 @@ public class SimpledPooledJdbcRepositoryImpl extends JdbcRepository {
 	 *            {@link PooledConnection pooled connections}
 	 */
 	public SimpledPooledJdbcRepositoryImpl(final String repositoryId, final RepositoryProvider repositoryType, final ConnectionPoolDataSource connectionPoolDataSource, final int poolCapacity) {
-		super(repositoryId, repositoryType, new SimplePooledJdbcRepositoryMetrics(createMetricsId(repositoryType, repositoryId), "open", "repository instance created", poolCapacity, 0));
+		super(repositoryId, repositoryType, new SimplePooledJdbcRepositoryMetrics(createMetricsId(repositoryType, repositoryId), repositoryId, "open", "repository instance created", poolCapacity, 0));
 		this.connectionPoolDataSource = connectionPoolDataSource;
 		maxPoolCapacity = poolCapacity;
 	}

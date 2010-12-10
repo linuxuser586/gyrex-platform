@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010 <enter-company-name-here> and others.
+ * Copyright (c) 2010 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,7 +7,7 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.monitoring.internal;
 
@@ -22,7 +22,8 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import org.eclipse.gyrex.monitoring.internal.mbeans.MetricSetJmx;
+import org.eclipse.gyrex.monitoring.internal.MetricSetTracker.MetricSetJmxRegistration;
+import org.eclipse.gyrex.monitoring.internal.mbeans.MetricSetMBean;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
 import org.osgi.framework.BundleContext;
@@ -34,15 +35,26 @@ import org.apache.commons.lang.StringUtils;
 /**
  * Tracker for {@link MetricSet}.
  */
-public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSet> {
+public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSetJmxRegistration> {
+
+	static class MetricSetJmxRegistration {
+		final ObjectName objectName;
+		final MetricSet metricSet;
+
+		MetricSetJmxRegistration(final ObjectName objectName, final MetricSet metricSet) {
+			this.objectName = objectName;
+			this.metricSet = metricSet;
+		}
+	}
 
 	public MetricSetTracker(final BundleContext context) {
 		super(context, MetricSet.class, null);
 	}
 
 	@Override
-	public MetricSet addingService(final ServiceReference<MetricSet> reference) {
-		final MetricSet metricSet = super.addingService(reference);
+	public MetricSetJmxRegistration addingService(final ServiceReference<MetricSet> reference) {
+		// get service
+		final MetricSet metricSet = context.getService(reference);
 		if (metricSet == null) {
 			return null;
 		}
@@ -50,7 +62,8 @@ public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSet> {
 		try {
 			final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
 			final ObjectName objectName = getObjectName(reference, metricSet);
-			beanServer.registerMBean(new MetricSetJmx(metricSet), objectName);
+			beanServer.registerMBean(new MetricSetMBean(metricSet, reference), objectName);
+			return new MetricSetJmxRegistration(objectName, metricSet);
 		} catch (final InstanceAlreadyExistsException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -67,36 +80,40 @@ public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSet> {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return metricSet;
+		return null;
 	}
 
 	private ObjectName getObjectName(final ServiceReference<MetricSet> reference, final MetricSet metricSet) throws MalformedObjectNameException {
+		// get symbolic name
 		final String symbolicName = reference.getBundle().getSymbolicName();
-		final Hashtable<String, String> properties = new Hashtable<String, String>(2);
+
+		// set properties
+		final String[] propertyKeys = reference.getPropertyKeys();
+		final Hashtable<String, String> properties = new Hashtable<String, String>(propertyKeys.length + 2);
+
+		// common properties first
 		properties.put("type", "MetricSet");
-		properties.put("name", '"' + StringUtils.removeStart(metricSet.getId(), symbolicName) + '"');
-		final ObjectName objectName = new ObjectName(symbolicName, properties);
-		return objectName;
+		properties.put("name", StringUtils.removeStart(metricSet.getId(), symbolicName + "."));
+
+		// create object name
+		return new ObjectName(symbolicName, properties);
 	}
 
 	@Override
-	public void removedService(final ServiceReference<MetricSet> reference, final MetricSet metricSet) {
+	public void removedService(final ServiceReference<MetricSet> reference, final MetricSetJmxRegistration metricSetJmxRegistration) {
 		try {
+			// unregister MBean
 			final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
-			final ObjectName objectName = getObjectName(reference, metricSet);
-			beanServer.unregisterMBean(objectName);
-		} catch (final MalformedObjectNameException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			beanServer.unregisterMBean(metricSetJmxRegistration.objectName);
 		} catch (final MBeanRegistrationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (final InstanceNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			// unget service
+			context.ungetService(reference);
 		}
-
-		// unget service
-		super.removedService(reference, metricSet);
 	}
 }

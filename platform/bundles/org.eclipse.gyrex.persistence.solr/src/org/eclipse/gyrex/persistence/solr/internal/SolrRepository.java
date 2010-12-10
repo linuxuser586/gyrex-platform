@@ -29,7 +29,7 @@ public class SolrRepository extends SolrServerRepository {
 	}
 
 	SolrRepository(final String repositoryId, final SolrRepositoryProvider repositoryType, final SolrServer solrServer, final SolrServer solrServerForQuery) throws IllegalArgumentException {
-		super(repositoryId, repositoryType, new SolrRepositoryMetrics(createMetricsId(repositoryType, repositoryId), "open", "repository created"));
+		super(repositoryId, repositoryType, new SolrRepositoryMetrics(createMetricsId(repositoryType, repositoryId), repositoryId, "open", "repository created"));
 		this.solrServer = new SolrServerWithMetrics(solrServer, getSolrRepositoryMetrics());
 		this.solrServerForQuery = (solrServerForQuery != null) && (solrServerForQuery != solrServer) ? new SolrServerWithMetrics(solrServerForQuery, getSolrRepositoryMetrics()) : this.solrServer;
 	}

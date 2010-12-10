@@ -53,7 +53,7 @@ import org.osgi.framework.ServiceRegistration;
  * implementation to Gyrex.
  * </p>
  */
-public abstract class Repository extends PlatformObject {
+public abstract class Repository extends PlatformObject implements IRepositoryContstants {
 
 	/**
 	 * Utility method to create a well formated metrics id based on a repository
@@ -66,7 +66,7 @@ public abstract class Repository extends PlatformObject {
 	 * @return a well formatted metrics id
 	 */
 	protected static String createMetricsId(final RepositoryProvider repositoryProvider, final String repositoryId) {
-		return repositoryProvider.getProviderId() + "[" + repositoryId + "].metrics";
+		return repositoryProvider.getProviderId() + "." + repositoryId + ".metrics";
 	}
 
 	/**
@@ -174,7 +174,7 @@ public abstract class Repository extends PlatformObject {
 		this.repositoryProvider = repositoryProvider;
 		this.metrics = metrics;
 
-		// register the metrics
+		// register the metrics (this is the last call)
 		registerMetrics();
 	}
 
@@ -234,7 +234,7 @@ public abstract class Repository extends PlatformObject {
 
 	/**
 	 * Returns a human readable description of the repository that can be
-	 * displayed to administrators, etc. An empty String is returned of no
+	 * displayed to administrators, etc. An empty String is returned if no
 	 * description is available.
 	 * <p>
 	 * The default implementation returns an empty String.
@@ -331,9 +331,18 @@ public abstract class Repository extends PlatformObject {
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
 		properties.put(Constants.SERVICE_VENDOR, getName() + "[" + getRepositoryId() + "]");
 		properties.put(Constants.SERVICE_DESCRIPTION, "Metrics for repository '" + getRepositoryId() + "'.");
+		properties.put(SERVICE_PROPERTY_REPOSITORY_ID, getRepositoryId());
+		try {
+			final String description = getDescription();
+			if (description != null) {
+				properties.put(SERVICE_PROPERTY_REPOSITORY_DESCRIPTION, description);
+			}
+		} catch (final Exception e) {
+			// registerMetrics is called during object construction, therefore #getDescription might not be ready yet.
+		}
 
 		// register service
-		metricsRegistration = bundleContext.registerService(MetricSet.class.getName(), metrics, properties);
+		metricsRegistration = bundleContext.registerService(MetricSet.SERVICE_NAME, metrics, properties);
 	}
 
 	/**

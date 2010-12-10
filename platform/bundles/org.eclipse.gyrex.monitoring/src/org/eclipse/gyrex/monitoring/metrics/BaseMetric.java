@@ -41,7 +41,7 @@ import org.apache.commons.lang.StringUtils;
 public abstract class BaseMetric {
 
 	/** char set of allowed id chars */
-	private static final CharSet ALLOWED_ID_CHARS = CharSet.getInstance(new String[] { "a-z", "A-Z", "0-9", ".", ",", "-", "_", "[", "]", "(", ")", "/" });
+	private static final CharSet ALLOWED_ID_CHARS = CharSet.getInstance(new String[] { "a-z", "A-Z", "0-9", ".", "-", "_" });
 
 	static final String[] NO_METRICS = new String[0];
 
@@ -57,14 +57,8 @@ public abstract class BaseMetric {
 	 * <li>lower- and uppercase letters <code>a..z</code> and <code>A..Z</code></li>
 	 * <li>numbers <code>0..9</code></li>
 	 * <li><code>'.'</code></li>
-	 * <li><code>','</code></li>
 	 * <li><code>'-'</code></li>
 	 * <li><code>'_'</code></li>
-	 * <li><code>'['</code></li>
-	 * <li><code>']'</code></li>
-	 * <li><code>'('</code></li>
-	 * <li><code>')'</code></li>
-	 * <li><code>'/'</code></li>
 	 * </ul>
 	 * </p>
 	 * <p>
@@ -153,6 +147,11 @@ public abstract class BaseMetric {
 
 	/**
 	 * Returns the metric id.
+	 * <p>
+	 * The metric id is used to uniquely identify a metric with the system. It's
+	 * generally a good practise to start the id with a scope identifier (eg., a
+	 * bundle symbolic name).
+	 * </p>
 	 * 
 	 * @return the metric id
 	 */

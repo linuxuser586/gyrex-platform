@@ -12,9 +12,11 @@
 package org.eclipse.gyrex.monitoring.metrics;
 
 import java.text.MessageFormat;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * An immutable set of {@link BaseMetric metrics}.
@@ -39,6 +41,8 @@ public abstract class MetricSet extends BaseMetric {
 	/** the metrics */
 	private final List<BaseMetric> metrics;
 
+	private final String description;
+
 	/**
 	 * Creates a new metric set using the specified id and metrics.
 	 * <p>
@@ -48,16 +52,25 @@ public abstract class MetricSet extends BaseMetric {
 	 * 
 	 * @param id
 	 *            the metric id
+	 * @param description
+	 *            the metric description
 	 * @param metrics
 	 *            the metrics which form this set
 	 */
-	protected MetricSet(final String id, final BaseMetric... metrics) {
+	protected MetricSet(final String id, final String description, final BaseMetric... metrics) {
 		super(id);
 
 		if (null == metrics) {
 			throw new IllegalArgumentException("metrics may not be null");
 		}
-		this.metrics = Arrays.asList(Arrays.copyOf(metrics, metrics.length));
+		// save a copy to prevent external modifications
+		this.metrics = new ArrayList<BaseMetric>(metrics.length);
+		for (final BaseMetric metric : metrics) {
+			this.metrics.add(metric);
+		}
+
+		// save description
+		this.description = StringUtils.trimToEmpty(description);
 	}
 
 	/**
@@ -90,6 +103,17 @@ public abstract class MetricSet extends BaseMetric {
 	@Override
 	protected final Object[] dumpMetrics() {
 		return NO_METRICS;
+	}
+
+	/**
+	 * Returns a human readable description of the metric that can be displayed
+	 * to administrators, etc. An empty String is returned if no description is
+	 * available.
+	 * 
+	 * @return a human readable description
+	 */
+	public final String getDescription() {
+		return description;
 	}
 
 	/**

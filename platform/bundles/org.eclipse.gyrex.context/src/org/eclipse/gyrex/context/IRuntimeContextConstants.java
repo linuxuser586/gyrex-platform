@@ -9,22 +9,19 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.persistence.context.preferences;
+package org.eclipse.gyrex.context;
+
+import org.eclipse.core.runtime.IPath;
 
 /**
- * Shared public constants.
+ * Interface with shared, public context constants.
  */
-public interface IContextPreferencesRepositoryConstants {
-
-	/** the repository provider id */
-	String PROVIDER_ID = "org.eclipse.gyrex.persistence.context.preferences";
-
-	/** the repository type name */
-	String TYPE_NAME = ContextPreferencesRepository.class.getName();
+public interface IRuntimeContextConstants {
 
 	/**
-	 * repository preference key of the context path setting (value
-	 * <code>contextPath</code>)
+	 * optional OSGi service property specifying the {@link IPath#toString()
+	 * string representation} of a {@link IRuntimeContext#getContextPath()
+	 * context path} (value {@value #SERVICE_PROPERTY_CONTEXT_PATH})
 	 */
-	String PREF_KEY_CONTEXT_PATH = "contextPath";
+	String SERVICE_PROPERTY_CONTEXT_PATH = "gyrex.context.path";
 }

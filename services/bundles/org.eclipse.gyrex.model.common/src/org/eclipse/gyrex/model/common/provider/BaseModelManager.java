@@ -15,8 +15,10 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.IRuntimeContextConstants;
 import org.eclipse.gyrex.model.common.IModelManager;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.persistence.storage.IRepositoryContstants;
 import org.eclipse.gyrex.persistence.storage.Repository;
 
 import org.eclipse.core.runtime.IAdaptable;
@@ -27,6 +29,8 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Base class for {@link IModelManager model managers}.
@@ -50,24 +54,41 @@ import org.osgi.framework.ServiceRegistration;
 public abstract class BaseModelManager<T extends Repository> extends PlatformObject implements IModelManager {
 
 	/**
-	 * Convenience method to create a well formated metrics id based on a model
-	 * id (eg. a <code>"com.company.xyz.model.impl"</code>), a specified context
-	 * and a repository.
-	 * <p>
-	 * Note, the model id should not identify the generic model interface but
-	 * the concrete model implementation.
-	 * </p>
+	 * Convenience method to create a human-readable metrics description based
+	 * on a manager implementation name (eg. a <code>"MyManager"</code>), a
+	 * specified context and a repository.
 	 * 
-	 * @param modelImplementationId
-	 *            an identifier for the model implementation
+	 * @param managerImplementationName
+	 *            the manager implementation name
+	 * @param context
+	 *            the context
+	 * @param repository
+	 *            the repository
+	 * @return a human-readable metrics description
+	 */
+	protected static String createMetricsDescription(final String managerImplementationName, final IRuntimeContext context, final Repository repository) {
+		return String.format("Metrics for %s in context %s backed by repository %s.", managerImplementationName, context.getContextPath(), repository.getRepositoryId());
+	}
+
+	/**
+	 * Convenience method to create a well formated metrics id based on a
+	 * manager implementation id (eg. a
+	 * <code>"com.company.xyz.model.impl"</code>), a specified context and a
+	 * repository.
+	 * 
+	 * @param managerImplementationId
+	 *            the manager implementation id
 	 * @param context
 	 *            the context
 	 * @param repository
 	 *            the repository
 	 * @return a well formatted metrics id
 	 */
-	protected static String createMetricsId(final String modelImplementationId, final IRuntimeContext context, final Repository repository) {
-		return modelImplementationId + "[" + context.getContextPath().toString() + "," + repository.getRepositoryId() + "].metrics";
+	protected static String createMetricsId(final String managerImplementationId, final IRuntimeContext context, final Repository repository) {
+		// handle context paths
+		final String contextPath = StringUtils.replaceChars(context.getContextPath().removeTrailingSeparator().makeRelative().toString(), '/', '.');
+		// create id
+		return managerImplementationId + "." + contextPath + ".metrics";
 	}
 
 	private final IRuntimeContext context;
@@ -246,6 +267,11 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
 		properties.put(Constants.SERVICE_VENDOR, this.getClass().getName());
 		properties.put(Constants.SERVICE_DESCRIPTION, "Metrics for model manager implementation '" + this.getClass().getName() + "'.");
+		properties.put(IRepositoryContstants.SERVICE_PROPERTY_REPOSITORY_ID, getRepository().getRepositoryId());
+		if (null != getRepository().getDescription()) {
+			properties.put(IRepositoryContstants.SERVICE_PROPERTY_REPOSITORY_DESCRIPTION, getRepository().getDescription());
+		}
+		properties.put(IRuntimeContextConstants.SERVICE_PROPERTY_CONTEXT_PATH, getContext().getContextPath().toString());
 
 		// register service
 		metricsRegistration = bundleContext.registerService(MetricSet.class.getName(), metrics, properties);

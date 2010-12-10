@@ -58,8 +58,8 @@ public class SolrRepositoryMetrics extends MetricSet {
 	private final ThroughputMetric adminThroughputMetric;
 	private final ThroughputMetric otherThroughputMetric;
 
-	protected SolrRepositoryMetrics(final String id, final String initialStatus, final String initialStatusReason) {
-		super(id, new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new ErrorMetric(id + ".error", true), new ThroughputMetric(id + ".query.throughput"), new ThroughputMetric(id + ".update.throughput"), new ThroughputMetric(id + ".admin.throughput"), new ThroughputMetric(id + ".other.throughput") });
+	protected SolrRepositoryMetrics(final String id, final String repositoryId, final String initialStatus, final String initialStatusReason) {
+		super(id, String.format("Metrics for repository %s", repositoryId), new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new ErrorMetric(id + ".error", true), new ThroughputMetric(id + ".query.throughput"), new ThroughputMetric(id + ".update.throughput"), new ThroughputMetric(id + ".admin.throughput"), new ThroughputMetric(id + ".other.throughput") });
 		statusMetric = getMetric(0, StatusMetric.class);
 		errorMetric = getMetric(1, ErrorMetric.class);
 		queryThroughputMetric = getMetric(2, ThroughputMetric.class);
