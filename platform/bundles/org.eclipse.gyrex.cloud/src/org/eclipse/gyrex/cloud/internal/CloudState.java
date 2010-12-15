@@ -180,7 +180,11 @@ public class CloudState implements IConnectionMonitor {
 			try {
 				registerNode();
 			} catch (final Exception e) {
-				LOG.error("Failed to re-register node. Node {} will not be available in cloud. {}", new Object[] { nodeInfo, e.getMessage(), e });
+				if (CloudDebug.debug) {
+					LOG.error("Failed to re-register node. Node {} will not be available in cloud. {}", new Object[] { nodeInfo, e.getMessage(), e });
+				} else {
+					LOG.error("Failed to re-register node. Node {} will not be available in cloud. {}", new Object[] { nodeInfo, e.getMessage() });
+				}
 			}
 		};
 
@@ -304,7 +308,11 @@ public class CloudState implements IConnectionMonitor {
 				LOG.info("Node {} initialized.", nodeInfo);
 			} catch (final Exception e) {
 				// log error
-				LOG.error("Unable to initialize node info. Node will not be available in cloud. {}", new Object[] { e.getMessage(), e });
+				if (CloudDebug.debug) {
+					LOG.error("Unable to initialize node info. Node will not be available in cloud. {}", new Object[] { e.getMessage(), e });
+				} else {
+					LOG.error("Unable to initialize node info. Node will not be available in cloud. {}", new Object[] { e.getMessage() });
+				}
 				return false;
 			}
 
@@ -320,7 +328,12 @@ public class CloudState implements IConnectionMonitor {
 					LOG.info("Node {} needs to be approved first. Please contact cloud administrator with node details for approval.", nodeInfo);
 				}
 			} catch (final Exception e) {
-				LOG.error("Unable to set node to online. Node will not be available in cloud.", e);
+				if (CloudDebug.debug) {
+					LOG.error("Unable to set node to online. Node will not be available in cloud.", e);
+				} else {
+					LOG.error("Unable to set node to online. Node will not be available in cloud. {}", e.getMessage());
+				}
+
 				return false;
 			}
 
