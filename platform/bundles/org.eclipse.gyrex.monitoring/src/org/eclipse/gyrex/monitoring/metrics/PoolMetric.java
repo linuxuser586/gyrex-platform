@@ -125,7 +125,7 @@ public class PoolMetric extends CapacityMetric {
 
 	@Override
 	protected Object[] dumpMetrics() {
-		return new Object[] { "used|idle|capacity|min|high|requests|denied|wait|average wait|resources created|resources released|resources destroyed", getChannelsUsed(), getChannelsIdle(), getChannelsCapacity(), getChannelsMinimum(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage(), getResourcesStatsCreated(), getResourcesStatsReleased(), getResourcesStatsDestroyed() };
+		return new Object[] { "inuse|idle|capacity|min|high|requests|denied|wait|average wait|resources created|resources released|resources destroyed", getChannelsInUse(), getChannelsIdle(), getChannelsCapacity(), getChannelsMinimum(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage(), getResourcesStatsCreated(), getResourcesStatsReleased(), getResourcesStatsDestroyed() };
 	}
 
 	/**

@@ -32,7 +32,7 @@ import java.util.concurrent.locks.Lock;
 public class CapacityMetric extends BaseMetric {
 
 	/** the number of channels in use */
-	private volatile long channelsUsed;
+	private volatile long channelsInUse;
 
 	/** the total number of channels available */
 	private volatile long channelsCapacity;
@@ -89,7 +89,7 @@ public class CapacityMetric extends BaseMetric {
 		final Lock writeLock = getWriteLock();
 		writeLock.lock();
 		try {
-			channelsUsed--;
+			channelsInUse--;
 		} finally {
 			writeLock.unlock();
 		}
@@ -110,9 +110,9 @@ public class CapacityMetric extends BaseMetric {
 		final Lock writeLock = getWriteLock();
 		writeLock.lock();
 		try {
-			channelsUsed++;
-			if (channelsUsed > channelsStatsHigh) {
-				channelsStatsHigh = channelsUsed;
+			channelsInUse++;
+			if (channelsInUse > channelsStatsHigh) {
+				channelsStatsHigh = channelsInUse;
 			}
 			channelsStatsRequests++;
 			channelsStatsWaitTime += waitTime;
@@ -150,7 +150,7 @@ public class CapacityMetric extends BaseMetric {
 
 	@Override
 	protected Object[] dumpMetrics() {
-		return new Object[] { "used|capacity|high|requests|denied|wait|average wait", getChannelsUsed(), getChannelsCapacity(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage() };
+		return new Object[] { "inuse|capacity|high|requests|denied|wait|average wait", getChannelsInUse(), getChannelsCapacity(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage() };
 	}
 
 	/**
@@ -160,6 +160,15 @@ public class CapacityMetric extends BaseMetric {
 	 */
 	public long getChannelsCapacity() {
 		return channelsCapacity;
+	}
+
+	/**
+	 * Returns the number of channels in use.
+	 * 
+	 * @return the number of channels in use
+	 */
+	public long getChannelsInUse() {
+		return channelsInUse;
 	}
 
 	/**
@@ -214,19 +223,10 @@ public class CapacityMetric extends BaseMetric {
 		return channelsStatsWaitTimeAverage;
 	}
 
-	/**
-	 * Returns the number of channels in use.
-	 * 
-	 * @return the number of channels in use
-	 */
-	public long getChannelsUsed() {
-		return channelsUsed;
-	}
-
 	@Override
 	protected void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
-		attributes.add(new MetricAttribute("channelsUsed", "the number of channels in use", Long.class));
+		attributes.add(new MetricAttribute("channelsInUse", "the number of channels in use", Long.class));
 		attributes.add(new MetricAttribute("channelsCapacity", "the total number of channels available", Long.class));
 		attributes.add(new MetricAttribute("channelsStatsHigh", "the high water mark since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("channelsStatsRequests", "the total number of processed requests since the last statistics reset", Long.class));
@@ -238,7 +238,7 @@ public class CapacityMetric extends BaseMetric {
 	@Override
 	protected void populateAttributeValues(final Map<String, Object> values) {
 		super.populateAttributeValues(values);
-		values.put("channelsUsed", getChannelsUsed());
+		values.put("channelsInUse", getChannelsInUse());
 		values.put("channelsCapacity", getChannelsCapacity());
 		values.put("channelsStatsHigh", getChannelsStatsHigh());
 		values.put("channelsStatsRequests", getChannelsStatsRequests());
