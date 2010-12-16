@@ -115,7 +115,7 @@ public class PoolMetric extends CapacityMetric {
 	 * @see org.eclipse.gyrex.monitoring.metrics.CapacityMetric#doResetStats()
 	 */
 	@Override
-	protected void doResetStats() {
+	void doResetStats() {
 		resourcesStatsCreated = 0;
 		resourcesStatsReleased = 0;
 		resourcesStatsDestroyed = 0;
@@ -124,7 +124,7 @@ public class PoolMetric extends CapacityMetric {
 	}
 
 	@Override
-	protected Object[] dumpMetrics() {
+	Object[] dumpMetrics() {
 		return new Object[] { "inuse|idle|capacity|min|high|requests|denied|wait|average wait|resources created|resources released|resources destroyed", getChannelsInUse(), getChannelsIdle(), getChannelsCapacity(), getChannelsMinimum(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage(), getResourcesStatsCreated(), getResourcesStatsReleased(), getResourcesStatsDestroyed() };
 	}
 
@@ -180,7 +180,7 @@ public class PoolMetric extends CapacityMetric {
 	}
 
 	@Override
-	protected void populateAttributes(final List<MetricAttribute> attributes) {
+	void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
 		attributes.add(new MetricAttribute("channelsIdle", "the number of idle channels", Long.class));
 		attributes.add(new MetricAttribute("channelsMinimum", "the minimum number of channels available", Long.class));
@@ -190,7 +190,7 @@ public class PoolMetric extends CapacityMetric {
 	}
 
 	@Override
-	protected void populateAttributeValues(final Map<String, Object> values) {
+	void populateAttributeValues(final Map<String, Object> values) {
 		super.populateAttributeValues(values);
 		values.put("channelsIdle", getChannelsIdle());
 		values.put("channelsMinimum", getChannelsMinimum());

@@ -140,7 +140,7 @@ public class CapacityMetric extends BaseMetric {
 	 * @see org.eclipse.gyrex.monitoring.metrics.BaseMetric#doResetStats()
 	 */
 	@Override
-	protected void doResetStats() {
+	void doResetStats() {
 		channelsStatsHigh = 0;
 		channelsStatsRequests = 0;
 		channelsStatsDenied = 0;
@@ -149,7 +149,7 @@ public class CapacityMetric extends BaseMetric {
 	}
 
 	@Override
-	protected Object[] dumpMetrics() {
+	Object[] dumpMetrics() {
 		return new Object[] { "inuse|capacity|high|requests|denied|wait|average wait", getChannelsInUse(), getChannelsCapacity(), getChannelsStatsHigh(), getChannelsStatsRequests(), getChannelsStatsDenied(), getChannelsStatsWaitTime(), getChannelsStatsWaitTimeAverage() };
 	}
 
@@ -224,7 +224,7 @@ public class CapacityMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributes(final List<MetricAttribute> attributes) {
+	void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
 		attributes.add(new MetricAttribute("channelsInUse", "the number of channels in use", Long.class));
 		attributes.add(new MetricAttribute("channelsCapacity", "the total number of channels available", Long.class));
@@ -236,7 +236,7 @@ public class CapacityMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributeValues(final Map<String, Object> values) {
+	void populateAttributeValues(final Map<String, Object> values) {
 		super.populateAttributeValues(values);
 		values.put("channelsInUse", getChannelsInUse());
 		values.put("channelsCapacity", getChannelsCapacity());

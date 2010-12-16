@@ -107,7 +107,7 @@ public abstract class MetricSet extends BaseMetric {
 	 * Not used.
 	 */
 	@Override
-	protected final Object[] dumpMetrics() {
+	final Object[] dumpMetrics() {
 		return NO_METRICS;
 	}
 
@@ -140,7 +140,7 @@ public abstract class MetricSet extends BaseMetric {
 	 *             the given type
 	 */
 	@SuppressWarnings("unchecked")
-	protected <T extends BaseMetric> T getMetric(final int position, final Class<T> metricType) throws IndexOutOfBoundsException, IllegalArgumentException {
+	protected final <T extends BaseMetric> T getMetric(final int position, final Class<T> metricType) throws IndexOutOfBoundsException, IllegalArgumentException {
 		final BaseMetric metric = metrics.get(position);
 		if (null == metric) {
 			return null;
@@ -164,7 +164,7 @@ public abstract class MetricSet extends BaseMetric {
 	 * @noreference This method is not intended to be referenced by clients.
 	 * @return an unmodifiable list of metrics contained in the set
 	 */
-	public List<BaseMetric> getMetrics() {
+	public final List<BaseMetric> getMetrics() {
 		return Collections.unmodifiableList(metrics);
 	}
 
@@ -177,7 +177,7 @@ public abstract class MetricSet extends BaseMetric {
 	@Override
 	public String toString() {
 		final StringBuilder toString = new StringBuilder();
-		toString.append(getName()).append('(').append(getId()).append(')');
+		toString.append(getClass().getName()).append('(').append(getId()).append(')');
 		toString.append(" [");
 		final Object[] metrics = this.metrics.toArray();
 		for (int i = 0; i < metrics.length; i++) {

@@ -19,10 +19,13 @@ public final class MetricAttribute {
 	 * Creates a new instance.
 	 * 
 	 * @param name
+	 *            the attribute name
 	 * @param description
+	 *            the attribute description
 	 * @param type
+	 *            the attribute type
 	 */
-	protected MetricAttribute(final String name, final String description, final Class type) {
+	MetricAttribute(final String name, final String description, final Class type) {
 		this.name = name;
 		this.description = description;
 		this.type = type;

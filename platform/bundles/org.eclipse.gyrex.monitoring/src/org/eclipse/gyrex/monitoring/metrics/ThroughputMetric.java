@@ -122,7 +122,7 @@ public class ThroughputMetric extends BaseMetric {
 	 * @see org.eclipse.gyrex.monitoring.metrics.BaseMetric#doResetStats()
 	 */
 	@Override
-	protected void doResetStats() {
+	void doResetStats() {
 		requestsStatsHigh = 0;
 		requestsStatsProcessed = 0;
 		requestsStatsHitRatePerMinute = 0;
@@ -135,7 +135,7 @@ public class ThroughputMetric extends BaseMetric {
 	}
 
 	@Override
-	protected Object[] dumpMetrics() {
+	Object[] dumpMetrics() {
 		return new Object[] { "active|high|processed|rate|size|size average|time|time average", getRequestsActive(), getRequestsStatsHigh(), getRequestsStatsProcessed(), getRequestsStatsHitRatePerMinute(), getRequestsStatsSize(), getRequestsStatsSizeAverage(), getRequestsStatsProcessingTime(), getRequestsStatsProcessingTimeAverage() };
 	}
 
@@ -305,7 +305,7 @@ public class ThroughputMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributes(final List<MetricAttribute> attributes) {
+	void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
 		attributes.add(new MetricAttribute("requestsActive", "the number of active requests", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsHigh", "the high water mark since the last statistics reset", Long.class));
@@ -322,7 +322,7 @@ public class ThroughputMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributeValues(final Map<String, Object> values) {
+	void populateAttributeValues(final Map<String, Object> values) {
 		super.populateAttributeValues(values);
 		values.put("requestsActive", getRequestsActive());
 		values.put("requestsStatsHigh", getRequestsStatsHigh());

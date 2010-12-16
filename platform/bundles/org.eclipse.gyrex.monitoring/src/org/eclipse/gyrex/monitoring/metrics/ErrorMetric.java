@@ -95,9 +95,6 @@ public class ErrorMetric extends BaseMetric {
 			return errorOccuredCount;
 		}
 
-		/* (non-Javadoc)
-		 * @see java.lang.Object#toString()
-		 */
 		@Override
 		public String toString() {
 			final StringBuilder builder = new StringBuilder();
@@ -169,7 +166,7 @@ public class ErrorMetric extends BaseMetric {
 	 * @see org.eclipse.gyrex.monitoring.metrics.BaseMetric#doResetStats()
 	 */
 	@Override
-	protected void doResetStats() {
+	void doResetStats() {
 		totalNumberOfErrors = 0;
 		if (null != errorStats) {
 			errorStats.clear();
@@ -177,7 +174,7 @@ public class ErrorMetric extends BaseMetric {
 	}
 
 	@Override
-	protected Object[] dumpMetrics() {
+	Object[] dumpMetrics() {
 		return new Object[] { "error|detail|since|total errors", getLastError(), getLastErrorDetails(), getLastErrorChangeTime(), getTotalNumberOfErrors() };
 	}
 
@@ -252,7 +249,7 @@ public class ErrorMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributes(final List<MetricAttribute> attributes) {
+	void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
 		attributes.add(new MetricAttribute("lastError", "the last error", String.class));
 		attributes.add(new MetricAttribute("lastErrorDetails", "the last error details (eg. stack trace)", String.class));
@@ -261,7 +258,7 @@ public class ErrorMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributeValues(final Map<String, Object> values) {
+	void populateAttributeValues(final Map<String, Object> values) {
 		super.populateAttributeValues(values);
 		values.put("lastError", getLastError());
 		values.put("lastErrorDetails", getLastErrorDetails());

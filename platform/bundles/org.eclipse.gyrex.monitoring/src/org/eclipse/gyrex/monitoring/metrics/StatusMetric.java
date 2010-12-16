@@ -88,12 +88,12 @@ public class StatusMetric extends BaseMetric {
 	 * @see org.eclipse.gyrex.monitoring.metrics.BaseMetric#doResetStats()
 	 */
 	@Override
-	protected void doResetStats() {
+	void doResetStats() {
 		statusStatsChangeCount = 0;
 	}
 
 	@Override
-	protected Object[] dumpMetrics() {
+	Object[] dumpMetrics() {
 		return new Object[] { "status|reason|since|total changes", getStatus(), getStatusChangeReason(), getStatusChangeTime(), getStatusStatsChangeCount() };
 	}
 
@@ -143,7 +143,7 @@ public class StatusMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributes(final List<MetricAttribute> attributes) {
+	void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
 		attributes.add(new MetricAttribute("status", "the status", String.class));
 		attributes.add(new MetricAttribute("statusChangeReason", "the reason for the status change", String.class));
@@ -152,7 +152,7 @@ public class StatusMetric extends BaseMetric {
 	}
 
 	@Override
-	protected void populateAttributeValues(final Map<String, Object> values) {
+	void populateAttributeValues(final Map<String, Object> values) {
 		super.populateAttributeValues(values);
 		values.put("status", getStatus());
 		values.put("statusChangeReason", getStatusChangeReason());

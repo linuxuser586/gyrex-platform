@@ -110,7 +110,7 @@ public abstract class BaseMetric {
 	 *            the metric id (must be valid according to
 	 *            {@link #isValidId(String)})
 	 */
-	protected BaseMetric(final String id) {
+	BaseMetric(final String id) {
 		if (!isValidId(id)) {
 			throw new IllegalArgumentException("id is invalid (see BaseMetric#isValidId): " + id);
 		}
@@ -138,7 +138,7 @@ public abstract class BaseMetric {
 	 * 
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	protected void doResetStats() {
+	void doResetStats() {
 		// empty
 	}
 
@@ -151,7 +151,7 @@ public abstract class BaseMetric {
 	 * @return a text info of the metric
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	protected Object[] dumpMetrics() {
+	Object[] dumpMetrics() {
 		return NO_METRICS;
 	}
 
@@ -183,9 +183,9 @@ public abstract class BaseMetric {
 	 * @return an unmodifiable map of metric attribute values
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	public Map<String, ?> getAttributeValues() {
+	public final Map<String, ?> getAttributeValues() {
 		final Map<String, Object> attributeValues = new HashMap<String, Object>();
-		final Lock lock = getWriteLock();
+		final Lock lock = getReadLock();
 		lock.lock();
 		try {
 			populateAttributeValues(attributeValues);
@@ -210,28 +210,12 @@ public abstract class BaseMetric {
 	}
 
 	/**
-	 * Returns the name of the metric. This is the name of the class without the
-	 * package name and used by {@link #toString()}.
-	 * 
-	 * @return the name of the metric
-	 * @noreference This method is not intended to be referenced by clients.
-	 */
-	String getName() {
-		String string = getClass().getName();
-		final int index = string.lastIndexOf('.');
-		if (index != -1) {
-			string = string.substring(index + 1, string.length());
-		}
-		return string;
-	}
-
-	/**
 	 * Returns a lock which can be used in combination with the
 	 * {@link #getWriteLock() write lock} to protect against unsafe reads.
 	 * 
 	 * @return a lock for write operations
 	 */
-	protected final Lock getReadLock() {
+	final Lock getReadLock() {
 		return readWriteLock.readLock();
 	}
 
@@ -269,7 +253,7 @@ public abstract class BaseMetric {
 	 * 
 	 * @return a lock for write operations
 	 */
-	protected final Lock getWriteLock() {
+	final Lock getWriteLock() {
 		return readWriteLock.writeLock();
 	}
 
@@ -290,7 +274,7 @@ public abstract class BaseMetric {
 	 *            the list to populate with the attributes
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	protected void populateAttributes(final List<MetricAttribute> attributes) {
+	void populateAttributes(final List<MetricAttribute> attributes) {
 		attributes.add(new MetricAttribute("statsSince", "the last reset time", String.class));
 	}
 
@@ -304,8 +288,8 @@ public abstract class BaseMetric {
 	 * </p>
 	 * <p>
 	 * At the time this method is invoked, the current thread has acquired the
-	 * {@link #getWriteLock() write lock} already. Subclasses must
-	 * <strong>not</strong> modify the write lock.
+	 * {@link #getReadLock() read lock} already. Subclasses must
+	 * <strong>not</strong> modify the read lock.
 	 * </p>
 	 * <p>
 	 * Note, this method is called by {@link #getAttributeValues()} and should
@@ -316,7 +300,7 @@ public abstract class BaseMetric {
 	 *            the map to populate with the attribute values
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	protected void populateAttributeValues(final Map<String, Object> values) {
+	void populateAttributeValues(final Map<String, Object> values) {
 		values.put("statsSince", getStatsSince());
 	}
 
@@ -343,7 +327,7 @@ public abstract class BaseMetric {
 	@Override
 	public String toString() {
 		final StringBuilder toString = new StringBuilder();
-		toString.append(getName()).append('(').append(getId()).append(')');
+		toString.append(getClass().getSimpleName()).append('(').append(getId()).append(')');
 		toString.append(" {");
 		final Object[] metrics = dumpMetrics();
 		for (int i = 0; i < metrics.length; i++) {
