@@ -41,13 +41,19 @@ public abstract class MetricSet extends BaseMetric {
 	/** the metrics */
 	private final List<BaseMetric> metrics;
 
+	/** the description */
 	private final String description;
 
 	/**
 	 * Creates a new metric set using the specified id and metrics.
 	 * <p>
-	 * The metrics are stored in an immutable list and can be retrieved using
+	 * The metrics are stored in an immutable way and can be retrieved using
 	 * {@link #getMetric(int, Class)}.
+	 * </p>
+	 * <p>
+	 * The ids of the metrics may but don't need to be prefixed with the metric
+	 * set id. In any case the will be interpreted within the scope of the
+	 * metric set id.
 	 * </p>
 	 * 
 	 * @param id
@@ -59,10 +65,10 @@ public abstract class MetricSet extends BaseMetric {
 	 */
 	protected MetricSet(final String id, final String description, final BaseMetric... metrics) {
 		super(id);
-
 		if (null == metrics) {
 			throw new IllegalArgumentException("metrics may not be null");
 		}
+
 		// save a copy to prevent external modifications
 		this.metrics = new ArrayList<BaseMetric>(metrics.length);
 		for (final BaseMetric metric : metrics) {
