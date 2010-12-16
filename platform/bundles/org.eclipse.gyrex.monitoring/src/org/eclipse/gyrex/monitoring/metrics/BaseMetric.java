@@ -52,7 +52,7 @@ public abstract class BaseMetric {
 	static final String[] NO_METRICS = new String[0];
 
 	/** common date format */
-	protected static final DateFormat ISO_8601_UTC = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
+	static final DateFormat ISO_8601_UTC = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
 
 	/**
 	 * Indicates if the specified id is a valid metric id.
