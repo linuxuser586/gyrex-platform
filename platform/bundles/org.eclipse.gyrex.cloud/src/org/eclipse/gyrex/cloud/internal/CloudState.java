@@ -27,9 +27,11 @@ import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.util.NLS;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,6 +122,18 @@ public class CloudState implements IConnectionMonitor {
 	}
 
 	/**
+	 * Returns the node info for this node.
+	 * @return the node info (maybe <code>null</code> if inactive)
+	 */
+	public static NodeInfo getNodeInfo() {
+		CloudState cloudState = instanceRef.get();
+		if(cloudState == null)
+			return null;
+
+		return cloudState.myInfo.get();
+	}
+
+	/**
 	 * Unregisters the node from the cloud.
 	 */
 	public static void unregisterNode() {
@@ -196,9 +210,20 @@ public class CloudState implements IConnectionMonitor {
 				return;
 			}
 
-			// process node de-activation events
+			// process node updates
 			if (path.equals(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeInfo.getNodeId()).toString())) {
-				// force re-connect
+				// refresh node info
+				try {
+					refreshNodeInfo();
+				} catch (final Exception e) {
+					// smart updated failed, fallback to a complete reconnect
+					if (CloudDebug.cloudState) {
+						LOG.warn("Smart update failed for record change event ({}) for node {}, a complete re-connect will be forced! {}", new Object[] { path, nodeInfo, e.getMessage(), e });
+					} else {
+						LOG.warn("Smart update failed for record change event ({}) for node {}, a complete re-connect will be forced! {}", new Object[] { nodeInfo, e.getMessage() });
+					}
+					reconnect(nodeInfo);
+				}
 				reconnect(nodeInfo);
 			}
 		}
@@ -243,12 +268,16 @@ public class CloudState implements IConnectionMonitor {
 			// we may be already disconnected but we try to remove the ephemeral node anyway
 			try {
 				setNodeOffline(nodeInfo);
+
+				// also remove our record from the "all" path
+				ZooKeeperGate.get().deletePath(IZooKeeperLayout.PATH_NODES_ALL.append(nodeInfo.getNodeId()));
+
 				LOG.info("Node {} is now offline.", nodeInfo);
 			} catch (final IllegalStateException e) {
 				// ok, gate is gone
 			} catch (final Exception e) {
 				// this may happen (eg. connection lost unintentionally), but log a warning
-				LOG.warn("Unable to set node to offline. You may need to check node directory manually. {}", e.toString());
+				LOG.warn("Unable to set node to offline. You may need to check node directory manually in order to bring the node back online. Another option would be complete shutdown and re-start after a few seconds. {}", e.toString());
 			}
 		} finally {
 			registrationLock.unlock();
@@ -276,9 +305,9 @@ public class CloudState implements IConnectionMonitor {
 		}
 
 		// check if there is a recored in the "approved" list
-		final byte[] record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(info.getNodeId()), monitor, null);
-		if (record != null) {
-			return new NodeInfo(record);
+		final NodeInfo approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
+		if (approvedNodeInfo != null) {
+			return approvedNodeInfo;
 		}
 
 		// create an ephemeral pending record
@@ -288,8 +317,83 @@ public class CloudState implements IConnectionMonitor {
 	}
 
 	/**
+	 * Reads the approved node info from ZooKeeper and also sets a monitor to
+	 * get information on update events.
+	 *
+	 * @return the read node info (maybe <code>null</code> if non found
+	 * @throws Exception
+	 *             in case an error occurred reading the node info
+	 */
+	NodeInfo readApprovedNodeInfo(final String nodeId) throws Exception {
+		final Stat stat = new Stat();
+		byte[] record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor, stat);
+		if (record == null) {
+			// check if the path doesn't exist and set a watch
+			if (!ZooKeeperGate.get().exists(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor)) {
+				return null;
+			}
+			// retry
+			record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor, stat);
+		}
+
+		// return node info if available
+		if (record != null) {
+			return new NodeInfo(record, stat.getVersion());
+		}
+
+		return null;
+	}
+
+	/**
+	 * Smart refresh of the approved node information.
+	 * <p>
+	 * This reads the new information from ZooKeeper and performs the necessary
+	 * updates.
+	 * </p>
+	 *
+	 * @throws Exception
+	 *             in case an error occurred refreshing the node info
+	 */
+	void refreshNodeInfo() throws Exception {
+		registrationLock.lock();
+		try {
+			final NodeInfo oldInfo = myInfo.get();
+			if (oldInfo == null) {
+				throw new IllegalStateException("cloud is inactive");
+			}
+
+			// read info
+			final NodeInfo newInfo = readApprovedNodeInfo(oldInfo.getNodeId());
+			if (!StringUtils.equals(oldInfo.getNodeId(), newInfo.getNodeId())) {
+				throw new IllegalStateException("node id mismatch");
+			}
+
+			// check version
+			if (oldInfo.getVersion() >= newInfo.getVersion()) {
+				if (CloudDebug.cloudState) {
+					LOG.debug("Already up to date (current {} >= remote {})", oldInfo, newInfo);
+				}
+				return;
+			}
+
+			// log message
+			if (CloudDebug.cloudState) {
+				LOG.debug("Updating node info to {}", newInfo);
+			}
+
+			// set node info
+			myInfo.set(newInfo);
+
+			// refresh roles
+			LocalRolesManager.refreshRoles(newInfo.getRoles());
+		} finally {
+			registrationLock.unlock();
+		}
+	}
+
+	/**
 	 * Attempts registering the node in the cloud.
-	 * 
+	 *
 	 * @return <code>true</code> on success, <code>false</code> otherwise
 	 */
 	boolean registerWithCloud() {
@@ -346,9 +450,10 @@ public class CloudState implements IConnectionMonitor {
 
 	private void setNodeOffline(final NodeInfo node) throws Exception {
 		// de-activate cloud roles
-		for (final String role : node.getRoles()) {
-			LocalRolesManager.deactivateRole(role);
-		}
+		LocalRolesManager.deactivateRoles(node.getRoles());
+
+		// stop node metrics reporter
+		NodeMetricsReporter.stop();
 
 		// remove an ephemeral record for this node
 		try {
@@ -389,12 +494,11 @@ public class CloudState implements IConnectionMonitor {
 			}
 		}
 
-		// TODO setup node metrics publisher (cpu load, memory resources)
+		// start node metrics publisher (cpu load, memory resources)
+		NodeMetricsReporter.start();
 
 		// activate cloud roles
-		for (final String role : node.getRoles()) {
-			LocalRolesManager.activateRole(role);
-		}
+		LocalRolesManager.activateRoles(node.getRoles());
 	}
 
 	@Override

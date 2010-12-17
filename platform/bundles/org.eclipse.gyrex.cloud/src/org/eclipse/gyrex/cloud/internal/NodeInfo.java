@@ -147,6 +147,8 @@ public class NodeInfo {
 	private final String name;
 	private final Set<String> roles;
 
+	private final int version;
+
 	/**
 	 * Creates a new instance.
 	 */
@@ -156,6 +158,7 @@ public class NodeInfo {
 		name = "";
 		roles = Collections.emptySet();
 		approved = false;
+		version = -1;
 	}
 
 	/**
@@ -163,11 +166,14 @@ public class NodeInfo {
 	 * 
 	 * @param data
 	 *            the instance data
+	 * @param version
+	 *            the instance data version
 	 * @throws Exception
 	 *             if an error occurred parsing the instance data
 	 */
-	NodeInfo(final byte[] data) throws Exception {
+	NodeInfo(final byte[] data, final int version) throws Exception {
 		nodeId = initializeNodeId();
+		this.version = version;
 
 		// parse
 		final Properties properties = new Properties();
@@ -196,6 +202,55 @@ public class NodeInfo {
 		// this node is approved
 		approved = true;
 	};
+
+	@Override
+	public boolean equals(final Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final NodeInfo other = (NodeInfo) obj;
+		if (approved != other.approved) {
+			return false;
+		}
+		if (location == null) {
+			if (other.location != null) {
+				return false;
+			}
+		} else if (!location.equals(other.location)) {
+			return false;
+		}
+		if (name == null) {
+			if (other.name != null) {
+				return false;
+			}
+		} else if (!name.equals(other.name)) {
+			return false;
+		}
+		if (nodeId == null) {
+			if (other.nodeId != null) {
+				return false;
+			}
+		} else if (!nodeId.equals(other.nodeId)) {
+			return false;
+		}
+		if (roles == null) {
+			if (other.roles != null) {
+				return false;
+			}
+		} else if (!roles.equals(other.roles)) {
+			return false;
+		}
+		if (version != other.version) {
+			return false;
+		}
+		return true;
+	}
 
 	/**
 	 * Returns a human-reable string of the node location.
@@ -235,6 +290,28 @@ public class NodeInfo {
 	}
 
 	/**
+	 * Returns the version.
+	 * 
+	 * @return the version
+	 */
+	public int getVersion() {
+		return version;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (approved ? 1231 : 1237);
+		result = prime * result + ((location == null) ? 0 : location.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
+		result = prime * result + ((roles == null) ? 0 : roles.hashCode());
+		result = prime * result + version;
+		return result;
+	}
+
+	/**
 	 * Indicates if the node is an approved member.
 	 * 
 	 * @return <code>true</code> if the node membership is approved,
@@ -253,6 +330,8 @@ public class NodeInfo {
 		info.append(approved ? "APPROVED" : "PENDING");
 		info.append(", ");
 		info.append(nodeId);
+		info.append(" v");
+		info.append(version);
 		info.append(")");
 		return info.toString();
 	}

@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
+import java.util.Collection;
+
 /**
  * The cloud role manager is responsible for managing the individual roles
  * assigned to a node.
@@ -18,21 +20,31 @@ package org.eclipse.gyrex.cloud.internal;
 public class LocalRolesManager {
 
 	/**
-	 * Activates a role.
+	 * Activates roles.
 	 * 
-	 * @param role
+	 * @param roles
 	 */
-	public static void activateRole(final String role) {
+	public static void activateRoles(final Collection<String> roles) {
 		// TODO Auto-generated method stub
 
 	}
 
 	/**
-	 * Deactivates a role.
+	 * Deactivates roles.
 	 * 
-	 * @param role
+	 * @param roles
 	 */
-	public static void deactivateRole(final String role) {
+	public static void deactivateRoles(final Collection<String> roles) {
+		// TODO Auto-generated method stub
+
+	}
+
+	/**
+	 * Refreshes the roles.
+	 * 
+	 * @param roles
+	 */
+	public static void refreshRoles(final Collection<String> roles) {
 		// TODO Auto-generated method stub
 
 	}

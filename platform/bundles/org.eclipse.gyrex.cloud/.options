@@ -9,3 +9,6 @@ org.eclipse.gyrex.cloud/zooKeeperGateLifecycle=true
 
 # debug node's cloud state
 org.eclipse.gyrex.cloud/cloudState=true
+
+# debug node metrics reported to cloud
+org.eclipse.gyrex.cloud/nodeMetrics=false

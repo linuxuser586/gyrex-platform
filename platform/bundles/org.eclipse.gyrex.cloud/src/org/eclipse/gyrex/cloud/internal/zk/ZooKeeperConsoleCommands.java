@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 import org.eclipse.osgi.framework.console.CommandProvider;
 
@@ -29,9 +27,6 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
-/**
- *
- */
 public class ZooKeeperConsoleCommands implements CommandProvider {
 
 	static abstract class Command {
@@ -271,17 +266,6 @@ public class ZooKeeperConsoleCommands implements CommandProvider {
 			return;
 		}
 		cmd.execute(keeper, ci);
-	}
-
-	public void _zkrm(final CommandInterpreter ci) throws Exception {
-		final String pathStr = ci.nextArgument();
-		if (pathStr == null) {
-			throw new IllegalArgumentException("path required");
-		}
-
-		final IPath path = new Path(pathStr);
-		ZooKeeperGate.get().deletePath(path);
-		ci.println("deleted " + path);
 	}
 
 	@Override
