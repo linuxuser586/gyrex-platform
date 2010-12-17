@@ -148,11 +148,9 @@ public class NodeMetricsReporter extends Job implements IShutdownParticipant {
 			} catch (final Exception e) {
 				LOG.warn("Failed to update node metrics. {}", e.getMessage());
 			} finally {
-
+				// reschedule
+				schedule(DELAY);
 			}
-
-			// reschedule
-			schedule(DELAY);
 		}
 
 		return Status.OK_STATUS;
