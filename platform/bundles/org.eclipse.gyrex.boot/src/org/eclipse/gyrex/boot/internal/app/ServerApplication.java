@@ -14,7 +14,6 @@ package org.eclipse.gyrex.boot.internal.app;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,7 +22,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 
-import org.eclipse.gyrex.server.Platform;
+import org.eclipse.gyrex.server.internal.roles.ServerRole;
+import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
+import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.osgi.service.datalocation.Location;
@@ -264,15 +265,13 @@ public class ServerApplication implements IApplication {
 		}
 
 		// add default start roles
-		if (Platform.inDevelopmentMode()) {
-			final String[] defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefaultInDevelopmentMode();
-			for (final String role : defaultRoles) {
-				if (!roleIds.contains(role)) {
-					if (BootDebug.debugRoles) {
-						LOG.debug("Default start role: " + role);
-					}
-					roleIds.add(role);
+		final String[] defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_BOOT);
+		for (final String role : defaultRoles) {
+			if (!roleIds.contains(role)) {
+				if (BootDebug.debugRoles) {
+					LOG.debug("Default start role: " + role);
 				}
+				roleIds.add(role);
 			}
 		}
 
@@ -288,8 +287,6 @@ public class ServerApplication implements IApplication {
 			roles.add(role);
 		}
 
-		// sort according to their start level
-		Collections.sort(roles);
 		return roles;
 	}
 

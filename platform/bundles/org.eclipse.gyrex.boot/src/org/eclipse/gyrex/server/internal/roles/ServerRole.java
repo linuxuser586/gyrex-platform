@@ -9,13 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.boot.internal.app;
+package org.eclipse.gyrex.server.internal.roles;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.eclipse.gyrex.boot.internal.app.ActivationException;
+import org.eclipse.gyrex.boot.internal.app.AppActivator;
+import org.eclipse.gyrex.boot.internal.app.BootDebug;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -31,13 +35,12 @@ import org.slf4j.LoggerFactory;
 /**
  * A server role
  */
-public class ServerRole implements Comparable<ServerRole> {
+public class ServerRole {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerRole.class);
 
 	private final String id;
 	private final String name;
-	private final int startLevel;
 	private final List<String> requiredBundleNames;
 	private final List<String> requiredApplicationIds;
 
@@ -45,13 +48,9 @@ public class ServerRole implements Comparable<ServerRole> {
 
 	private final AtomicBoolean active = new AtomicBoolean();
 
-	/**
-	 * Creates a new instance.
-	 */
-	ServerRole(final String id, final String name, final int startLevel, final List<String> requiredBundleNames, final List<String> requiredApplicationIds) {
+	ServerRole(final String id, final String name, final List<String> requiredBundleNames, final List<String> requiredApplicationIds) {
 		this.id = id;
 		this.name = name;
-		this.startLevel = startLevel;
 		this.requiredBundleNames = requiredBundleNames;
 		this.requiredApplicationIds = requiredApplicationIds;
 	}
@@ -83,11 +82,6 @@ public class ServerRole implements Comparable<ServerRole> {
 				throw new ActivationException(NLS.bind("Error starting application \"{0}\": {1}", applicationId, e.getMessage()), e);
 			}
 		}
-	}
-
-	@Override
-	public int compareTo(final ServerRole o) {
-		return startLevel - o.startLevel;
 	}
 
 	/**
@@ -192,13 +186,10 @@ public class ServerRole implements Comparable<ServerRole> {
 
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
-		builder.append("ServerRole [id=").append(id).append(", name=").append(name).append(", startLevel=").append(startLevel).append(", active=").append(active).append("]");
+		builder.append("ServerRole [id=").append(id).append(", name=").append(name).append(", active=").append(active).append("]");
 		return builder.toString();
 	}
 }
