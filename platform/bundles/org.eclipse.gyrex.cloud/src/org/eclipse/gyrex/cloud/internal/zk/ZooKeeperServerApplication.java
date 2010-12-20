@@ -12,10 +12,11 @@ import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.server.Platform;
 
 import org.apache.zookeeper.server.NIOServerCnxn;
-import org.apache.zookeeper.server.NIOServerCnxn.Factory;
 import org.apache.zookeeper.server.PurgeTxnLog;
+import org.apache.zookeeper.server.ZKDatabase;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
+import org.apache.zookeeper.server.quorum.QuorumPeer;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,108 +31,125 @@ public class ZooKeeperServerApplication implements IApplication {
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = new Integer(1);
 
+	/** stopSignalRef */
 	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>();
-	private static final AtomicReference<Throwable> zkErrorRef = new AtomicReference<Throwable>();
-	private static final AtomicReference<ThreadGroup> zkThreadGroup = new AtomicReference<ThreadGroup>();
 
-	static final AtomicReference<Factory> cnxnFactoryRef = new AtomicReference<Factory>();
-
-	private Thread createZooKeeperServerThread(final ZooKeeperServerConfig config) {
-		final ThreadGroup threadGroup = new ThreadGroup("ZooKeeper Server");
-		threadGroup.setDaemon(false); // don't run as daemon in order to allow proper shutdown
-		if (!zkThreadGroup.compareAndSet(null, threadGroup)) {
-			threadGroup.destroy();
-			throw new IllegalStateException("Thread group already created!");
+	private void runEnsemble(final ZooKeeperServerConfig config, final IApplicationContext context, final CountDownLatch stopSignal) throws IOException {
+		/*
+		 * note, we could migrate everything into preferences; but this requires
+		 * to keep up with every ZooKeeper change;
+		 * A ZooKeeper ensemble should be taken seriously. Having this protection in
+		 * place ensures that administrator writes a ZooKeeper configuration file
+		 * and understands the implications of this.
+		 */
+		// sanity check that config is not preferences based
+		if (config.isPreferencesBased()) {
+			throw new IllegalArgumentException("Please create a ZooKeeper configuration file in order to setup an ensamble.");
 		}
-		final Thread thread = new Thread(threadGroup, "ZooKeeper Server Runner") {
-			@Override
-			public void run() {
-				try {
-					// disable LOG4J JMX stuff
-					System.setProperty("zookeeper.jmx.log4j.disable", Boolean.TRUE.toString());
 
-					// check which server type to launch
-					if (config.getServers().size() > 1) {
-						runEnsemble(config);
-					} else {
-						runStandalone(config);
-					}
-					signalStopped(null);
-				} catch (final Throwable e) {
-					if (CloudDebug.zooKeeperServer) {
-						LOG.error("Error while starting/running ZooKeeper: {}", e.getMessage(), e);
-					} else {
-						LOG.warn("Error while starting/running ZooKeeper: {}", e.getMessage());
-					}
-					signalStopped(e);
-				}
+		// get directories
+		final File dataDir = new File(config.getDataLogDir());
+		final File snapDir = new File(config.getDataDir());
+
+		// clean old logs
+		PurgeTxnLog.purge(dataDir, snapDir, 3);
+
+		// create NIO factory
+		final NIOServerCnxn.Factory cnxnFactory = new NIOServerCnxn.Factory(config.getClientPortAddress(), config.getMaxClientCnxns());
+
+		// create server
+		final QuorumPeer quorumPeer = new QuorumPeer();
+		quorumPeer.setClientPortAddress(config.getClientPortAddress());
+		quorumPeer.setTxnFactory(new FileTxnSnapLog(dataDir, snapDir));
+		quorumPeer.setQuorumPeers(config.getServers());
+		quorumPeer.setElectionType(config.getElectionAlg());
+		quorumPeer.setMyid(config.getServerId());
+		quorumPeer.setTickTime(config.getTickTime());
+		quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
+		quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
+		quorumPeer.setInitLimit(config.getInitLimit());
+		quorumPeer.setSyncLimit(config.getSyncLimit());
+		quorumPeer.setQuorumVerifier(config.getQuorumVerifier());
+		quorumPeer.setCnxnFactory(cnxnFactory);
+		quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
+		quorumPeer.setLearnerType(config.getPeerType());
+
+		// start server
+		LOG.info("Starting ZooKeeper ensemble node.");
+		quorumPeer.start();
+
+		// signal running
+		context.applicationRunning();
+
+		// wait for stop
+		do {
+			try {
+				stopSignal.await();
+			} catch (final InterruptedException e) {
+				// reset interrupted state
+				Thread.currentThread().interrupt();
 			}
+		} while ((stopSignal.getCount() > 0) && Thread.interrupted());
 
-			private void runEnsemble(final ZooKeeperServerConfig config) {
-//				final QuorumPeerMain zkServer = new QuorumPeerMain();
-//				zkServer.runFromConfig(config);
-				// TODO implement ensample
+		// shutdown ZooKeeper if still running
+		quorumPeer.shutdown();
 
-				// start server
-				LOG.info("Starting ZooKeeper ensamble server.");
+		// clean logs
+		PurgeTxnLog.purge(dataDir, snapDir, 3);
 
-				// reset factory ref
-				cnxnFactoryRef.set(null);
-
-				LOG.info("ZooKeeper server stopped.");
-
-			}
-
-			private void runStandalone(final ZooKeeperServerConfig config) throws IOException, InterruptedException {
-				// get directories
-				final File dataDir = new File(config.getDataLogDir());
-				final File snapDir = new File(config.getDataDir());
-
-				// clean old logs
-				PurgeTxnLog.purge(dataDir, snapDir, 3);
-
-				// create server
-				final ZooKeeperServer zkServer = new ZooKeeperServer();
-				zkServer.setTxnLogFactory(new FileTxnSnapLog(dataDir, snapDir));
-				zkServer.setTickTime(config.getTickTime());
-				zkServer.setMinSessionTimeout(config.getMinSessionTimeout());
-				zkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
-
-				// create NIO factory
-				final NIOServerCnxn.Factory factory = new NIOServerCnxn.Factory(config.getClientPortAddress(), config.getMaxClientCnxns());
-				if (!cnxnFactoryRef.compareAndSet(null, factory)) {
-					throw new IllegalStateException("ZooKeeper already/still running");
-				}
-
-				// start server
-				LOG.info("Starting ZooKeeper standalone server.");
-				factory.startup(zkServer);
-				factory.join();
-				if (zkServer.isRunning()) {
-					zkServer.shutdown();
-				}
-
-				// clean logs
-				PurgeTxnLog.purge(dataDir, snapDir, 3);
-
-				// reset factory ref
-				cnxnFactoryRef.set(null);
-
-				LOG.info("ZooKeeper server stopped.");
-			}
-		};
-		return thread;
+		LOG.info("ZooKeeper ensemble node stopped.");
 	}
 
-	void signalStopped(final Throwable zkError) {
-		if (CloudDebug.zooKeeperServer) {
-			LOG.debug("Received stop signal for ZooKeeper server.");
+	private void runStandalone(final ZooKeeperServerConfig config, final IApplicationContext context, final CountDownLatch stopSignal) throws IOException {
+		// disable LOG4J JMX stuff
+		System.setProperty("zookeeper.jmx.log4j.disable", Boolean.TRUE.toString());
+
+		// get directories
+		final File dataDir = new File(config.getDataLogDir());
+		final File snapDir = new File(config.getDataDir());
+
+		// clean old logs
+		PurgeTxnLog.purge(dataDir, snapDir, 3);
+
+		// create server
+		final ZooKeeperServer zkServer = new ZooKeeperServer();
+		zkServer.setTxnLogFactory(new FileTxnSnapLog(dataDir, snapDir));
+		zkServer.setTickTime(config.getTickTime());
+		zkServer.setMinSessionTimeout(config.getMinSessionTimeout());
+		zkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
+
+		// create NIO factory
+		final NIOServerCnxn.Factory factory = new NIOServerCnxn.Factory(config.getClientPortAddress(), config.getMaxClientCnxns());
+
+		// start server
+		LOG.info("Starting ZooKeeper standalone server.");
+		try {
+			factory.startup(zkServer);
+		} catch (final InterruptedException e) {
+			LOG.warn("Interrupted during server start.", e);
+			Thread.currentThread().interrupt();
 		}
-		final CountDownLatch signal = stopSignalRef.get();
-		if (null != signal) {
-			zkErrorRef.set(zkError);
-			signal.countDown();
-		}
+
+		// signal running
+		context.applicationRunning();
+
+		// wait for stop
+		do {
+			try {
+				stopSignal.await();
+			} catch (final InterruptedException e) {
+				// reset interrupted state
+				Thread.currentThread().interrupt();
+			}
+		} while ((stopSignal.getCount() > 0) && Thread.interrupted());
+
+		// shutdown ZooKeeper if still running
+		factory.shutdown();
+
+		// clean logs
+		PurgeTxnLog.purge(dataDir, snapDir, 3);
+
+		LOG.info("ZooKeeper server stopped.");
 	}
 
 	@Override
@@ -164,40 +182,22 @@ public class ZooKeeperServerApplication implements IApplication {
 		}
 
 		try {
-
-			// create && start ZooKeeper server thread
-			final Thread zkServerThread = createZooKeeperServerThread(config);
-			zkServerThread.start();
-
-			// signal running
-			context.applicationRunning();
-
-			// wait for stop
-			try {
-				stopSignal.await();
-			} catch (final InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-
-			// shutdown ZooKeeper if still running
-			final Factory zkServer = cnxnFactoryRef.getAndSet(null);
-			if (zkServer != null) {
-				zkServer.shutdown();
-			}
-
-			final ThreadGroup threadGroup = zkThreadGroup.getAndSet(null);
-			if (threadGroup != null) {
-				try {
-					threadGroup.destroy();
-				} catch (final Exception e) {
-					LOG.warn("Error while destroying thread group. {}", e.getMessage());
-				}
+			// check which server type to launch
+			if (config.getServers().size() > 1) {
+				runEnsemble(config, context, stopSignal);
+			} else {
+				runStandalone(config, context, stopSignal);
 			}
 
 			// exit
-			final Throwable error = zkErrorRef.getAndSet(null);
-			return error == null ? IApplication.EXIT_OK : EXIT_ERROR;
-
+			return IApplication.EXIT_OK;
+		} catch (final Throwable e) {
+			if (CloudDebug.zooKeeperServer) {
+				LOG.error("Error while starting/running ZooKeeper: {}", e.getMessage(), e);
+			} else {
+				LOG.error("Error while starting/running ZooKeeper: {}", e.getMessage());
+			}
+			return EXIT_ERROR;
 		} finally {
 			// done, now reset signal to allow further starts
 			stopSignalRef.compareAndSet(stopSignal, null);
@@ -206,7 +206,13 @@ public class ZooKeeperServerApplication implements IApplication {
 
 	@Override
 	public void stop() {
-		signalStopped(null);
+		if (CloudDebug.zooKeeperServer) {
+			LOG.debug("Received stop signal for ZooKeeper server.");
+		}
+		final CountDownLatch signal = stopSignalRef.get();
+		if (null != signal) {
+			signal.countDown();
+		}
 	}
 
 }

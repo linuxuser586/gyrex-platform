@@ -32,6 +32,8 @@ public class ZooKeeperServerConfig extends QuorumPeerConfig {
 	public static final String PREF_KEY_CLIENT_PORT_ADDRESS = "zookeeper/clientPortAddress";
 	public static final String PREF_KEY_TICKTIME = "zookeeper/ticktime";
 
+	private boolean preferencesBased;
+
 	/**
 	 * Creates a new instance.
 	 */
@@ -42,7 +44,17 @@ public class ZooKeeperServerConfig extends QuorumPeerConfig {
 		dataLogDir = zkBase.append("logs").toString();
 	}
 
+	/**
+	 * Returns the preferencesBased.
+	 * 
+	 * @return the preferencesBased
+	 */
+	public boolean isPreferencesBased() {
+		return preferencesBased;
+	}
+
 	public void readFromPreferences() throws ConfigException {
+		preferencesBased = true;
 		final IPreferencesService preferenceService = CloudActivator.getInstance().getPreferenceService();
 
 		// port/address to listen for client connections
