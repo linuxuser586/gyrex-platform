@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.gyrex.server.roles">
+      <role
+            id="org.eclipse.gyrex.http.jetty.roles.engine"
+            name="Gyrex Jetty-based HTTP Engine">
+         <requireBundle
+               symbolicName="org.eclipse.gyrex.http.jetty">
+         </requireBundle>
+         <requireBundle
+               symbolicName="org.eclipse.equinox.http.registry">
+         </requireBundle>
+      </role>
+   </extension>
+
+</plugin>

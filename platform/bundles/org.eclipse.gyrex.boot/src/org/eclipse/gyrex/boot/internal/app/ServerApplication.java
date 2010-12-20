@@ -14,6 +14,7 @@ package org.eclipse.gyrex.boot.internal.app;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 
-import org.eclipse.gyrex.server.internal.roles.ServerRole;
+import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
@@ -211,15 +212,18 @@ public class ServerApplication implements IApplication {
 	 *            the arguments
 	 * @return the enabled roles
 	 */
-	private List<ServerRole> getEnabledServerRoles(final String[] arguments) {
-		// scan arguments for submitted roles
+	private List<String> getEnabledServerRoles(final String[] arguments) {
 		boolean ignoreConfiguredRoles = false;
+		boolean ignoreDefaultRoles = false;
+
+		// scan arguments for submitted roles
 		final List<String> roleIds = new ArrayList<String>();
 		for (int i = 0; i < arguments.length; i++) {
 			final String arg = arguments[i];
 			if ("-ignoreConfiguredRoles".equalsIgnoreCase(arg)) {
 				ignoreConfiguredRoles = true;
 			} else if ("-roles".equalsIgnoreCase(arg)) {
+				ignoreDefaultRoles = true;
 				if (++i >= arguments.length) {
 					throw new IllegalArgumentException("The argument '-roles' requires a following argument with the server roles to start.");
 				}
@@ -247,6 +251,7 @@ public class ServerApplication implements IApplication {
 			// sets the role for this particular node
 			final String[] rolesToStart = StringUtils.split(new InstanceScope().getNode(AppActivator.SYMBOLIC_NAME).get("rolesToStart", null), ',');
 			if (null != rolesToStart) {
+				ignoreDefaultRoles = true;
 				for (final String role : rolesToStart) {
 					if (StringUtils.isNotBlank(role)) {
 						if (!roleIds.contains(role)) {
@@ -265,29 +270,20 @@ public class ServerApplication implements IApplication {
 		}
 
 		// add default start roles
-		final String[] defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_BOOT);
-		for (final String role : defaultRoles) {
-			if (!roleIds.contains(role)) {
-				if (BootDebug.debugRoles) {
-					LOG.debug("Default start role: " + role);
+		if (!ignoreDefaultRoles) {
+			final Collection<String> defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_BOOT);
+			for (final String role : defaultRoles) {
+				if (!roleIds.contains(role)) {
+					if (BootDebug.debugRoles) {
+						LOG.debug("Default start role: " + role);
+					}
+					roleIds.add(role);
 				}
-				roleIds.add(role);
 			}
 		}
 
-		// resolve all roles
-		final List<ServerRole> roles = new ArrayList<ServerRole>(roleIds.size());
-		final ServerRolesRegistry registry = ServerRolesRegistry.getDefault();
-		for (final String roleId : roleIds) {
-			final ServerRole role = registry.getRole(roleId);
-			if (role == null) {
-				LOG.warn("Role {} not found!", roleId);
-				continue;
-			}
-			roles.add(role);
-		}
+		return roleIds;
 
-		return roles;
 	}
 
 	private void loggingOff() {
@@ -386,12 +382,10 @@ public class ServerApplication implements IApplication {
 				running.set(true);
 
 				// read enabled server roles from configuration
-				final List<ServerRole> roles = getEnabledServerRoles(arguments);
+				final List<String> roles = getEnabledServerRoles(arguments);
 
 				// activate server roles
-				for (final ServerRole role : roles) {
-					role.activate();
-				}
+				LocalRolesManager.activateRoles(roles, true);
 
 				// signal that we are now up and running
 				context.applicationRunning();
@@ -411,11 +405,8 @@ public class ServerApplication implements IApplication {
 					}
 				} while ((stopOrRestartSignal.getCount() > 0) && Thread.interrupted());
 
-				// deactivate roles (in reverse order)
-				for (int i = roles.size() - 1; i >= 0; i--) {
-					final ServerRole role = roles.get(i);
-					role.deactivate();
-				}
+				// deactivate all roles
+				LocalRolesManager.deactivateAllRoles();
 
 				// get & reset relaunch flag
 				relaunch = ServerApplication.relaunch;

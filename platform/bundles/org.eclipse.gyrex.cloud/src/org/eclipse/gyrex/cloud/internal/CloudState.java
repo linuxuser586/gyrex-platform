@@ -11,6 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -19,6 +23,9 @@ import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
+import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
+import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
+import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -108,6 +115,20 @@ public class CloudState implements IConnectionMonitor {
 	private static final AtomicReference<CloudState> instanceRef = new AtomicReference<CloudState>();
 
 	/**
+	 * Returns the node info for this node.
+	 * 
+	 * @return the node info (maybe <code>null</code> if inactive)
+	 */
+	public static NodeInfo getNodeInfo() {
+		final CloudState cloudState = instanceRef.get();
+		if (cloudState == null) {
+			return null;
+		}
+
+		return cloudState.myInfo.get();
+	}
+
+	/**
 	 * Registers this node with the cloud.
 	 */
 	public static void registerNode() throws Exception {
@@ -119,18 +140,6 @@ public class CloudState implements IConnectionMonitor {
 		// note, we use get() here in order to support concurrent #unregisterNode calls which should return null!
 		// (addConnectionMonitor can handle null monitors)
 		ZooKeeperGate.addConnectionMonitor(instanceRef.get());
-	}
-
-	/**
-	 * Returns the node info for this node.
-	 * @return the node info (maybe <code>null</code> if inactive)
-	 */
-	public static NodeInfo getNodeInfo() {
-		CloudState cloudState = instanceRef.get();
-		if(cloudState == null)
-			return null;
-
-		return cloudState.myInfo.get();
 	}
 
 	/**
@@ -319,7 +328,7 @@ public class CloudState implements IConnectionMonitor {
 	/**
 	 * Reads the approved node info from ZooKeeper and also sets a monitor to
 	 * get information on update events.
-	 *
+	 * 
 	 * @return the read node info (maybe <code>null</code> if non found
 	 * @throws Exception
 	 *             in case an error occurred reading the node info
@@ -350,7 +359,7 @@ public class CloudState implements IConnectionMonitor {
 	 * This reads the new information from ZooKeeper and performs the necessary
 	 * updates.
 	 * </p>
-	 *
+	 * 
 	 * @throws Exception
 	 *             in case an error occurred refreshing the node info
 	 */
@@ -393,7 +402,7 @@ public class CloudState implements IConnectionMonitor {
 
 	/**
 	 * Attempts registering the node in the cloud.
-	 *
+	 * 
 	 * @return <code>true</code> on success, <code>false</code> otherwise
 	 */
 	boolean registerWithCloud() {
@@ -450,7 +459,15 @@ public class CloudState implements IConnectionMonitor {
 
 	private void setNodeOffline(final NodeInfo node) throws Exception {
 		// de-activate cloud roles
-		LocalRolesManager.deactivateRoles(node.getRoles());
+		// TODO we shouldn't deactivate immediately but schedule a deactivation
+		// (there might be a temporary network partition which shouldn't bring down roles)
+		final List<String> roles = new ArrayList<String>(node.getRoles());
+		if (roles.isEmpty()) {
+			// fallback to default roles
+			roles.addAll(ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT));
+		}
+		Collections.reverse(roles); // de-activate in reverse order
+		LocalRolesManager.deactivateRoles(roles);
 
 		// stop node metrics reporter
 		NodeMetricsReporter.stop();
@@ -498,7 +515,12 @@ public class CloudState implements IConnectionMonitor {
 		NodeMetricsReporter.start();
 
 		// activate cloud roles
-		LocalRolesManager.activateRoles(node.getRoles());
+		final Collection<String> roles = node.getRoles();
+		if (!roles.isEmpty()) {
+			LocalRolesManager.activateRoles(roles);
+		} else {
+			LocalRolesManager.activateRoles(ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT));
+		}
 	}
 
 	@Override

@@ -14,31 +14,21 @@
 <plugin>
    <extension
          point="org.eclipse.gyrex.server.roles">
-      <role
-            id="org.eclipse.gyrex.server.role.admin.ui"
-            name="Gyrex System Admin">
-         <requireBundle
-               symbolicName="org.eclipse.gyrex.admin">
-         </requireBundle>
-      </role>
-      <role
-            id="org.eclipse.gyrex.server.role.http.jetty"
-            name="Gyrex Jetty-based HTTP Engine">
-         <requireBundle
-               symbolicName="org.eclipse.gyrex.http.jetty">
-         </requireBundle>
-         <requireBundle
-               symbolicName="org.eclipse.equinox.http.registry">
-         </requireBundle>
-      </role>
       <defaultStart
             mode="any"
-            roleId="org.eclipse.gyrex.server.role.admin.ui"
+            roleId="org.eclipse.gyrex.cloud.roles.coordinator"
             trigger="onBoot">
       </defaultStart>
       <defaultStart
             mode="development"
-            roleId="org.eclipse.gyrex.server.role.http.jetty"
+            roleId="org.eclipse.gyrex.cloud.roles.leader"
+            startLevel="-10"
+            trigger="onBoot">
+      </defaultStart>
+      <defaultStart
+            mode="any"
+            roleId="org.eclipse.gyrex.http.jetty.roles.engine"
+            startLevel="4"
             trigger="onCloudConnect">
       </defaultStart>
    </extension>

@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.server.internal.roles;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -146,7 +147,7 @@ public class ServerRolesRegistry {
 		return registeredRoles.get(id);
 	};
 
-	public String[] getRolesToStartByDefault(final Trigger trigger) {
+	public Collection<String> getRolesToStartByDefault(final Trigger trigger) {
 		checkInitialized();
 
 		// collect default start settings
@@ -162,7 +163,7 @@ public class ServerRolesRegistry {
 		Collections.sort(roles, new Comparator<RoleDefaultStart>() {
 			@Override
 			public int compare(final RoleDefaultStart r1, final RoleDefaultStart r2) {
-				return r2.getStartLevel() - r1.getStartLevel();
+				return r1.getStartLevel() - r2.getStartLevel();
 			}
 		});
 
@@ -174,7 +175,7 @@ public class ServerRolesRegistry {
 				roleIds.add(roleId);
 			}
 		}
-		return roleIds.toArray(new String[roleIds.size()]);
+		return roleIds;
 	}
 
 	private void readDefaultStart(final IConfigurationElement element) {

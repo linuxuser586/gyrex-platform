@@ -2,10 +2,9 @@
 <?eclipse version="3.4"?>
 <plugin>
    <extension
-         point="org.eclipse.gyrex.boot.serverroles">
+         point="org.eclipse.gyrex.server.roles">
       <role
-            defaultStart="inDevelopmentMode"
-            id="org.eclipse.gyrex.cloud.coordinator"
+            id="org.eclipse.gyrex.cloud.roles.coordinator"
             name="Gyrex Cloud Coordinator">
          <requireBundle
                symbolicName="org.eclipse.gyrex.cloud">
@@ -15,10 +14,8 @@
          </requireApplication>
       </role>
       <role
-            defaultStart="inDevelopmentMode"
-            id="org.eclipse.gyrex.cloud.zookeeper.standalone"
-            name="ZooKeeper Standalone Server"
-            startLevel="-1">
+            id="org.eclipse.gyrex.cloud.roles.leader"
+            name="Gyrex Cloud Leader">
          <requireBundle
                symbolicName="org.eclipse.gyrex.cloud">
          </requireBundle>

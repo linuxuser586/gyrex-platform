@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.gyrex.boot.internal.app.ActivationException;
 import org.eclipse.gyrex.boot.internal.app.AppActivator;
 import org.eclipse.gyrex.boot.internal.app.BootDebug;
 
@@ -82,6 +81,7 @@ public class ServerRole {
 				throw new ActivationException(NLS.bind("Error starting application \"{0}\": {1}", applicationId, e.getMessage()), e);
 			}
 		}
+
 	}
 
 	/**

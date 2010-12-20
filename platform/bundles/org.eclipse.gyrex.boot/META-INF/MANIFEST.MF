@@ -48,4 +48,5 @@ Export-Package: org.eclipse.gyrex.boot.internal.app;version="1.0.0";
    org.eclipse.gyrex.configuration.impl,
    org.eclipse.gyrex.cloud",
  org.eclipse.gyrex.server;version="1.0.0",
- org.eclipse.gyrex.server.internal.opsmode;version="1.0.0";x-friends:="org.eclipse.gyrex.admin,org.eclipse.gyrex.configuration,org.eclipse.gyrex.configuration.impl"
+ org.eclipse.gyrex.server.internal.opsmode;version="1.0.0";x-friends:="org.eclipse.gyrex.admin,org.eclipse.gyrex.configuration,org.eclipse.gyrex.configuration.impl",
+ org.eclipse.gyrex.server.internal.roles;x-friends:="org.eclipse.gyrex.cloud"

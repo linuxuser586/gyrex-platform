@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.boot.internal.app;
+package org.eclipse.gyrex.server.internal.roles;
 
 /**
  * Exception during activation of a server role.
