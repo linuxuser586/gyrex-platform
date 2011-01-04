@@ -82,6 +82,7 @@ final class JettyStarter extends Job {
 			}
 
 			// start the server
+			server.setGracefulShutdown(5000);
 			server.start();
 
 			// don't expose too detailed version info
