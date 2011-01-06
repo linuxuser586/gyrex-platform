@@ -22,6 +22,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.internal.configuration.ContextConfiguration;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
+import org.eclipse.gyrex.preferences.internal.util.EclipsePreferencesUtil;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -174,6 +175,8 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	}
 
 	public static String getPathToPreferencesKey(final String qualifier, final String key) {
+		// REMINDER: all paths must be interpreted relative in order to prevent clients from looking at nodes higher up!!!
+		// (IEclipsePreferences interprets absolute paths as relative to the ROOT)
 		return EclipsePreferencesUtil.decodePath(qualifier)[1] + IPath.SEPARATOR + EclipsePreferencesUtil.makeRelative(EclipsePreferencesUtil.decodePath(key)[0]);
 	}
 
