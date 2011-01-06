@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - small enhancement
  *******************************************************************************/
 package org.eclipse.gyrex.http.equinoxhttpservice.internal;
 
@@ -44,7 +45,7 @@ public class HttpServiceAppComponent {
 	public void activate() {
 		// only register in development mode
 		// otherwise it must be manually enabled
-		if (!Platform.inDevelopmentMode()) {
+		if (!Platform.inDevelopmentMode() || Boolean.TRUE.toString().equals(System.getProperty("gyrex.http.equinoxhttpservice.default.disabled"))) {
 			return;
 		}
 
