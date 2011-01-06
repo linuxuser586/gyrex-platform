@@ -33,6 +33,10 @@ public class SolrActivator extends BaseBundleActivator {
 	public static final String PLUGIN_ID = "org.eclipse.gyrex.persistence.solr";
 	private static final AtomicReference<SolrActivator> instance = new AtomicReference<SolrActivator>();
 
+	public static String getEmbeddedSolrCoreName(final String repositoryId, final String collection) {
+		return repositoryId + "." + collection;
+	}
+
 	/**
 	 * Returns the instance.
 	 * 
@@ -44,6 +48,7 @@ public class SolrActivator extends BaseBundleActivator {
 
 	private final AtomicReference<CoreContainer> coreContainerRef = new AtomicReference<CoreContainer>();
 	private final AtomicReference<IServiceProxy<Location>> instanceLocationRef = new AtomicReference<IServiceProxy<Location>>();
+
 	private volatile File solrBase;
 
 	/**
@@ -84,11 +89,11 @@ public class SolrActivator extends BaseBundleActivator {
 		return solrBase;
 	}
 
-	public File getEmbeddedSolrCoreBase(final String repositoryId) {
+	public File getEmbeddedSolrCoreBase(final String coreName) {
 		if (null == solrBase) {
 			throw new IllegalStateException("no Solr base directory");
 		}
-		return new File(solrBase, repositoryId);
+		return new File(solrBase, coreName);
 	}
 
 	public Location getInstanceLocation() {

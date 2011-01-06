@@ -21,17 +21,4 @@ public interface ISolrRepositoryConstants {
 	/** the {@link RepositoryProvider#getProviderId() repository provider id} */
 	String PROVIDER_ID = "org.eclipse.gyrex.persistence.solr";
 
-	/**
-	 * preference key for {@link SolrServerType server type} setting (value
-	 * <code>serverType</code>)
-	 */
-	String PREF_KEY_SERVER_TYPE = "serverType";
-
-	/**
-	 * preference key for a Solr base URL to be used with
-	 * {@link SolrServerType#REMOTE remote} Solr servers (value
-	 * <code>serverUrl</code>)
-	 */
-	String PREF_KEY_SERVER_URL = "serverUrl";
-
 }

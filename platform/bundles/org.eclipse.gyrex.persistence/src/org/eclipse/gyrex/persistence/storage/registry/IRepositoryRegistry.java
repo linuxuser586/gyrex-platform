@@ -8,8 +8,13 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *	   Mike Tschierschke - customization for rap based admin ui,
+ *     						added method getRepositoryDefinition
+
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.storage.registry;
+
+import java.util.List;
 
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
@@ -43,14 +48,22 @@ public interface IRepositoryRegistry {
 	IRepositoryPreferences createRepository(String repositoryId, String repositoryProviderId) throws IllegalArgumentException;
 
 	/**
-	 * Retrieves the repository preferences for the specified repository.
+	 * Used for administrative purposes.
+	 * 
+	 * @return an <b>unmodifiable</b> List wit the ids of all registered
+	 *         Repositories. May be empty but never <code>null</code>.
+	 */
+	public List<String> getAllRegisteredRepositories();
+
+	/**
+	 * Retrieves the repository definition for the specified repository.
 	 * 
 	 * @param repositoryId
 	 *            the repository id
-	 * @return the repository preferences (maybe <code>null</code> if the
+	 * @return the repository definition (maybe <code>null</code> if the
 	 *         repository does not exist)
 	 */
-	IRepositoryPreferences getRepositoryPreferences(String repositoryId);
+	public IRepositoryDefinition getRepositoryDefinition(String repositoryId);
 
 	/**
 	 * Removes a repository.

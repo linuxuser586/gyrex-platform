@@ -36,23 +36,35 @@ public class SolrServerWithMetrics extends SolrServer {
 
 	private final SolrRepositoryMetrics metrics;
 
+	private final String collection;
+
+	private final ThroughputMetric queryThroughput;
+	private final ThroughputMetric updateThroughput;
+	private final ThroughputMetric adminThroughput;
+	private final ThroughputMetric otherThroughput;
+
 	/**
 	 * Creates a new instance.
 	 */
-	public SolrServerWithMetrics(final SolrServer server, final SolrRepositoryMetrics metrics) {
+	public SolrServerWithMetrics(final SolrServer server, final String collection, final SolrRepositoryMetrics metrics) {
 		this.server = server;
+		this.collection = collection;
 		this.metrics = metrics;
+		queryThroughput = metrics.getQueryThroughputMetric(collection);
+		updateThroughput = metrics.getUpdateThroughputMetric(collection);
+		adminThroughput = metrics.getAdminThroughputMetric(collection);
+		otherThroughput = metrics.getOtherThroughputMetric(collection);
 	}
 
 	private ThroughputMetric getRequestMetric(final SolrRequest request) {
 		if (request instanceof QueryRequest) {
-			return metrics.getQueryThroughputMetric();
+			return queryThroughput;
 		} else if (request instanceof AbstractUpdateRequest) {
-			return metrics.getUpdateThroughputMetric();
+			return updateThroughput;
 		} else if (request instanceof CoreAdminRequest) {
-			return metrics.getAdminThroughputMetric();
+			return adminThroughput;
 		} else {
-			return metrics.getOtherThroughputMetric();
+			return otherThroughput;
 		}
 	}
 
@@ -69,7 +81,7 @@ public class SolrServerWithMetrics extends SolrServer {
 			requestInfo.append(request.getParams().toNamedList());
 		}
 		requestInfo.append(']');
-		metrics.recordException(requestInfo.toString(), e);
+		metrics.recordException(collection, requestInfo.toString(), e);
 	}
 
 	@Override

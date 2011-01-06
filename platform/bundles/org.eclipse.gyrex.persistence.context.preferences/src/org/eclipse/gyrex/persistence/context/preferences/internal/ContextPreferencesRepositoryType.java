@@ -41,7 +41,7 @@ public class ContextPreferencesRepositoryType extends RepositoryProvider impleme
 
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
-		final String contextPathStr = repositoryPreferences.getPreferences().get(PREF_KEY_CONTEXT_PATH, null);
+		final String contextPathStr = repositoryPreferences.get(PREF_KEY_CONTEXT_PATH, null);
 		if (contextPathStr == null) {
 			throw new IllegalStateException(NLS.bind("No context path configured for repository {0}.", repositoryId));
 		}
