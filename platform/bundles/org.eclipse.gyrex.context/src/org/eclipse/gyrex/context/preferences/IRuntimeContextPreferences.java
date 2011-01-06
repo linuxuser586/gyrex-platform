@@ -307,12 +307,6 @@ public interface IRuntimeContextPreferences {
 	 * </ul>
 	 * </p>
 	 * <p>
-	 * Callers may specify a context object to aid in the determination of the
-	 * correct node. For each entry in the lookup order, the context is
-	 * consulted and if one matching the scope exists, then it is used to
-	 * calculate the node. Otherwise a default calculation algorithm is used.
-	 * </p>
-	 * <p>
 	 * An example of a qualifier for a preference is the bundle symbolic name.
 	 * (e.g. "org.eclipse.core.resources" for "description.autobuild")
 	 * </p>
