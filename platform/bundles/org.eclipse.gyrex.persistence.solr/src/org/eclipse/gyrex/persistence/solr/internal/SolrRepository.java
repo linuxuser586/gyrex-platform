@@ -17,7 +17,8 @@ import java.util.Map.Entry;
 
 import org.eclipse.gyrex.persistence.solr.SolrServerRepository;
 
-import org.apache.commons.lang.StringUtils;
+import org.eclipse.osgi.util.NLS;
+
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 
@@ -30,14 +31,9 @@ public class SolrRepository extends SolrServerRepository {
 	static final int IDX_READ_SERVER = 1;
 
 	private final Map<String, SolrServer[]> serversByCollection;
-	private final String defaultCollection;
 
-	SolrRepository(final String repositoryId, final SolrRepositoryProvider repositoryType, final Map<String, SolrServer[]> serversByCollection, final String defaultCollection) throws IllegalArgumentException {
+	SolrRepository(final String repositoryId, final SolrRepositoryProvider repositoryType, final Map<String, SolrServer[]> serversByCollection) throws IllegalArgumentException {
 		super(repositoryId, repositoryType, new SolrRepositoryMetrics(createMetricsId(repositoryType, repositoryId), repositoryId, "open", "repository created", serversByCollection.keySet()));
-		if (StringUtils.isBlank(defaultCollection)) {
-			throw new IllegalArgumentException("invalid default collection: " + defaultCollection);
-		}
-		this.defaultCollection = defaultCollection;
 
 		// wrap servers to collect metrics
 		this.serversByCollection = new HashMap<String, SolrServer[]>(serversByCollection.size());
@@ -50,9 +46,24 @@ public class SolrRepository extends SolrServerRepository {
 		}
 	}
 
+	private String checkCollection(final String key) {
+		if (key == null) {
+			throw new IllegalArgumentException("collection must not be null");
+		}
+		return key;
+	}
+
 	@Override
 	protected void doClose() {
 		getSolrRepositoryMetrics().setClosed("doClose called");
+	}
+
+	private SolrServer[] getServers(final String collection) {
+		final SolrServer[] solrServers = serversByCollection.get(checkCollection(collection));
+		if (solrServers == null) {
+			throw new IllegalArgumentException(NLS.bind("Collection {0} not configured in repository {1}.", collection, getRepositoryId()));
+		}
+		return solrServers;
 	}
 
 	public SolrRepositoryMetrics getSolrRepositoryMetrics() {
@@ -64,7 +75,7 @@ public class SolrRepository extends SolrServerRepository {
 		if (isClosed()) {
 			throw new IllegalStateException("repository '" + getRepositoryId() + "' closed");
 		}
-		return serversByCollection.get(sanitizeCollection(key))[IDX_WRITE_SERVER];
+		return getServers(key)[IDX_WRITE_SERVER];
 	}
 
 	@Override
@@ -72,10 +83,6 @@ public class SolrRepository extends SolrServerRepository {
 		if (isClosed()) {
 			throw new IllegalStateException("repository '" + getRepositoryId() + "' closed");
 		}
-		return serversByCollection.get(sanitizeCollection(key))[IDX_READ_SERVER];
-	}
-
-	private String sanitizeCollection(final String key) {
-		return !StringUtils.isEmpty(key) ? key : defaultCollection;
+		return getServers(key)[IDX_READ_SERVER];
 	}
 }

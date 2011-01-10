@@ -37,15 +37,6 @@ import org.slf4j.LoggerFactory;
 public class SolrRepositoryProvider extends RepositoryProvider {
 
 	/**
-	 * preference key for default collection (value
-	 * <code>defaultCollection</code>)
-	 */
-	public static final String PREF_KEY_DEFAULT_COLLECTION = "defaultCollection";
-
-	/** default collection (if no default is configured) */
-	public static final String DEFAULT_COLLECTION = "DEFAULT";
-
-	/**
 	 * preference key for {@link SolrServerType server type} setting (value
 	 * <code>serverType</code>)
 	 */
@@ -84,7 +75,7 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
-		return new SolrRepository(repositoryId, this, createServers(repositoryId, repositoryPreferences), repositoryPreferences.get(PREF_KEY_DEFAULT_COLLECTION, DEFAULT_COLLECTION));
+		return new SolrRepository(repositoryId, this, createServers(repositoryId, repositoryPreferences));
 	}
 
 	private Map<String, SolrServer[]> createServers(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {

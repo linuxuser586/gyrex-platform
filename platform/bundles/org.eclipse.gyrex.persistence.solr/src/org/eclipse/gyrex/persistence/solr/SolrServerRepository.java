@@ -55,23 +55,6 @@ public abstract class SolrServerRepository extends Repository {
 
 	/**
 	 * Returns the underlying {@link SolrServer SolrJ server object} that may be
-	 * used for communicating with the <strong>default</strong> Solr index.
-	 * <p>
-	 * This is a convenience method which just calls
-	 * {@link #getSolrServer(String)} with a <code>null</code> argument.
-	 * </p>
-	 * 
-	 * @return the {@link SolrServer} object for the default index
-	 * @throws IllegalStateException
-	 *             if the repository has been closed or no default index is
-	 *             available
-	 */
-	public final SolrServer getSolrServer() throws IllegalStateException {
-		return getSolrServer(null);
-	}
-
-	/**
-	 * Returns the underlying {@link SolrServer SolrJ server object} that may be
 	 * used for communicating with the specified Solr index.
 	 * <p>
 	 * Note, this API depends on the SolrJ and Solr API. Thus, it is bound to
@@ -83,41 +66,22 @@ public abstract class SolrServerRepository extends Repository {
 	 * </p>
 	 * 
 	 * @param collection
-	 *            the collection (maybe <code>null</code> for the default
-	 *            collection)
+	 *            the collection
 	 * @return the {@link SolrServer} object for the specified index
 	 * @throws IllegalStateException
 	 *             if the repository has been closed
 	 * @throws IllegalArgumentException
-	 *             if the specified index is unknown
+	 *             if the specified collection is unknown
 	 */
 	public abstract SolrServer getSolrServer(String collection) throws IllegalStateException, IllegalArgumentException;
 
 	/**
 	 * Returns a {@link SolrServer SolrJ server object} that may be used for
-	 * querying the <strong>default</strong> Solr index.
-	 * <p>
-	 * This is a convenience method which just calls
-	 * {@link #getSolrServerOptimizedForQuery(String)} with a <code>null</code>
-	 * argument.
-	 * </p>
-	 * 
-	 * @return the {@link SolrServer} object for the specified index
-	 * @throws IllegalStateException
-	 *             if the repository has been closed or no default index is
-	 *             available
-	 */
-	public final SolrServer getSolrServerOptimizedForQuery() throws IllegalStateException {
-		return getSolrServerOptimizedForQuery(null);
-	}
-
-	/**
-	 * Returns a {@link SolrServer SolrJ server object} that may be used for
 	 * querying the specified Solr index.
 	 * <p>
-	 * In contrast to {@link #getSolrServer()} this server object returned here
-	 * may be optimized for query requests. It <strong>must not</strong> be used
-	 * for any kind of update/indexing requests.
+	 * In contrast to {@link #getSolrServer(String)} this server object returned
+	 * here may be optimized for query requests. It <strong>must not</strong> be
+	 * used for any kind of update/indexing requests.
 	 * </p>
 	 * <p>
 	 * Note, this API depends on the SolrJ and Solr API. Thus, it is bound to
@@ -129,8 +93,7 @@ public abstract class SolrServerRepository extends Repository {
 	 * </p>
 	 * 
 	 * @param collection
-	 *            the collection (maybe <code>null</code> for the default
-	 *            collection)
+	 *            the collection
 	 * @return the {@link SolrServer} object for the specified index
 	 * @throws IllegalStateException
 	 *             if the repository has been closed
