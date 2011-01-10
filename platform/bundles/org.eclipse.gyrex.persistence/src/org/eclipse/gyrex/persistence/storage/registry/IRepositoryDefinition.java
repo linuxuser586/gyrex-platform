@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.storage.registry;
 
+import java.util.Collection;
+
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
@@ -22,12 +24,30 @@ import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 public interface IRepositoryDefinition {
 
 	/**
+	 * Adds a tag to the repository.
+	 * <p>
+	 * This method has no effect if the tag is already present.
+	 * </p>
+	 * 
+	 * @param tag
+	 *            a tag to add
+	 */
+	void addTag(String tag);
+
+	/**
 	 * Returns {@link RepositoryProvider#getProviderId() the repository provider
 	 * identifier}.
 	 * 
 	 * @return the id of the {@link RepositoryProvider}
 	 */
-	public String getProviderId();
+	String getProviderId();
+
+	/**
+	 * Returns {@link Repository#getRepositoryId() the repository identifier}.
+	 * 
+	 * @return the id of the {@link Repository}
+	 */
+	String getRepositoryId();
 
 	/**
 	 * Returns the repository preferences which should be used for storing and
@@ -36,5 +56,24 @@ public interface IRepositoryDefinition {
 	 * @return the repository preferences
 	 * @see IRepositoryPreferences
 	 */
-	public IRepositoryPreferences getRepositoryPreferences();
+	IRepositoryPreferences getRepositoryPreferences();
+
+	/**
+	 * Returns a list of tags associated with the repository.
+	 * 
+	 * @return an unmodifiable collection of string tags associated with the
+	 *         repository
+	 */
+	Collection<String> getTags();
+
+	/**
+	 * Removes a tag from the repository.
+	 * <p>
+	 * This method has no effect if the tag is not present.
+	 * </p>
+	 * 
+	 * @param tag
+	 *            a tag to remove
+	 */
+	void removeTag(String tag);
 }

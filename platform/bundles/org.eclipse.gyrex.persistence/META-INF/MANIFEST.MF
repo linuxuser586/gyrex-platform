@@ -18,13 +18,14 @@ Require-Bundle: org.eclipse.gyrex.common;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.monitoring;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.preferences;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.equinox.preferences;bundle-version="[3.2.300,4.0.0)"
-Export-Package: org.eclipse.gyrex.persistence,
- org.eclipse.gyrex.persistence.internal;x-friends:="org.eclipse.gyrex.persistence.tests",
- org.eclipse.gyrex.persistence.internal.storage;x-friends:="org.eclipse.gyrex.persistence.tests",
- org.eclipse.gyrex.persistence.storage,
- org.eclipse.gyrex.persistence.storage.content,
- org.eclipse.gyrex.persistence.storage.provider,
- org.eclipse.gyrex.persistence.storage.registry,
- org.eclipse.gyrex.persistence.storage.settings
+Export-Package: org.eclipse.gyrex.persistence;version="1.0.0",
+ org.eclipse.gyrex.persistence.internal;version="1.0.0";x-friends:="org.eclipse.gyrex.persistence.tests",
+ org.eclipse.gyrex.persistence.internal.storage;version="1.0.0";x-friends:="org.eclipse.gyrex.persistence.tests",
+ org.eclipse.gyrex.persistence.storage;version="1.0.0",
+ org.eclipse.gyrex.persistence.storage.content;version="1.0.0",
+ org.eclipse.gyrex.persistence.storage.exceptions;version="1.0.0",
+ org.eclipse.gyrex.persistence.storage.provider;version="1.0.0",
+ org.eclipse.gyrex.persistence.storage.registry;version="1.0.0",
+ org.eclipse.gyrex.persistence.storage.settings;version="1.0.0"
 equiredExecutionEnvironment: JavaSE-1.6
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

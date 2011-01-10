@@ -90,11 +90,11 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	public static void setRepository(final IRuntimeContext context, final RepositoryContentType contentType, final String repositoryId) throws BackingStoreException {
 		final IRuntimeContextPreferences preferences = context.getPreferences();
 		if (null != repositoryId) {
-			preferences.put(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType), repositoryId, false);
+			preferences.put(PersistenceActivator.SYMBOLIC_NAME, getContextPreferenceKey(contentType), repositoryId, false);
 		} else {
-			preferences.remove(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType));
+			preferences.remove(PersistenceActivator.SYMBOLIC_NAME, getContextPreferenceKey(contentType));
 		}
-		preferences.flush(PersistenceActivator.PLUGIN_ID);
+		preferences.flush(PersistenceActivator.SYMBOLIC_NAME);
 	}
 
 	/**
@@ -143,6 +143,6 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 
 	private String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) {
 		// lookup the repository id based on the context from the preferences
-		return context.getPreferences().get(PersistenceActivator.PLUGIN_ID, getContextPreferenceKey(contentType), null);
+		return context.getPreferences().get(PersistenceActivator.SYMBOLIC_NAME, getContextPreferenceKey(contentType), null);
 	}
 }

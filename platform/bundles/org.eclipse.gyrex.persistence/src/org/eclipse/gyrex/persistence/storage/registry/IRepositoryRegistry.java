@@ -14,10 +14,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.storage.registry;
 
-import java.util.List;
+import java.util.Collection;
 
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
-import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 /**
  * The repository registry provides administrative access to repositories
@@ -41,19 +40,11 @@ public interface IRepositoryRegistry {
 	 * @param repositoryProviderId
 	 *            the {@link RepositoryProvider#getProviderId() repository
 	 *            provider id} (may not be <code>null</code>)
-	 * @return the preferences to store repository specific configuration
+	 * @return the repository definition
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
 	 */
-	IRepositoryPreferences createRepository(String repositoryId, String repositoryProviderId) throws IllegalArgumentException;
-
-	/**
-	 * Used for administrative purposes.
-	 * 
-	 * @return an <b>unmodifiable</b> List wit the ids of all registered
-	 *         Repositories. May be empty but never <code>null</code>.
-	 */
-	public List<String> getAllRegisteredRepositories();
+	IRepositoryDefinition createRepository(String repositoryId, String repositoryProviderId) throws IllegalArgumentException;
 
 	/**
 	 * Retrieves the repository definition for the specified repository.
@@ -64,6 +55,14 @@ public interface IRepositoryRegistry {
 	 *         repository does not exist)
 	 */
 	public IRepositoryDefinition getRepositoryDefinition(String repositoryId);
+
+	/**
+	 * Returns a list of all repository ids.
+	 * 
+	 * @return an <b>unmodifiable</b> collection wit the ids of all registered
+	 *         repositories (may be empty but never <code>null</code>)
+	 */
+	public Collection<String> getRepositoryIds();
 
 	/**
 	 * Removes a repository.

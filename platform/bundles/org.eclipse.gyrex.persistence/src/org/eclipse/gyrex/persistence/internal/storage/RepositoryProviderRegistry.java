@@ -79,7 +79,7 @@ public final class RepositoryProviderRegistry {
 
 		final RepositoryProvider existing = registeredRepositoryTypesById.putIfAbsent(repositoryProviderId, type);
 		if ((null != existing) && (existing != type)) {
-			throw new CoreException(new Status(IStatus.ERROR, PersistenceActivator.PLUGIN_ID, IStatus.ERROR, MessageFormat.format("A repository type with id \"{0}\" is already registered!", repositoryProviderId), null));
+			throw new CoreException(new Status(IStatus.ERROR, PersistenceActivator.SYMBOLIC_NAME, IStatus.ERROR, MessageFormat.format("A repository type with id \"{0}\" is already registered!", repositoryProviderId), null));
 		}
 	}
 

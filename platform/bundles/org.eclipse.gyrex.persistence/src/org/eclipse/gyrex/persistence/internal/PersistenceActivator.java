@@ -24,9 +24,10 @@ import org.osgi.framework.BundleContext;
 public class PersistenceActivator extends BaseBundleActivator {
 
 	/**
-	 * the plug-in id (value <code>org.eclipse.gyrex.common.persistence</code>)
+	 * the symbolic name (value
+	 * <code>org.eclipse.gyrex.common.persistence</code>)
 	 */
-	public static final String PLUGIN_ID = "org.eclipse.gyrex.persistence";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.persistence";
 
 	/** the shared instance */
 	private static PersistenceActivator sharedInstance;
@@ -57,7 +58,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 * @param pluginId
 	 */
 	public PersistenceActivator() {
-		super(PLUGIN_ID);
+		super(SYMBOLIC_NAME);
 	}
 
 	/*
