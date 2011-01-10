@@ -11,10 +11,13 @@
  *******************************************************************************/
 package org.eclipse.gyrex.model.common.internal;
 
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.BundleContext;
@@ -24,7 +27,7 @@ import org.osgi.framework.BundleContext;
  */
 public class ModelActivator extends BaseBundleActivator {
 
-	/** PLUGIN_ID */
+	/** SYMBOLIC_NAME */
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.model.common";
 
 	/** the shared instance */
@@ -50,6 +53,38 @@ public class ModelActivator extends BaseBundleActivator {
 		return activator;
 	}
 
+	static public void printChildren(final IStatus status, final PrintStream output) {
+		final IStatus[] children = status.getChildren();
+		if ((children == null) || (children.length == 0)) {
+			return;
+		}
+		for (int i = 0; i < children.length; i++) {
+			output.println("Contains: " + children[i].getMessage()); //$NON-NLS-1$
+			output.flush(); // call to synchronize output
+			final Throwable exception = children[i].getException();
+			if (exception != null) {
+				exception.printStackTrace(output);
+			}
+			printChildren(children[i], output);
+		}
+	}
+
+	static public void printChildren(final IStatus status, final PrintWriter output) {
+		final IStatus[] children = status.getChildren();
+		if ((children == null) || (children.length == 0)) {
+			return;
+		}
+		for (int i = 0; i < children.length; i++) {
+			output.println("Contains: " + children[i].getMessage()); //$NON-NLS-1$
+			output.flush(); // call to synchronize output
+			final Throwable exception = children[i].getException();
+			if (exception != null) {
+				exception.printStackTrace(output);
+			}
+			printChildren(children[i], output);
+		}
+	}
+
 	/**
 	 * Creates a new instance.
 	 * <p>
@@ -70,4 +105,5 @@ public class ModelActivator extends BaseBundleActivator {
 	protected void doStop(final BundleContext context) throws Exception {
 		sharedInstance.set(null);
 	}
+
 }
