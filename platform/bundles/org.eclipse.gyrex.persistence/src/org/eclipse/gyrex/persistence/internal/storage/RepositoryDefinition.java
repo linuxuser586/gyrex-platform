@@ -98,7 +98,7 @@ public class RepositoryDefinition implements IRepositoryDefinition {
 		try {
 			checkExist();
 			if (storage.get(KEY_TYPE, null) != null) {
-				throw new IllegalArgumentException(NLS.bind("Repository type for repository ''{0}'' already set!", repositoryId));
+				throw new IllegalStateException(NLS.bind("Repository type for repository ''{0}'' already set!", repositoryId));
 			}
 			storage.put(KEY_TYPE, providerId);
 			storage.flush();

@@ -43,8 +43,11 @@ public interface IRepositoryRegistry {
 	 * @return the repository definition
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
+	 * @throws IllegalStateException
+	 *             if a repository already exists or an error occurred accessing
+	 *             the underlying repository store
 	 */
-	IRepositoryDefinition createRepository(String repositoryId, String repositoryProviderId) throws IllegalArgumentException;
+	IRepositoryDefinition createRepository(String repositoryId, String repositoryProviderId) throws IllegalArgumentException, IllegalStateException;
 
 	/**
 	 * Retrieves the repository definition for the specified repository.
@@ -53,16 +56,22 @@ public interface IRepositoryRegistry {
 	 *            the repository id
 	 * @return the repository definition (maybe <code>null</code> if the
 	 *         repository does not exist)
+	 * @throws IllegalStateException
+	 *             if an error occurred accessing the underlying repository
+	 *             store
 	 */
-	public IRepositoryDefinition getRepositoryDefinition(String repositoryId);
+	public IRepositoryDefinition getRepositoryDefinition(String repositoryId) throws IllegalStateException;
 
 	/**
 	 * Returns a list of all repository ids.
 	 * 
 	 * @return an <b>unmodifiable</b> collection wit the ids of all registered
 	 *         repositories (may be empty but never <code>null</code>)
+	 * @throws IllegalStateException
+	 *             if an error occurred accessing the underlying repository
+	 *             store
 	 */
-	public Collection<String> getRepositoryIds();
+	public Collection<String> getRepositoryIds() throws IllegalStateException;
 
 	/**
 	 * Removes a repository.
@@ -72,6 +81,9 @@ public interface IRepositoryRegistry {
 	 *            <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
+	 * @throws IllegalStateException
+	 *             if an error occurred accessing the underlying repository
+	 *             store
 	 */
-	void removeRepository(String repositoryId) throws IllegalArgumentException;
+	void removeRepository(String repositoryId) throws IllegalArgumentException, IllegalStateException;
 }
