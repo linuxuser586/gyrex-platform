@@ -24,7 +24,7 @@ package org.eclipse.gyrex.persistence.storage.exceptions;
  * <p>
  * This class may be subclassed by repository implementors to provide a more
  * detailed failure information. Although clients might not be interested in
- * handling implementation specific failures, administrators are.
+ * handling implementation specific failures, administrators usually are.
  * </p>
  */
 public class ResourceFailureException extends RepositoryException {
