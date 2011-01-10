@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,21 +7,19 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.persistence.storage.exceptions;
-
-import org.eclipse.gyrex.persistence.storage.Repository;
+package org.eclipse.gyrex.persistence.storage;
 
 /**
  * Base class for exceptions thrown by {@link Repository repositories}.
  * <p>
  * The Repository API defines a basic set of exceptions as a foundation of
  * structured error handling. The base class is {@link RepositoryException}
- * which extends {@link RuntimeException}. Repository implementors are
- * encouraged to re-use as many exceptions as possible. This allows client code
- * to handle a basic set of the common exceptions without depending on
- * implementation specific code (eg. JPA, JDO, JDBC, etc.).
+ * which extends {@link RuntimeException}. Repository implementors should re-use
+ * as many exceptions as possible. This allows client code to handle a basic set
+ * of the common exceptions without depending on implementation specific code
+ * (eg. JPA, JDO, JDBC, etc.).
  * </p>
  * <p>
  * This class may be subclassed by repository implementors to provide a more

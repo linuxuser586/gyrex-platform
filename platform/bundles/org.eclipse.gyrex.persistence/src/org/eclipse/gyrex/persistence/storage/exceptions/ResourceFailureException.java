@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,9 +7,11 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.storage.exceptions;
+
+import org.eclipse.gyrex.persistence.storage.RepositoryException;
 
 /**
  * Repository exception thrown when an underlying resource failure occurred.
