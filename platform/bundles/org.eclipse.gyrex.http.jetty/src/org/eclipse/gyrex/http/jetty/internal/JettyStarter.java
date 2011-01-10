@@ -11,7 +11,7 @@
  */
 package org.eclipse.gyrex.http.jetty.internal;
 
-import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.gyrex.boot.internal.app.ServerApplication;
 import org.eclipse.gyrex.preferences.PlatformScope;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -100,7 +100,9 @@ final class JettyStarter extends Job {
 			delay = delay < 300000 ? delay * 2 : 300000;
 			return Status.CANCEL_STATUS;
 		} catch (final Exception e) {
-			return HttpActivator.getInstance().getStatusUtil().createError(0, "Failed starting Jetty: " + e.getMessage(), e);
+			// shutdown the Jetty does not come up
+			ServerApplication.signalShutdown(new Exception("Could not start the Jetty server. " + e.getMessage(), e));
+			return Status.CANCEL_STATUS;
 		} finally {
 			monitor.done();
 		}
