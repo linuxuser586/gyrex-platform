@@ -195,6 +195,11 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 	 */
 	@Override
 	public Object getAdapter(final Class adapter) {
+		// check if already implemented
+		if (adapter.isInstance(this)) {
+			return this;
+		}
+
 		// ask the context first
 		final Object contextAdapter = getContext().getAdapter(adapter);
 		if (null != contextAdapter) {
