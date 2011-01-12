@@ -119,7 +119,17 @@ public final class RepositoryPreferences implements IRepositoryPreferences {
 
 	@Override
 	public void remove(final String key) {
-		prefs.remove(key);
+		// decode path
+		final String[] decodePath = EclipsePreferencesUtil.decodePath(key);
+
+		// get node
+		// REMINDER: all paths must be interpreted relative to the repository node!!!
+		// (IEclipsePreferences interprets absolute paths as relative to the ROOT)
+		final String path = decodePath[0];
+		final IEclipsePreferences node = (IEclipsePreferences) (path == null ? prefs : prefs.node(EclipsePreferencesUtil.makeRelative(path)));
+
+		// remove key
+		node.remove(key);
 	}
 
 	@Override
