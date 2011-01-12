@@ -128,8 +128,18 @@ public final class RepositoryPreferences implements IRepositoryPreferences {
 		final String path = decodePath[0];
 		final IEclipsePreferences node = (IEclipsePreferences) (path == null ? prefs : prefs.node(EclipsePreferencesUtil.makeRelative(path)));
 
+		// check if there is a node matching the key
+		try {
+			if (node.nodeExists(decodePath[1])) {
+				node.node(decodePath[1]).removeNode();
+			}
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Unable to remove node %s. %s", key, e.getMessage()), e);
+		}
+
 		// remove key
-		node.remove(key);
+		node.remove(decodePath[1]);
+
 	}
 
 	@Override
