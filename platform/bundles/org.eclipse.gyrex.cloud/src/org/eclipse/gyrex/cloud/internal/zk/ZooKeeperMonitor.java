@@ -22,11 +22,11 @@ import org.apache.zookeeper.Watcher;
 public class ZooKeeperMonitor implements Watcher {
 
 	/**
-	 * A child has been created for the specified path.
+	 * A child has been created or removed for the specified path.
 	 * 
 	 * @param path
 	 */
-	protected void childCreated(final String path) {
+	protected void childrenChanged(final String path) {
 		// empty
 	}
 
@@ -76,7 +76,7 @@ public class ZooKeeperMonitor implements Watcher {
 			if (path != null) {
 				switch (event.getType()) {
 					case NodeChildrenChanged:
-						childCreated(path);
+						childrenChanged(path);
 						break;
 					case NodeCreated:
 						pathCreated(path);

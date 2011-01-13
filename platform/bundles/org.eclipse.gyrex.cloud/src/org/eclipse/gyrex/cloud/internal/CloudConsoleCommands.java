@@ -76,7 +76,7 @@ public class CloudConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				final Collection<String> names = zk.readChildrenNames(path);
+				final Collection<String> names = zk.readChildrenNames(path, null);
 				for (final String nodeId : names) {
 					final String info = zk.readRecord(IZooKeeperLayout.PATH_NODES_PENDING.append(nodeId), "", null);
 					if (info.length() > 0) {

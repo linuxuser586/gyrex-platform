@@ -147,6 +147,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private final IPath path;
 	private final IPath zkPath;
 	private final ConcurrentMap<String, ZooKeeperBasedPreferences> children = new ConcurrentHashMap<String, ZooKeeperBasedPreferences>(4);
+	private final Set<String> pendingChildRemovals = new HashSet<String>(); // guarded by childrenModifyLock
 	private final Properties properties = new Properties();
 
 	/** connected state */
@@ -161,23 +162,26 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private final ZooKeeperMonitor monitor = new ZooKeeperMonitor() {
 
 		@Override
-		protected void childCreated(final String path) {
+		protected void childrenChanged(final String path) {
 			if (PreferencesDebug.debug) {
-				LOG.debug("Node {} updated remotely: NEW CHILD", path);
+				LOG.debug("Node {} updated remotely: CHILDREN CHANGED", path);
 			}
 
 			if (removed) {
 				return;
 			}
 
-			try {
-				// refresh children and notify listeners
-				loadChildren(true);
-			} catch (final Exception e) {
-				// assume not connected
-				connected.set(false);
-				// log warning
-				LOG.warn("Error refreshing children of node {}. {}", this, e.getMessage());
+			// process events only for this node
+			if (zkPath.toString().equals(path)) {
+				try {
+					// refresh children and notify listeners (but only if remote is newer)
+					loadChildren(false);
+				} catch (final Exception e) {
+					// assume not connected
+					connected.set(false);
+					// log warning
+					LOG.warn("Error refreshing children of node {}. {}", this, e.getMessage());
+				}
 			}
 		}
 
@@ -205,7 +209,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					// refresh properties (and force sync with remote)
 					loadProperties(true);
 
-					// refresh children
+					// refresh children (and force sync with remote)
 					loadChildren(true);
 				} catch (final Exception e) {
 					// assume not connected
@@ -270,6 +274,9 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	/** ZooKeeper version of the properties object */
 	private volatile int propertiesVersion;
+
+	/** ZooKeeper version of the children */
+	private volatile int childrenVersion;
 
 	/** simple attempt to avoid unnecessary flushes */
 	private volatile boolean propertiesDirty;
@@ -378,7 +385,11 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			}
 
 			// remove child
-			wasRemoved = children.remove(child.name()) != null;
+			if (children.remove(child.name()) != null) {
+				wasRemoved = true;
+				// remember removals for flush
+				pendingChildRemovals.add(child.name());
+			}
 		} finally {
 			childrenModifyLock.unlock();
 		}
@@ -438,7 +449,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				// load properties (and force sync with remote)
 				loadProperties(true);
 
-				// load children (and notify listeners in case we were already active)
+				// load children (and force sync with remote)
 				loadChildren(true);
 			} catch (final Exception e) {
 				if (PreferencesDebug.debug) {
@@ -591,13 +602,13 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	 * @throws InterruptedException
 	 * @throws IllegalStateException
 	 */
-	void loadChildren(final boolean sendEvents) throws IllegalStateException, InterruptedException, KeeperException {
+	void loadChildren(final boolean forceSyncWithRemoteVersion) throws IllegalStateException, InterruptedException, KeeperException {
 		// don't do anything if removed
 		if (removed) {
 			return;
 		}
 
-		final List<ZooKeeperBasedPreferences> addedNodes = sendEvents ? new ArrayList<ZooKeeperBasedPreferences>(3) : null;
+		final List<ZooKeeperBasedPreferences> addedNodes = new ArrayList<ZooKeeperBasedPreferences>(3);
 
 		childrenModifyLock.lock();
 		try {
@@ -606,24 +617,57 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			}
 
 			if (PreferencesDebug.debug) {
-				LOG.debug("Loading children for node {} from {}", this, zkPath);
+				LOG.debug("Loading children for node {} (cversion {}) from {}", new Object[] { this, childrenVersion, zkPath });
 			}
 
 			// get list of children
-			final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(zkPath, monitor);
+			final Stat stat = new Stat();
+			final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(zkPath, monitor, stat);
 			if (childrenNames == null) {
+				// path does not exist, ignore completely
 				return;
 			}
 
-			// process new nodes
+			// don't load properties if version is in the past
+			if (!forceSyncWithRemoteVersion && (childrenVersion >= stat.getCversion())) {
+				if (PreferencesDebug.debug) {
+					LOG.debug("Not updating children of node {} - local cversion ({}) >= ZooKeeper cversion ({})", new Object[] { this, childrenVersion, stat.getCversion() });
+				}
+				return;
+			}
+			childrenVersion = stat.getCversion();
+
+			// process nodes
 			for (final String name : childrenNames) {
+				// detect added nodes
 				if (!children.containsKey(name)) {
+					// does not exist locally, assume added in ZooKeeper
 					final ZooKeeperBasedPreferences child = new ZooKeeperBasedPreferences(this, name);
 					children.put(name, child);
-					if (sendEvents) {
-						addedNodes.add(child);
-					}
+					addedNodes.add(child);
 				}
+
+				// handle delete conflicts
+				if (pendingChildRemovals.contains(name)) {
+					// does exists locally as well as in ZooKeeper *and* is marked for deletion but not flushed
+					// in any case, remote events win, i.e. if a node is deleted locally but not flushed
+					// and then ZooKeeper triggered a children change, the local delete likely is stale
+					// this can happen on concurrent edits,
+					// another example is a local edit followed by a local reload/sync
+					// not sure how we would handle this case more gracefully other then relying on the cversion
+					pendingChildRemovals.remove(name);
+				}
+
+				// TODO: investigate remote delete handling
+				/*
+				 * Currently, remote deletes are discovered via monitor#pathDeleted. This removes the node
+				 * but also adds it to "pendingChildRemovals" list. We might need to rework that so that we
+				 * don't rely on "pathDeleted" ZK events but on "childrenChanged".
+				 */
+			}
+
+			if (PreferencesDebug.debug) {
+				LOG.debug("Loaded children for node {} (now at cversion {})", this, childrenVersion);
 			}
 		} finally {
 			childrenModifyLock.unlock();
@@ -632,10 +676,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		// fire events outside of lock
 		// TODO we need to understand event ordering better (eg. concurrent remote updates)
 		// (this may result in sending events asynchronously through an ordered queue, but for now we do it directly)
-		if (sendEvents) {
-			for (final ZooKeeperBasedPreferences child : addedNodes) {
-				fireNodeEvent(child, true);
-			}
+		for (final ZooKeeperBasedPreferences child : addedNodes) {
+			fireNodeEvent(child, true);
 		}
 	}
 
@@ -784,6 +826,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					if (!children.containsKey(key)) {
 						children.put(key, new ZooKeeperBasedPreferences(this, key));
 						added = true;
+						// remove from pending removals list
+						pendingChildRemovals.remove(key);
 					}
 					child = children.get(key);
 				}
@@ -941,7 +985,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				((ZooKeeperBasedPreferences) parent).childRemoved(this);
 			}
 
-			// remove children (will notify listeners)
+			// remove all the children (do it "the long way" so everyone gets notified)
 			final Collection<ZooKeeperBasedPreferences> childNodes = children.values();
 			for (final ZooKeeperBasedPreferences child : childNodes) {
 				try {
@@ -951,6 +995,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					// been removed. no work to do.
 				}
 			}
+
 		} finally {
 			// clear any listeners and caches
 			if (removed) {
@@ -960,6 +1005,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				properties.clear();
 				children.clear();
 				propertiesVersion = -1;
+				childrenVersion = -1;
 			}
 		}
 
@@ -979,10 +1025,14 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
-	private void saveChildren() throws BackingStoreException {
+	private void saveChildren() throws BackingStoreException, KeeperException, InterruptedException, IOException {
 		// don't do anything if removed
 		if (removed) {
 			return;
+		}
+
+		if (PreferencesDebug.debug) {
+			LOG.debug("Saving children of node {} (cversion {})", this, childrenVersion);
 		}
 
 		childrenModifyLock.lock();
@@ -996,6 +1046,22 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			for (final ZooKeeperBasedPreferences child : childNodes) {
 				child.flush();
 			}
+
+			// remove children marked for removal
+			for (final String childName : pendingChildRemovals) {
+				final IPath childPath = zkPath.append(childName);
+				if (PreferencesDebug.debug) {
+					LOG.debug("Removing child node {} at {}", childName, childPath);
+				}
+				ZooKeeperGate.get().deletePath(childPath);
+			}
+			pendingChildRemovals.clear();
+
+			// note, we hold the childrenModifyLock which prevents concurrent ZK event to cause updates
+			// but remote clients still rely on the ZK events to refresh the children version
+			// however, we do not reset the cversion here in order to ensure that only *later* events are processed
+			//childrenVersion = -1;
+
 		} finally {
 			childrenModifyLock.unlock();
 		}

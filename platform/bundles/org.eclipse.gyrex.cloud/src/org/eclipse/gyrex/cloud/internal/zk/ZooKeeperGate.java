@@ -29,6 +29,7 @@ import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -142,6 +143,14 @@ public class ZooKeeperGate {
 		}
 	}
 
+	private static String gateDownError(final ZooKeeperGate gate) {
+		try {
+			return String.format("ZooKeeper Gate is DOWN. (%s)", String.valueOf(gate));
+		} catch (final Exception e) {
+			return String.format("ZooKeeper Gate is DOWN. (%s)", String.valueOf(e));
+		}
+	}
+
 	/**
 	 * Returns the current active gate.
 	 * 
@@ -152,7 +161,7 @@ public class ZooKeeperGate {
 	public static ZooKeeperGate get() throws IllegalStateException {
 		final ZooKeeperGate gate = instanceRef.get();
 		if (gate == null) {
-			throw new IllegalStateException("ZooKeeper Gate is DOWN.");
+			throw new IllegalStateException(gateDownError(null));
 		}
 		return gate;
 	}
@@ -366,19 +375,28 @@ public class ZooKeeperGate {
 			throw new IllegalArgumentException("path must not be null");
 		}
 
-		// delete all children
-		final List<String> children = ensureConnected().getChildren(path.toString(), false);
-		for (final String child : children) {
-			deletePath(path.append(child));
-		}
+		try {
+			// delete all children
+			final List<String> children = ensureConnected().getChildren(path.toString(), false);
+			for (final String child : children) {
+				deletePath(path.append(child));
+			}
 
-		// delete node itself
-		ensureConnected().delete(path.toString(), -1);
+			// delete node itself
+			ensureConnected().delete(path.toString(), -1);
+		} catch (final KeeperException e) {
+			if (e.code() != Code.NONODE) {
+				throw e;
+			}
+			// node does not exist
+			// we don't care, the result matters
+			return;
+		}
 	}
 
 	final ZooKeeper ensureConnected() {
 		if (!zooKeeper.getState().isAlive()) {
-			throw new IllegalStateException("ZooKeeper Gate is DOWN.");
+			throw new IllegalStateException(gateDownError(this));
 		}
 		return zooKeeper;
 	}
@@ -435,14 +453,17 @@ public class ZooKeeperGate {
 	 * 
 	 * @param path
 	 *            the path to the record
+	 * @param stat
+	 *            optional object to populated with ZooKeeper statistics of the
+	 *            underlying node
 	 * @return the list of children (maybe <code>null</code> the path doesn't
 	 *         exist)
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
 	 */
-	public Collection<String> readChildrenNames(final IPath path) throws InterruptedException, KeeperException {
-		return readChildrenNames(path, null);
+	public Collection<String> readChildrenNames(final IPath path, final Stat stat) throws InterruptedException, KeeperException {
+		return readChildrenNames(path, null, stat);
 	}
 
 	/**
@@ -453,19 +474,22 @@ public class ZooKeeperGate {
 	 *            the path to the record
 	 * @param watch
 	 *            optional watch to set (may be <code>null</code>)
-	 * @return the list of children (maybe <code>null</code> the path doesn't
+	 * @param stat
+	 *            optional object to populated with ZooKeeper statistics of the
+	 *            underlying node
+	 * @return the list of children (maybe <code>null</code> if the path doesn't
 	 *         exist)
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
 	 * @see {@link ZooKeeper#getChildren(String, Watcher)}
 	 */
-	public Collection<String> readChildrenNames(final IPath path, final Watcher watch) throws InterruptedException, KeeperException {
+	public Collection<String> readChildrenNames(final IPath path, final Watcher watch, final Stat stat) throws InterruptedException, KeeperException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
 		try {
-			return ensureConnected().getChildren(path.toString(), watch);
+			return ensureConnected().getChildren(path.toString(), watch, stat);
 		} catch (final KeeperException e) {
 			if (e.code() == KeeperException.Code.NONODE) {
 				return null;
@@ -667,4 +691,5 @@ public class ZooKeeperGate {
 			throw new IllegalStateException("JVM does not support UTF-8.", e);
 		}
 	}
+
 }
