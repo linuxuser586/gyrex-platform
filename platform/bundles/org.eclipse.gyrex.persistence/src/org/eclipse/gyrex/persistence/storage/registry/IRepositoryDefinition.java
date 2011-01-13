@@ -18,10 +18,12 @@ import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
+import org.eclipse.core.runtime.IAdaptable;
+
 /**
  * A definition of a a {@link Repository}.
  */
-public interface IRepositoryDefinition {
+public interface IRepositoryDefinition extends IAdaptable {
 
 	/**
 	 * Adds a tag to the repository.

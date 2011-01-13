@@ -18,6 +18,7 @@ import java.util.Map;
 import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
 import org.eclipse.gyrex.persistence.solr.ISolrRepositoryConstants;
 import org.eclipse.gyrex.persistence.solr.SolrServerRepository;
+import org.eclipse.gyrex.persistence.solr.config.SolrServerType;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;

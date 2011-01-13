@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -19,6 +19,7 @@ import java.util.HashSet;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryDefinition;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
+import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.osgi.util.NLS;
 
@@ -29,7 +30,7 @@ import org.apache.commons.lang.StringUtils;
 /**
  * A repository definition.
  */
-public class RepositoryDefinition implements IRepositoryDefinition {
+public class RepositoryDefinition extends PlatformObject implements IRepositoryDefinition {
 
 	private static final String KEY_TAGS = "tags";
 	private static final String KEY_TYPE = "type";

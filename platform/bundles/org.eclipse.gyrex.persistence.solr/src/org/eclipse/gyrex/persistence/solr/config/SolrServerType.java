@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.persistence.solr.internal;
+package org.eclipse.gyrex.persistence.solr.config;
 
 import org.apache.solr.client.solrj.SolrServer;
 
