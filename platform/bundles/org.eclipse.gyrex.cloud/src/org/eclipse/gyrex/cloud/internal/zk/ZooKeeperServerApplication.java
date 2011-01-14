@@ -29,7 +29,7 @@ public class ZooKeeperServerApplication implements IApplication {
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperServerApplication.class);
 
 	/** Exit object indicating error termination */
-	private static final Integer EXIT_ERROR = new Integer(1);
+	private static final Integer EXIT_ERROR = Integer.valueOf(1);
 
 	/** stopSignalRef */
 	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>();

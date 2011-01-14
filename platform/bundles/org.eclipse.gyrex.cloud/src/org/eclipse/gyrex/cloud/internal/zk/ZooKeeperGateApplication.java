@@ -105,7 +105,7 @@ public class ZooKeeperGateApplication implements IApplication {
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGateApplication.class);
 
 	/** Exit object indicating error termination */
-	private static final Integer EXIT_ERROR = new Integer(1);
+	private static final Integer EXIT_ERROR = Integer.valueOf(1);
 
 	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>();
 	private static final AtomicReference<Throwable> zkErrorRef = new AtomicReference<Throwable>();

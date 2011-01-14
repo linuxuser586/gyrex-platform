@@ -145,6 +145,8 @@ public class NodeMetricsReporter extends Job implements IShutdownParticipant {
 				if (CloudDebug.nodeMetrics) {
 					LOG.debug("Node metrics reported successfully.{}{}", SystemUtils.LINE_SEPARATOR, new String(out.toByteArray(), CharEncoding.ISO_8859_1));
 				}
+			} catch (final RuntimeException e) {
+				LOG.warn("Failed to update node metrics. {}", e.getMessage());
 			} catch (final Exception e) {
 				LOG.warn("Failed to update node metrics. {}", e.getMessage());
 			} finally {

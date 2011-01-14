@@ -14,11 +14,14 @@ package org.eclipse.gyrex.cloud.internal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.cloud.ICloudEventConstants;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
@@ -33,6 +36,8 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.util.NLS;
+
+import org.osgi.service.event.Event;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.CreateMode;
@@ -457,7 +462,26 @@ public class CloudState implements IConnectionMonitor {
 		}
 	}
 
+	private void sendNodeEvent(final NodeInfo node, final boolean online) {
+		try {
+			final Map<String, Object> properties = new HashMap<String, Object>(3);
+			properties.put("node.id", node.getNodeId());
+			properties.put("node.name", node.getName());
+			properties.put("node.location", node.getLocation());
+			final Event event = new Event(online ? ICloudEventConstants.TOPIC_NODE_ONLINE : ICloudEventConstants.TOPIC_NODE_OFFLINE, properties);
+			if (CloudDebug.cloudState) {
+				LOG.debug("Sending node event: {}", event);
+			}
+			CloudActivator.getInstance().getEventAdmin().sendEvent(event);
+		} catch (final Exception e) {
+			LOG.error("Error while notifying public cloud node listeners. {}", new Object[] { e.getMessage(), e });
+		}
+	}
+
 	private void setNodeOffline(final NodeInfo node) throws Exception {
+		// send offline event
+		sendNodeEvent(node, false);
+
 		// de-activate cloud roles
 		// TODO we shouldn't deactivate immediately but schedule a deactivation
 		// (there might be a temporary network partition which shouldn't bring down roles)
@@ -521,6 +545,9 @@ public class CloudState implements IConnectionMonitor {
 		} else {
 			LocalRolesManager.activateRoles(ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT));
 		}
+
+		// send node activation event
+		sendNodeEvent(node, true);
 	}
 
 	@Override
