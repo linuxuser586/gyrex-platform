@@ -19,3 +19,14 @@
  */
 package org.eclipse.gyrex.monitoring.diagnostics;
 
+/**
+ * Diagnostics for self-monitoring the system.
+ * <p>
+ * Gyrex uses {@link org.eclipse.core.runtime.IStatus status} to report system
+ * information. For example, clients can report the availability of an external
+ * web service to system operators.
+ * </p>
+ */
+class FormattingHelpers {
+
+}
