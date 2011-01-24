@@ -11,19 +11,17 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.osgi.util.NLS;
@@ -171,36 +169,30 @@ public class NodeInfo {
 	 * @throws Exception
 	 *             if an error occurred parsing the instance data
 	 */
-	NodeInfo(final byte[] data, final int version) throws Exception {
+	NodeInfo(final ZooKeeperNodeInfo info) throws Exception {
 		nodeId = initializeNodeId();
-		this.version = version;
-
-		// parse
-		final Properties properties = new Properties();
-		if (data != null) {
-			properties.load(new ByteArrayInputStream(data));
+		if (!nodeId.equals(info.getId())) {
+			throw new IllegalArgumentException("node id mismatch");
 		}
+		if (!info.isApproved()) {
+			throw new IllegalArgumentException("node must be approved first");
+		}
+		approved = info.isApproved();
+		version = info.getVersion();
 
 		// name
-		name = properties.getProperty("name");
+		name = info.getName();
 
 		// location
-		location = properties.getProperty("location", getDefaultLocationInfo(nodeId));
+		location = null != info.getLocation() ? info.getLocation() : getDefaultLocationInfo(nodeId);
 
 		// roles
-		final String[] roles = StringUtils.split(properties.getProperty("roles"), ',');
-		if ((roles != null) && (roles.length > 0)) {
-			final Set<String> cloudRoles = new HashSet<String>(roles.length);
-			for (final String role : roles) {
-				cloudRoles.add(role);
-			}
-			this.roles = Collections.unmodifiableSet(cloudRoles);
+		final Set<String> roles = info.getRoles();
+		if (roles != null) {
+			this.roles = Collections.unmodifiableSet(roles);
 		} else {
 			this.roles = Collections.emptySet();
 		}
-
-		// this node is approved
-		approved = true;
 	};
 
 	@Override

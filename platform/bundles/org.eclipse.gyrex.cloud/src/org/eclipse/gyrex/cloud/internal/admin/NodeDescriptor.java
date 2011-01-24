@@ -11,6 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.admin;
 
+import java.util.Collections;
+import java.util.Set;
+
 import org.eclipse.gyrex.cloud.admin.INodeDescriptor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 
@@ -58,5 +61,31 @@ public class NodeDescriptor implements INodeDescriptor {
 			return "unknown";
 		}
 		return location;
+	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.gyrex.cloud.admin.INodeDescriptor#getName()
+	 */
+	@Override
+	public String getName() {
+		final String name = ensureInfo().getName();
+		if (name == null) {
+			return "";
+		}
+		return name;
+	}
+
+	@Override
+	public Set<String> getRoles() {
+		final Set<String> roles = ensureInfo().getRoles();
+		if (roles == null) {
+			return Collections.emptySet();
+		}
+		return roles;
+	}
+
+	@Override
+	public boolean isApproved() {
+		return approved;
 	}
 }

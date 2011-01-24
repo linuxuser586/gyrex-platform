@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.admin;
 
+import java.util.Collection;
+
 import org.eclipse.core.runtime.IStatus;
 
 /**
@@ -25,9 +27,18 @@ public interface INodeConfigurer {
 	 * </p>
 	 * 
 	 * @param connectString
-	 *            the connection string
+	 *            the connection string (maybe <code>null</code> to reset)
 	 * @return a status indicating the result
 	 */
 	IStatus configureConnection(String connectString);
+
+	/**
+	 * Assigns the specified roles to the node.
+	 * 
+	 * @param roles
+	 *            the roles to assigne (maybe <code>null</code> to reset)
+	 * @return a status indicating the result
+	 */
+	IStatus setRoles(Collection<String> roles);
 
 }

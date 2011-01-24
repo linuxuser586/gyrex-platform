@@ -12,8 +12,8 @@
 package org.eclipse.gyrex.cloud.internal.zk;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -22,6 +22,7 @@ import org.eclipse.core.runtime.IPath;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -44,12 +45,22 @@ public class ZooKeeperNodeInfo {
 		return new ZooKeeperNodeInfo(nodeId, approved, record, stat.getVersion());
 	}
 
+	public static void save(final ZooKeeperNodeInfo info, final boolean approved) throws IllegalStateException {
+		final IPath path = approved ? IZooKeeperLayout.PATH_NODES_APPROVED : IZooKeeperLayout.PATH_NODES_PENDING;
+		try {
+			// create approved record
+			ZooKeeperGate.get().writeRecord(path.append(info.getId()), CreateMode.PERSISTENT, info.toByteArray());
+		} catch (final Exception e) {
+			throw new IllegalStateException(String.format("Failed to save record for node %s! %s", info.getId(), ExceptionUtils.getRootCauseMessage(e)), e);
+		}
+	}
+
 	private final String nodeId;
 	private final int version;
-	private final String name;
-	private final String location;
-	private final Set<String> roles;
 	private final boolean approved;
+	private String name;
+	private String location;
+	private Set<String> roles;
 
 	/**
 	 * Creates a new instance.
@@ -86,9 +97,7 @@ public class ZooKeeperNodeInfo {
 			for (final String role : roles) {
 				cloudRoles.add(role);
 			}
-			this.roles = Collections.unmodifiableSet(cloudRoles);
-		} else {
-			this.roles = Collections.emptySet();
+			this.roles = cloudRoles;
 		}
 	}
 
@@ -144,5 +153,52 @@ public class ZooKeeperNodeInfo {
 	 */
 	public boolean isApproved() {
 		return approved;
+	}
+
+	/**
+	 * Sets the location.
+	 * 
+	 * @param location
+	 *            the location to set
+	 */
+	public void setLocation(final String location) {
+		this.location = location;
+	}
+
+	/**
+	 * Sets the name.
+	 * 
+	 * @param name
+	 *            the name to set
+	 */
+	public void setName(final String name) {
+		this.name = name;
+	}
+
+	/**
+	 * Sets the roles.
+	 * 
+	 * @param roles
+	 *            the roles to set
+	 */
+	public void setRoles(final Set<String> roles) {
+		this.roles = roles;
+	}
+
+	private byte[] toByteArray() throws IOException {
+		final Properties nodeData = new Properties();
+		if (StringUtils.isNotBlank(name)) {
+			nodeData.setProperty("name", name);
+		}
+		if (StringUtils.isNotBlank(location)) {
+			nodeData.setProperty("location", location);
+		}
+		if ((null != roles) && !roles.isEmpty()) {
+			nodeData.setProperty("roles", StringUtils.join(roles, ','));
+		}
+
+		final ByteArrayOutputStream out = new ByteArrayOutputStream();
+		nodeData.store(out, null);
+		return out.toByteArray();
 	}
 }

@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
@@ -73,10 +74,26 @@ public class CloudConsoleCommands implements CommandProvider {
 					return;
 				}
 
+				final String filter = ci.nextArgument();
+
 				for (final INodeDescriptor node : nodes) {
-					ci.println("Node " + node.getId() + " (" + node.getLocation() + ")");
+					if (matchesFilter(filter, node)) {
+						final StringBuilder nodeInfo = new StringBuilder();
+						nodeInfo.append("Node ");
+						nodeInfo.append(node.getName());
+						nodeInfo.append(" (");
+						nodeInfo.append(node.getId());
+						nodeInfo.append(" @ ");
+						nodeInfo.append(node.getLocation());
+						if (node.getRoles().size() > 0) {
+							nodeInfo.append("; ").append(StringUtils.join(node.getRoles(), ", "));
+						}
+						nodeInfo.append(")");
+						ci.println(nodeInfo.toString());
+					}
 				}
 			}
+
 		});
 		cloudCommands.put("approve", new Command("nodeId") {
 			@Override
@@ -114,6 +131,48 @@ public class CloudConsoleCommands implements CommandProvider {
 				}
 			}
 		});
+		cloudCommands.put("setConnectString", new Command("connectString") {
+			@Override
+			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
+				final String connectString = ci.nextArgument();
+				if (connectString == null) {
+					printInvalidArgs(ci);
+					return;
+				}
+
+				final IStatus status = cloudManager.getNodeConfigurer(new NodeInfo().getNodeId()).configureConnection(connectString);
+
+				if (status.isOK()) {
+					ci.println("Node cloud connection updated to " + connectString + "!");
+				} else {
+					ci.println(status.getMessage());
+				}
+			}
+		});
+		cloudCommands.put("setRoles", new Command("<nodeId> <role[,role...]>") {
+			@Override
+			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
+				final String nodeId = ci.nextArgument();
+				if (nodeId == null) {
+					printInvalidArgs(ci);
+					return;
+				}
+
+				final String[] roles = StringUtils.split(ci.nextArgument(), ',');
+				if (roles == null) {
+					printInvalidArgs(ci);
+					return;
+				}
+
+				final IStatus status = cloudManager.getNodeConfigurer(new NodeInfo().getNodeId()).setRoles(Arrays.asList(roles));
+
+				if (status.isOK()) {
+					ci.println("Node cloud connection updated to " + nodeId + "!");
+				} else {
+					ci.println(status.getMessage());
+				}
+			}
+		});
 	}
 
 	static void _cloudHelp(final CommandInterpreter ci) {
@@ -121,6 +180,10 @@ public class CloudConsoleCommands implements CommandProvider {
 		for (final String cmd : cloudCommands.keySet()) {
 			ci.println("\t" + cmd + " " + cloudCommands.get(cmd).getHelp());
 		}
+	}
+
+	static boolean matchesFilter(final String filter, final INodeDescriptor node) {
+		return (null == filter) || StringUtils.containsIgnoreCase(node.getId(), filter) || StringUtils.containsIgnoreCase(node.getName(), filter) || StringUtils.containsIgnoreCase(node.getLocation(), filter);
 	}
 
 	private ICloudManager cloudManager;

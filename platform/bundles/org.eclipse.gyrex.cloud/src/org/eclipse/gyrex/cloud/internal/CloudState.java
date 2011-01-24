@@ -26,6 +26,7 @@ import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
@@ -352,7 +353,7 @@ public class CloudState implements IConnectionMonitor {
 
 		// return node info if available
 		if (record != null) {
-			return new NodeInfo(record, stat.getVersion());
+			return new NodeInfo(new ZooKeeperNodeInfo(nodeId, true, record, stat.getVersion()));
 		}
 
 		return null;
