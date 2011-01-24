@@ -43,7 +43,7 @@ public class OpsMode {
 	 * property key '<code>gyrex.operation.mode</code>' for
 	 * <code>config.ini</code>
 	 */
-	String PROPERTY_KEY_CONFIGURATION_MODE = "gyrex.operation.mode";
+	String PROPERTY_KEY_OPS_MODE = "gyrex.operation.mode";
 
 	private static final Logger LOG = LoggerFactory.getLogger(OpsMode.class);
 	private static final String STATE_FILE_NAME = "operationMode";
@@ -57,7 +57,7 @@ public class OpsMode {
 	 * Creates a new instance.
 	 */
 	public OpsMode() {
-		initializeConfigurationMode();
+		initializeOpsMode();
 	}
 
 	/**
@@ -79,13 +79,13 @@ public class OpsMode {
 	 * 
 	 * @param context
 	 */
-	private void initializeConfigurationMode() {
+	private void initializeOpsMode() {
 		// read instance state
 		String mode = readInstanceState();
 
 		// fallback to config.ini property
 		if (null == mode) {
-			mode = AppActivator.getInstance().getContext().getProperty(PROPERTY_KEY_CONFIGURATION_MODE);
+			mode = AppActivator.getInstance().getContext().getProperty(PROPERTY_KEY_OPS_MODE);
 
 			// persist state
 			if (null != mode) {

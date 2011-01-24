@@ -22,11 +22,9 @@ import org.eclipse.core.runtime.preferences.IPreferencesService;
  */
 public class ZooKeeperGateConfig {
 
-	private static final String PREF_KEY_DEFAULT_CLIENT_CONNECT_STRING = "zookeeper/defaultClientConnectString";
-	private static final String PREF_KEY_PREFIX_CLIENT_CONNECT_STRINGS = "zookeeper/clientConnectStrings/";
-
-	private static final String PREF_KEY_DEFAULT_CLIENT_TIMEOUT = "zookeeper/defaultClientTimeout";
-	private static final String PREF_KEY_PREFIX_CLIENT_TIMEOUTS = "zookeeper/clientTimeouts/";
+	public static final String PREF_NODE_ZOOKEEPER = "zookeeper";
+	public static final String PREF_KEY_CLIENT_CONNECT_STRING = "clientConnectString";
+	public static final String PREF_KEY_CLIENT_TIMEOUT = "clientTimeout";
 
 	private static String getDefaultConnectString() {
 		if (Platform.inDevelopmentMode()) {
@@ -64,19 +62,7 @@ public class ZooKeeperGateConfig {
 		final IPreferencesService preferenceService = CloudActivator.getInstance().getPreferenceService();
 
 		// check for node specific string
-		String connectionString = preferenceService.getString(CloudActivator.SYMBOLIC_NAME, PREF_KEY_PREFIX_CLIENT_CONNECT_STRINGS.concat(nodeId), null, null);
-		if (connectionString != null) {
-			return connectionString;
-		}
-
-		// check for location specific string
-		connectionString = preferenceService.getString(CloudActivator.SYMBOLIC_NAME, PREF_KEY_PREFIX_CLIENT_CONNECT_STRINGS.concat(nodeLocation), null, null);
-		if (connectionString != null) {
-			return connectionString;
-		}
-
-		// fallback to default
-		return preferenceService.getString(CloudActivator.SYMBOLIC_NAME, PREF_KEY_DEFAULT_CLIENT_CONNECT_STRING, getDefaultConnectString(), null);
+		return preferenceService.getString(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_CONNECT_STRING, getDefaultConnectString(), null);
 	}
 
 	/**
@@ -97,19 +83,7 @@ public class ZooKeeperGateConfig {
 		final IPreferencesService preferenceService = CloudActivator.getInstance().getPreferenceService();
 
 		// check for node specific string
-		int timeout = preferenceService.getInt(CloudActivator.SYMBOLIC_NAME, PREF_KEY_PREFIX_CLIENT_TIMEOUTS.concat(nodeId), 0, null);
-		if (timeout > 0) {
-			return timeout;
-		}
-
-		// check for location specific string
-		timeout = preferenceService.getInt(CloudActivator.SYMBOLIC_NAME, PREF_KEY_PREFIX_CLIENT_TIMEOUTS.concat(nodeLocation), 0, null);
-		if (timeout > 0) {
-			return timeout;
-		}
-
-		// fallback to default
-		return preferenceService.getInt(CloudActivator.SYMBOLIC_NAME, PREF_KEY_DEFAULT_CLIENT_TIMEOUT, 10000, null);
+		return preferenceService.getInt(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_TIMEOUT, 10000, null);
 	}
 
 	public void readFromPreferences() {

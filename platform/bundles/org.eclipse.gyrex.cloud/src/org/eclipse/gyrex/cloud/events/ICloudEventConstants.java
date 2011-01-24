@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,9 +7,9 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.cloud;
+package org.eclipse.gyrex.cloud.events;
 
 import org.osgi.service.event.EventAdmin;
 
@@ -19,6 +19,12 @@ import org.osgi.service.event.EventAdmin;
  * Cloud events are delivered through the OSGi {@link EventAdmin}. This allows
  * interesting clients to participate in cloud events.
  * </p>
+ * <p>
+ * This interface is not intended to be implemented by clients.
+ * </p>
+ * 
+ * @noimplement This interface is not intended to be implemented by clients.
+ * @noextend This interface is not intended to be extended by clients.
  */
 public interface ICloudEventConstants {
 

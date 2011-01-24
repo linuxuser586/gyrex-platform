@@ -57,6 +57,9 @@ public interface IZooKeeperLayout {
 	/** path with metric records for each node */
 	public static final IPath PATH_NODES_METRICS = PATH_NODE_ROOT.append("metrics").makeAbsolute();
 
+	/** root path for node specific preferences */
+	public static final IPath PATH_NODES_PREFERENCES_ROOT = PATH_NODE_ROOT.append("prefs").makeAbsolute();
+
 	/** root path for platform preferences stored in ZooKeeper */
 	public static final IPath PATH_PREFERENCES_ROOT = PATH_GYREX_ROOT.append("prefs").makeAbsolute();
 

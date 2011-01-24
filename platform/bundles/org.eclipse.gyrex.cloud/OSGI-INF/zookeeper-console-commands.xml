@@ -4,4 +4,6 @@
    <service>
       <provide interface="org.eclipse.osgi.framework.console.CommandProvider"/>
    </service>
+   <property name="vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="description" type="String" value="ZooKeeper Console Commands"/>
 </scr:component>

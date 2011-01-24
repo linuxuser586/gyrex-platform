@@ -11,22 +11,19 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
-import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeMap;
 
-import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.cloud.admin.ICloudManager;
+import org.eclipse.gyrex.cloud.admin.INodeDescriptor;
 
-import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 import org.eclipse.osgi.framework.console.CommandProvider;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
-import org.apache.zookeeper.CreateMode;
 
 public class CloudConsoleCommands implements CommandProvider {
 
@@ -40,7 +37,7 @@ public class CloudConsoleCommands implements CommandProvider {
 			this.help = help;
 		}
 
-		public abstract void execute(ZooKeeperGate gate, CommandInterpreter ci) throws Exception;
+		public abstract void execute(ICloudManager cloudManager, CommandInterpreter ci) throws Exception;
 
 		public String getHelp() {
 			return help;
@@ -62,67 +59,59 @@ public class CloudConsoleCommands implements CommandProvider {
 	static {
 		cloudCommands.put("ls", new Command("pending|approved") {
 			@Override
-			public void execute(final ZooKeeperGate zk, final CommandInterpreter ci) throws Exception {
+			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
 				final String a1 = ci.nextArgument();
-				IPath path = null;
+				Collection<INodeDescriptor> nodes = null;
 				if (StringUtils.startsWith(APPROVED, a1)) {
-					path = IZooKeeperLayout.PATH_NODES_APPROVED;
+					nodes = cloudManager.getApprovedNodes();
 				} else if (StringUtils.startsWith(PENDING, a1)) {
-					path = IZooKeeperLayout.PATH_NODES_PENDING;
+					nodes = cloudManager.getPendingNodes();
 				}
 
-				if (path == null) {
+				if (nodes == null) {
 					printInvalidArgs(ci);
 					return;
 				}
 
-				final Collection<String> names = zk.readChildrenNames(path, null);
-				for (final String nodeId : names) {
-					final String info = zk.readRecord(IZooKeeperLayout.PATH_NODES_PENDING.append(nodeId), "", null);
-					if (info.length() > 0) {
-						ci.println("Node " + nodeId + " (" + info + ")");
-					} else {
-						ci.println("Node " + nodeId);
-					}
+				for (final INodeDescriptor node : nodes) {
+					ci.println("Node " + node.getId() + " (" + node.getLocation() + ")");
 				}
 			}
 		});
 		cloudCommands.put("approve", new Command("nodeId") {
 			@Override
-			public void execute(final ZooKeeperGate zk, final CommandInterpreter ci) throws Exception {
+			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
 				final String nodeId = ci.nextArgument();
 				if (nodeId == null) {
 					printInvalidArgs(ci);
 					return;
 				}
 
-				final Properties nodeData = new Properties();
-				final String info = zk.readRecord(IZooKeeperLayout.PATH_NODES_PENDING.append(nodeId), "", null);
-				if (info.length() > 0) {
-					nodeData.put("location", info);
+				final IStatus status = cloudManager.approveNode(nodeId);
+
+				if (status.isOK()) {
+					ci.println("Node " + nodeId + " approved!");
+				} else {
+					ci.println(status.getMessage());
 				}
-
-				final ByteArrayOutputStream out = new ByteArrayOutputStream();
-				nodeData.store(out, getHelp());
-
-				zk.createPath(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), CreateMode.PERSISTENT, out.toByteArray());
-				zk.deletePath(IZooKeeperLayout.PATH_NODES_PENDING.append(nodeId));
-
-				ci.println("Node " + nodeId + " approved!");
 			}
 		});
 		cloudCommands.put("retire", new Command("nodeId") {
 			@Override
-			public void execute(final ZooKeeperGate zk, final CommandInterpreter ci) throws Exception {
+			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
 				final String nodeId = ci.nextArgument();
 				if (nodeId == null) {
 					printInvalidArgs(ci);
 					return;
 				}
 
-				zk.deletePath(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId));
+				final IStatus status = cloudManager.retireNode(nodeId);
 
-				ci.println("Node " + nodeId + " retired!");
+				if (status.isOK()) {
+					ci.println("Node " + nodeId + " retired!");
+				} else {
+					ci.println(status.getMessage());
+				}
 			}
 		});
 	}
@@ -133,6 +122,8 @@ public class CloudConsoleCommands implements CommandProvider {
 			ci.println("\t" + cmd + " " + cloudCommands.get(cmd).getHelp());
 		}
 	}
+
+	private ICloudManager cloudManager;
 
 	public void _cloud(final CommandInterpreter ci) throws Exception {
 		final String command = ci.nextArgument();
@@ -148,14 +139,27 @@ public class CloudConsoleCommands implements CommandProvider {
 			return;
 		}
 
-		ZooKeeperGate gate = null;
+		ICloudManager cloudManager = null;
 		try {
-			gate = ZooKeeperGate.get();
+			cloudManager = getCloudManager();
 		} catch (final Exception e) {
 			ci.println("ZooKeeper not connected! " + e.getMessage());
 			return;
 		}
-		cmd.execute(gate, ci);
+		cmd.execute(cloudManager, ci);
+	}
+
+	/**
+	 * Returns the cloudManager.
+	 * 
+	 * @return the cloudManager
+	 */
+	public ICloudManager getCloudManager() {
+		final ICloudManager manager = cloudManager;
+		if (manager == null) {
+			throw new IllegalStateException("cloud manager not available");
+		}
+		return manager;
 	}
 
 	@Override
@@ -167,5 +171,15 @@ public class CloudConsoleCommands implements CommandProvider {
 			help.appendln("\t\t" + cmd + " " + cloudCommands.get(cmd).getHelp());
 		}
 		return help.toString();
+	}
+
+	/**
+	 * Sets the cloudManager.
+	 * 
+	 * @param cloudManager
+	 *            the cloudManager to set
+	 */
+	public void setCloudManager(final ICloudManager cloudManager) {
+		this.cloudManager = cloudManager;
 	}
 }

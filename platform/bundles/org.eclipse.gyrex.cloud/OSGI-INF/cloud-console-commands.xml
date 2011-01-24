@@ -4,4 +4,7 @@
    <service>
       <provide interface="org.eclipse.osgi.framework.console.CommandProvider"/>
    </service>
+   <reference bind="setCloudManager" cardinality="1..1" interface="org.eclipse.gyrex.cloud.admin.ICloudManager" name="ICloudManager" policy="static"/>
+   <property name="vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="description" type="String" value="Cloud Console Commands"/>
 </scr:component>

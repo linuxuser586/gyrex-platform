@@ -212,6 +212,7 @@ public class ZooKeeperGate {
 
 	private final ZooKeeper zooKeeper;
 	private final IConnectionMonitor reconnectMonitor;
+
 	private final Watcher connectionMonitor = new Watcher() {
 
 		@Override
@@ -268,17 +269,7 @@ public class ZooKeeperGate {
 		}
 
 		// create all parents
-		for (int i = path.segmentCount() - 1; i > 0; i--) {
-			final IPath parentPath = path.removeLastSegments(i);
-			try {
-				ensureConnected().create(parentPath.toString(), null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-			} catch (final KeeperException e) {
-				if (e.code() != KeeperException.Code.NODEEXISTS) {
-					// rethrow
-					throw e;
-				}
-			}
-		}
+		ZooKeeperHelper.createParents(ensureConnected(), path);
 
 		// create node itself
 		ensureConnected().create(path.toString(), data, ZooDefs.Ids.OPEN_ACL_UNSAFE, createMode);

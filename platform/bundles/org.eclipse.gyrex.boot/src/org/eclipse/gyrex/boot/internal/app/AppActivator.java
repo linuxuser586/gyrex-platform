@@ -22,7 +22,9 @@ import org.eclipse.gyrex.server.internal.opsmode.OperationMode;
 import org.eclipse.gyrex.server.internal.opsmode.OpsMode;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.framework.log.FrameworkLog;
 import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.util.NLS;
@@ -48,8 +50,8 @@ public class AppActivator extends BaseBundleActivator {
 	// The shared instance
 	private static AppActivator sharedInstance;
 
-	private static final AtomicReference<OpsMode> opsMode = new AtomicReference<OpsMode>();
-	private static final AtomicBoolean debugMode = new AtomicBoolean();
+	private static final AtomicReference<OpsMode> opsModeRef = new AtomicReference<OpsMode>();
+	private static final AtomicBoolean debugModeRef = new AtomicBoolean();
 
 	/**
 	 * Returns the shared instance
@@ -61,11 +63,11 @@ public class AppActivator extends BaseBundleActivator {
 	}
 
 	public static OpsMode getOpsMode() {
-		return opsMode.get();
+		return opsModeRef.get();
 	}
 
 	public static boolean isDebugMode() {
-		return debugMode.get();
+		return debugModeRef.get();
 	}
 
 	public static boolean isDevMode() {
@@ -96,10 +98,14 @@ public class AppActivator extends BaseBundleActivator {
 		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
 
 		// configure dev mode
-		opsMode.set(new OpsMode());
+		final OpsMode opsMode = new OpsMode();
+		opsModeRef.set(opsMode);
+		if (!opsMode.isSet()) {
+			getServiceHelper().registerService(IStatus.class.getName(), new Status(IStatus.WARNING, SYMBOLIC_NAME, "The system operation mode has not been configured yet. Therefore the system operates in development mode."), "Eclipse Gyrex", "System operation mode status information.", SYMBOLIC_NAME.concat(".status.operationMode"), null);
+		}
 
 		// configure debug mode
-		debugMode.set((context.getProperty("osgi.debug") != null) || (getOpsMode().getMode() == OperationMode.DEVELOPMENT));
+		debugModeRef.set((context.getProperty("osgi.debug") != null) || (getOpsMode().getMode() == OperationMode.DEVELOPMENT));
 	}
 
 	@Override
