@@ -239,7 +239,6 @@ public class CloudState implements IConnectionMonitor {
 					}
 					reconnect(nodeInfo);
 				}
-				reconnect(nodeInfo);
 			}
 		}
 	};
