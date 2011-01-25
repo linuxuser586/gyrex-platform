@@ -14,13 +14,15 @@ package org.eclipse.gyrex.cloud.internal.zk;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 import org.eclipse.core.runtime.IPath;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
@@ -29,6 +31,38 @@ import org.apache.zookeeper.data.Stat;
  * Information about a node stored in ZooKeeper.
  */
 public class ZooKeeperNodeInfo {
+
+	private static final String PROP_TAGS = "tags";
+	private static final String PROP_LOCATION = "location";
+	private static final String PROP_NAME = "name";
+
+	public static void approve(final String nodeId, String name, String location) throws Exception {
+		final ZooKeeperGate zk = ZooKeeperGate.get();
+
+		// read missing info from current pending record
+		try {
+			final ZooKeeperNodeInfo info = load(nodeId, false);
+			if (name == null) {
+				name = info.getName();
+			}
+			if (location == null) {
+				location = info.getLocation();
+			}
+		} catch (final Exception e) {
+			// ignore
+		}
+
+		// create new info
+		final ZooKeeperNodeInfo nodeInfo = new ZooKeeperNodeInfo(nodeId, true, null, 0);
+		nodeInfo.setName(name);
+		nodeInfo.setLocation(location);
+
+		// create approved record
+		zk.createPath(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), CreateMode.PERSISTENT, nodeInfo.toByteArray());
+
+		// delete pending record
+		zk.deletePath(IZooKeeperLayout.PATH_NODES_PENDING.append(nodeId));
+	}
 
 	public static ZooKeeperNodeInfo load(final String nodeId, final boolean approved) throws IllegalStateException {
 		final Stat stat = new Stat();
@@ -60,7 +94,7 @@ public class ZooKeeperNodeInfo {
 	private final boolean approved;
 	private String name;
 	private String location;
-	private List<String> roles;
+	private Set<String> tags;
 
 	/**
 	 * Creates a new instance.
@@ -85,21 +119,21 @@ public class ZooKeeperNodeInfo {
 		}
 
 		// name
-		name = properties.getProperty("name");
+		name = properties.getProperty(PROP_NAME);
 
 		// location
-		location = properties.getProperty("location", null);
+		location = properties.getProperty(PROP_LOCATION, null);
 
-		// roles
-		final String[] roles = StringUtils.split(properties.getProperty("roles"), ',');
-		if ((roles != null) && (roles.length > 0)) {
-			final List<String> cloudRoles = new ArrayList<String>(roles.length);
-			for (final String role : roles) {
-				if (!cloudRoles.contains(role)) {
-					cloudRoles.add(role);
+		// tags
+		final String[] tags = StringUtils.split(properties.getProperty(PROP_TAGS), ',');
+		if ((tags != null) && (tags.length > 0)) {
+			final Set<String> cloudTags = new HashSet<String>(tags.length);
+			for (final String role : tags) {
+				if (!cloudTags.contains(role)) {
+					cloudTags.add(role);
 				}
 			}
-			this.roles = cloudRoles;
+			this.tags = cloudTags;
 		}
 	}
 
@@ -135,8 +169,8 @@ public class ZooKeeperNodeInfo {
 	 * 
 	 * @return the roles
 	 */
-	public List<String> getRoles() {
-		return roles;
+	public Set<String> getTags() {
+		return tags;
 	}
 
 	/**
@@ -178,29 +212,34 @@ public class ZooKeeperNodeInfo {
 	}
 
 	/**
-	 * Sets the roles.
+	 * Sets the tags.
 	 * 
-	 * @param roles
-	 *            the roles to set
+	 * @param tags
+	 *            the tags to set (maybe <code>null</code> to unset)
 	 */
-	public void setRoles(final List<String> roles) {
-		this.roles = roles;
+	public void setTags(final Set<String> tags) {
+		this.tags = tags;
 	}
 
 	private byte[] toByteArray() throws IOException {
 		final Properties nodeData = new Properties();
 		if (StringUtils.isNotBlank(name)) {
-			nodeData.setProperty("name", name);
+			nodeData.setProperty(PROP_NAME, name);
 		}
 		if (StringUtils.isNotBlank(location)) {
-			nodeData.setProperty("location", location);
+			nodeData.setProperty(PROP_LOCATION, location);
 		}
-		if ((null != roles) && !roles.isEmpty()) {
-			nodeData.setProperty("roles", StringUtils.join(roles, ','));
+		if ((null != tags) && !tags.isEmpty()) {
+			nodeData.setProperty(PROP_TAGS, StringUtils.join(tags, ','));
 		}
 
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		nodeData.store(out, null);
 		return out.toByteArray();
+	}
+
+	@Override
+	public String toString() {
+		return new ToStringBuilder(this, ToStringStyle.NO_FIELD_NAMES_STYLE).append("id", nodeId).append("name", name).append("location", location).append("tags", tags).toString();
 	}
 }

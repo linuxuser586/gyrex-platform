@@ -349,8 +349,7 @@ public class ZooKeeperGate {
 	/**
 	 * Removes a path in ZooKeeper.
 	 * <p>
-	 * If the path parents don't exist they will be created using
-	 * {@link CreateMode#PERSISTENT}.
+	 * If the path doen't exist the operation is considered successful.
 	 * </p>
 	 * 
 	 * @param path

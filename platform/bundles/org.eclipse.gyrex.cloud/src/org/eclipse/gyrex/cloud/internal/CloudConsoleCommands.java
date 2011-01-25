@@ -11,10 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.eclipse.gyrex.cloud.admin.ICloudManager;
@@ -86,8 +86,8 @@ public class CloudConsoleCommands implements CommandProvider {
 						nodeInfo.append(node.getId());
 						nodeInfo.append(" @ ");
 						nodeInfo.append(node.getLocation());
-						if (node.getRoles().size() > 0) {
-							nodeInfo.append("; ").append(StringUtils.join(node.getRoles(), ", "));
+						if (node.getTags().size() > 0) {
+							nodeInfo.append("; ").append(StringUtils.join(node.getTags(), ", "));
 						}
 						nodeInfo.append(")");
 						ci.println(nodeInfo.toString());
@@ -150,7 +150,7 @@ public class CloudConsoleCommands implements CommandProvider {
 				}
 			}
 		});
-		cloudCommands.put("setRoles", new Command("<nodeId> [<role[,role...]>]") {
+		cloudCommands.put("setTags", new Command("<nodeId> [<tag[,tag...]>]") {
 			@Override
 			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
 				final String nodeId = ci.nextArgument();
@@ -159,25 +159,25 @@ public class CloudConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				List<String> roles = null;
+				Set<String> tags = null;
 				final String[] rolesArg = StringUtils.split(ci.nextArgument(), ',');
 				if (rolesArg != null) {
-					roles = new ArrayList<String>();
+					tags = new HashSet<String>();
 					for (int i = 0; i < rolesArg.length; i++) {
 						final String role = StringUtils.trimToNull(rolesArg[i]);
-						if ((role != null) && !roles.contains(role)) {
-							roles.add(role);
+						if ((role != null) && !tags.contains(role)) {
+							tags.add(role);
 						}
 					}
 				}
 
-				final IStatus status = cloudManager.getNodeConfigurer(nodeId).setRoles(roles);
+				final IStatus status = cloudManager.getNodeConfigurer(nodeId).setTags(tags);
 
 				if (status.isOK()) {
-					if (roles != null) {
-						ci.println("Roles of node " + nodeId + " updated to " + StringUtils.join(roles, ',') + "!");
+					if (tags != null) {
+						ci.println("Tags of node " + nodeId + " updated to " + StringUtils.join(tags, ',') + "!");
 					} else {
-						ci.println("Roles of node " + nodeId + " has been reset!");
+						ci.println("Tags of node " + nodeId + " has been reset!");
 					}
 				} else {
 					ci.println(status.getMessage());

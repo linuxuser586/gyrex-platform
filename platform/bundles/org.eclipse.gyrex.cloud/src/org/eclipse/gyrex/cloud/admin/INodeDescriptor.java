@@ -11,7 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.admin;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * Public node information.
@@ -40,11 +40,11 @@ public interface INodeDescriptor {
 	String getName();
 
 	/**
-	 * Returns the assigned roles.
+	 * Returns the node tags.
 	 * 
-	 * @return the assigned roles
+	 * @return the node tags
 	 */
-	List<String> getRoles();
+	Set<String> getTags();
 
 	/**
 	 * Indicates if the node is approved.

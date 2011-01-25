@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.environment;
 
+import java.util.Set;
+
 import org.eclipse.gyrex.server.Platform;
 
 /**
@@ -36,6 +38,18 @@ public interface INodeEnvironment {
 	 * @return the node id
 	 */
 	String getNodeId();
+
+	/**
+	 * Returns the node tags.
+	 * <p>
+	 * A node can have tags assigned by operators. The system may use tags to
+	 * associate further functionality with a node (eg. "web" for nodes serving
+	 * web content, "tests" for test nodes)
+	 * </p>
+	 * 
+	 * @return an unmodifiable set of node tags
+	 */
+	Set<String> getTags();
 
 	/**
 	 * Indicates if the node/instance the service runs on is operating

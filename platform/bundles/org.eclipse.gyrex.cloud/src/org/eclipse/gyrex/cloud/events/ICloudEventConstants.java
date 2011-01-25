@@ -11,6 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.events;
 
+import java.util.Set;
+
+import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
 
 /**
@@ -27,6 +30,26 @@ import org.osgi.service.event.EventAdmin;
  * @noextend This interface is not intended to be extended by clients.
  */
 public interface ICloudEventConstants {
+
+	/**
+	 * Event property identifying the node id.
+	 * <p>
+	 * This property may be supplied in the {@code properties}
+	 * {@code Dictionary} or {@code Map} passed to an {@link Event}. The value
+	 * of this property must be of type {@link String}.
+	 * </p>
+	 */
+	String NODE_ID = "node.id";
+
+	/**
+	 * Event property identifying the node tags.
+	 * <p>
+	 * This property may be supplied in the {@code properties}
+	 * {@code Dictionary} or {@code Map} passed to an {@link Event}. The value
+	 * of this property must be of type {@link Set} of {@link String}.
+	 * </p>
+	 */
+	String NODE_TAGS = "node.tags";
 
 	/**
 	 * Topic under which an event is published when <em>this</em> node became

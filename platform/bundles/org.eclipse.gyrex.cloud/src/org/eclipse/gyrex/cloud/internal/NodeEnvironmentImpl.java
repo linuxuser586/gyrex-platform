@@ -11,6 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
+import java.util.Collections;
+import java.util.Set;
+
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateConfig;
 
@@ -25,7 +28,20 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 
 	@Override
 	public String getNodeId() {
-		return new NodeInfo().getNodeId();
+		final NodeInfo nodeInfo = CloudState.getNodeInfo();
+		if (nodeInfo == null) {
+			return new NodeInfo().getNodeId();
+		}
+		return nodeInfo.getNodeId();
+	}
+
+	@Override
+	public Set<String> getTags() {
+		final NodeInfo nodeInfo = CloudState.getNodeInfo();
+		if (nodeInfo == null) {
+			return Collections.emptySet();
+		}
+		return nodeInfo.getTags();
 	}
 
 	@Override
@@ -34,5 +50,4 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 		final Preferences preferences = new InstanceScope().getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
 		return preferences.get(ZooKeeperGateConfig.PREF_KEY_CLIENT_CONNECT_STRING, null) == null;
 	}
-
 }

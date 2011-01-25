@@ -27,6 +27,7 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
+import org.eclipse.gyrex.server.Platform;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
@@ -314,14 +315,24 @@ public class CloudState implements IConnectionMonitor {
 		} catch (final KeeperException e) {
 			if (e.code() == Code.NODEEXISTS) {
 				final String existingEntry = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_ALL.append(info.getNodeId()), (String) null, null);
-				throw new IllegalStateException(NLS.bind("Node id {0} already in use by {1}!", info.getNodeId(), existingEntry));
+				throw new IllegalStateException(NLS.bind("Node id {0} already in use by {1}! This may be a result of an unclean previous shutdown. Please retry and/or investigate if the problem still exists in a few seconds (depending on ZooKeeper session timeout).", info.getNodeId(), existingEntry));
 			}
 		}
 
 		// check if there is a recored in the "approved" list
-		final NodeInfo approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
+		NodeInfo approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
 		if (approvedNodeInfo != null) {
 			return approvedNodeInfo;
+		}
+
+		// auto-approve in standalone mode
+		if (Platform.inDevelopmentMode() && new NodeEnvironmentImpl().inStandaloneMode()) {
+			LOG.info("Attempting automatic approval of node {} in standalong development system.", info);
+			ZooKeeperNodeInfo.approve(info.getNodeId(), null, info.getLocation());
+			approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
+			if (approvedNodeInfo != null) {
+				return approvedNodeInfo;
+			}
 		}
 
 		// create an ephemeral pending record
@@ -399,7 +410,7 @@ public class CloudState implements IConnectionMonitor {
 			myInfo.set(newInfo);
 
 			// refresh roles
-			LocalRolesManager.refreshRoles(newInfo.getRoles());
+			LocalRolesManager.refreshRoles(newInfo.getTags());
 		} finally {
 			registrationLock.unlock();
 		}
@@ -465,7 +476,8 @@ public class CloudState implements IConnectionMonitor {
 	private void sendNodeEvent(final NodeInfo node, final boolean online) {
 		try {
 			final Map<String, Object> properties = new HashMap<String, Object>(3);
-			properties.put("node.id", node.getNodeId());
+			properties.put(ICloudEventConstants.NODE_ID, node.getNodeId());
+			properties.put(ICloudEventConstants.NODE_TAGS, node.getNodeId());
 			properties.put("node.name", node.getName());
 			properties.put("node.location", node.getLocation());
 			final Event event = new Event(online ? ICloudEventConstants.TOPIC_NODE_ONLINE : ICloudEventConstants.TOPIC_NODE_OFFLINE, properties);
@@ -485,7 +497,7 @@ public class CloudState implements IConnectionMonitor {
 		// de-activate cloud roles
 		// TODO we shouldn't deactivate immediately but schedule a deactivation
 		// (there might be a temporary network partition which shouldn't bring down roles)
-		final List<String> roles = new ArrayList<String>(node.getRoles());
+		final List<String> roles = new ArrayList<String>(node.getTags());
 		if (roles.isEmpty()) {
 			// fallback to default roles
 			roles.addAll(ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT));
@@ -539,7 +551,7 @@ public class CloudState implements IConnectionMonitor {
 		NodeMetricsReporter.start();
 
 		// activate cloud roles
-		final Collection<String> roles = node.getRoles();
+		final Collection<String> roles = node.getTags();
 		if (!roles.isEmpty()) {
 			LocalRolesManager.activateRoles(roles);
 		} else {

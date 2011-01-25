@@ -11,12 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.admin;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 
 import org.eclipse.gyrex.cloud.admin.ICloudManager;
 import org.eclipse.gyrex.cloud.admin.INodeConfigurer;
@@ -24,13 +22,13 @@ import org.eclipse.gyrex.cloud.admin.INodeDescriptor;
 import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.zookeeper.CreateMode;
 
 /**
  * {@link ICloudManager} implementation.
@@ -40,20 +38,7 @@ public class CloudManagerImpl implements ICloudManager {
 	@Override
 	public IStatus approveNode(final String nodeId) {
 		try {
-			final ZooKeeperGate zk = ZooKeeperGate.get();
-
-			final Properties nodeData = new Properties();
-			final String info = zk.readRecord(IZooKeeperLayout.PATH_NODES_PENDING.append(nodeId), "", null);
-			if (info.length() > 0) {
-				nodeData.put("location", info);
-			}
-
-			final ByteArrayOutputStream out = new ByteArrayOutputStream();
-			nodeData.store(out, null);
-
-			zk.createPath(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), CreateMode.PERSISTENT, out.toByteArray());
-			zk.deletePath(IZooKeeperLayout.PATH_NODES_PENDING.append(nodeId));
-
+			ZooKeeperNodeInfo.approve(nodeId, null, null);
 			return Status.OK_STATUS;
 		} catch (final Exception e) {
 			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, "Error approving node. " + ExceptionUtils.getRootCauseMessage(e), e);

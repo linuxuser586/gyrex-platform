@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -142,7 +142,7 @@ public class NodeInfo {
 	private final boolean approved;
 	private final String location;
 	private final String name;
-	private final List<String> roles;
+	private final Set<String> tags;
 
 	private final int version;
 
@@ -152,8 +152,8 @@ public class NodeInfo {
 	public NodeInfo() {
 		nodeId = initializeNodeId();
 		location = getDefaultLocationInfo(nodeId);
-		name = "";
-		roles = Collections.emptyList();
+		name = null;
+		tags = Collections.emptySet();
 		approved = false;
 		version = -1;
 	}
@@ -186,11 +186,11 @@ public class NodeInfo {
 		location = null != info.getLocation() ? info.getLocation() : getDefaultLocationInfo(nodeId);
 
 		// roles
-		final List<String> roles = info.getRoles();
-		if (roles != null) {
-			this.roles = Collections.unmodifiableList(roles);
+		final Set<String> tags = info.getTags();
+		if (tags != null) {
+			this.tags = Collections.unmodifiableSet(tags);
 		} else {
-			this.roles = Collections.emptyList();
+			this.tags = Collections.emptySet();
 		}
 	};
 
@@ -230,11 +230,11 @@ public class NodeInfo {
 		} else if (!nodeId.equals(other.nodeId)) {
 			return false;
 		}
-		if (roles == null) {
-			if (other.roles != null) {
+		if (tags == null) {
+			if (other.tags != null) {
 				return false;
 			}
-		} else if (!roles.equals(other.roles)) {
+		} else if (!tags.equals(other.tags)) {
 			return false;
 		}
 		if (version != other.version) {
@@ -272,12 +272,12 @@ public class NodeInfo {
 	}
 
 	/**
-	 * Returns a collection of roles assigned to the node.
+	 * Returns the node tags.
 	 * 
-	 * @return an unmodifiable collection of assigned roles
+	 * @return an unmodifiable collection of assigned tags
 	 */
-	public List<String> getRoles() {
-		return roles;
+	public Set<String> getTags() {
+		return tags;
 	}
 
 	/**
@@ -297,7 +297,7 @@ public class NodeInfo {
 		result = prime * result + ((location == null) ? 0 : location.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
-		result = prime * result + ((roles == null) ? 0 : roles.hashCode());
+		result = prime * result + ((tags == null) ? 0 : tags.hashCode());
 		result = prime * result + version;
 		return result;
 	}

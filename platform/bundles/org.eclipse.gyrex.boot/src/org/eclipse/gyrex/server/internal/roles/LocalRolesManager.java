@@ -18,6 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +55,7 @@ public class LocalRolesManager {
 
 	/**
 	 * Activates roles.
-	 * 
+	 *
 	 * @param roleIds
 	 */
 	public static synchronized void activateRoles(final Collection<String> roleIds) {
@@ -68,7 +70,7 @@ public class LocalRolesManager {
 
 	/**
 	 * Activates the specified roles
-	 * 
+	 *
 	 * @param roleIds
 	 * @param failOnError
 	 */
@@ -81,7 +83,7 @@ public class LocalRolesManager {
 	}
 
 	/**
-	 *
+	 * Deactivates <strong>all</strong> roles.
 	 */
 	public static synchronized void deactivateAllRoles() {
 		final List<String> roleIds = new ArrayList<String>(activeRoles.keySet());
@@ -92,8 +94,21 @@ public class LocalRolesManager {
 	}
 
 	/**
+	 * Deactives all roles which has been automatically started using the specified trigger.
+	 * @param trigger
+	 */
+	public static synchronized void deactivateAllAutoStartRoles(Trigger trigger) {
+		final List<String> roleIds = new ArrayList<String>(activeRoles.keySet());
+		Collections.reverse(roleIds);
+		for (final String roleId : roleIds) {
+			dectivate(roleId);
+		}
+	}
+
+
+	/**
 	 * Deactivates roles.
-	 * 
+	 *
 	 * @param roleIds
 	 */
 	public static synchronized void deactivateRoles(final Collection<String> roleIds) {
@@ -113,11 +128,14 @@ public class LocalRolesManager {
 
 	/**
 	 * Refreshes the roles.
-	 * 
+	 *
 	 * @param roles
 	 */
 	public static synchronized void refreshRoles(final Collection<String> roles) {
 		// TODO Auto-generated method stub
+		for (final String role : roles) {
+			System.err.println("new role: " + role);
+		}
 
 	}
 

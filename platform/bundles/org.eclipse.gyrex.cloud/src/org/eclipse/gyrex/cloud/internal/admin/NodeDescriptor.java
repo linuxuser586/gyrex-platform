@@ -12,10 +12,13 @@
 package org.eclipse.gyrex.cloud.internal.admin;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.gyrex.cloud.admin.INodeDescriptor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
+
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 
 /**
  * {@link INodeDescriptor} implementation which supports dynamic/lazy loading.
@@ -63,9 +66,6 @@ public class NodeDescriptor implements INodeDescriptor {
 		return location;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.cloud.admin.INodeDescriptor#getName()
-	 */
 	@Override
 	public String getName() {
 		final String name = ensureInfo().getName();
@@ -76,16 +76,21 @@ public class NodeDescriptor implements INodeDescriptor {
 	}
 
 	@Override
-	public List<String> getRoles() {
-		final List<String> roles = ensureInfo().getRoles();
+	public Set<String> getTags() {
+		final Set<String> roles = ensureInfo().getTags();
 		if (roles == null) {
-			return Collections.emptyList();
+			return Collections.emptySet();
 		}
-		return roles;
+		return Collections.unmodifiableSet(roles);
 	}
 
 	@Override
 	public boolean isApproved() {
 		return approved;
+	}
+
+	@Override
+	public String toString() {
+		return new ToStringBuilder(this, ToStringStyle.NO_FIELD_NAMES_STYLE).append("id", nodeId).append("approved", approved).append("info", info).toString();
 	}
 }
