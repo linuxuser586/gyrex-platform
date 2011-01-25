@@ -17,6 +17,20 @@ import org.eclipse.core.runtime.IStatus;
 
 /**
  * A service which allows administration of a cloud.
+ * <p>
+ * It's exposed as API in order to allow external management of cloud nodes.
+ * However, some limitations apply. This package represents an administration
+ * API which is tightly coupled to an internal technology. As such, it may
+ * evolve quicker than usual APIs and may not follow the <a
+ * href="http://wiki.eclipse.org/Version_Numbering" target="_blank">Eclipse
+ * version guidelines</a>.
+ * </p>
+ * <p>
+ * Clients using this API should inform the Gyrex development team through it's
+ * preferred channels (eg. development mailing). They should also define a more
+ * strict package version range (eg. <code>[1.0.0,1.1.0)</code>) when importing
+ * this package (or any other sub-package).
+ * </p>
  * 
  * @noextend This interface is not intended to be extended by clients.
  * @noimplement This interface is not intended to be implemented by clients.
