@@ -11,9 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.eclipse.gyrex.cloud.admin.ICloudManager;
@@ -149,7 +150,7 @@ public class CloudConsoleCommands implements CommandProvider {
 				}
 			}
 		});
-		cloudCommands.put("setRoles", new Command("<nodeId> <role[,role...]>") {
+		cloudCommands.put("setRoles", new Command("<nodeId> [<role[,role...]>]") {
 			@Override
 			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
 				final String nodeId = ci.nextArgument();
@@ -158,16 +159,26 @@ public class CloudConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				final String[] roles = StringUtils.split(ci.nextArgument(), ',');
-				if (roles == null) {
-					printInvalidArgs(ci);
-					return;
+				Set<String> roles = null;
+				final String[] rolesArg = StringUtils.split(ci.nextArgument(), ',');
+				if (rolesArg != null) {
+					roles = new HashSet<String>();
+					for (int i = 0; i < rolesArg.length; i++) {
+						final String role = StringUtils.trimToNull(rolesArg[i]);
+						if (role != null) {
+							roles.add(role);
+						}
+					}
 				}
 
-				final IStatus status = cloudManager.getNodeConfigurer(new NodeInfo().getNodeId()).setRoles(Arrays.asList(roles));
+				final IStatus status = cloudManager.getNodeConfigurer(nodeId).setRoles(roles);
 
 				if (status.isOK()) {
-					ci.println("Node cloud connection updated to " + nodeId + "!");
+					if (roles != null) {
+						ci.println("Roles of node " + nodeId + " updated to " + StringUtils.join(roles, ',') + "!");
+					} else {
+						ci.println("Roles of node " + nodeId + " has been reset!");
+					}
 				} else {
 					ci.println(status.getMessage());
 				}
