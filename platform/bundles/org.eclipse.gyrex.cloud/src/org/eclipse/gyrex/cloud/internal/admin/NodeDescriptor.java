@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.cloud.internal.admin;
 
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
 
 import org.eclipse.gyrex.cloud.admin.INodeDescriptor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
@@ -76,10 +76,10 @@ public class NodeDescriptor implements INodeDescriptor {
 	}
 
 	@Override
-	public Set<String> getRoles() {
-		final Set<String> roles = ensureInfo().getRoles();
+	public List<String> getRoles() {
+		final List<String> roles = ensureInfo().getRoles();
 		if (roles == null) {
-			return Collections.emptySet();
+			return Collections.emptyList();
 		}
 		return roles;
 	}

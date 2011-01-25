@@ -14,9 +14,9 @@ package org.eclipse.gyrex.cloud.internal.zk;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 import org.eclipse.core.runtime.IPath;
 
@@ -60,7 +60,7 @@ public class ZooKeeperNodeInfo {
 	private final boolean approved;
 	private String name;
 	private String location;
-	private Set<String> roles;
+	private List<String> roles;
 
 	/**
 	 * Creates a new instance.
@@ -93,9 +93,11 @@ public class ZooKeeperNodeInfo {
 		// roles
 		final String[] roles = StringUtils.split(properties.getProperty("roles"), ',');
 		if ((roles != null) && (roles.length > 0)) {
-			final Set<String> cloudRoles = new HashSet<String>(roles.length);
+			final List<String> cloudRoles = new ArrayList<String>(roles.length);
 			for (final String role : roles) {
-				cloudRoles.add(role);
+				if (!cloudRoles.contains(role)) {
+					cloudRoles.add(role);
+				}
 			}
 			this.roles = cloudRoles;
 		}
@@ -133,7 +135,7 @@ public class ZooKeeperNodeInfo {
 	 * 
 	 * @return the roles
 	 */
-	public Set<String> getRoles() {
+	public List<String> getRoles() {
 		return roles;
 	}
 
@@ -181,7 +183,7 @@ public class ZooKeeperNodeInfo {
 	 * @param roles
 	 *            the roles to set
 	 */
-	public void setRoles(final Set<String> roles) {
+	public void setRoles(final List<String> roles) {
 		this.roles = roles;
 	}
 

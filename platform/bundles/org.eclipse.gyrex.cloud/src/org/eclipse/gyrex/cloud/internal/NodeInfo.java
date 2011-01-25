@@ -15,9 +15,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -143,7 +142,7 @@ public class NodeInfo {
 	private final boolean approved;
 	private final String location;
 	private final String name;
-	private final Set<String> roles;
+	private final List<String> roles;
 
 	private final int version;
 
@@ -154,7 +153,7 @@ public class NodeInfo {
 		nodeId = initializeNodeId();
 		location = getDefaultLocationInfo(nodeId);
 		name = "";
-		roles = Collections.emptySet();
+		roles = Collections.emptyList();
 		approved = false;
 		version = -1;
 	}
@@ -187,11 +186,11 @@ public class NodeInfo {
 		location = null != info.getLocation() ? info.getLocation() : getDefaultLocationInfo(nodeId);
 
 		// roles
-		final Set<String> roles = info.getRoles();
+		final List<String> roles = info.getRoles();
 		if (roles != null) {
-			this.roles = Collections.unmodifiableSet(roles);
+			this.roles = Collections.unmodifiableList(roles);
 		} else {
-			this.roles = Collections.emptySet();
+			this.roles = Collections.emptyList();
 		}
 	};
 
@@ -277,7 +276,7 @@ public class NodeInfo {
 	 * 
 	 * @return an unmodifiable collection of assigned roles
 	 */
-	public Collection<String> getRoles() {
+	public List<String> getRoles() {
 		return roles;
 	}
 

@@ -11,8 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.admin;
 
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.List;
 
 import org.eclipse.gyrex.cloud.admin.INodeConfigurer;
 import org.eclipse.gyrex.cloud.internal.CloudActivator;
@@ -118,12 +117,12 @@ public class NodeConfigurer implements INodeConfigurer {
 	}
 
 	@Override
-	public IStatus setRoles(final Collection<String> roles) {
+	public IStatus setRoles(final List<String> roles) {
 		try {
 			// load info
 			final ZooKeeperNodeInfo info = ZooKeeperNodeInfo.load(nodeId, true);
 			// update roles
-			info.setRoles(new HashSet<String>(roles));
+			info.setRoles(roles);
 			// write info
 			ZooKeeperNodeInfo.save(info, true);
 		} catch (final Exception e) {

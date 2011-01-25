@@ -11,10 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.eclipse.gyrex.cloud.admin.ICloudManager;
@@ -159,13 +159,13 @@ public class CloudConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				Set<String> roles = null;
+				List<String> roles = null;
 				final String[] rolesArg = StringUtils.split(ci.nextArgument(), ',');
 				if (rolesArg != null) {
-					roles = new HashSet<String>();
+					roles = new ArrayList<String>();
 					for (int i = 0; i < rolesArg.length; i++) {
 						final String role = StringUtils.trimToNull(rolesArg[i]);
-						if (role != null) {
+						if ((role != null) && !roles.contains(role)) {
 							roles.add(role);
 						}
 					}
