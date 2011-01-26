@@ -23,11 +23,13 @@ import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
-import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("restriction")
 final class JettyStarter extends Job {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JettyStarter.class);
@@ -81,27 +83,37 @@ final class JettyStarter extends Job {
 				server.addConnector(sslConnector);
 			}
 
-			// start the server
+			// tweak server config
+			server.setSendServerVersion(true);
+			server.setSendDateHeader(true); // required by some (older) browsers to support caching
 			server.setGracefulShutdown(5000);
+
+			// set thread pool
+			final QueuedThreadPool threadPool = new QueuedThreadPool();
+			threadPool.setName("jetty-server");
+			server.setThreadPool(threadPool);
+
+			// start the server
 			server.start();
 
 			// don't expose too detailed version info
 			// (must be set after server started)
 			HttpGenerator.setServerVersion("7");
 
-			if (HttpJettyDebug.debug) {
+			if (JettyDebug.debug) {
 				LOG.debug("Jetty Server Started!");
 				LOG.debug(server.dump());
 			}
 		} catch (final IllegalStateException e) {
 			// wait for preferences to come up, retry later
-			Log.warn("Unable to start Jetty due to some inactive dependencies. Will retry in {} seconds. ({})", String.valueOf(delay / 1000), e.getMessage());
+			LOG.warn("Unable to start Jetty due to some inactive dependencies. Will retry in {} seconds. ({})", String.valueOf(delay / 1000), e.getMessage());
 			schedule(delay);
 			delay = delay < 300000 ? delay * 2 : 300000;
 			return Status.CANCEL_STATUS;
 		} catch (final Exception e) {
 			// shutdown the Jetty does not come up
-			ServerApplication.signalShutdown(new Exception("Could not start the Jetty server. " + e.getMessage(), e));
+			LOG.error("Unable to start Jetty. Please check the log files. System will be shutdown.", e);
+			ServerApplication.signalShutdown(new Exception("Could not start the Jetty server. " + ExceptionUtils.getRootCauseMessage(e), e));
 			return Status.CANCEL_STATUS;
 		} finally {
 			monitor.done();

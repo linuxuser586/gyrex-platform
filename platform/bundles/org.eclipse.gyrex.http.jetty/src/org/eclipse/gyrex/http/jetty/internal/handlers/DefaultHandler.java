@@ -18,7 +18,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.http.jetty.internal.app.ApplicationHandler;
 
 import org.eclipse.jetty.http.HttpMethods;
@@ -88,7 +88,7 @@ public class DefaultHandler extends AbstractHandler {
 					writer.write("No applications known to this server!");
 					writer.write(NEWLINE);
 				}
-				if (HttpJettyDebug.handlers) {
+				if (JettyDebug.handlers) {
 					writer.write("<pre>");
 					writer.write(NEWLINE);
 					server.dump(writer);

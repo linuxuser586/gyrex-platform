@@ -21,7 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.http.HttpStatus;
@@ -84,7 +84,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 		// delegated to the application
 		// the application may delegate back to us via ApplicationContext
 		try {
-			if (HttpJettyDebug.handlers) {
+			if (JettyDebug.handlers) {
 				LOG.debug("routing request to application {}", application);
 			}
 			application.handleRequest(request, response);
@@ -154,7 +154,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 		try {
 			// calculate target based on current path info
 			final String target = baseRequest.getPathInfo();
-			if (HttpJettyDebug.handlers) {
+			if (JettyDebug.handlers) {
 				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target {})", application, target);
 			}
 			nextScope(target, baseRequest, baseRequest, response);

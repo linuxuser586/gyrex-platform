@@ -18,20 +18,19 @@ import java.util.concurrent.ConcurrentMap;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandlerResourcesHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultFaviconHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultHandler;
+import org.eclipse.gyrex.server.Platform;
 
-import org.eclipse.core.runtime.Path;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HandlerContainer;
 import org.eclipse.jetty.server.NCSARequestLog;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
-import org.eclipse.osgi.service.datalocation.Location;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,12 +51,11 @@ public class JettyGateway implements IHttpGateway {
 	 * Creates a new instance.
 	 * 
 	 * @param server
-	 * @param instanceLocation
 	 */
-	public JettyGateway(final Server server, final Location instanceLocation) {
+	public JettyGateway(final Server server) {
 		this.server = server;
 
-		logsBaseDirectory = new Path(instanceLocation.getURL().getFile()).append("logs").append("jetty").toFile();
+		logsBaseDirectory = Platform.getInstanceLocation().append("logs").append("jetty").toFile();
 		logsBaseDirectory.mkdirs();
 
 		final HandlerCollection serverHandlers = new HandlerCollection();
@@ -82,9 +80,6 @@ public class JettyGateway implements IHttpGateway {
 		serverHandlers.addHandler(new DefaultHandler());
 
 		server.setHandler(serverHandlers);
-		server.setSendServerVersion(true);
-		server.setSendDateHeader(true);
-		server.setGracefulShutdown(1000);
 	}
 
 	/**
@@ -97,7 +92,7 @@ public class JettyGateway implements IHttpGateway {
 	public boolean addApplicationHandlerIfAbsent(final Handler handler) throws Exception {
 		final boolean added = appHandlerCollection.addIfAbsent(handler);
 		appHandlerCollection.mapUrls();
-		if (HttpJettyDebug.handlers) {
+		if (JettyDebug.handlers) {
 			LOG.debug("{} URL handler {}", added ? "Added" : "Updated", handler);
 			LOG.debug(server.dump());
 		}
@@ -157,7 +152,7 @@ public class JettyGateway implements IHttpGateway {
 			return (ApplicationHandler) customizedHandler;
 		}
 		if (customizedHandler instanceof HandlerContainer) {
-			return (ApplicationHandler) ((HandlerContainer) customizedHandler).getChildHandlerByClass(ApplicationHandler.class);
+			return ((HandlerContainer) customizedHandler).getChildHandlerByClass(ApplicationHandler.class);
 		}
 		throw new IllegalArgumentException("unsupported handler: " + customizedHandler);
 	}
@@ -208,7 +203,7 @@ public class JettyGateway implements IHttpGateway {
 		// remap URLs
 		appHandlerCollection.mapUrls();
 
-		if (HttpJettyDebug.handlers) {
+		if (JettyDebug.handlers) {
 			LOG.debug("{} URL handler {}", removed ? "Removed" : "Updated", appHandler);
 			LOG.debug(server.dump());
 		}

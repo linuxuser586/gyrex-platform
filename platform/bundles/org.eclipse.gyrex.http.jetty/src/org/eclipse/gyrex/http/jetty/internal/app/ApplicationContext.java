@@ -31,7 +31,7 @@ import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.application.context.IResourceProvider;
 import org.eclipse.gyrex.http.application.context.NamespaceException;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.http.PathMap;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -176,7 +176,7 @@ public class ApplicationContext implements IApplicationContext {
 
 	private void registerAlias(final String alias) throws NamespaceException {
 		if (registeredAliases.contains(alias)) {
-			if (HttpJettyDebug.applicationContext) {
+			if (JettyDebug.applicationContext) {
 				LOG.debug("{} alias already taken: {}", new Object[] { this, alias, new Exception("Call Stack") });
 			}
 			throw new NamespaceException(alias);
@@ -188,7 +188,7 @@ public class ApplicationContext implements IApplicationContext {
 	public void registerResources(final String alias, final String name, final IResourceProvider provider) throws NamespaceException {
 		final String pathSpec = normalizeAliasToPathSpec(alias);
 
-		if (HttpJettyDebug.applicationContext) {
+		if (JettyDebug.applicationContext) {
 			LOG.debug("{} registering servlet: {} (normalized to {}) --> {}", new Object[] { this, alias, pathSpec, provider });
 		}
 
@@ -215,7 +215,7 @@ public class ApplicationContext implements IApplicationContext {
 	public void registerServlet(final String alias, final Servlet servlet, final Map<String, String> initparams) throws ServletException, NamespaceException {
 		final String pathSpec = normalizeAliasToPathSpec(alias);
 
-		if (HttpJettyDebug.applicationContext) {
+		if (JettyDebug.applicationContext) {
 			LOG.debug("{} registering servlet: {} (normalized to {}) --> {}", new Object[] { this, alias, pathSpec, servlet });
 		}
 
@@ -260,7 +260,7 @@ public class ApplicationContext implements IApplicationContext {
 	public void unregister(final String alias) {
 		final String pathSpec = normalizeAliasToPathSpec(alias);
 
-		if (HttpJettyDebug.applicationContext) {
+		if (JettyDebug.applicationContext) {
 			LOG.debug("{} unregistering: {} (normalized to {})", new Object[] { this, alias, pathSpec });
 		}
 

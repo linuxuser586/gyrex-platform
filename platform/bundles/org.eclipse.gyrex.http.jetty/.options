@@ -9,3 +9,6 @@ org.eclipse.gyrex.http.jetty/applicationContext=true
 
 # debug url map
 org.eclipse.gyrex.http.jetty/urlMapLookup=true
+
+# debug engine
+org.eclipse.gyrex.http.jetty/engine=true

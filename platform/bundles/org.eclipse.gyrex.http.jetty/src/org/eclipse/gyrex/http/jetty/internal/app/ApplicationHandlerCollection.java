@@ -22,7 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 import org.eclipse.gyrex.server.Platform;
 
@@ -97,7 +97,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 		if (async.isAsync()) {
 			final ContextHandler context = async.getContextHandler();
 			if (context != null) {
-				if (HttpJettyDebug.handlers) {
+				if (JettyDebug.handlers) {
 					LOG.debug("Dispatching asynchronous request {} to context {}", baseRequest, context);
 				}
 				context.handle(target, baseRequest, request, response);
@@ -108,7 +108,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 		// get map
 		final UrlMap map = urlMap.get();
 		if (map == null) {
-			if (HttpJettyDebug.handlers) {
+			if (JettyDebug.handlers) {
 				LOG.debug("null URL map, no handler matched!");
 			}
 			return;
@@ -117,7 +117,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 		// perform lookup
 		final Entry entry = map.getMatch(request.getScheme(), request.getServerName(), request.getServerPort(), target);
 		if (entry == null) {
-			if (HttpJettyDebug.handlers) {
+			if (JettyDebug.handlers) {
 				LOG.debug("no matching handler for {}", request.getRequestURL());
 			}
 			return;
@@ -131,14 +131,14 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 
 			// get handler
 			final Handler handler = (Handler) entry.getValue();
-			if (HttpJettyDebug.handlers) {
+			if (JettyDebug.handlers) {
 				LOG.debug("found matching handler for {}: {}", request.getRequestURL(), handler);
 				LOG.debug("adjusted context path for {} to {}", request.getRequestURL(), baseRequest.getContextPath());
 			}
 
 			// lazy start handler
 			if (!handler.isStarted()) {
-				if (HttpJettyDebug.handlers) {
+				if (JettyDebug.handlers) {
 					LOG.debug("lazy start of handler {}", handler);
 				}
 				try {
@@ -238,7 +238,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	 * Remap the URL.
 	 */
 	public void mapUrls() {
-		if (HttpJettyDebug.handlers) {
+		if (JettyDebug.handlers) {
 			LOG.debug("remapping urls {}", this);
 		}
 		final UrlMap urlMap = new UrlMap();
@@ -251,7 +251,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 				if (!urlMap.put(url, handlers[i])) {
 					throw new IllegalStateException("conflict detected for url: " + url);
 				}
-				if (HttpJettyDebug.handlers) {
+				if (JettyDebug.handlers) {
 					LOG.debug("mapped url {} --> {}", url, handlers[i]);
 				}
 			}

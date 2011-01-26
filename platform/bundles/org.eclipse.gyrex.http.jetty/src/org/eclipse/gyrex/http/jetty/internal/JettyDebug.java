@@ -16,11 +16,12 @@ import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 /**
  * Debug options
  */
-public class HttpJettyDebug extends BundleDebugOptions {
+public class JettyDebug extends BundleDebugOptions {
 
 	public static boolean debug;
 	public static boolean handlers;
 	public static boolean applicationContext;
 	public static boolean urlMapLookup;
+	public static boolean engine;
 
 }

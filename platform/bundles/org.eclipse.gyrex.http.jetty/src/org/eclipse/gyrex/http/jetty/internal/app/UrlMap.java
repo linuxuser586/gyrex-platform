@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.http.PathMap;
 import org.eclipse.jetty.http.PathMap.Entry;
@@ -94,7 +94,7 @@ public class UrlMap {
 		// get domain map based on protocol
 		final Map<String, Map<Integer, PathMap>> hostsToPortsToPathMap = getHostsToPortsToPathMap(protocol);
 		if (hostsToPortsToPathMap == null) {
-			if (HttpJettyDebug.urlMapLookup) {
+			if (JettyDebug.urlMapLookup) {
 				LOG.debug("[URLMAP] no map for protocol {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, null });
 			}
 			return null;
@@ -108,7 +108,7 @@ public class UrlMap {
 		boolean continueMatching = true;
 		while ((match == null) && continueMatching) {
 			// debug logging
-			if (HttpJettyDebug.urlMapLookup) {
+			if (JettyDebug.urlMapLookup) {
 				LOG.debug("[URLMAP] match loop {}://{}:{}{}", new Object[] { protocol, domain, port, path });
 			}
 
@@ -117,7 +117,7 @@ public class UrlMap {
 
 			// log debug message here (before reducing domain name)
 			if (portsToPathMap == null) {
-				if (HttpJettyDebug.urlMapLookup) {
+				if (JettyDebug.urlMapLookup) {
 					LOG.debug("[URLMAP] no map for domain {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
 				}
 			}
@@ -142,7 +142,7 @@ public class UrlMap {
 				match = pathMap.getMatch(path);
 				// return early (if possible)
 				if (match != null) {
-					if (HttpJettyDebug.urlMapLookup) {
+					if (JettyDebug.urlMapLookup) {
 						LOG.debug("[URLMAP] direct port match {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
 					}
 					return match;
@@ -157,7 +157,7 @@ public class UrlMap {
 				match = pathMap.getMatch(path);
 				// return early (if possible)
 				if (match != null) {
-					if (HttpJettyDebug.urlMapLookup) {
+					if (JettyDebug.urlMapLookup) {
 						LOG.debug("[URLMAP] any port match {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
 					}
 					return match;
@@ -166,7 +166,7 @@ public class UrlMap {
 		}
 
 		// debug logging
-		if (HttpJettyDebug.urlMapLookup) {
+		if (JettyDebug.urlMapLookup) {
 			LOG.debug("[URLMAP] done match {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, match });
 		}
 

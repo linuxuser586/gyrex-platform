@@ -27,7 +27,7 @@ import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationInstance;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.FileLocator;
@@ -432,7 +432,7 @@ public class ApplicationHandler extends ServletContextHandler {
 
 	@Override
 	protected void startContext() throws Exception {
-		if (HttpJettyDebug.handlers) {
+		if (JettyDebug.handlers) {
 			LOG.debug("Starting {}", this);
 		}
 
@@ -452,7 +452,7 @@ public class ApplicationHandler extends ServletContextHandler {
 			if (application == null) {
 				throw new IllegalStateException("no application object returned from instance for " + applicationRegistration);
 			}
-			if (HttpJettyDebug.handlers) {
+			if (JettyDebug.handlers) {
 				LOG.debug("Application {} initialized", application);
 			}
 		} catch (final Exception e) {

@@ -17,28 +17,20 @@ import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.common.services.IServiceProxy;
-import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
-import org.eclipse.gyrex.http.jetty.internal.app.JettyGateway;
+import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
+import org.eclipse.gyrex.http.jetty.internal.admin.JettyManagerImpl;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
-import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.IO;
-import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class HttpJettyActivator extends BaseBundleActivator {
 
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.http.jetty";
-
 	private static final AtomicReference<HttpJettyActivator> instanceRef = new AtomicReference<HttpJettyActivator>();
-	private static final Logger LOG = LoggerFactory.getLogger(HttpJettyActivator.class);
 
 	/**
 	 * Returns the shared instance.
@@ -73,11 +65,7 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		return getInstance().getServiceHelper().registerService(MetricSet.SERVICE_NAME, metricSet, "Eclipse Gyrex", metricSet.getDescription(), null, null);
 	}
 
-	private JettyGateway gateway;
-
-	private Server server;
-
-	private IServiceProxy<Location> instanceLocationRef;
+	private volatile JettyManagerImpl jettyManager;
 
 	/**
 	 * Creates a new instance.
@@ -90,41 +78,32 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
 
-		// track instance location
-		instanceLocationRef = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
-
-		// initialize (but do not start) the Jetty server
-		server = new Server();
-
-		// create & register gateway
-		gateway = new JettyGateway(server, instanceLocationRef.getService());
-		getServiceHelper().registerService(IHttpGateway.class.getName(), gateway, "Eclipse Gyrex", "Jetty based HTTP gateway.", null, null);
-
-		// start the server
-		new JettyStarter(server).schedule(500);
+		jettyManager = new JettyManagerImpl();
+		getServiceHelper().registerService(IJettyManager.class.getName(), jettyManager, "Eclipse Gyrex", "Jetty Engine Manager", null, null);
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		instanceRef.set(null);
-
-		// stop Jetty
-		try {
-//			JettyConfigurator.stopServer(JettyStarter.ID_DEFAULT);
-		} catch (final Exception e) {
-			LOG.warn("Error while stopping Jetty: " + e.getMessage(), e);
-		}
-
-		// destroy gateway
-		if (null != gateway) {
-			gateway.close();
-			gateway = null;
-		}
+		jettyManager = null;
 	}
 
 	@Override
 	protected Class getDebugOptions() {
-		return HttpJettyDebug.class;
+		return JettyDebug.class;
+	}
+
+	/**
+	 * Returns the jettyManager.
+	 * 
+	 * @return the jettyManager
+	 */
+	public IJettyManager getJettyManager() {
+		final JettyManagerImpl manager = jettyManager;
+		if (manager == null) {
+			throw createBundleInactiveException();
+		}
+		return manager;
 	}
 
 }

@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.util.log.Log;
@@ -54,7 +54,7 @@ public class UrlRegistry implements IUrlRegistry {
 
 	@Override
 	public void applicationUnregistered(final String applicationId) {
-		if (HttpJettyDebug.debug) {
+		if (JettyDebug.debug) {
 			LOG.debug("application unregistered: {}", applicationId);
 		}
 
@@ -62,7 +62,7 @@ public class UrlRegistry implements IUrlRegistry {
 		for (final Entry<String, String> entry : applicationIdsByUrl.entrySet()) {
 			if (entry.getValue().equals(applicationId)) {
 				applicationIdsByUrl.remove(entry.getKey());
-				if (HttpJettyDebug.debug) {
+				if (JettyDebug.debug) {
 					LOG.debug("removed url: {}", entry.getKey());
 				}
 			}

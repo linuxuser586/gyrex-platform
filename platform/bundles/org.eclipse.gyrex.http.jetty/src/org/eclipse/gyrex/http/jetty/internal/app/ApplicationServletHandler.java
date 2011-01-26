@@ -13,7 +13,7 @@ package org.eclipse.gyrex.http.jetty.internal.app;
 
 import javax.servlet.Servlet;
 
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -68,7 +68,7 @@ public class ApplicationServletHandler extends ServletHandler {
 		super.setServletMappings(servletMappings);
 
 		// log
-		if (HttpJettyDebug.handlers) {
+		if (JettyDebug.handlers) {
 			LOG.debug("Updated servlet mappings {}", dump());
 		}
 	}
