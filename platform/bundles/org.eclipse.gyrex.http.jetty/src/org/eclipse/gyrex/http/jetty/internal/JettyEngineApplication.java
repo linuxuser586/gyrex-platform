@@ -1,12 +1,16 @@
 package org.eclipse.gyrex.http.jetty.internal;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 
+import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
 import org.eclipse.gyrex.http.jetty.admin.ChannelDescriptor;
 import org.eclipse.gyrex.http.jetty.admin.ICertificate;
@@ -21,6 +25,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
+import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -48,11 +54,14 @@ public class JettyEngineApplication implements IApplication {
 	}
 
 	private void configureServer(final Server server) {
+		// collect node properties for filtering
+		final Map<String, Object> nodeProperties = getNodeProperties();
+
 		// create channels
 		final IJettyManager jettyManager = HttpJettyActivator.getInstance().getJettyManager();
 		final Collection<ChannelDescriptor> channels = jettyManager.getChannels();
 		for (final ChannelDescriptor channel : channels) {
-			createConnector(server, channel, jettyManager);
+			createConnector(server, channel, jettyManager, nodeProperties);
 		}
 
 		// tweak server
@@ -66,7 +75,7 @@ public class JettyEngineApplication implements IApplication {
 		server.setThreadPool(threadPool);
 	}
 
-	private void createConnector(final Server server, final ChannelDescriptor channel, final IJettyManager jettyManager) {
+	private void createConnector(final Server server, final ChannelDescriptor channel, final IJettyManager jettyManager, final Map<String, Object> nodeProperties) {
 		if ((channel.getPort() <= 0) || (channel.getPort() > 65535)) {
 			if (JettyDebug.engine) {
 				LOG.debug("Ignoring disabled channel {}", channel);
@@ -75,6 +84,17 @@ public class JettyEngineApplication implements IApplication {
 		}
 
 		try {
+			final String filter = channel.getNodeFilter();
+			if (filter != null) {
+				final Filter nodeFilter = FrameworkUtil.createFilter(filter);
+				if (!nodeFilter.matches(nodeProperties)) {
+					if (JettyDebug.engine) {
+						LOG.debug("Ignoring channel {} which has a node filter that does not match this node.", channel);
+					}
+					return;
+				}
+			}
+
 			SelectChannelConnector connector;
 			if (channel.isSecure()) {
 				final ICertificate certificate = jettyManager.getCertificate(channel.getCertificateId());
@@ -105,6 +125,17 @@ public class JettyEngineApplication implements IApplication {
 		} catch (final Exception e) {
 			LOG.warn("Error configuring channel {}. Please check the channel configuration. {}", channel.getId(), ExceptionUtils.getRootCauseMessage(e));
 		}
+	}
+
+	private Map<String, Object> getNodeProperties() {
+		final INodeEnvironment nodeEnvironment = HttpJettyActivator.getInstance().getNodeEnvironment();
+		final Map<String, Object> nodeProperties = new HashMap<String, Object>(2);
+		nodeProperties.put("id", nodeEnvironment.getNodeId());
+		final Set<String> tags = nodeEnvironment.getTags();
+		if (!tags.isEmpty()) {
+			nodeProperties.put("tag", tags.toArray(new String[tags.size()]));
+		}
+		return nodeProperties;
 	}
 
 	boolean isActive() {

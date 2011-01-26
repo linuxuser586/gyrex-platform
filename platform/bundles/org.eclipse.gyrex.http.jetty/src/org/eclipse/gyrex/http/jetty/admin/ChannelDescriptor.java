@@ -13,6 +13,9 @@ package org.eclipse.gyrex.http.jetty.admin;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
+
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
@@ -26,6 +29,7 @@ public class ChannelDescriptor {
 	private String certificateId;
 	private String secureChannelId;
 	private int port;
+	private String nodeFilter;
 
 	/**
 	 * Returns the certificateId.
@@ -43,6 +47,15 @@ public class ChannelDescriptor {
 	 */
 	public String getId() {
 		return id;
+	}
+
+	/**
+	 * Returns the nodeFilter.
+	 * 
+	 * @return the nodeFilter
+	 */
+	public String getNodeFilter() {
+		return nodeFilter;
 	}
 
 	/**
@@ -96,6 +109,24 @@ public class ChannelDescriptor {
 			throw new IllegalArgumentException("invalid id");
 		}
 		this.id = id;
+	}
+
+	/**
+	 * Sets the node filter (LDAP syntax).
+	 * 
+	 * @param nodeFilter
+	 *            the nodeFilter to set
+	 * @throws IllegalArgumentException
+	 */
+	public void setNodeFilter(final String nodeFilter) throws IllegalArgumentException {
+		if (nodeFilter != null) {
+			try {
+				FrameworkUtil.createFilter(nodeFilter);
+			} catch (final InvalidSyntaxException e) {
+				throw new IllegalArgumentException("Invalid node filter. Please use LDAP syntax. " + e.getMessage(), e);
+			}
+		}
+		this.nodeFilter = nodeFilter;
 	}
 
 	/**

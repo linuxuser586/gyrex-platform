@@ -16,7 +16,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.admin.JettyManagerImpl;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
@@ -66,6 +68,7 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	}
 
 	private volatile JettyManagerImpl jettyManager;
+	private IServiceProxy<INodeEnvironment> nodeEnvironmentService;
 
 	/**
 	 * Creates a new instance.
@@ -80,6 +83,8 @@ public class HttpJettyActivator extends BaseBundleActivator {
 
 		jettyManager = new JettyManagerImpl();
 		getServiceHelper().registerService(IJettyManager.class.getName(), jettyManager, "Eclipse Gyrex", "Jetty Engine Manager", null, null);
+
+		nodeEnvironmentService = getServiceHelper().trackService(INodeEnvironment.class);
 	}
 
 	@Override
@@ -104,6 +109,19 @@ public class HttpJettyActivator extends BaseBundleActivator {
 			throw createBundleInactiveException();
 		}
 		return manager;
+	}
+
+	/**
+	 * Returns the nodeEnvironmentService.
+	 * 
+	 * @return the nodeEnvironmentService
+	 */
+	public INodeEnvironment getNodeEnvironment() {
+		final IServiceProxy<INodeEnvironment> proxy = nodeEnvironmentService;
+		if (null == proxy) {
+			throw createBundleInactiveException();
+		}
+		return proxy.getService();
 	}
 
 }
