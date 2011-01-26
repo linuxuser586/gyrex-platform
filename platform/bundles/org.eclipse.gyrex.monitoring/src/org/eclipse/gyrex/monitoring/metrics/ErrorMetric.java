@@ -15,7 +15,6 @@ import java.util.ConcurrentModificationException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 
@@ -142,7 +141,8 @@ public class ErrorMetric extends BaseMetric {
 
 		// initialize error stats
 		if (trackErrorStats) {
-			errorStats = new ConcurrentHashMap<String, ErrorStats>(5);
+//			errorStats = new ConcurrentHashMap<String, ErrorStats>(5);
+			errorStats = null; // disabled for now
 		} else {
 			errorStats = null;
 		}
