@@ -19,8 +19,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Enumeration;
 
-import javax.security.auth.x500.X500Principal;
-
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.http.jetty.admin.ICertificate;
 
@@ -35,7 +33,7 @@ import org.apache.commons.lang.text.StrBuilder;
  */
 public class CertificateDefinition implements ICertificate {
 
-	static final DateFormat TO_STRING_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	static final DateFormat TO_STRING_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
 	private String id;
 	private byte[] keystoreBytes;
@@ -61,7 +59,7 @@ public class CertificateDefinition implements ICertificate {
 				if (!certInfo.isEmpty()) {
 					certInfo.append(", ");
 				}
-				certInfo.append(alias).append(": ");
+//				certInfo.append(alias).append(": ");
 				if (ks.isKeyEntry(alias)) {
 					Certificate[] chain = ks.getCertificateChain(alias);
 					if (null == chain) {
@@ -75,8 +73,9 @@ public class CertificateDefinition implements ICertificate {
 						final Certificate certificate = chain[i];
 						if (certificate instanceof X509Certificate) {
 							final X509Certificate x509 = (X509Certificate) certificate;
-							certInfo.append(x509.getSubjectX500Principal().getName(X500Principal.CANONICAL));
-							certInfo.append(" (valid till ").append(TO_STRING_FORMAT.format(x509.getNotAfter())).append(")");
+							final X500PrincipalHelper helper = new X500PrincipalHelper(x509.getSubjectX500Principal());
+							certInfo.append(helper.getCN());
+							certInfo.append(", valid till ").append(TO_STRING_FORMAT.format(x509.getNotAfter()));
 						} else {
 							certInfo.append("INVALID");
 						}
