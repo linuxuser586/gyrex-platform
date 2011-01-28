@@ -21,13 +21,17 @@ import org.eclipse.gyrex.http.jetty.admin.ChannelDescriptor;
 import org.eclipse.gyrex.http.jetty.admin.ICertificate;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
+import org.eclipse.gyrex.monitoring.diagnostics.IStatusConstants;
 import org.eclipse.gyrex.preferences.PlatformScope;
 
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +54,7 @@ public class JettyManagerImpl implements IJettyManager {
 	private static final String PREF_KEY_KEYSTORE_BYTES = "keystoreBytes";
 
 	private static final Logger LOG = LoggerFactory.getLogger(JettyManagerImpl.class);
+	private Status restartStatus;
 
 	@Override
 	public void addCertificate(final String certificateId, final byte[] keystoreBytes, final char[] keystorePassword, final char[] keyPassword) {
@@ -170,6 +175,18 @@ public class JettyManagerImpl implements IJettyManager {
 		}
 	}
 
+	@Override
+	public Collection<ChannelDescriptor> getChannelsUsingCertificate(final String certificateId) {
+		final Collection<ChannelDescriptor> channels = getChannels();
+		final List<ChannelDescriptor> certificateChannels = new ArrayList<ChannelDescriptor>();
+		for (final ChannelDescriptor channelDescriptor : channels) {
+			if (StringUtils.equals(certificateId, channelDescriptor.getCertificateId())) {
+				certificateChannels.add(channelDescriptor);
+			}
+		}
+		return Collections.unmodifiableCollection(certificateChannels);
+	}
+
 	private ICertificate readCertificate(final String certificateId) {
 		try {
 			final CertificateDefinition definition = new CertificateDefinition();
@@ -249,9 +266,19 @@ public class JettyManagerImpl implements IJettyManager {
 
 			channelsNode.node(channelId).removeNode();
 			channelsNode.flush();
+
+			restartMayBeNeeded();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error removing channel from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
+	}
+
+	private void restartMayBeNeeded() {
+		if (restartStatus != null) {
+			return;
+		}
+		restartStatus = new Status(IStatus.INFO, HttpJettyActivator.SYMBOLIC_NAME, "The Jetty configuration has been modified. A restart may be neccessary in order to activate the changes.");
+		HttpJettyActivator.getInstance().getServiceHelper().registerService(IStatusConstants.SERVICE_NAME, restartStatus, "Eclipse Gyrex", "Jetty Restart Info", HttpJettyActivator.SYMBOLIC_NAME.concat(".restart.necessary"), null);
 	}
 
 	@Override
@@ -273,6 +300,8 @@ public class JettyManagerImpl implements IJettyManager {
 				node.remove(PREF_KEY_CERTIFICATE_ID);
 			}
 			node.flush();
+
+			restartMayBeNeeded();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error saving channel to backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}

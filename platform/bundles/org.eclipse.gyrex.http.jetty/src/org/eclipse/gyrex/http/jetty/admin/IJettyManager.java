@@ -70,6 +70,12 @@ public interface IJettyManager {
 
 	/**
 	 * @param certificateId
+	 * @return
+	 */
+	Collection<ChannelDescriptor> getChannelsUsingCertificate(String certificateId);
+
+	/**
+	 * @param certificateId
 	 */
 	void removeCertificate(String certificateId);
 

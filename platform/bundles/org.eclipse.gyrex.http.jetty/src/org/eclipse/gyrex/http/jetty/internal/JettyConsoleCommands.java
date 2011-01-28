@@ -66,9 +66,108 @@ public class JettyConsoleCommands implements CommandProvider {
 		}
 	}
 
+	static final class ImportCertificateCommand extends Command {
+		/**
+		 * Creates a new instance.
+		 * 
+		 * @param help
+		 */
+		private ImportCertificateCommand(final String help) {
+			super(help);
+		}
+
+		@Override
+		public void execute(final IJettyManager jettyManager, final CommandInterpreter ci) throws Exception {
+			final String certificateId = ci.nextArgument();
+			if (certificateId == null) {
+				printInvalidArgs(ci);
+				return;
+			}
+
+			final String keystorePath = ci.nextArgument();
+			if (keystorePath == null) {
+				printInvalidArgs(ci);
+				ci.println("Missing keystorePath");
+				return;
+			}
+
+			final String keystoreType = ci.nextArgument();
+			if (keystoreType == null) {
+				printInvalidArgs(ci);
+				ci.println("Missing keystoreType");
+				return;
+			}
+			if (!keystoreType.equalsIgnoreCase("pkcs12") && !keystoreType.equalsIgnoreCase("jks")) {
+				printInvalidArgs(ci);
+				ci.println("Unsupported keystoreType: " + keystoreType);
+				ci.println("Supported keystore types are: PKCS12, JKS");
+				return;
+			}
+
+			final String keystorePassword = ci.nextArgument();
+			final String keyPassword = ci.nextArgument();
+
+			InputStream keystoreInputStream = null;
+			try {
+				// import key store
+				final KeyStore tempKs = KeyStore.getInstance(keystoreType);
+				keystoreInputStream = new BufferedInputStream(FileUtils.openInputStream(new File(keystorePath)));
+				tempKs.load(keystoreInputStream, null != keystorePassword ? keystorePassword.toCharArray() : null);
+
+				// initialize new JKS store
+				final KeyStore ks = KeyStore.getInstance("JKS");
+				ks.load(null);
+
+				// generate passwords for new keystore
+				final char[] generatedKeystorePassword = UUID.randomUUID().toString().toCharArray();
+				final char[] generatedKeyPassword = UUID.randomUUID().toString().toCharArray();
+
+				// verify and copy into new store
+				final Enumeration aliases = tempKs.aliases();
+				while (aliases.hasMoreElements()) {
+					final String alias = (String) aliases.nextElement();
+					ci.println("Processing entry: " + alias);
+					if (tempKs.isKeyEntry(alias)) {
+						ci.println("Loading key for entry: " + alias);
+						final Key key = tempKs.getKey(alias, null != keyPassword ? keyPassword.toCharArray() : null != keystorePassword ? keystorePassword.toCharArray() : null);
+						ci.println("Loading certificate chain for entry: " + alias);
+						Certificate[] chain = tempKs.getCertificateChain(alias);
+						if (null == chain) {
+							final Certificate certificate = tempKs.getCertificate(alias);
+							if (null == certificate) {
+								ci.println("CertificateDefinition chain missing for key '" + alias + "'!");
+								ci.println("Please import the complete certificate change into the keystore");
+								return;
+							}
+							chain = new Certificate[] { certificate };
+						}
+						for (final Certificate certificate : chain) {
+							ci.println("Found certificate:");
+							ci.println(certificate);
+						}
+						ks.setKeyEntry("jetty", key, generatedKeyPassword, chain);
+						break;
+					} else {
+						ci.println("No key available for entry: " + alias);
+					}
+				}
+
+				// write into bytes
+				final ByteArrayOutputStream out = new ByteArrayOutputStream();
+				ks.store(out, generatedKeystorePassword);
+
+				// import
+				jettyManager.addCertificate(certificateId, out.toByteArray(), generatedKeystorePassword, generatedKeyPassword);
+				ci.println("Imported certificate " + certificateId + "!");
+			} finally {
+				IOUtils.closeQuietly(keystoreInputStream);
+			}
+		}
+	}
+
 	static final Map<String, Command> commands = new TreeMap<String, Command>();
 	static {
-		commands.put("ls", new Command(" channels|certificates [filterString] \t - list all channels") {
+		commands.put("ls", new Command(" connectors|certificates [filterString] \t - list all channels") {
 			@Override
 			public void execute(final IJettyManager jettyManager, final CommandInterpreter ci) throws Exception {
 				final String what = ci.nextArgument();
@@ -101,7 +200,7 @@ public class JettyConsoleCommands implements CommandProvider {
 			}
 		});
 
-		commands.put("addChannel", new Command("<channelId> <port> [<secure> <certificateId>] [<secureChannelId>]\t - adds a channel") {
+		commands.put("addConnector", new Command("<connectorId> <port> [<secure> <certificateId>] [<secureConnectord>]\t - adds a connector") {
 			@Override
 			public void execute(final IJettyManager jettyManager, final CommandInterpreter ci) throws Exception {
 				final String channelId = ci.nextArgument();
@@ -122,7 +221,7 @@ public class JettyConsoleCommands implements CommandProvider {
 				if (channelDescriptor.isSecure()) {
 					final String certificateId = ci.nextArgument();
 					if (certificateId == null) {
-						ci.println("secure channels require a certificate id");
+						ci.println("secure connectors require a certificate id");
 						return;
 					}
 					channelDescriptor.setCertificateId(certificateId);
@@ -137,7 +236,7 @@ public class JettyConsoleCommands implements CommandProvider {
 			}
 		});
 
-		commands.put("removeChannel", new Command("<channelId>\t - removes a channel") {
+		commands.put("removeConnector", new Command("<connectorId>\t - removes a connector") {
 			@Override
 			public void execute(final IJettyManager jettyManager, final CommandInterpreter ci) throws Exception {
 				final String channelId = ci.nextArgument();
@@ -150,95 +249,7 @@ public class JettyConsoleCommands implements CommandProvider {
 			}
 		});
 
-		commands.put("importCertificate", new Command("<certificateId> <keystorePath> <keystoreType> [<keystorePassword> [<keyPassword>]]\t - imports a certificate") {
-			@Override
-			public void execute(final IJettyManager jettyManager, final CommandInterpreter ci) throws Exception {
-				final String certificateId = ci.nextArgument();
-				if (certificateId == null) {
-					printInvalidArgs(ci);
-					return;
-				}
-
-				final String keystorePath = ci.nextArgument();
-				if (keystorePath == null) {
-					printInvalidArgs(ci);
-					ci.println("Missing keystorePath");
-					return;
-				}
-
-				final String keystoreType = ci.nextArgument();
-				if (keystoreType == null) {
-					printInvalidArgs(ci);
-					ci.println("Missing keystoreType");
-					return;
-				}
-				if (!keystoreType.equalsIgnoreCase("pkcs12") && !keystoreType.equalsIgnoreCase("jks")) {
-					printInvalidArgs(ci);
-					ci.println("Unsupported keystoreType: " + keystoreType);
-					ci.println("Supported keystore types are: PKCS12, JKS");
-					return;
-				}
-
-				final String keystorePassword = ci.nextArgument();
-				final String keyPassword = ci.nextArgument();
-
-				InputStream keystoreInputStream = null;
-				try {
-					// import key store
-					final KeyStore tempKs = KeyStore.getInstance(keystoreType);
-					keystoreInputStream = new BufferedInputStream(FileUtils.openInputStream(new File(keystorePath)));
-					tempKs.load(keystoreInputStream, null != keystorePassword ? keystorePassword.toCharArray() : null);
-
-					// initialize new JKS store
-					final KeyStore ks = KeyStore.getInstance("JKS");
-					ks.load(null);
-
-					// generate passwords for new keystore
-					final char[] generatedKeystorePassword = UUID.randomUUID().toString().toCharArray();
-					final char[] generatedKeyPassword = UUID.randomUUID().toString().toCharArray();
-
-					// verify and copy into new store
-					final Enumeration aliases = tempKs.aliases();
-					while (aliases.hasMoreElements()) {
-						final String alias = (String) aliases.nextElement();
-						ci.println("Processing entry: " + alias);
-						if (tempKs.isKeyEntry(alias)) {
-							ci.println("Loading key for entry: " + alias);
-							final Key key = tempKs.getKey(alias, null != keyPassword ? keyPassword.toCharArray() : null != keystorePassword ? keystorePassword.toCharArray() : null);
-							ci.println("Loading certificate chain for entry: " + alias);
-							Certificate[] chain = tempKs.getCertificateChain(alias);
-							if (null == chain) {
-								final Certificate certificate = tempKs.getCertificate(alias);
-								if (null == certificate) {
-									ci.println("CertificateDefinition chain missing for key '" + alias + "'!");
-									ci.println("Please import the complete certificate change into the keystore");
-									return;
-								}
-								chain = new Certificate[] { certificate };
-							}
-							for (final Certificate certificate : chain) {
-								ci.println("Found certificate:");
-								ci.println(certificate);
-							}
-							ks.setKeyEntry("jetty", key, generatedKeyPassword, chain);
-							break;
-						} else {
-							ci.println("No key available for entry: " + alias);
-						}
-					}
-
-					// write into bytes
-					final ByteArrayOutputStream out = new ByteArrayOutputStream();
-					ks.store(out, generatedKeystorePassword);
-
-					// import
-					jettyManager.addCertificate(certificateId, out.toByteArray(), generatedKeystorePassword, generatedKeyPassword);
-					ci.println("Imported certificate " + certificateId + "!");
-				} finally {
-					IOUtils.closeQuietly(keystoreInputStream);
-				}
-			}
-		});
+		commands.put("importCertificate", new ImportCertificateCommand("<certificateId> <keystorePath> <keystoreType> [<keystorePassword> [<keyPassword>]]\t - imports a certificate"));
 
 		commands.put("removeCertificate", new Command("<certificateId>\t - removes a certificate") {
 			@Override

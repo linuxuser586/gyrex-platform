@@ -16,6 +16,7 @@ import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
@@ -119,7 +120,7 @@ public class ChannelDescriptor {
 	 * @throws IllegalArgumentException
 	 */
 	public void setNodeFilter(final String nodeFilter) throws IllegalArgumentException {
-		if (nodeFilter != null) {
+		if (StringUtils.isNotBlank(nodeFilter)) {
 			try {
 				FrameworkUtil.createFilter(nodeFilter);
 			} catch (final InvalidSyntaxException e) {
