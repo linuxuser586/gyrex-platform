@@ -32,6 +32,18 @@ public interface INodeConfigurer {
 	 */
 	IStatus configureConnection(String connectString);
 
+	String getConnectionString();
+
+	/**
+	 * @param text
+	 */
+	IStatus setLocation(String text);
+
+	/**
+	 * @param text
+	 */
+	IStatus setName(String text);
+
 	/**
 	 * Assigns the specified roles to the node.
 	 * 

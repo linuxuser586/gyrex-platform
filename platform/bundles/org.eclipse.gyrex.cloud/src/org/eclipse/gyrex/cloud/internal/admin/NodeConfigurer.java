@@ -117,6 +117,42 @@ public class NodeConfigurer implements INodeConfigurer {
 	}
 
 	@Override
+	public String getConnectionString() {
+		final Preferences preferences = new InstanceScope().getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
+		return preferences.get(ZooKeeperGateConfig.PREF_KEY_CLIENT_CONNECT_STRING, null);
+	}
+
+	@Override
+	public IStatus setLocation(final String text) {
+		try {
+			// load info
+			final ZooKeeperNodeInfo info = ZooKeeperNodeInfo.load(nodeId, true);
+			// update roles
+			info.setLocation(text);
+			// write info
+			ZooKeeperNodeInfo.save(info, true);
+		} catch (final Exception e) {
+			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, "Unable to update node info in ZooKeeper. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+		return Status.OK_STATUS;
+	}
+
+	@Override
+	public IStatus setName(final String text) {
+		try {
+			// load info
+			final ZooKeeperNodeInfo info = ZooKeeperNodeInfo.load(nodeId, true);
+			// update roles
+			info.setName(text);
+			// write info
+			ZooKeeperNodeInfo.save(info, true);
+		} catch (final Exception e) {
+			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, "Unable to update node info in ZooKeeper. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+		return Status.OK_STATUS;
+	}
+
+	@Override
 	public IStatus setTags(final Set<String> tags) {
 		try {
 			// load info
@@ -130,5 +166,4 @@ public class NodeConfigurer implements INodeConfigurer {
 		}
 		return Status.OK_STATUS;
 	}
-
 }

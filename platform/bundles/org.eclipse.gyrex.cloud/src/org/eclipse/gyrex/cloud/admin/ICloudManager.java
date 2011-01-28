@@ -13,6 +13,8 @@ package org.eclipse.gyrex.cloud.admin;
 
 import java.util.Collection;
 
+import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
+
 import org.eclipse.core.runtime.IStatus;
 
 /**
@@ -37,9 +39,13 @@ import org.eclipse.core.runtime.IStatus;
  */
 public interface ICloudManager {
 
+	void addNodeListener(INodeListener nodeListener);
+
 	IStatus approveNode(String nodeId);
 
 	Collection<INodeDescriptor> getApprovedNodes();
+
+	INodeEnvironment getLocalInfo();
 
 	/**
 	 * Returns a node specific interface for configuring the node with the
@@ -51,7 +57,11 @@ public interface ICloudManager {
 	 */
 	INodeConfigurer getNodeConfigurer(String nodeId);
 
+	Collection<String> getOnlineNodes();
+
 	Collection<INodeDescriptor> getPendingNodes();
+
+	void removeNodeListener(INodeListener nodeListener);
 
 	IStatus retireNode(String nodeId);
 

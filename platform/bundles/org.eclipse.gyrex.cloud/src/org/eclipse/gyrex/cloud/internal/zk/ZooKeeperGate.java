@@ -475,9 +475,9 @@ public class ZooKeeperGate {
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
-	 * @see {@link ZooKeeper#getChildren(String, Watcher)}
+	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
-	public Collection<String> readChildrenNames(final IPath path, final Watcher watch, final Stat stat) throws InterruptedException, KeeperException {
+	public Collection<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws InterruptedException, KeeperException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
@@ -505,7 +505,7 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public byte[] readRecord(final IPath path, final Stat stat) throws KeeperException, InterruptedException, IOException {
-		return readRecord(path, (Watcher) null, stat);
+		return readRecord(path, (ZooKeeperMonitor) null, stat);
 	}
 
 	/**
@@ -550,9 +550,9 @@ public class ZooKeeperGate {
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
-	 * @see {@link ZooKeeper#getData(String, Watcher, org.apache.zookeeper.data.Stat)}
+	 * @see {@link ZooKeeper#getData(String, ZooKeeperMonitor, org.apache.zookeeper.data.Stat)}
 	 */
-	public byte[] readRecord(final IPath path, final Watcher watch, final Stat stat) throws KeeperException, InterruptedException, IOException {
+	public byte[] readRecord(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws KeeperException, InterruptedException, IOException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
