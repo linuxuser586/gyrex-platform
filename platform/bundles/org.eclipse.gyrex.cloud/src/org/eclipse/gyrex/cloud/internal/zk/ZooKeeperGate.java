@@ -146,8 +146,11 @@ public class ZooKeeperGate {
 	private static String gateDownError(final ZooKeeperGate gate) {
 		try {
 			return String.format("ZooKeeper Gate is DOWN. (%s)", String.valueOf(gate));
-		} catch (final Exception e) {
-			return String.format("ZooKeeper Gate is DOWN. (%s)", String.valueOf(e));
+		} catch (final Throwable e) {
+			if ((e instanceof VirtualMachineError) || (e instanceof LinkageError)) {
+				throw (Error) e;
+			}
+			return String.format("ZooKeeper Gate is DOWN. (%s)", ExceptionUtils.getRootCauseMessage(e));
 		}
 	}
 
