@@ -18,6 +18,7 @@ import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.app.JettyGateway;
 import org.eclipse.gyrex.http.jetty.internal.connectors.CertificateSslConnector;
 import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.http.HttpSchemes;
@@ -60,8 +61,18 @@ public class JettyEngineApplication implements IApplication {
 		// create channels
 		final IJettyManager jettyManager = HttpJettyActivator.getInstance().getJettyManager();
 		final Collection<ChannelDescriptor> channels = jettyManager.getChannels();
-		for (final ChannelDescriptor channel : channels) {
-			createConnector(server, channel, jettyManager, nodeProperties);
+		if (!channels.isEmpty()) {
+			for (final ChannelDescriptor channel : channels) {
+				createConnector(server, channel, jettyManager, nodeProperties);
+			}
+		} else {
+			// start a default channel in development mode
+			if (Platform.inDevelopmentMode()) {
+				final ChannelDescriptor defaultChannel = new ChannelDescriptor();
+				defaultChannel.setId("default");
+				defaultChannel.setPort(8080);
+				createConnector(server, defaultChannel, jettyManager, nodeProperties);
+			}
 		}
 
 		// tweak server
