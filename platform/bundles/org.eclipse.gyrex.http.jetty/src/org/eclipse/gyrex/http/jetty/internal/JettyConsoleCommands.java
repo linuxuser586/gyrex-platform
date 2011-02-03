@@ -167,7 +167,7 @@ public class JettyConsoleCommands implements CommandProvider {
 
 	static final Map<String, Command> commands = new TreeMap<String, Command>();
 	static {
-		commands.put("ls", new Command(" connectors|certificates [filterString] \t - list all channels") {
+		commands.put("ls", new Command(" connectors|certificates [filterString] \t - list all connectors") {
 			@Override
 			public void execute(final IJettyManager jettyManager, final CommandInterpreter ci) throws Exception {
 				final String what = ci.nextArgument();
@@ -177,7 +177,7 @@ public class JettyConsoleCommands implements CommandProvider {
 				}
 
 				final String filterString = ci.nextArgument();
-				if (StringUtils.startsWithIgnoreCase("channels", what)) {
+				if (StringUtils.startsWithIgnoreCase("connectors", what)) {
 					final Collection<ChannelDescriptor> channels = jettyManager.getChannels();
 					for (final ChannelDescriptor descriptor : channels) {
 						if ((null == filterString) || StringUtils.contains(descriptor.getId(), filterString)) {
@@ -193,14 +193,14 @@ public class JettyConsoleCommands implements CommandProvider {
 					}
 				} else {
 					printInvalidArgs(ci);
-					ci.println("Don't know what to list. Channels? Certificates?");
+					ci.println("Don't know what to list. Connectors? Certificates?");
 					return;
 				}
 
 			}
 		});
 
-		commands.put("addConnector", new Command("<connectorId> <port> [<secure> <certificateId>] [<secureConnectord>]\t - adds a connector") {
+		commands.put("addConnector", new Command("<connectorId> <port> [<secure> <certificateId>]\t - adds a connector") {
 			@Override
 			public void execute(final IJettyManager jettyManager, final CommandInterpreter ci) throws Exception {
 				final String channelId = ci.nextArgument();
@@ -225,11 +225,6 @@ public class JettyConsoleCommands implements CommandProvider {
 						return;
 					}
 					channelDescriptor.setCertificateId(certificateId);
-				}
-
-				final String secureChannelId = ci.nextArgument();
-				if (secureChannelId != null) {
-					channelDescriptor.setSecureChannelId(secureChannelId);
 				}
 
 				jettyManager.saveChannel(channelDescriptor);
