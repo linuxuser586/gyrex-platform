@@ -228,6 +228,8 @@ public class JettyConsoleCommands implements CommandProvider {
 				}
 
 				jettyManager.saveChannel(channelDescriptor);
+
+				ci.println("Connector " + channelId + " has been added!");
 			}
 		});
 
@@ -241,6 +243,8 @@ public class JettyConsoleCommands implements CommandProvider {
 				}
 
 				jettyManager.removeChannel(channelId);
+
+				ci.println("Connector " + channelId + " has been removed!");
 			}
 		});
 
