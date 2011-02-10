@@ -114,6 +114,8 @@ public class LogbackConfigurator {
 		// some of our components are very communicative
 		// we apply some "smart" defaults for those known 3rdParty libs
 		lc.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
+		lc.getLogger("org.apache.solr").setLevel(Level.WARN);
+		lc.getLogger("org.mortbay.log").setLevel(Level.INFO);
 
 		// add error logger
 		final RollingFileAppender<ILoggingEvent> rfa = new RollingFileAppender<ILoggingEvent>();
