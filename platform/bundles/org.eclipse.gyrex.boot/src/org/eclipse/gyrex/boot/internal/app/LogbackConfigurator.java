@@ -88,14 +88,11 @@ public class LogbackConfigurator {
 			return;
 		}
 
-		// determine flags
-		final boolean debug = Platform.inDebugMode() || Platform.inDevelopmentMode();
-
 		// get root logger
 		final Logger rootLogger = lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
 
-		// add console logger in debug mode
-		if (debug) {
+		// add console logger in debug or dev mode
+		if (Platform.inDebugMode() || Platform.inDevelopmentMode()) {
 			final ConsoleAppender<ILoggingEvent> ca = new ConsoleAppender<ILoggingEvent>();
 			ca.setContext(lc);
 			ca.setName("console");
@@ -108,10 +105,15 @@ public class LogbackConfigurator {
 			ca.start();
 
 			rootLogger.addAppender(ca);
+
 		} else {
 			// increase level
 			rootLogger.setLevel(Level.INFO);
 		}
+
+		// some of our components are very communicative
+		// we apply some "smart" defaults for those known 3rdParty libs
+		lc.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
 
 		// add error logger
 		final RollingFileAppender<ILoggingEvent> rfa = new RollingFileAppender<ILoggingEvent>();
