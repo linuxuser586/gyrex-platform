@@ -27,13 +27,13 @@
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl} -consoleLog -console&#13;&#10;-nosplash"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="org.eclipse.gyrex.cloud.tests"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dlogback.configurationFile=${resource_loc:/org.eclipse.gyrex.context.tests/logback.xml} &#13;&#10;-XX:MaxPermSize=128m -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+UseFastAccessorMethods -XX:+AggressiveOpts&#13;&#10;-Dgyrex.preferences.platform.instancebased=true"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dlogback.configurationFile=${resource_loc:/org.eclipse.gyrex.context.tests/logback.xml} &#13;&#10;-XX:MaxPermSize=128m -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:+UseFastAccessorMethods -XX:+AggressiveOpts"/>
 <stringAttribute key="pde.version" value="3.3"/>
 <stringAttribute key="product" value="org.eclipse.equinox.p2.director.app.product"/>
 <booleanAttribute key="run_in_ui_thread" value="false"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="testApplication" value="org.eclipse.gyrex.boot.tests.servertestapp"/>
-<stringAttribute key="timestamp" value="1297629307102"/>
+<stringAttribute key="timestamp" value="1297630993994"/>
 <booleanAttribute key="tracing" value="false"/>
 <booleanAttribute key="useCustomFeatures" value="false"/>
 <booleanAttribute key="useDefaultConfig" value="true"/>
