@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010 AGETO Service GmbH and others.
+ * Copyright (c) 2010, 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -98,5 +98,25 @@ public class ZooKeeperGateConfig {
 		if (sessionTimeout < 5000) {
 			throw new IllegalStateException("Session timeout too low for node " + nodeId);
 		}
+	}
+
+	/**
+	 * Sets the connectString.
+	 * 
+	 * @param connectString
+	 *            the connectString to set
+	 */
+	protected void setConnectString(final String connectString) {
+		this.connectString = connectString;
+	}
+
+	/**
+	 * Sets the sessionTimeout.
+	 * 
+	 * @param sessionTimeout
+	 *            the sessionTimeout to set
+	 */
+	protected void setSessionTimeout(final int sessionTimeout) {
+		this.sessionTimeout = sessionTimeout;
 	}
 }

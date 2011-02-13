@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010 AGETO Service GmbH and others.
+ * Copyright (c) 2010, 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -63,4 +63,6 @@ public interface IZooKeeperLayout {
 	/** root path for platform preferences stored in ZooKeeper */
 	public static final IPath PATH_PREFERENCES_ROOT = PATH_GYREX_ROOT.append("prefs").makeAbsolute();
 
+	/** root path for platform preferences stored in ZooKeeper */
+	public static final IPath PATH_QUEUES_ROOT = PATH_GYREX_ROOT.append("queues").makeAbsolute();
 }

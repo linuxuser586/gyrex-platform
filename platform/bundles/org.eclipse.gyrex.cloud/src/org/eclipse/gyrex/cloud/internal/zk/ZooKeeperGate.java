@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010 AGETO Service GmbH and others.
+ * Copyright (c) 2010, 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -352,16 +352,17 @@ public class ZooKeeperGate {
 	/**
 	 * Removes a path in ZooKeeper.
 	 * <p>
-	 * If the path doen't exist the operation is considered successful.
+	 * If the path doedn't exist the operation is also considered successful.
+	 * Otherwise it behaves as {@link #deletePath(IPath, int)} with a version
+	 * value of <code>-1</code>.
 	 * </p>
 	 * 
 	 * @param path
-	 *            the path to create
-	 * @param createMode
-	 *            the creation mode
+	 *            the path to delete
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
+	 * @see {@link #deletePath(IPath, int)}
 	 */
 	public void deletePath(final IPath path) throws KeeperException, InterruptedException, IOException {
 		if (path == null) {
@@ -385,6 +386,46 @@ public class ZooKeeperGate {
 			// we don't care, the result matters
 			return;
 		}
+	}
+
+	/**
+	 * Removes a path in ZooKeeper.
+	 * <p>
+	 * The call will succeed if such a node exists, and the given version
+	 * matches the node's version (if the given version is -1, it matches any
+	 * node's versions).
+	 * </p>
+	 * <p>
+	 * A KeeperException with error code KeeperException.NoNode will be thrown
+	 * if the nodes does not exist.
+	 * </p>
+	 * <p>
+	 * A KeeperException with error code KeeperException.BadVersion will be
+	 * thrown if the given version does not match the node's version.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to delete
+	 * @param version
+	 *            the expected node version
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @see {@link ZooKeeper#delete(String, int)}
+	 */
+	public void deletePath(final IPath path, final int version) throws InterruptedException, IOException, KeeperException {
+		if (path == null) {
+			throw new IllegalArgumentException("path must not be null");
+		}
+
+		// delete all children
+		final List<String> children = ensureConnected().getChildren(path.toString(), false);
+		for (final String child : children) {
+			deletePath(path.append(child));
+		}
+
+		// delete node itself
+		ensureConnected().delete(path.toString(), version);
 	}
 
 	final ZooKeeper ensureConnected() {
@@ -437,7 +478,9 @@ public class ZooKeeperGate {
 		}
 
 		// notify reconnect listener
-		SafeRunner.run(new NotifyConnectionListener(connected, reconnectMonitor));
+		if (reconnectMonitor != null) {
+			SafeRunner.run(new NotifyConnectionListener(connected, reconnectMonitor));
+		}
 	}
 
 	/**
@@ -566,15 +609,12 @@ public class ZooKeeperGate {
 		}
 	}
 
-	private Stat setDataOrCreate(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
+	private Stat setDataOrCreate(final IPath path, final CreateMode createMode, final byte[] data, final int version) throws InterruptedException, KeeperException, IOException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
-		if (createMode == null) {
-			throw new IllegalArgumentException("createMode must not be null");
-		}
 
-		if (!exists(path)) {
+		if ((createMode != null) && !exists(path)) {
 			try {
 				create(path, createMode, data);
 
@@ -588,7 +628,7 @@ public class ZooKeeperGate {
 		}
 
 		// set data
-		return ensureConnected().setData(path.toString(), data, -1);
+		return ensureConnected().setData(path.toString(), data, version);
 	}
 
 	/**
@@ -634,6 +674,30 @@ public class ZooKeeperGate {
 	/**
 	 * Writes a record at the specified path in ZooKeeper.
 	 * <p>
+	 * If the path parents don't exist they will be created using the specified
+	 * creation mode.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @param recordData
+	 *            the record data
+	 * @param version
+	 * @return ZooKeeper statistics about the underlying node
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public Stat writeRecord(final IPath path, final byte[] recordData, final int version) throws InterruptedException, KeeperException, IOException {
+		if (recordData == null) {
+			throw new IllegalArgumentException("recordData must not be null");
+		}
+		return setDataOrCreate(path, null, recordData, version);
+	}
+
+	/**
+	 * Writes a record at the specified path in ZooKeeper.
+	 * <p>
 	 * If the path (or any of its parents) doesn't exist it will be created
 	 * using the specified creation mode.
 	 * </p>
@@ -653,11 +717,14 @@ public class ZooKeeperGate {
 		if (recordData == null) {
 			throw new IllegalArgumentException("recordData must not be null");
 		}
-		return setDataOrCreate(path, createMode, recordData);
+		if (createMode == null) {
+			throw new IllegalArgumentException("createMode must not be null");
+		}
+		return setDataOrCreate(path, createMode, recordData, -1);
 	}
 
 	/**
-	 * Creates a record at the specified path in ZooKeeper.
+	 * Writes a record at the specified path in ZooKeeper.
 	 * <p>
 	 * If the path parents don't exist they will be created using the specified
 	 * creation mode.
@@ -677,6 +744,9 @@ public class ZooKeeperGate {
 	public Stat writeRecord(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
 		if (recordData == null) {
 			throw new IllegalArgumentException("recordData must not be null");
+		}
+		if (createMode == null) {
+			throw new IllegalArgumentException("createMode must not be null");
 		}
 		try {
 			return writeRecord(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
