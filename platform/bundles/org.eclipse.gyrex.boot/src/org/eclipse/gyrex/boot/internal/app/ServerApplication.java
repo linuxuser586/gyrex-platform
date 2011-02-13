@@ -146,13 +146,6 @@ public class ServerApplication implements IApplication {
 			LOG.debug("Bootstrapping platform.");
 		}
 
-		// make sure that the configuration is initialized
-		final Bundle csImplBundle = AppActivator.getInstance().getBundle("org.eclipse.gyrex.configuration.impl");
-		if (null == csImplBundle) {
-			throw new IllegalStateException("Bundle 'org.eclipse.gyrex.configuration.impl' is missing. Please check the installation");
-		}
-		csImplBundle.start(Bundle.START_TRANSIENT);
-
 		// make sure that the declarative services are initialized (if available)
 		final Bundle dsImplBundle = AppActivator.getInstance().getBundle("org.eclipse.equinox.ds");
 		if (null != dsImplBundle) {
@@ -249,7 +242,7 @@ public class ServerApplication implements IApplication {
 			// note, we read from the instance scope here
 			// it is assumed that an external entity properly
 			// sets the role for this particular node
-			final String[] rolesToStart = StringUtils.split(new InstanceScope().getNode(AppActivator.SYMBOLIC_NAME).get("rolesToStart", null), ',');
+			final String[] rolesToStart = StringUtils.split(InstanceScope.INSTANCE.getNode(AppActivator.SYMBOLIC_NAME).get("rolesToStart", null), ',');
 			if (null != rolesToStart) {
 				ignoreDefaultRoles = true;
 				for (final String role : rolesToStart) {
@@ -326,6 +319,13 @@ public class ServerApplication implements IApplication {
 		frameworkLogServiceRegistration = AppActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.osgi.framework.log.FrameworkLog"), "Eclipse Gyrex", "SLF4J Logger Factory", "org.slf4j.Logger.org.eclipse.osgi.framework.log.FrameworkLog", null);
 	}
 
+	/**
+	 * Called during server start when the server has been started.
+	 */
+	protected void onServerStarted(final String[] arguments) {
+		// empty
+	}
+
 	@Override
 	public Object start(final IApplicationContext context) throws Exception {
 		final Object args = context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
@@ -394,6 +394,9 @@ public class ServerApplication implements IApplication {
 				if (BootDebug.debug) {
 					LOG.info("Platform started.");
 				}
+
+				// hook for executing server tests
+				onServerStarted(arguments);
 
 				// wait for shutdown
 				do {
