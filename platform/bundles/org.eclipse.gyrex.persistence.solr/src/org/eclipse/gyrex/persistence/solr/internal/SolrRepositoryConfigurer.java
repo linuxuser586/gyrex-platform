@@ -22,7 +22,7 @@ import org.eclipse.gyrex.persistence.storage.registry.IRepositoryDefinition;
 import org.osgi.service.prefs.BackingStoreException;
 
 /**
- *
+ * {@link ISolrRepositoryConfigurer} impl
  */
 public class SolrRepositoryConfigurer implements ISolrRepositoryConfigurer {
 
