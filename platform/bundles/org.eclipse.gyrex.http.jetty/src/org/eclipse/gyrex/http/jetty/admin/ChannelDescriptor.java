@@ -93,7 +93,7 @@ public class ChannelDescriptor {
 	 *            the certificateId to set
 	 */
 	public void setCertificateId(final String certificateId) {
-		if (!IdHelper.isValidId(id)) {
+		if (certificateId != null && !IdHelper.isValidId(certificateId)) {
 			throw new IllegalArgumentException("invalid id");
 		}
 		this.certificateId = certificateId;
@@ -127,7 +127,7 @@ public class ChannelDescriptor {
 				throw new IllegalArgumentException("Invalid node filter. Please use LDAP syntax. " + e.getMessage(), e);
 			}
 		}
-		this.nodeFilter = nodeFilter;
+		this.nodeFilter = StringUtils.trimToNull(nodeFilter);
 	}
 
 	/**
@@ -160,7 +160,7 @@ public class ChannelDescriptor {
 	 *            the secureChannelId to set
 	 */
 	public void setSecureChannelId(final String secureChannelId) {
-		if (!IdHelper.isValidId(secureChannelId)) {
+		if (secureChannelId != null && !IdHelper.isValidId(secureChannelId)) {
 			throw new IllegalArgumentException("invalid id");
 		}
 		this.secureChannelId = secureChannelId;
