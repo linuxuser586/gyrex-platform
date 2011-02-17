@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - API rework (see https://bugs.eclipse.org/bugs/show_bug.cgi?id=337184)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.config;
 
@@ -34,7 +35,23 @@ import org.osgi.service.prefs.BackingStoreException;
 public interface ISolrRepositoryConfigurer {
 
 	/**
-	 * Adds a new collection to the repository.
+	 * Adds a new collection to the repository. The collection is linked to an
+	 * embedded solr server with default settings.
+	 * <p>
+	 * This method has no effect if a collection of the same name is already
+	 * defined.
+	 * </p>
+	 * 
+	 * @param collection
+	 *            the collection to add
+	 * @throws IllegalArgumentException
+	 *             if any of the parameters is invalid
+	 */
+	void addCollection(String collection) throws IllegalArgumentException;
+
+	/**
+	 * Adds a new collection to the repository. The collection is linked to an
+	 * solr server with the given type and the specified url.
 	 * <p>
 	 * This method has no effect if a collection of the same name is already
 	 * defined.
@@ -44,10 +61,12 @@ public interface ISolrRepositoryConfigurer {
 	 *            the collection to add
 	 * @param serverType
 	 *            the server type
+	 * @param serverUrl
+	 *            the server url
 	 * @throws IllegalArgumentException
 	 *             if any of the parameters is invalid
 	 */
-	void addCollection(String collection, SolrServerType serverType) throws IllegalArgumentException;
+	void addCollection(String collection, SolrServerType serverType, String serverUrl) throws IllegalArgumentException;
 
 	/**
 	 * Calls {@link IRepositoryPreferences#flush()}.

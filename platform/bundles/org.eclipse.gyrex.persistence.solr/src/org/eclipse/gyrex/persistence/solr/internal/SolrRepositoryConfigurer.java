@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - API rework (see https://bugs.eclipse.org/bugs/show_bug.cgi?id=337184)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
 
@@ -38,8 +39,14 @@ public class SolrRepositoryConfigurer implements ISolrRepositoryConfigurer {
 	}
 
 	@Override
-	public void addCollection(final String collection, final SolrServerType serverType) throws IllegalArgumentException {
+	public void addCollection(final String collection) throws IllegalArgumentException {
+		repositoryDefinition.getRepositoryPreferences().put("collections/" + collection + "/" + SolrRepositoryProvider.PREF_KEY_SERVER_TYPE, SolrServerType.EMBEDDED.toString(), false);
+	}
+
+	@Override
+	public void addCollection(final String collection, final SolrServerType serverType, final String serverUrl) throws IllegalArgumentException {
 		repositoryDefinition.getRepositoryPreferences().put("collections/" + collection + "/" + SolrRepositoryProvider.PREF_KEY_SERVER_TYPE, serverType.toString(), false);
+		repositoryDefinition.getRepositoryPreferences().put("collections/" + collection + "/" + SolrRepositoryProvider.PREF_KEY_SERVER_URL, serverUrl.toString(), false);
 	}
 
 	@Override
