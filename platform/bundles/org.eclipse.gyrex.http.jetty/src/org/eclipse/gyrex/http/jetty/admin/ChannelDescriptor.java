@@ -94,7 +94,7 @@ public class ChannelDescriptor {
 	 */
 	public void setCertificateId(final String certificateId) {
 		if (certificateId != null && !IdHelper.isValidId(certificateId)) {
-			throw new IllegalArgumentException("invalid id");
+			throw new IllegalArgumentException("invalid certificateId");
 		}
 		this.certificateId = certificateId;
 	}
@@ -161,7 +161,7 @@ public class ChannelDescriptor {
 	 */
 	public void setSecureChannelId(final String secureChannelId) {
 		if (secureChannelId != null && !IdHelper.isValidId(secureChannelId)) {
-			throw new IllegalArgumentException("invalid id");
+			throw new IllegalArgumentException("invalid secureChannelId");
 		}
 		this.secureChannelId = secureChannelId;
 	}
