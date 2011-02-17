@@ -160,7 +160,7 @@ public class ChannelDescriptor {
 	 *            the secureChannelId to set
 	 */
 	public void setSecureChannelId(final String secureChannelId) {
-		if (!IdHelper.isValidId(id)) {
+		if (!IdHelper.isValidId(secureChannelId)) {
 			throw new IllegalArgumentException("invalid id");
 		}
 		this.secureChannelId = secureChannelId;
