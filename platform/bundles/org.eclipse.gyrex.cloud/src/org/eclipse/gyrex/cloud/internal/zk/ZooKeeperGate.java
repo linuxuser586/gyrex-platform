@@ -29,7 +29,9 @@ import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.BadVersionException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -609,7 +611,24 @@ public class ZooKeeperGate {
 		}
 	}
 
-	private Stat setDataOrCreate(final IPath path, final CreateMode createMode, final byte[] data, final int version) throws InterruptedException, KeeperException, IOException {
+	/**
+	 * Sets the data on the specified path.
+	 * <p>
+	 * Does create the path (including its parents) if <code>createMode</code>
+	 * is not <code>null</code>.
+	 * </p>
+	 * 
+	 * @param path
+	 * @param createMode
+	 * @param data
+	 * @param version
+	 * @return
+	 * @throws InterruptedException
+	 * @throws KeeperException
+	 * @throws IOException
+	 * @see {@link ZooKeeper#setData(String, byte[], int)}
+	 */
+	private Stat setData(final IPath path, final CreateMode createMode, final byte[] data, final int version) throws InterruptedException, KeeperException, IOException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
@@ -674,8 +693,11 @@ public class ZooKeeperGate {
 	/**
 	 * Writes a record at the specified path in ZooKeeper.
 	 * <p>
-	 * If the path parents don't exist they will be created using the specified
-	 * creation mode.
+	 * If the path does not exist a {@link NoNodeException} will be thrown.
+	 * </p>
+	 * <p>
+	 * If the version does not match a {@link BadVersionException} will be
+	 * thrown.
 	 * </p>
 	 * 
 	 * @param path
@@ -692,7 +714,7 @@ public class ZooKeeperGate {
 		if (recordData == null) {
 			throw new IllegalArgumentException("recordData must not be null");
 		}
-		return setDataOrCreate(path, null, recordData, version);
+		return setData(path, null, recordData, version);
 	}
 
 	/**
@@ -720,7 +742,7 @@ public class ZooKeeperGate {
 		if (createMode == null) {
 			throw new IllegalArgumentException("createMode must not be null");
 		}
-		return setDataOrCreate(path, createMode, recordData, -1);
+		return setData(path, createMode, recordData, -1);
 	}
 
 	/**
