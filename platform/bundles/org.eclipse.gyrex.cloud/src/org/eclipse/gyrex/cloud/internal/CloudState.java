@@ -477,7 +477,7 @@ public class CloudState implements IConnectionMonitor {
 		try {
 			final Map<String, Object> properties = new HashMap<String, Object>(3);
 			properties.put(ICloudEventConstants.NODE_ID, node.getNodeId());
-			properties.put(ICloudEventConstants.NODE_TAGS, node.getNodeId());
+			properties.put(ICloudEventConstants.NODE_TAGS, node.getTags());
 			properties.put("node.name", node.getName());
 			properties.put("node.location", node.getLocation());
 			final Event event = new Event(online ? ICloudEventConstants.TOPIC_NODE_ONLINE : ICloudEventConstants.TOPIC_NODE_OFFLINE, properties);
