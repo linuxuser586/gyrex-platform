@@ -11,20 +11,22 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.queue;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.services.queue.DuplicateQueueException;
 import org.eclipse.gyrex.cloud.services.queue.IQueue;
 import org.eclipse.gyrex.cloud.services.queue.IQueueService;
+import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
 
 /**
  * Queue service based on ZooKeeper.
@@ -37,16 +39,12 @@ public class ZooKeeperQueueService implements IQueueService {
 			throw new IllegalArgumentException("invalid id");
 		}
 		try {
-			ZooKeeperGate.get().createPath(IZooKeeperLayout.PATH_QUEUES_ROOT.append(id), CreateMode.PERSISTENT, id);
-		} catch (final KeeperException e) {
-			if (e.code() == Code.NODEEXISTS) {
+			ZooKeeperGate.get().createPath(IZooKeeperLayout.PATH_QUEUES_ROOT.append(id), CreateMode.PERSISTENT, getQueueData(properties));
+		} catch (final Exception e) {
+			if (e instanceof KeeperException.NodeExistsException) {
 				throw new DuplicateQueueException(String.format("queue '%s' already exists", id));
 			}
-			throw new IllegalStateException(String.format("Error creating queue '%s'. %s", id, e.getMessage()), e);
-		} catch (final InterruptedException e) {
-			throw new IllegalStateException(String.format("Error creating queue '%s'. %s", id, e.getMessage()), e);
-		} catch (final IOException e) {
-			throw new IllegalStateException(String.format("Error creating queue '%s'. %s", id, e.getMessage()), e);
+			throw new QueueOperationFailedException(id, "CREATE_QUEUE", e);
 		}
 		return new ZooKeeperQueue(id);
 	}
@@ -58,15 +56,11 @@ public class ZooKeeperQueueService implements IQueueService {
 		}
 		try {
 			ZooKeeperGate.get().deletePath(IZooKeeperLayout.PATH_QUEUES_ROOT.append(id));
-		} catch (final KeeperException e) {
-			if (e.code() == Code.NONODE) {
+		} catch (final Exception e) {
+			if (e instanceof KeeperException.NoNodeException) {
 				throw new NoSuchElementException(String.format("queue '%s' does not exist", id));
 			}
-			throw new IllegalStateException(String.format("Error deleting queue '%s'. %s", id, e.getMessage()), e);
-		} catch (final InterruptedException e) {
-			throw new IllegalStateException(String.format("Error deleting queue '%s'. %s", id, e.getMessage()), e);
-		} catch (final IOException e) {
-			throw new IllegalStateException(String.format("Error deleting queue '%s'. %s", id, e.getMessage()), e);
+			throw new QueueOperationFailedException(id, "DELETE_QUEUE", e);
 		}
 	}
 
@@ -80,21 +74,37 @@ public class ZooKeeperQueueService implements IQueueService {
 				return new ZooKeeperQueue(id);
 			}
 			return null;
-		} catch (final KeeperException e) {
-			throw new IllegalStateException(String.format("Error deleting queue '%s'. %s", id, e.getMessage()), e);
-		} catch (final InterruptedException e) {
-			throw new IllegalStateException(String.format("Error deleting queue '%s'. %s", id, e.getMessage()), e);
+		} catch (final Exception e) {
+			throw new QueueOperationFailedException(id, "GET_QUEUE", e);
 		}
+	}
+
+	private byte[] getQueueData(final Map<String, ?> properties) throws IOException {
+		final ByteArrayOutputStream queueData = new ByteArrayOutputStream();
+		if (properties != null) {
+			final Properties p = new Properties();
+			final Object timeout = properties.get(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT);
+			if (timeout != null) {
+				p.setProperty(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT, String.valueOf(timeout));
+			}
+			if (!p.isEmpty()) {
+				p.store(queueData, null);
+			}
+		}
+		return queueData.toByteArray();
 	}
 
 	@Override
 	public IQueue updateQueue(final String id, final Map<String, ?> properties) throws IllegalArgumentException, IllegalStateException, SecurityException, NoSuchElementException {
-		// no-op
-		final IQueue queue = getQueue(id, properties);
-		if (queue == null) {
-			throw new NoSuchElementException(String.format("queue '%s' does not exist", id));
+		try {
+			ZooKeeperGate.get().writeRecord(IZooKeeperLayout.PATH_QUEUES_ROOT.append(id), getQueueData(properties), -1);
+			return new ZooKeeperQueue(id);
+		} catch (final Exception e) {
+			if (e instanceof KeeperException.NoNodeException) {
+				throw new NoSuchElementException(String.format("queue '%s' does not exist", id));
+			}
+			throw new QueueOperationFailedException(id, "UPDATE_QUEUE", e);
 		}
-		return queue;
 	}
 
 }

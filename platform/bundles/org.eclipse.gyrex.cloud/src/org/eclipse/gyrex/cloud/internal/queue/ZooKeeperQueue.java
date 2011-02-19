@@ -11,11 +11,13 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.queue;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +26,7 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.cloud.services.queue.IQueue;
+import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
 
 import org.eclipse.core.runtime.IPath;
 
@@ -129,6 +132,32 @@ public class ZooKeeperQueue implements IQueue {
 	}
 
 	/**
+	 * Returns the receive message timeout either from the specified properties
+	 * or the queue default
+	 * 
+	 * @param properties
+	 * @return
+	 */
+	private long getReceiveMessageTimeout(final Map<String, ?> properties) {
+		// check properties
+		if (properties != null) {
+			final Object timeout = properties.get(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT);
+			if (timeout != null) {
+				if (!Long.class.isAssignableFrom(timeout.getClass())) {
+					throw new IllegalArgumentException(String.format("Property %s must be of type Long or long.", IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT));
+				}
+				return (Long) timeout;
+			}
+		}
+
+		// check queue value
+		final Properties queueData = readQueueData();
+		final String queueTimeout = queueData.getProperty(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT, null);
+
+		return NumberUtils.toLong(queueTimeout, 30000);
+	}
+
+	/**
 	 * Returns a sorted map of the queue node children.
 	 * 
 	 * @param monitor
@@ -158,6 +187,24 @@ public class ZooKeeperQueue implements IQueue {
 		return childrenBySequenceNumber;
 	}
 
+	private Properties readQueueData() {
+		try {
+			final Properties queueData = new Properties();
+			final Stat stat = new Stat();
+			final byte[] record = ZooKeeperGate.get().readRecord(queuePath, stat);
+			if (record == null) {
+				return queueData;
+			}
+			queueData.load(new ByteArrayInputStream(record));
+			return queueData;
+		} catch (final Exception e) {
+			if (e instanceof KeeperException.NoNodeException) {
+				throw new IllegalStateException(String.format("Queue '%s' has been removed!", id));
+			}
+			throw new QueueOperationFailedException(id, "READ_QUEUE_DATA", e);
+		}
+	}
+
 	private Message readQueueMessage(final String messageId) {
 		try {
 			final Stat stat = new Stat();
@@ -172,7 +219,7 @@ public class ZooKeeperQueue implements IQueue {
 	}
 
 	@Override
-	public List<IMessage> receiveMessages(final int maxNumberOfMessages, final Map<String, ?> hints) throws IllegalArgumentException, IllegalStateException, SecurityException {
+	public List<IMessage> receiveMessages(final int maxNumberOfMessages, final Map<String, ?> properties) throws IllegalArgumentException, IllegalStateException, SecurityException {
 		/*
 		 * We want to get the node with the smallest sequence number. But
 		 * other clients may remove and add nodes concurrently. Thus, we
@@ -186,6 +233,9 @@ public class ZooKeeperQueue implements IQueue {
 		final List<IMessage> messages = new ArrayList<IMessage>(maxNumberOfMessages);
 
 		try {
+			// get timeout
+			final long receiveMessageTimeout = getReceiveMessageTimeout(properties);
+
 			// iterate over all children
 			final TreeMap<Long, String> queueChildren = readQueueChildren(null);
 			for (final String childName : queueChildren.values()) {
@@ -197,7 +247,7 @@ public class ZooKeeperQueue implements IQueue {
 						continue;
 					}
 					// try to receive the message
-					if (!message.receive(30000, false)) {
+					if (!message.receive(receiveMessageTimeout, false)) {
 						continue;
 					}
 					messages.add(message);

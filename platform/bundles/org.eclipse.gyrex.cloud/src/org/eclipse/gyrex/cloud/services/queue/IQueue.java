@@ -122,8 +122,8 @@ public interface IQueue {
 	 * 
 	 * @param maxNumberOfMessages
 	 *            the maximum number of messages to receive
-	 * @param hints
-	 *            additional hints for the queue service
+	 * @param properties
+	 *            additional properties for the queue service request
 	 * @return list of received messages
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
@@ -133,7 +133,7 @@ public interface IQueue {
 	 *             if security restrictions (either in the system or on the
 	 *             cloud queue service) prevented the requests
 	 */
-	List<IMessage> receiveMessages(int maxNumberOfMessages, Map<String, ?> hints) throws IllegalArgumentException, IllegalStateException, SecurityException;
+	List<IMessage> receiveMessages(int maxNumberOfMessages, Map<String, ?> properties) throws IllegalArgumentException, IllegalStateException, SecurityException;
 
 	/**
 	 * Sends a message to the queue.

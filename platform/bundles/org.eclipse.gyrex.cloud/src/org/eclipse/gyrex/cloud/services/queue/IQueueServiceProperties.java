@@ -27,7 +27,10 @@ public interface IQueueServiceProperties {
 
 	/**
 	 * Optional property which allows to specify a visibility timeout for
-	 * received messages.
+	 * received messages in milliseconds.
+	 * <p>
+	 * The property value must be of type {@link Long} or <code>long</code>.
+	 * </p>
 	 * 
 	 * @see IQueue#receiveMessages(int, java.util.Map)
 	 */
