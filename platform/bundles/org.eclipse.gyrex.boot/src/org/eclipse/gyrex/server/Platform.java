@@ -33,7 +33,7 @@ import org.osgi.framework.Bundle;
  * method from this class is called while Platform is not running.
  * </p>
  */
-public class Platform {
+public final class Platform {
 
 	/**
 	 * Returns the location in the local file system of the server's working
@@ -145,5 +145,12 @@ public class Platform {
 	 */
 	public static boolean isRunning() {
 		return ServerApplication.isRunning();
+	}
+
+	/**
+	 * Hidden constructor.
+	 */
+	private Platform() {
+		// empty
 	}
 }
