@@ -8,16 +8,14 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - rework of the SolrRepository concept (https://bugs.eclipse.org/bugs/show_bug.cgi?id=337404)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
 import org.eclipse.gyrex.monitoring.metrics.ErrorMetric;
@@ -29,24 +27,14 @@ import org.eclipse.osgi.util.NLS;
 
 public class SolrRepositoryMetrics extends MetricSet {
 
-	private static final int IDX_ERROR = 0;
-	private static final int IDX_THROUGHPUT_QUERY = 1;
-	private static final int IDX_THROUGHPUT_UPDATE = 2;
-	private static final int IDX_THROUGHPUT_ADMIN = 3;
-	private static final int IDX_THROUGHPUT_OTHER = 4;
-
-	private static BaseMetric[] createMetrics(final String initialStatus, final String initialStatusReason, final Collection<String> collections) {
-		final List<BaseMetric> metrics = new ArrayList<BaseMetric>(2 + collections.size());
+	private static BaseMetric[] createMetrics(final String initialStatus, final String initialStatusReason) {
+		final List<BaseMetric> metrics = new ArrayList<BaseMetric>(6);
 		metrics.add(new StatusMetric("status", initialStatus, initialStatusReason));
-		metrics.add(new ErrorMetric("error", false));
-		for (final String collection : collections) {
-			// collection name is checked externally, we assume that it is valid for metrics ids at this point
-			metrics.add(new ErrorMetric(collection + ".error", true)); /* IDX_ERROR */
-			metrics.add(new ThroughputMetric(collection + ".query.throughput")); /* IDX_THROUGHPUT_QUERY */
-			metrics.add(new ThroughputMetric(collection + ".update.throughput")); /* IDX_THROUGHPUT_UPDATE */
-			metrics.add(new ThroughputMetric(collection + ".admin.throughput")); /* IDX_THROUGHPUT_ADMIN */
-			metrics.add(new ThroughputMetric(collection + ".other.throughput")); /* IDX_THROUGHPUT_OTHER */
-		}
+		metrics.add(new ErrorMetric("error", true)); /* IDX_ERROR */
+		metrics.add(new ThroughputMetric("query.throughput")); /* IDX_THROUGHPUT_QUERY */
+		metrics.add(new ThroughputMetric("update.throughput")); /* IDX_THROUGHPUT_UPDATE */
+		metrics.add(new ThroughputMetric("admin.throughput")); /* IDX_THROUGHPUT_ADMIN */
+		metrics.add(new ThroughputMetric("other.throughput")); /* IDX_THROUGHPUT_OTHER */
 		return metrics.toArray(new BaseMetric[metrics.size()]);
 	}
 
@@ -76,26 +64,22 @@ public class SolrRepositoryMetrics extends MetricSet {
 
 	private final StatusMetric statusMetric;
 	private final ErrorMetric errorMetric;
-	private final Map<String, BaseMetric[]> serverMetricsByCollection;
+	private final BaseMetric queryMetric;
+	private final BaseMetric updateMetric;
+	private final BaseMetric adminMetric;
+	private final BaseMetric otherMetric;
 
-	protected SolrRepositoryMetrics(final String id, final String repositoryId, final String initialStatus, final String initialStatusReason, final Collection<String> collections) {
-		super(id, String.format("Metrics for repository %s", repositoryId), createMetrics(initialStatus, initialStatusReason, collections));
+	protected SolrRepositoryMetrics(final String id, final String repositoryId, final String initialStatus, final String initialStatusReason) {
+		super(id, String.format("Metrics for repository %s", repositoryId), createMetrics(initialStatus, initialStatusReason));
 		statusMetric = getMetric(0, StatusMetric.class);
 		errorMetric = getMetric(1, ErrorMetric.class);
 
-		serverMetricsByCollection = new HashMap<String, BaseMetric[]>(collections.size());
-		int idx = 1;
-		for (final String collection : collections) {
-			/*@formatter:off*/
-			serverMetricsByCollection.put(collection, new BaseMetric[] {
-					getMetric(++idx, ErrorMetric.class),
-					getMetric(++idx, ThroughputMetric.class),
-					getMetric(++idx, ThroughputMetric.class),
-					getMetric(++idx, ThroughputMetric.class),
-					getMetric(++idx, ThroughputMetric.class)
-			});
-			/*@formatter:on*/
-		}
+		queryMetric = getMetric(2, ThroughputMetric.class);
+		updateMetric = getMetric(3, ThroughputMetric.class);
+		adminMetric = getMetric(4, ThroughputMetric.class);
+		otherMetric = getMetric(5, ThroughputMetric.class);
+
+		/*@formatter:on*/
 	}
 
 	/**
@@ -103,12 +87,8 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 * 
 	 * @return the throughput metric for admin requests
 	 */
-	public ThroughputMetric getAdminThroughputMetric(final String collection) {
-		return (ThroughputMetric) serverMetricsByCollection.get(collection)[IDX_THROUGHPUT_ADMIN];
-	}
-
-	private ErrorMetric getErrorMetric(final String collection) {
-		return ((ErrorMetric) serverMetricsByCollection.get(collection)[IDX_ERROR]);
+	public ThroughputMetric getAdminThroughputMetric() {
+		return (ThroughputMetric) adminMetric;
 	}
 
 	/**
@@ -116,7 +96,7 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 * 
 	 * @return the errorMetric
 	 */
-	public ErrorMetric getErrorMetricGlobal() {
+	public ErrorMetric getErrorMetric() {
 		return errorMetric;
 	}
 
@@ -125,8 +105,8 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 * 
 	 * @return the throughput metric for all other requests
 	 */
-	public ThroughputMetric getOtherThroughputMetric(final String collection) {
-		return (ThroughputMetric) serverMetricsByCollection.get(collection)[IDX_THROUGHPUT_OTHER];
+	public ThroughputMetric getOtherThroughputMetric() {
+		return (ThroughputMetric) otherMetric;
 	}
 
 	/**
@@ -134,8 +114,8 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 * 
 	 * @return the throughput metric for queries
 	 */
-	public ThroughputMetric getQueryThroughputMetric(final String collection) {
-		return (ThroughputMetric) serverMetricsByCollection.get(collection)[IDX_THROUGHPUT_QUERY];
+	public ThroughputMetric getQueryThroughputMetric() {
+		return (ThroughputMetric) queryMetric;
 	}
 
 	/**
@@ -152,8 +132,8 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 * 
 	 * @return the throughput metric for update requests
 	 */
-	public ThroughputMetric getUpdateThroughputMetric(final String collection) {
-		return (ThroughputMetric) serverMetricsByCollection.get(collection)[IDX_THROUGHPUT_UPDATE];
+	public ThroughputMetric getUpdateThroughputMetric() {
+		return (ThroughputMetric) updateMetric;
 	}
 
 	/**
@@ -164,11 +144,10 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 * @param exception
 	 *            the exception
 	 */
-	public void recordException(final String collection, final String requestInfo, final Exception exception) {
+	public void recordException(final String requestInfo, final Exception exception) {
 		final String error = getError(exception);
 		final String errorDetails = getErrorDetails(requestInfo, exception);
-		getErrorMetricGlobal().setLastError(error, errorDetails);
-		getErrorMetric(collection).setLastError(error, errorDetails);
+		getErrorMetric().setLastError(error, errorDetails);
 	}
 
 	public void setClosed(final String reason) {

@@ -8,12 +8,9 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - rework of the SolrRepository concept (https://bugs.eclipse.org/bugs/show_bug.cgi?id=337404)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import org.eclipse.gyrex.persistence.solr.SolrServerRepository;
 
@@ -30,27 +27,16 @@ public class SolrRepository extends SolrServerRepository {
 	static final int IDX_WRITE_SERVER = 0;
 	static final int IDX_READ_SERVER = 1;
 
-	private final Map<String, SolrServer[]> serversByCollection;
+	private final SolrServer[] solrServers;
 
-	SolrRepository(final String repositoryId, final SolrRepositoryProvider repositoryType, final Map<String, SolrServer[]> serversByCollection) throws IllegalArgumentException {
-		super(repositoryId, repositoryType, new SolrRepositoryMetrics(createMetricsId(repositoryType, repositoryId), repositoryId, "open", "repository created", serversByCollection.keySet()));
+	SolrRepository(final String repositoryId, final SolrRepositoryProvider repositoryType, final SolrServer[] solrServers) throws IllegalArgumentException {
+		super(repositoryId, repositoryType, new SolrRepositoryMetrics(createMetricsId(repositoryType, repositoryId), repositoryId, "open", "repository created"));
 
-		// wrap servers to collect metrics
-		this.serversByCollection = new HashMap<String, SolrServer[]>(serversByCollection.size());
 		final SolrRepositoryMetrics metrics = getSolrRepositoryMetrics();
-		for (final Entry<String, SolrServer[]> entry : serversByCollection.entrySet()) {
-			final String collection = entry.getKey();
-			final SolrServerWithMetrics writeServer = new SolrServerWithMetrics(entry.getValue()[IDX_WRITE_SERVER], collection, metrics);
-			final SolrServerWithMetrics readServer = null != entry.getValue()[IDX_READ_SERVER] ? new SolrServerWithMetrics(entry.getValue()[IDX_READ_SERVER], collection, metrics) : writeServer;
-			this.serversByCollection.put(collection, new SolrServer[] { writeServer, readServer });
-		}
-	}
+		final SolrServerWithMetrics writeServer = new SolrServerWithMetrics(solrServers[IDX_WRITE_SERVER], metrics);
+		final SolrServerWithMetrics readServer = null != solrServers[IDX_READ_SERVER] ? new SolrServerWithMetrics(solrServers[IDX_READ_SERVER], metrics) : writeServer;
+		this.solrServers = new SolrServer[] { writeServer, readServer };
 
-	private String checkCollection(final String key) {
-		if (key == null) {
-			throw new IllegalArgumentException("collection must not be null");
-		}
-		return key;
 	}
 
 	@Override
@@ -58,10 +44,9 @@ public class SolrRepository extends SolrServerRepository {
 		getSolrRepositoryMetrics().setClosed("doClose called");
 	}
 
-	private SolrServer[] getServers(final String collection) {
-		final SolrServer[] solrServers = serversByCollection.get(checkCollection(collection));
+	private SolrServer[] getServers() {
 		if (solrServers == null) {
-			throw new IllegalArgumentException(NLS.bind("Collection {0} not configured in repository {1}.", collection, getRepositoryId()));
+			throw new IllegalArgumentException(NLS.bind("Repository {1} isn't configured properly. No solr server found", getRepositoryId()));
 		}
 		return solrServers;
 	}
@@ -71,18 +56,18 @@ public class SolrRepository extends SolrServerRepository {
 	}
 
 	@Override
-	public SolrServer getSolrServer(final String key) throws IllegalStateException, IllegalArgumentException {
+	public SolrServer getSolrServer() throws IllegalStateException {
 		if (isClosed()) {
 			throw new IllegalStateException("repository '" + getRepositoryId() + "' closed");
 		}
-		return getServers(key)[IDX_WRITE_SERVER];
+		return getServers()[IDX_WRITE_SERVER];
 	}
 
 	@Override
-	public SolrServer getSolrServerOptimizedForQuery(final String key) throws IllegalStateException, IllegalArgumentException {
+	public SolrServer getSolrServerOptimizedForQuery() throws IllegalStateException {
 		if (isClosed()) {
 			throw new IllegalStateException("repository '" + getRepositoryId() + "' closed");
 		}
-		return getServers(key)[IDX_READ_SERVER];
+		return getServers()[IDX_READ_SERVER];
 	}
 }

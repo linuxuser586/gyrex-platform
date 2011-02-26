@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - rework of the SolrRepository concept (https://bugs.eclipse.org/bugs/show_bug.cgi?id=337404)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
 
@@ -36,8 +37,6 @@ public class SolrServerWithMetrics extends SolrServer {
 
 	private final SolrRepositoryMetrics metrics;
 
-	private final String collection;
-
 	private final ThroughputMetric queryThroughput;
 	private final ThroughputMetric updateThroughput;
 	private final ThroughputMetric adminThroughput;
@@ -46,14 +45,13 @@ public class SolrServerWithMetrics extends SolrServer {
 	/**
 	 * Creates a new instance.
 	 */
-	public SolrServerWithMetrics(final SolrServer server, final String collection, final SolrRepositoryMetrics metrics) {
+	public SolrServerWithMetrics(final SolrServer server, final SolrRepositoryMetrics metrics) {
 		this.server = server;
-		this.collection = collection;
 		this.metrics = metrics;
-		queryThroughput = metrics.getQueryThroughputMetric(collection);
-		updateThroughput = metrics.getUpdateThroughputMetric(collection);
-		adminThroughput = metrics.getAdminThroughputMetric(collection);
-		otherThroughput = metrics.getOtherThroughputMetric(collection);
+		queryThroughput = metrics.getQueryThroughputMetric();
+		updateThroughput = metrics.getUpdateThroughputMetric();
+		adminThroughput = metrics.getAdminThroughputMetric();
+		otherThroughput = metrics.getOtherThroughputMetric();
 	}
 
 	private ThroughputMetric getRequestMetric(final SolrRequest request) {
@@ -81,7 +79,7 @@ public class SolrServerWithMetrics extends SolrServer {
 			requestInfo.append(request.getParams().toNamedList());
 		}
 		requestInfo.append(']');
-		metrics.recordException(collection, requestInfo.toString(), e);
+		metrics.recordException(requestInfo.toString(), e);
 	}
 
 	@Override

@@ -9,12 +9,9 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *     Mike Tschierschke - API rework (see https://bugs.eclipse.org/bugs/show_bug.cgi?id=337184)
+ *     Mike Tschierschke - rework of the SolrRepository concept (https://bugs.eclipse.org/bugs/show_bug.cgi?id=337404)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 
 import org.eclipse.gyrex.persistence.solr.config.ISolrRepositoryConfigurer;
 import org.eclipse.gyrex.persistence.solr.config.SolrServerType;
@@ -39,34 +36,17 @@ public class SolrRepositoryConfigurer implements ISolrRepositoryConfigurer {
 	}
 
 	@Override
-	public void addCollection(final String collection) throws IllegalArgumentException {
-		repositoryDefinition.getRepositoryPreferences().put("collections/" + collection + "/" + SolrRepositoryProvider.PREF_KEY_SERVER_TYPE, SolrServerType.EMBEDDED.toString(), false);
-	}
-
-	@Override
-	public void addCollection(final String collection, final SolrServerType serverType, final String serverUrl) throws IllegalArgumentException {
-		repositoryDefinition.getRepositoryPreferences().put("collections/" + collection + "/" + SolrRepositoryProvider.PREF_KEY_SERVER_TYPE, serverType.toString(), false);
-		repositoryDefinition.getRepositoryPreferences().put("collections/" + collection + "/" + SolrRepositoryProvider.PREF_KEY_SERVER_URL, serverUrl.toString(), false);
-	}
-
-	@Override
 	public void flush() throws BackingStoreException {
 		repositoryDefinition.getRepositoryPreferences().flush();
 	}
 
 	@Override
-	public Collection<String> getCollections() {
-		try {
-			return Collections.unmodifiableList(Arrays.asList(repositoryDefinition.getRepositoryPreferences().getChildrenNames("collections")));
-		} catch (final Exception e) {
-			throw new IllegalStateException(String.format("Unable to read configuration of repository %s. %s", repositoryDefinition.getRepositoryId(), e.getMessage()));
+	public void setProperties(final SolrServerType serverType, final String serverUrl) throws IllegalArgumentException {
+		repositoryDefinition.getRepositoryPreferences().put(SolrRepositoryProvider.PREF_KEY_SERVER_TYPE, serverType.toString(), false);
+		if (serverUrl != null) {
+			repositoryDefinition.getRepositoryPreferences().put(SolrRepositoryProvider.PREF_KEY_SERVER_URL, serverUrl, false);
+		} else {
+			repositoryDefinition.getRepositoryPreferences().remove(SolrRepositoryProvider.PREF_KEY_SERVER_URL);
 		}
 	}
-
-	@Override
-	public void removeCollection(final String collection) {
-		repositoryDefinition.getRepositoryPreferences().remove("collections/" + collection + "/" + SolrRepositoryProvider.PREF_KEY_SERVER_TYPE);
-
-	}
-
 }

@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - rework of the SolrRepository concept (https://bugs.eclipse.org/bugs/show_bug.cgi?id=337404)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr;
 
@@ -65,15 +66,11 @@ public abstract class SolrServerRepository extends Repository {
 	 * target="_blank">versioning</a> guidelines.
 	 * </p>
 	 * 
-	 * @param collection
-	 *            the collection
 	 * @return the {@link SolrServer} object for the specified index
 	 * @throws IllegalStateException
 	 *             if the repository has been closed
-	 * @throws IllegalArgumentException
-	 *             if the specified collection is unknown
 	 */
-	public abstract SolrServer getSolrServer(String collection) throws IllegalStateException, IllegalArgumentException;
+	public abstract SolrServer getSolrServer() throws IllegalStateException, IllegalArgumentException;
 
 	/**
 	 * Returns a {@link SolrServer SolrJ server object} that may be used for
@@ -92,13 +89,9 @@ public abstract class SolrServerRepository extends Repository {
 	 * target="_blank">versioning</a> guidelines.
 	 * </p>
 	 * 
-	 * @param collection
-	 *            the collection
 	 * @return the {@link SolrServer} object for the specified index
 	 * @throws IllegalStateException
 	 *             if the repository has been closed
-	 * @throws IllegalArgumentException
-	 *             if the specified index is unknown
 	 */
-	public abstract SolrServer getSolrServerOptimizedForQuery(String collection) throws IllegalStateException, IllegalArgumentException;
+	public abstract SolrServer getSolrServerOptimizedForQuery() throws IllegalStateException, IllegalArgumentException;
 }

@@ -8,14 +8,12 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - rework of the SolrRepository concept (https://bugs.eclipse.org/bugs/show_bug.cgi?id=337404)
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
 
 import java.net.MalformedURLException;
-import java.util.HashMap;
-import java.util.Map;
 
-import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
 import org.eclipse.gyrex.persistence.solr.ISolrRepositoryConstants;
 import org.eclipse.gyrex.persistence.solr.SolrServerRepository;
 import org.eclipse.gyrex.persistence.solr.config.SolrServerType;
@@ -28,8 +26,6 @@ import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A repository provider for Solr repositories.
@@ -49,8 +45,6 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 	 * <code>serverUrl</code>)
 	 */
 	public static final String PREF_KEY_SERVER_URL = "serverUrl";
-
-	private static final Logger LOG = LoggerFactory.getLogger(SolrRepositoryProvider.class);
 
 	private final CoreContainer coreContainer;
 
@@ -79,49 +73,35 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 		return new SolrRepository(repositoryId, this, createServers(repositoryId, repositoryPreferences));
 	}
 
-	private Map<String, SolrServer[]> createServers(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
-		String[] collections;
-		try {
-			collections = repositoryPreferences.getChildrenNames("collections");
-		} catch (final Exception e) {
-			LOG.error("Error reading configuration of repository {}.", new Object[] { repositoryId, e });
-			throw new IllegalStateException(String.format("Unable to read configuration of repository %s. %s", repositoryId, e.getMessage()));
-		}
-		if (collections.length == 0) {
-			throw new IllegalStateException(String.format("Repository %s not configured. No collections defined!", repositoryId));
-		}
-		final Map<String, SolrServer[]> servers = new HashMap<String, SolrServer[]>(collections.length);
-		for (final String collection : collections) {
-			if (!BaseMetric.isValidId(collection)) {
-				throw new IllegalStateException(String.format("Repository %s not configured correctly. Invalid chars detected in collection name '%2'. Please use only ASCII lower- and uppercase letters a-z and A-Z and/or numbers 0-9", repositoryId, collection));
-			}
-			final String typeStr = repositoryPreferences.get("collections/" + collection + "/" + PREF_KEY_SERVER_TYPE, null);
-			final SolrServerType serverType = typeStr == null ? SolrServerType.EMBEDDED : SolrServerType.valueOf(typeStr);
-			switch (serverType) {
-				case EMBEDDED:
-					final SolrServer embeddedServer = getEmbeddedServer(repositoryId, collection);
-					servers.put(collection, new SolrServer[] { embeddedServer, embeddedServer });
-					break;
+	private SolrServer[] createServers(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
 
-				case REMOTE:
-					final String urlString = repositoryPreferences.get("collections/" + collection + "/" + PREF_KEY_SERVER_URL, null);
-					try {
-						servers.put(collection, new SolrServer[] { new CommonsHttpSolrServer(urlString), createReadServer(urlString) });
-					} catch (final MalformedURLException e) {
-						throw new IllegalStateException(String.format("Repository %s not configured correctly. Server URL '%s' is invalid for collection %s. %s", repositoryId, urlString, collection, e.getMessage()));
-					}
-					break;
+		final SolrServer[] servers;
+		final String typeStr = repositoryPreferences.get(PREF_KEY_SERVER_TYPE, null);
+		final SolrServerType serverType = typeStr == null ? SolrServerType.EMBEDDED : SolrServerType.valueOf(typeStr);
+		switch (serverType) {
+			case EMBEDDED:
+				final SolrServer embeddedServer = getEmbeddedServer(repositoryId);
+				servers = new SolrServer[] { embeddedServer, embeddedServer };
+				break;
 
-				default:
-					throw new IllegalStateException(String.format("Repository %s not configured correctly. Unsupported server type %s for collection %s", repositoryId, typeStr, collection));
-			}
+			case REMOTE:
+				final String urlString = repositoryPreferences.get(PREF_KEY_SERVER_URL, null);
+				try {
+					servers = new SolrServer[] { new CommonsHttpSolrServer(urlString), createReadServer(urlString) };
+				} catch (final MalformedURLException e) {
+					throw new IllegalStateException(String.format("Repository %s not configured correctly. Server URL '%s' is invalid.  %s", repositoryId, urlString, e.getMessage()));
+				}
+				break;
+
+			default:
+				throw new IllegalStateException(String.format("Repository %s not configured correctly. Unsupported server type %s", repositoryId, typeStr));
 		}
 		return servers;
 	}
 
-	private SolrServer getEmbeddedServer(final String repositoryId, final String collection) {
+	private SolrServer getEmbeddedServer(final String repositoryId) {
 		// compute the core name
-		final String coreName = SolrActivator.getEmbeddedSolrCoreName(repositoryId, collection);
+		final String coreName = SolrActivator.getEmbeddedSolrCoreName(repositoryId);
 		// check core
 		final SolrCore core = coreContainer.getCore(coreName);
 		if (null == core) {
