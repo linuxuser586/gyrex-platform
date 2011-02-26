@@ -11,6 +11,7 @@
  */
 package org.eclipse.gyrex.server.tests.internal;
 
+import org.eclipse.gyrex.cds.solr.tests.AllSolrCdsTests;
 import org.eclipse.gyrex.cloud.tests.internal.AllCloudTests;
 import org.eclipse.gyrex.context.tests.internal.AllContextTests;
 
@@ -22,7 +23,7 @@ import org.junit.runners.Suite.SuiteClasses;
  *
  */
 @RunWith(Suite.class)
-@SuiteClasses({ AllCloudTests.class, AllContextTests.class })
+@SuiteClasses({ AllCloudTests.class, AllContextTests.class, AllSolrCdsTests.class })
 public class AllServerTests {
 
 }
