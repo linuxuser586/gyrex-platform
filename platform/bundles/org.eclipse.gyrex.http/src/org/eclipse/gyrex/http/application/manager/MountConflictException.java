@@ -1,21 +1,22 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.http.application.manager;
 
-import java.text.MessageFormat;
-
+import org.eclipse.gyrex.http.internal.HttpActivator;
 
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 
 /**
  * Indicates that an application could not be mount at a specific mount point.
@@ -32,6 +33,6 @@ public class MountConflictException extends CoreException {
 	 *            the mount point
 	 */
 	public MountConflictException(final String url) {
-		super(HttpActivator.getInstance().getStatusUtil().createError(1, MessageFormat.format("URL ''{0}'' already used.", url), null));
+		super(new Status(IStatus.ERROR, HttpActivator.SYMBOLIC_NAME, NLS.bind("URL '{0}' already used.", url), null));
 	}
 }

@@ -17,7 +17,7 @@ import org.eclipse.gyrex.http.jetty.admin.ICertificate;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.app.JettyGateway;
 import org.eclipse.gyrex.http.jetty.internal.connectors.CertificateSslConnector;
-import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.http.HttpGenerator;
@@ -184,7 +184,7 @@ public class JettyEngineApplication implements IApplication {
 			int timeout = 5000;
 			while (timeout > 0) {
 				try {
-					new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+					CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 					break;
 				} catch (final IllegalStateException e) {
 					if (JettyDebug.engine) {

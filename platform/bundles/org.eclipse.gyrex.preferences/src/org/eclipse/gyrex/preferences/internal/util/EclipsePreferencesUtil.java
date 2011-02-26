@@ -18,6 +18,8 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IPreferencesService;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 /**
  * Utility for working with Eclipse preferences.
  */
@@ -79,7 +81,11 @@ public class EclipsePreferencesUtil {
 	}
 
 	public static IPreferencesService getPreferencesService() {
-		return PreferencesActivator.getInstance().getPreferencesService();
+		try {
+			return PreferencesActivator.getInstance().getPreferencesService();
+		} catch (final Exception e) {
+			throw new IllegalStateException(String.format("The Eclipse preference service is not available. Please verify the server installation and that all necessary bundles are started. %s", ExceptionUtils.getRootCauseMessage(e)), e);
+		}
 	}
 
 	public static IEclipsePreferences getRootNode() {

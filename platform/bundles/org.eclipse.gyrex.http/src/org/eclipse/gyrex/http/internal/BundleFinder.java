@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.osgi.framework.Bundle;
-import org.osgi.service.packageadmin.PackageAdmin;
+import org.osgi.framework.FrameworkUtil;
 
 /**
  * Finds the calling bundle
@@ -37,14 +37,12 @@ class BundleFinder implements PrivilegedAction<List<Bundle>> {
 		}
 	});
 
-	private final PackageAdmin packageAdmin;
 	private final Bundle host;
 
 	/**
 	 * Creates a new instance.
 	 */
-	public BundleFinder(final PackageAdmin packageAdmin, final Bundle host) {
-		this.packageAdmin = packageAdmin;
+	public BundleFinder(final Bundle host) {
 		this.host = host;
 	}
 
@@ -67,7 +65,7 @@ class BundleFinder implements PrivilegedAction<List<Bundle>> {
 		final Class[] stack = contextFinder.getClassContext();
 		final List<Bundle> result = new ArrayList<Bundle>(1);
 		for (final Class clazz : stack) {
-			final Bundle bundle = packageAdmin.getBundle(clazz);
+			final Bundle bundle = FrameworkUtil.getBundle(clazz);
 			if ((null != bundle) && !bundle.equals(host)) {
 				result.add(bundle);
 				return result;

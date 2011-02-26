@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.http.jetty.internal;
 
 import org.eclipse.gyrex.boot.internal.app.ServerApplication;
-import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -52,7 +52,7 @@ final class JettyStarter extends Job {
 	protected IStatus run(final IProgressMonitor monitor) {
 		monitor.beginTask("Staring Jetty", 100);
 		try {
-			final IEclipsePreferences preferences = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+			final IEclipsePreferences preferences = CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 
 			final SelectChannelConnector connector = new SelectChannelConnector();
 			connector.setPort(preferences.getInt("port", 80));

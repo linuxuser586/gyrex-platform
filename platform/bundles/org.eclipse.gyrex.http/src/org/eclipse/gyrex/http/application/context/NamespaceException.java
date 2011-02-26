@@ -14,6 +14,8 @@ package org.eclipse.gyrex.http.application.context;
 import org.eclipse.gyrex.http.internal.HttpActivator;
 
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 /**
  * Indicated that a requested alias is already in use.
@@ -36,6 +38,6 @@ public final class NamespaceException extends CoreException {
 	 *            the alias already in use
 	 */
 	public NamespaceException(final String alias) {
-		super(HttpActivator.getInstance().getStatusUtil().createError(0, "Alias '" + alias + "' already in use.", null));
+		super(new Status(IStatus.ERROR, HttpActivator.SYMBOLIC_NAME, "Alias '" + alias + "' already in use.", null));
 	}
 }

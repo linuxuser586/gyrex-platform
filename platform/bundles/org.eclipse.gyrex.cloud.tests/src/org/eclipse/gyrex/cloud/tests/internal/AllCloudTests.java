@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -9,16 +9,19 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.common.logging;
+package org.eclipse.gyrex.cloud.tests.internal;
+
+import org.eclipse.gyrex.cloud.tests.internal.queue.ZooKeeperQueueTests;
+
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
- * Tags for classifying log messages based on the log source.
+ *
  */
-public enum LogSource implements LogTag {
+@RunWith(Suite.class)
+@SuiteClasses({ ZooKeeperQueueTests.class })
+public class AllCloudTests {
 
-	/** a platform message (eg., server infrastructure code) */
-	PLATFORM,
-
-	/** an application code related message (eg., business logic) */
-	APPLICATION
 }

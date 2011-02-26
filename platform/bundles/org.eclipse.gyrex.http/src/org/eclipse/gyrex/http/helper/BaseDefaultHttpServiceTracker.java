@@ -1,18 +1,18 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.http.helper;
 
-
 import org.eclipse.gyrex.http.internal.HttpActivator;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
@@ -22,11 +22,12 @@ import org.osgi.util.tracker.ServiceTracker;
 /**
  * Base HTTP service tracker for Gyrex default HTTP service.
  */
-public abstract class BaseDefaultHttpServiceTracker extends ServiceTracker {
+public abstract class BaseDefaultHttpServiceTracker extends ServiceTracker<HttpService, HttpService> {
 
 	/**
 	 * filter string for the default http service (value
-	 * <code>(&(objectClass=org.osgi.service.http.HttpService)(other.info=org.eclipse.gyrex.http.default))</code>)
+	 * <code>(&(objectClass=org.osgi.service.http.HttpService)(other.info=org.eclipse.gyrex.http.default))</code>
+	 * )
 	 */
 	private static final String FILTER_DEFAULT_HTTP_SERVICE = "(&(objectClass=" + HttpService.class.getName() + ")(other.info=" + HttpActivator.TYPE_WEB + "))";
 

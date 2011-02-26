@@ -15,8 +15,8 @@
    <extension
          point="org.eclipse.equinox.preferences.preferences">
       <scope
-            class="org.eclipse.gyrex.preferences.internal.PlatformPreferencesScope"
-            name="platform">
+            class="org.eclipse.gyrex.preferences.internal.CloudPreferencesScopeFactory"
+            name="cloud">
       </scope>
    </extension>
 

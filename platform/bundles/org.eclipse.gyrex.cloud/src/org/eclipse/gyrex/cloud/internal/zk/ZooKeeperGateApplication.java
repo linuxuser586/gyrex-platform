@@ -55,13 +55,13 @@ public class ZooKeeperGateApplication implements IApplication {
 		}
 
 		@Override
-		public void connected() {
+		public void connected(ZooKeeperGate gate) {
 			// reset delay on successful connect
 			delay = INITIAL_CONNECT_DELAY;
 		}
 
 		@Override
-		public void disconnected() {
+		public void disconnected(ZooKeeperGate gate) {
 			if (CloudDebug.zooKeeperGateLifecycle) {
 				LOG.debug("Processing disconnect event from gate.");
 			}

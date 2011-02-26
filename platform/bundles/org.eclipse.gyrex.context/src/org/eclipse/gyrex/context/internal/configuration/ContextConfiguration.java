@@ -14,7 +14,7 @@ package org.eclipse.gyrex.context.internal.configuration;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.ContextDebug;
-import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -79,7 +79,7 @@ public final class ContextConfiguration {
 	}
 
 	public static IEclipsePreferences getRootNodeForContextPreferences() {
-		return (IEclipsePreferences) new PlatformScope().getNode(ContextActivator.SYMBOLIC_NAME).node(CONTEXTS);
+		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(ContextActivator.SYMBOLIC_NAME).node(CONTEXTS);
 	}
 
 	/**

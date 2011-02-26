@@ -89,7 +89,7 @@ public class NodeConfigurer implements INodeConfigurer {
 
 			// store in instance preferences if local
 			if (new NodeInfo().getNodeId().equals(nodeId)) {
-				final Preferences preferences = new InstanceScope().getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
+				final Preferences preferences = InstanceScope.INSTANCE.getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
 				if (connectString != null) {
 					preferences.put(ZooKeeperGateConfig.PREF_KEY_CLIENT_CONNECT_STRING, connectString);
 				} else {
@@ -118,7 +118,7 @@ public class NodeConfigurer implements INodeConfigurer {
 
 	@Override
 	public String getConnectionString() {
-		final Preferences preferences = new InstanceScope().getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
+		final Preferences preferences = InstanceScope.INSTANCE.getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
 		return preferences.get(ZooKeeperGateConfig.PREF_KEY_CLIENT_CONNECT_STRING, null);
 	}
 

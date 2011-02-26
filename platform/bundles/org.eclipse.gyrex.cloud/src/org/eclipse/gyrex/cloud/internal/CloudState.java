@@ -251,7 +251,7 @@ public class CloudState implements IConnectionMonitor {
 	}
 
 	@Override
-	public void connected() {
+	public void connected(ZooKeeperGate gate) {
 		// update state (but only if DISCONNECTED)
 		if (!state.compareAndSet(State.DISCONNECTED, State.CONNECTING)) {
 			LOG.warn("Received CONNECTED event but old state is not DISCONNECTED: {}", this);
@@ -263,7 +263,7 @@ public class CloudState implements IConnectionMonitor {
 	};
 
 	@Override
-	public void disconnected() {
+	public void disconnected(ZooKeeperGate gate) {
 		final State oldState = state.getAndSet(State.DISCONNECTED);
 		if (oldState == State.DISCONNECTED) {
 			// already disconnected

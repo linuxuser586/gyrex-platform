@@ -64,13 +64,19 @@ public class ZooKeeperGate {
 
 		/**
 		 * the connection has been established
+		 * 
+		 * @param gate
+		 *            the gate which have been connected
 		 */
-		void connected();
+		void connected(ZooKeeperGate gate);
 
 		/**
 		 * the connection has been closed
+		 * 
+		 * @param gate
+		 *            the gate which have been disconnected
 		 */
-		void disconnected();
+		void disconnected(ZooKeeperGate gate);
 	}
 
 	/**
@@ -79,6 +85,7 @@ public class ZooKeeperGate {
 	private static final class NotifyConnectionListener implements ISafeRunnable {
 		private final boolean connected;
 		private final Object listener;
+		private final ZooKeeperGate gate;
 
 		/**
 		 * Creates a new instance.
@@ -86,10 +93,12 @@ public class ZooKeeperGate {
 		 * @param connected
 		 * @param listener
 		 * @param gate
+		 * @param gate
 		 */
-		private NotifyConnectionListener(final boolean connected, final Object listener) {
+		private NotifyConnectionListener(final boolean connected, final Object listener, final ZooKeeperGate gate) {
 			this.connected = connected;
 			this.listener = listener;
+			this.gate = gate;
 		}
 
 		@Override
@@ -103,9 +112,9 @@ public class ZooKeeperGate {
 		@Override
 		public void run() throws Exception {
 			if (connected) {
-				((IConnectionMonitor) listener).connected();
+				((IConnectionMonitor) listener).connected(gate);
 			} else {
-				((IConnectionMonitor) listener).disconnected();
+				((IConnectionMonitor) listener).disconnected(gate);
 			}
 		}
 	}
@@ -119,8 +128,9 @@ public class ZooKeeperGate {
 	/**
 	 * Adds a connection monitor.
 	 * <p>
-	 * If the gate is currently UP, the {@link IConnectionMonitor#connected()}
-	 * will be called as part of the registration.
+	 * If the gate is currently UP, the
+	 * {@link IConnectionMonitor#connected(ZooKeeperGate)} will be called as
+	 * part of the registration.
 	 * </p>
 	 * <p>
 	 * This method has no effect if the monitor is already registered or the
@@ -141,7 +151,7 @@ public class ZooKeeperGate {
 
 		// notify
 		if (connected.get()) {
-			SafeRunner.run(new NotifyConnectionListener(true, connectionMonitor));
+			SafeRunner.run(new NotifyConnectionListener(true, connectionMonitor, instanceRef.get()));
 		}
 	}
 
@@ -187,8 +197,8 @@ public class ZooKeeperGate {
 	 * Removed a connection monitor.
 	 * <p>
 	 * If the gate is currently UP, the
-	 * {@link IConnectionMonitor#disconnected()} will be called as part of the
-	 * registration.
+	 * {@link IConnectionMonitor#disconnected(ZooKeeperGate)} will be called as
+	 * part of the registration.
 	 * </p>
 	 * <p>
 	 * This method has no effect if the monitor is not registered
@@ -211,7 +221,7 @@ public class ZooKeeperGate {
 
 		// notify
 		if (notify) {
-			SafeRunner.run(new NotifyConnectionListener(false, connectionMonitor));
+			SafeRunner.run(new NotifyConnectionListener(false, connectionMonitor, instanceRef.get()));
 		}
 	}
 
@@ -476,12 +486,12 @@ public class ZooKeeperGate {
 		// notify registered listeners
 		final Object[] listeners = connectionListeners.getListeners();
 		for (final Object listener : listeners) {
-			SafeRunner.run(new NotifyConnectionListener(connected, listener));
+			SafeRunner.run(new NotifyConnectionListener(connected, listener, this));
 		}
 
 		// notify reconnect listener
 		if (reconnectMonitor != null) {
-			SafeRunner.run(new NotifyConnectionListener(connected, reconnectMonitor));
+			SafeRunner.run(new NotifyConnectionListener(connected, reconnectMonitor, this));
 		}
 	}
 

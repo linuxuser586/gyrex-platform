@@ -25,6 +25,5 @@ Export-Package: org.eclipse.gyrex.model.common;version="1.0.0";uses:="org.eclips
    org.eclipse.gyrex.persistence.storage.content"
 Require-Bundle: org.eclipse.gyrex.common;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.context;bundle-version="[1.0.0,2.0.0)",
- org.eclipse.gyrex.configuration;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.monitoring;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.gyrex.persistence;bundle-version="[1.0.0,2.0.0)"

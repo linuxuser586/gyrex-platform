@@ -22,7 +22,7 @@ import org.eclipse.gyrex.http.jetty.admin.ICertificate;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 import org.eclipse.gyrex.monitoring.diagnostics.IStatusConstants;
-import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -87,7 +87,7 @@ public class JettyManagerImpl implements IJettyManager {
 			if (!IdHelper.isValidId(certificateId)) {
 				throw new IllegalArgumentException("invalid id");
 			}
-			final IEclipsePreferences rootNode = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 			if (!rootNode.nodeExists(PREF_NODE_CERTIFICATES)) {
 				return null;
 			}
@@ -103,13 +103,13 @@ public class JettyManagerImpl implements IJettyManager {
 	}
 
 	private Preferences getCertificateNode(final String certificateId) {
-		return new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME).node(PREF_NODE_CERTIFICATES).node(certificateId);
+		return CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME).node(PREF_NODE_CERTIFICATES).node(certificateId);
 	}
 
 	@Override
 	public Collection<ICertificate> getCertificates() {
 		try {
-			final IEclipsePreferences rootNode = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 			if (!rootNode.nodeExists(PREF_NODE_CERTIFICATES)) {
 				return Collections.emptyList();
 			}
@@ -134,7 +134,7 @@ public class JettyManagerImpl implements IJettyManager {
 			if (!IdHelper.isValidId(channelId)) {
 				throw new IllegalArgumentException("invalid id");
 			}
-			final IEclipsePreferences rootNode = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 			if (!rootNode.nodeExists(PREF_NODE_CHANNELS)) {
 				return null;
 			}
@@ -150,13 +150,13 @@ public class JettyManagerImpl implements IJettyManager {
 	}
 
 	private Preferences getChannelNode(final String channelId) {
-		return new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME).node(PREF_NODE_CHANNELS).node(channelId);
+		return CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME).node(PREF_NODE_CHANNELS).node(channelId);
 	}
 
 	@Override
 	public Collection<ChannelDescriptor> getChannels() {
 		try {
-			final IEclipsePreferences rootNode = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 			if (!rootNode.nodeExists(PREF_NODE_CHANNELS)) {
 				return Collections.emptyList();
 			}
@@ -232,7 +232,7 @@ public class JettyManagerImpl implements IJettyManager {
 				throw new IllegalArgumentException("invalid id");
 			}
 
-			final IEclipsePreferences rootNode = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 			if (!rootNode.nodeExists(PREF_NODE_CERTIFICATES)) {
 				return;
 			}
@@ -255,7 +255,7 @@ public class JettyManagerImpl implements IJettyManager {
 				throw new IllegalArgumentException("invalid id");
 			}
 
-			final IEclipsePreferences rootNode = new PlatformScope().getNode(HttpJettyActivator.SYMBOLIC_NAME);
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(HttpJettyActivator.SYMBOLIC_NAME);
 			if (!rootNode.nodeExists(PREF_NODE_CHANNELS)) {
 				return;
 			}

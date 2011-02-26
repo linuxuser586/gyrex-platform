@@ -15,8 +15,6 @@ import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
 import org.eclipse.gyrex.server.Platform;
 
-import org.eclipse.core.runtime.preferences.IPreferencesService;
-
 /**
  * ZooKeeper Gate configuration.
  */
@@ -35,13 +33,11 @@ public class ZooKeeperGateConfig {
 
 	private final String nodeId;
 
-	private final String nodeLocation;
 	private String connectString;
 	private int sessionTimeout;
 
 	public ZooKeeperGateConfig(final NodeInfo info) {
 		nodeId = info.getNodeId();
-		nodeLocation = info.getLocation();
 	}
 
 	/**
@@ -59,10 +55,8 @@ public class ZooKeeperGateConfig {
 	 * @return the connect string
 	 */
 	private String getConnectStringFromPreferences() {
-		final IPreferencesService preferenceService = CloudActivator.getInstance().getPreferenceService();
-
 		// check for node specific string
-		return preferenceService.getString(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_CONNECT_STRING, getDefaultConnectString(), null);
+		return CloudActivator.getInstance().getPreferenceService().getString(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_CONNECT_STRING, getDefaultConnectString(), null);
 	}
 
 	/**
@@ -80,10 +74,8 @@ public class ZooKeeperGateConfig {
 	 * @return the connect string
 	 */
 	private int getSessionTimeoutFromPreferences() {
-		final IPreferencesService preferenceService = CloudActivator.getInstance().getPreferenceService();
-
 		// check for node specific string
-		return preferenceService.getInt(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_TIMEOUT, 10000, null);
+		return CloudActivator.getInstance().getPreferenceService().getInt(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_TIMEOUT, 10000, null);
 	}
 
 	public void readFromPreferences() {

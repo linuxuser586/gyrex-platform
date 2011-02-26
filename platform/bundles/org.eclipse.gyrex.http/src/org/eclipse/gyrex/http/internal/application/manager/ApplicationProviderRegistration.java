@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -15,17 +15,22 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
-
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
-import org.eclipse.gyrex.http.internal.HttpActivator;
+
+import org.eclipse.core.runtime.CoreException;
+
 import org.osgi.framework.ServiceReference;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A registered {@link ApplicationProvider}
  */
 public class ApplicationProviderRegistration {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ApplicationProviderRegistration.class);
 
 	private final AtomicReference<ApplicationProvider> provider;
 	private final List<ApplicationRegistration> activeApplications = new CopyOnWriteArrayList<ApplicationRegistration>();
@@ -56,7 +61,8 @@ public class ApplicationProviderRegistration {
 		}
 		final Application application = provider.createApplication(applicationRegistration.getApplicationId(), applicationRegistration.getContext());
 		if (null == application) {
-			HttpActivator.getInstance().getStatusUtil().createError(0, "Provider '" + provider.getId() + "' did not return an application instance", null);
+			LOG.error("Provider '{}' did not return an application instance", provider.getId());
+			return null;
 		}
 		activeApplications.add(applicationRegistration);
 		return application;

@@ -47,7 +47,7 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 	@Override
 	public boolean inStandaloneMode() {
 		// TODO duplicated in NodeConfigurer
-		final Preferences preferences = new InstanceScope().getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
+		final Preferences preferences = InstanceScope.INSTANCE.getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
 		return preferences.get(ZooKeeperGateConfig.PREF_KEY_CLIENT_CONNECT_STRING, null) == null;
 	}
 }

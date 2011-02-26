@@ -11,29 +11,20 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.common.services.IServiceProxy;
-import org.eclipse.gyrex.configuration.constraints.PlatformConfigurationConstraint;
-import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
-import org.eclipse.gyrex.http.internal.application.defaultapp.DefaultApplicationProvider;
-
-import org.eclipse.osgi.service.datalocation.Location;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
-import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 
 public class HttpActivator extends BaseBundleActivator {
 
 	/** PLUGIN_ID */
-	public static final String PLUGIN_ID = "org.eclipse.gyrex.http";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.http";
 
 	/** server type for the default web server */
-	public static final String TYPE_WEB = PLUGIN_ID + ".default";
+	public static final String TYPE_WEB = SYMBOLIC_NAME + ".default";
 
 	/** the shared instance */
 	private static HttpActivator sharedInstance;
@@ -68,9 +59,7 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 	}
 
-	private ServiceTracker packageAdminTracker;
 	private ServiceTracker gatewayTracker;
-	private final AtomicReference<IServiceProxy<Location>> instanceLocationRef = new AtomicReference<IServiceProxy<Location>>();
 
 	/**
 	 * Creates a new instance.
@@ -80,33 +69,18 @@ public class HttpActivator extends BaseBundleActivator {
 	 * </p>
 	 */
 	public HttpActivator() {
-		super(PLUGIN_ID);
+		super(SYMBOLIC_NAME);
 	}
 
 	@Override
 	protected synchronized void doStart(final BundleContext context) throws Exception {
 		sharedInstance = this;
 
-		// get instance location
-		instanceLocationRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
-
-		// register configuration checkers
-		getServiceHelper().registerService(PlatformConfigurationConstraint.class.getName(), new JettyDefaultStartDisabledConstraint(context), "Gyrex", "Jetty Auto Start Check", null, null);
-
-		// open package admin tracker
-		if (null == packageAdminTracker) {
-			packageAdminTracker = new ServiceTracker(context, PackageAdmin.class.getName(), null);
-			packageAdminTracker.open();
-		}
-
 		// track the http gateway
 		if (null == gatewayTracker) {
 			gatewayTracker = new HttpGatewayTracker(context);
 			gatewayTracker.open();
 		}
-
-		// register our default application provider
-		getServiceHelper().registerService(ApplicationProvider.class.getName(), new DefaultApplicationProvider(), "Eclipse Gyrex", "Default Application Provider", null, null);
 	}
 
 	@Override
@@ -117,37 +91,8 @@ public class HttpActivator extends BaseBundleActivator {
 			gatewayTracker = null;
 		}
 
-		// stop package admin tracker
-		if (null != packageAdminTracker) {
-			packageAdminTracker.close();
-			packageAdminTracker = null;
-		}
-
-		// unset instance location
-		instanceLocationRef.set(null);
-
 		// unset instance
 		sharedInstance = null;
-	}
-
-	/**
-	 * Returns the bundle that loaded the provided class, or <code>null</code>
-	 * if the bundle could not be determined.
-	 * 
-	 * @return the bundle or <code>null</code>
-	 */
-	public Bundle getBundleId(final Class clazz) {
-		if (clazz == null) {
-			return null;
-		}
-
-		final ServiceTracker packageAdminTracker = this.packageAdminTracker;
-		if (null == packageAdminTracker) {
-			return null;
-		}
-
-		final PackageAdmin packageAdmin = (PackageAdmin) packageAdminTracker.getService();
-		return null != packageAdmin ? packageAdmin.getBundle(clazz) : null;
 	}
 
 	/**
@@ -166,35 +111,16 @@ public class HttpActivator extends BaseBundleActivator {
 	 * @return the bundle or <code>null</code>
 	 */
 	public Bundle getCallingBundle() {
-		final ServiceTracker packageAdminTracker = this.packageAdminTracker;
-		if (null == packageAdminTracker) {
-			return null;
-		}
-
-		final PackageAdmin packageAdmin = (PackageAdmin) packageAdminTracker.getService();
-		if (null == packageAdmin) {
-			return null;
-		}
-
 		final Bundle bundle = getBundle();
 		if (null == bundle) {
 			return null;
 		}
 
-		return new BundleFinder(packageAdmin, bundle).getCallingBundle();
+		return new BundleFinder(bundle).getCallingBundle();
 	}
 
 	@Override
 	protected Class getDebugOptions() {
 		return HttpDebug.class;
-	}
-
-	public Location getInstanceLocation() {
-		final IServiceProxy<Location> serviceProxy = instanceLocationRef.get();
-		if (null == serviceProxy) {
-			throw createBundleInactiveException();
-		}
-
-		return serviceProxy.getService();
 	}
 }

@@ -14,7 +14,7 @@ package org.eclipse.gyrex.preferences.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -113,8 +113,8 @@ public class InstanceBasedPreferences implements IEclipsePreferences {
 			if (parent instanceof InstanceBasedPreferences) {
 				instanceNode = (IEclipsePreferences) ((InstanceBasedPreferences) parent).instanceNode.node(name);
 			} else {
-				// the parent is the ROOT and the name should be "platform"
-				if (!parent.absolutePath().equals(PATH_SEPARATOR) || !name.equals(PlatformScope.NAME)) {
+				// the parent is the ROOT and the name should be "cloud"
+				if (!parent.absolutePath().equals(PATH_SEPARATOR) || !name.equals(CloudScope.NAME)) {
 					throw new IllegalArgumentException(NLS.bind("name {0} and parent {1} not allowed at this point", name, parent));
 				}
 				instanceNode = (IEclipsePreferences) PreferencesActivator.getInstance().getPreferencesService().getRootNode().node(InstanceScope.SCOPE).node(PreferencesActivator.SYMBOLIC_NAME).node(name);

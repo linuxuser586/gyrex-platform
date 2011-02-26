@@ -23,7 +23,7 @@ import java.net.UnknownHostException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
@@ -292,7 +292,7 @@ public class ErrorPage {
 	}
 
 	protected void writePlatformStatus(final HttpServletRequest request, final Writer writer) throws IOException, UnsupportedEncodingException {
-		final IStatus platformStatus = PlatformConfiguration.getPlatformStatus();
+		final IStatus platformStatus = HttpJettyActivator.getPlatformStatus();
 		if (!platformStatus.isOK()) {
 			writer.write("<div class=\"dev_note\">");
 			writer.write("<div><img src=\"" + getOverallStatusImage(platformStatus) + "\" style=\"float:left;padding-right:1em;\">" + getOverallStatusMessage(platformStatus) + "<br><em>You might want to check the <a href=\"" + getAdminServerURL(request) + "\">server configuration</a>.</em></div>");

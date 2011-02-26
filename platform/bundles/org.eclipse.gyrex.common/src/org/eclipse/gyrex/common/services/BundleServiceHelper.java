@@ -14,8 +14,6 @@ package org.eclipse.gyrex.common.services;
 import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.internal.services.ServiceProxyPool;
@@ -25,7 +23,6 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Filter;
-import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 
@@ -60,40 +57,8 @@ import org.osgi.util.tracker.ServiceTracker;
  */
 public final class BundleServiceHelper {
 
-	/**
-	 * Wraps a service registration so that its registration object is removed
-	 * on {@link #unregister()}.
-	 */
-	private final class HelperServiceRegistration implements ServiceRegistration {
-		private final ServiceRegistration serviceRegistration;
-
-		private HelperServiceRegistration(final ServiceRegistration serviceRegistration) {
-			this.serviceRegistration = serviceRegistration;
-		}
-
-		@Override
-		public ServiceReference getReference() {
-			return serviceRegistration.getReference();
-		}
-
-		@Override
-		public void setProperties(final Dictionary properties) {
-			serviceRegistration.setProperties(properties);
-		}
-
-		@Override
-		public void unregister() {
-			try {
-				serviceRegistration.unregister();
-			} finally {
-				registeredServices.remove(serviceRegistration);
-			}
-		}
-	}
-
 	private final AtomicReference<BundleContext> contextRef = new AtomicReference<BundleContext>();
 	private final String symbolicName;
-	private final List<ServiceRegistration> registeredServices = new CopyOnWriteArrayList<ServiceRegistration>();
 	private final ServiceProxyPool serviceProxyPool;
 
 	/**
@@ -126,7 +91,6 @@ public final class BundleServiceHelper {
 	 */
 	public void dispose() {
 		contextRef.set(null);
-		registeredServices.clear();
 	}
 
 	private IllegalStateException newInactiveException() {
@@ -183,9 +147,7 @@ public final class BundleServiceHelper {
 			properties.put(Constants.SERVICE_RANKING, ranking);
 		}
 
-		final ServiceRegistration serviceRegistration = bundleContext.registerService(clazz, service, properties);
-		registeredServices.add(serviceRegistration);
-		return new HelperServiceRegistration(serviceRegistration);
+		return bundleContext.registerService(clazz, service, properties);
 	}
 
 	/**

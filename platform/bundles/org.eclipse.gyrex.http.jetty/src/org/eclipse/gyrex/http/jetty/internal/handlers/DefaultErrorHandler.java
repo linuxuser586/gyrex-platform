@@ -25,7 +25,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.gyrex.configuration.PlatformConfiguration;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 import org.eclipse.gyrex.http.jetty.internal.app.ApplicationHandler;
 import org.eclipse.gyrex.server.Platform;
 
@@ -304,7 +304,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 			}
 
 			writer.write(NEWLINE);
-			final IStatus platformStatus = PlatformConfiguration.getPlatformStatus();
+			final IStatus platformStatus = HttpJettyActivator.getPlatformStatus();
 			if (!platformStatus.isOK()) {
 				writer.write(getOverallStatusMessage(platformStatus) + NEWLINE);
 				writer.write("You might want to check the server configuration (" + getAdminServerURL(request) + ")." + NEWLINE);

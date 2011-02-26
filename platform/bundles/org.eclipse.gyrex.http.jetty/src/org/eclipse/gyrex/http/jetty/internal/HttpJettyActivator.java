@@ -23,6 +23,8 @@ import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.admin.JettyManagerImpl;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.osgi.util.NLS;
 
@@ -45,6 +47,19 @@ public class HttpJettyActivator extends BaseBundleActivator {
 			throw new IllegalStateException("Bundle '" + SYMBOLIC_NAME + "' is inactive.");
 		}
 		return httpJettyActivator;
+	}
+
+	public static IStatus getPlatformStatus() {
+		try {
+			final StatusMonitor monitor = getInstance().statusMonitor;
+			if (monitor != null) {
+				return monitor.getOverallStatus();
+			}
+		} catch (final IllegalStateException e) {
+			// ignored
+		}
+
+		return new Status(IStatus.ERROR, SYMBOLIC_NAME, "Jetty Integration is not active.");
 	}
 
 	public static byte[] readBundleResource(final String bundleResource) {
@@ -70,6 +85,8 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	private volatile JettyManagerImpl jettyManager;
 	private IServiceProxy<INodeEnvironment> nodeEnvironmentService;
 
+	private volatile StatusMonitor statusMonitor;
+
 	/**
 	 * Creates a new instance.
 	 */
@@ -81,6 +98,9 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
 
+		statusMonitor = new StatusMonitor(context);
+		statusMonitor.open();
+
 		jettyManager = new JettyManagerImpl();
 		getServiceHelper().registerService(IJettyManager.class.getName(), jettyManager, "Eclipse Gyrex", "Jetty Engine Manager", null, null);
 
@@ -91,6 +111,9 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	protected void doStop(final BundleContext context) throws Exception {
 		instanceRef.set(null);
 		jettyManager = null;
+
+		statusMonitor.close();
+		statusMonitor = null;
 	}
 
 	@Override
@@ -123,5 +146,4 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		}
 		return proxy.getService();
 	}
-
 }

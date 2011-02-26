@@ -16,22 +16,18 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
-import org.eclipse.gyrex.common.logging.LogAudience;
-import org.eclipse.gyrex.common.logging.LogHelper;
-import org.eclipse.gyrex.common.logging.LogSource;
 import org.eclipse.gyrex.common.services.BundleServiceHelper;
-import org.eclipse.gyrex.common.status.BundleStatusUtil;
 
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.ListenerList;
-import org.eclipse.core.runtime.Status;
-import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Version;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The default bundle activator implementation.
@@ -55,6 +51,8 @@ import org.osgi.framework.Version;
  */
 public abstract class BaseBundleActivator implements BundleActivator {
 
+	private static final Logger LOG = LoggerFactory.getLogger(BaseBundleActivator.class);
+
 	/** the shutdown participants */
 	private final ListenerList shutdownParticipants = new ListenerList(ListenerList.IDENTITY);
 
@@ -66,12 +64,6 @@ public abstract class BaseBundleActivator implements BundleActivator {
 
 	/** the bundle version */
 	private final AtomicReference<Version> bundleVersion = new AtomicReference<Version>();
-
-	/** the plug-in log */
-	private final AtomicReference<LogHelper> log = new AtomicReference<LogHelper>();
-
-	/** the status util */
-	private final AtomicReference<BundleStatusUtil> statusUtil = new AtomicReference<BundleStatusUtil>();
 
 	/** the service helper */
 	private final AtomicReference<BundleServiceHelper> serviceHelper = new AtomicReference<BundleServiceHelper>();
@@ -130,18 +122,6 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 */
 	protected final IllegalStateException createBundleInactiveException() {
 		return new IllegalStateException(MessageFormat.format("Bundle ''{0}'' is inactive.", getSymbolicName()));
-	}
-
-	/**
-	 * Creates a new status using this plug-in's id and the specified message
-	 * and cause.
-	 * 
-	 * @param message
-	 * @param cause
-	 * @return
-	 */
-	private IStatus createInternalStatus(final String message, final Throwable cause) {
-		return new Status(IStatus.ERROR, getSymbolicName(), -1, message, cause);
 	}
 
 	/**
@@ -219,7 +199,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 		if (null == bundle) {
 			return Version.emptyVersion;
 		}
-		final String version = (String) bundle.getHeaders().get(Constants.BUNDLE_VERSION);
+		final String version = bundle.getHeaders().get(Constants.BUNDLE_VERSION);
 		if (null == version) {
 			return Version.emptyVersion;
 		}
@@ -247,22 +227,6 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	}
 
 	/**
-	 * Returns the plug-in specific log that should be used for all logging
-	 * within the platform.
-	 * 
-	 * @return the bundle log
-	 * @deprecated please use SLF4J logging api
-	 */
-	@Deprecated
-	public final LogHelper getLog() {
-		checkActive();
-		if (null == log.get()) {
-			log.compareAndSet(null, new LogHelper(symbolicName));
-		}
-		return log.get();
-	}
-
-	/**
 	 * Returns the bundle's service helper.
 	 * 
 	 * @return the bundle service helper
@@ -275,19 +239,6 @@ public abstract class BaseBundleActivator implements BundleActivator {
 			throw createBundleInactiveException();
 		}
 		return bundleServiceHelper;
-	}
-
-	/**
-	 * Returns the statusUtil.
-	 * 
-	 * @return the statusUtil
-	 */
-	public final BundleStatusUtil getStatusUtil() {
-		checkActive();
-		if (null == statusUtil.get()) {
-			statusUtil.set(new BundleStatusUtil(getSymbolicName()));
-		}
-		return statusUtil.get();
 	}
 
 	/**
@@ -330,9 +281,6 @@ public abstract class BaseBundleActivator implements BundleActivator {
 		// remember the bundle
 		bundle.set(context.getBundle());
 
-		// configure the bundle log
-		getLog().configure(context);
-
 		// initialize debug options
 		final Class debugOptions = getDebugOptions();
 		if (null != debugOptions) {
@@ -359,7 +307,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 				try {
 					((IShutdownParticipant) participant).shutdown();
 				} catch (final Exception e) {
-					getLog().log(createInternalStatus(NLS.bind("Error while shutting down shutdown participant \"{0}\": {1}", participant, e), e), this, LogAudience.DEVELOPER, LogAudience.ADMIN, LogSource.PLATFORM);
+					LOG.warn("Error while shutting down shutdown participant \"{0}\": {1}", participant, e);
 				}
 			}
 
@@ -378,9 +326,6 @@ public abstract class BaseBundleActivator implements BundleActivator {
 
 		// dispose the service helper
 		serviceHelper.getAndSet(null).dispose();
-
-		// de-configure the plug-in log
-		getLog().deconfigure(context);
 
 		// forget the bundle
 		bundle.set(null);

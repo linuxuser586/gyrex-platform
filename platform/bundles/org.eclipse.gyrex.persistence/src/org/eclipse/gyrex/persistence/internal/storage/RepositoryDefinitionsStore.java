@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -15,7 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
-import org.eclipse.gyrex.preferences.PlatformScope;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.osgi.util.NLS;
@@ -40,7 +40,7 @@ class RepositoryDefinitionsStore {
 	 * Creates a new instance.
 	 */
 	public RepositoryDefinitionsStore() {
-		storage = (IEclipsePreferences) new PlatformScope().getNode(PersistenceActivator.SYMBOLIC_NAME).node(NODE_REPOSITORIES);
+		storage = (IEclipsePreferences) CloudScope.INSTANCE.getNode(PersistenceActivator.SYMBOLIC_NAME).node(NODE_REPOSITORIES);
 	}
 
 	/**
