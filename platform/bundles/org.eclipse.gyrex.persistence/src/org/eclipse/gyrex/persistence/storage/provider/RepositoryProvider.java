@@ -49,12 +49,11 @@ public abstract class RepositoryProvider extends PlatformObject {
 	private final Class<? extends Repository> repositoryType;
 
 	/**
-	 * Creates a new instance using the specified provider providerId.
+	 * Creates a new instance using the specified provider id.
 	 * 
-	 * @param providerId
-	 *            the repository provider providerId (may not be
-	 *            <code>null</code>, will be
-	 *            {@link Repository#isValidId(String) validated})
+	 * @param id
+	 *            the repository provider id (may not be <code>null</code>, will
+	 *            be {@link Repository#isValidId(String) validated})
 	 * @param repositoryType
 	 *            the public repository type contract provided by this provider
 	 *            (may not be <code>null</code>, the type name will be
@@ -63,10 +62,10 @@ public abstract class RepositoryProvider extends PlatformObject {
 	 */
 	protected RepositoryProvider(final String id, final Class<? extends Repository> repositoryType) {
 		if (null == id) {
-			throw new IllegalArgumentException("repository provider providerId must not be null");
+			throw new IllegalArgumentException("repository provider id must not be null");
 		}
 		if (!Repository.isValidId(id)) {
-			throw new IllegalArgumentException(MessageFormat.format("repository provider providerId \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
+			throw new IllegalArgumentException(MessageFormat.format("repository provider id \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
 		}
 		providerId = id;
 
@@ -106,9 +105,9 @@ public abstract class RepositoryProvider extends PlatformObject {
 	}
 
 	/**
-	 * Returns the repository provider providerId.
+	 * Returns the repository provider id.
 	 * 
-	 * @return the repository provider providerId
+	 * @return the repository provider id
 	 */
 	public final String getProviderId() {
 		return providerId;
