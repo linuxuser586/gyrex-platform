@@ -71,24 +71,24 @@ public abstract class BaseModelManager<T extends Repository> extends PlatformObj
 	}
 
 	/**
-	 * Convenience method to create a well formated metrics id based on a
-	 * manager implementation id (eg. a
-	 * <code>"com.company.xyz.model.impl"</code>), a specified context and a
-	 * repository.
+	 * Convenience method to create a well formated metrics id based on a prefix
+	 * (eg. a <code>"com.company.xyz.model.impl"</code>), a specified context
+	 * and a repository.
 	 * 
-	 * @param managerImplementationId
-	 *            the manager implementation id
+	 * @param metricsIdPrefix
+	 *            a prefix for the metrics id (eg., the manager implementation
+	 *            id)
 	 * @param context
 	 *            the context
 	 * @param repository
 	 *            the repository
 	 * @return a well formatted metrics id
 	 */
-	protected static String createMetricsId(final String managerImplementationId, final IRuntimeContext context, final Repository repository) {
+	protected static String createMetricsId(final String metricsIdPrefix, final IRuntimeContext context, final Repository repository) {
 		// handle context paths
 		final String contextPath = StringUtils.replaceChars(context.getContextPath().removeTrailingSeparator().makeRelative().toString(), '/', '.');
 		// create id
-		return managerImplementationId + "." + contextPath + ".metrics";
+		return metricsIdPrefix + "." + contextPath + ".metrics";
 	}
 
 	private final IRuntimeContext context;
