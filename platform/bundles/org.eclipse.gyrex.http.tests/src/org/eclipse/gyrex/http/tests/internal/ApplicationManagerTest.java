@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.http.tests;
+package org.eclipse.gyrex.http.tests.internal;
 
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
