@@ -90,21 +90,6 @@ public abstract class RepositoryProvider extends PlatformObject {
 	public abstract Repository createRepositoryInstance(String repositoryId, IRepositoryPreferences repositoryPreferences);
 
 	/**
-	 * Returns the name of the repository. This is the name of the class without
-	 * the package name and used by {@link #toString()}.
-	 * 
-	 * @return the name of the repository
-	 */
-	private final String getName() {
-		String string = getClass().getName();
-		final int index = string.lastIndexOf('.');
-		if (index != -1) {
-			string = string.substring(index + 1, string.length());
-		}
-		return string;
-	}
-
-	/**
 	 * Returns the repository provider id.
 	 * 
 	 * @return the repository provider id
@@ -140,12 +125,12 @@ public abstract class RepositoryProvider extends PlatformObject {
 
 	/**
 	 * Returns a string containing a concise, human-readable description of the
-	 * repository.
+	 * provider.
 	 * 
-	 * @return a string representation of the repository
+	 * @return a string representation of the provider
 	 */
 	@Override
 	public final String toString() {
-		return getName() + " {" + getProviderId() + "}";
+		return getClass().getSimpleName() + " {" + getProviderId() + "}";
 	}
 }
