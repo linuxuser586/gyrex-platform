@@ -42,6 +42,7 @@ import org.eclipse.osgi.util.NLS;
 import org.osgi.service.event.Event;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -58,6 +59,35 @@ import org.slf4j.LoggerFactory;
  * </p>
  */
 public class CloudState implements IConnectionMonitor {
+
+	static final class AutoApproveJob extends Job {
+
+		private final NodeInfo nodeInfo;
+
+		/**
+		 * Creates a new instance.
+		 * 
+		 * @param nodeInfo
+		 */
+		public AutoApproveJob(final NodeInfo nodeInfo) {
+			super("Node Auto-Approval Job");
+			this.nodeInfo = nodeInfo;
+			setSystem(true);
+			setPriority(LONG);
+		}
+
+		@Override
+		protected IStatus run(final IProgressMonitor monitor) {
+			try {
+				ZooKeeperNodeInfo.approve(nodeInfo.getNodeId(), null, nodeInfo.getLocation());
+				LOG.error("Node {} approved autoamtically. Welcome to your local cloud!", nodeInfo.getNodeId());
+				return Status.OK_STATUS;
+			} catch (final Exception e) {
+				LOG.error("Unable to automatically approve node {}. Please check server logs. {}", new Object[] { nodeInfo.getNodeId(), ExceptionUtils.getRootCauseMessage(e), e });
+				return Status.CANCEL_STATUS;
+			}
+		}
+	}
 
 	private final class RegistrationJob extends Job implements ISchedulingRule {
 		private static final int MAX_DELAY = 30000;
@@ -251,7 +281,7 @@ public class CloudState implements IConnectionMonitor {
 	}
 
 	@Override
-	public void connected(ZooKeeperGate gate) {
+	public void connected(final ZooKeeperGate gate) {
 		// update state (but only if DISCONNECTED)
 		if (!state.compareAndSet(State.DISCONNECTED, State.CONNECTING)) {
 			LOG.warn("Received CONNECTED event but old state is not DISCONNECTED: {}", this);
@@ -263,11 +293,18 @@ public class CloudState implements IConnectionMonitor {
 	};
 
 	@Override
-	public void disconnected(ZooKeeperGate gate) {
+	public void disconnected(final ZooKeeperGate gate) {
 		final State oldState = state.getAndSet(State.DISCONNECTED);
 		if (oldState == State.DISCONNECTED) {
 			// already disconnected
+			if (CloudDebug.cloudState) {
+				LOG.debug("Ignoring disconnect request for already disconnected node.");
+			}
 			return;
+		}
+
+		if (CloudDebug.cloudState) {
+			LOG.debug("Attempting node de-registration from cloud.", new Exception("Node Disconnect Call Stack"));
 		}
 
 		// synchronize in order to prevent concurrent registrations
@@ -320,19 +357,9 @@ public class CloudState implements IConnectionMonitor {
 		}
 
 		// check if there is a recored in the "approved" list
-		NodeInfo approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
+		final NodeInfo approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
 		if (approvedNodeInfo != null) {
 			return approvedNodeInfo;
-		}
-
-		// auto-approve in standalone mode
-		if (Platform.inDevelopmentMode() && new NodeEnvironmentImpl().inStandaloneMode()) {
-			LOG.info("Attempting automatic approval of node {} in standalong development system.", info);
-			ZooKeeperNodeInfo.approve(info.getNodeId(), null, info.getLocation());
-			approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
-			if (approvedNodeInfo != null) {
-				return approvedNodeInfo;
-			}
 		}
 
 		// create an ephemeral pending record
@@ -453,6 +480,11 @@ public class CloudState implements IConnectionMonitor {
 				if (nodeInfo.isApproved()) {
 					setNodeOnline(nodeInfo);
 					LOG.info("Node {} is now online.", nodeInfo);
+				} else if (Platform.inDevelopmentMode() && new NodeEnvironmentImpl().inStandaloneMode()) {
+					// auto-approve in standalone mode
+					// this needs to be async because approval triggers ZK events on which we react
+					LOG.info("Attempting automatic approval of node {} in standalong development system.", nodeInfo);
+					new AutoApproveJob(nodeInfo).schedule(500l);
 				} else {
 					LOG.info("Node {} needs to be approved first. Please contact cloud administrator with node details for approval.", nodeInfo);
 				}

@@ -50,4 +50,13 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 		final Preferences preferences = InstanceScope.INSTANCE.getNode(CloudActivator.SYMBOLIC_NAME).node(ZooKeeperGateConfig.PREF_NODE_ZOOKEEPER);
 		return preferences.get(ZooKeeperGateConfig.PREF_KEY_CLIENT_CONNECT_STRING, null) == null;
 	}
+
+	@Override
+	public boolean isApproved() {
+		final NodeInfo nodeInfo = CloudState.getNodeInfo();
+		if (nodeInfo == null) {
+			return false;
+		}
+		return nodeInfo.isApproved();
+	}
 }

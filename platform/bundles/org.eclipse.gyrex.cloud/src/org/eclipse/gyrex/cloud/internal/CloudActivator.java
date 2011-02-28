@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -13,6 +13,7 @@ package org.eclipse.gyrex.cloud.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 
@@ -56,6 +57,8 @@ public class CloudActivator extends BaseBundleActivator {
 	private final AtomicReference<IServiceProxy<IPreferencesService>> preferenceServiceRef = new AtomicReference<IServiceProxy<IPreferencesService>>();
 	private final AtomicReference<IServiceProxy<EventAdmin>> eventAdminRef = new AtomicReference<IServiceProxy<EventAdmin>>();
 
+	private volatile NodeEnvironmentImpl nodeEnvironment;
+
 	/**
 	 * Creates a new instance.
 	 */
@@ -76,6 +79,10 @@ public class CloudActivator extends BaseBundleActivator {
 		preferenceServiceRef.set(getServiceHelper().trackService(IPreferencesService.class));
 		eventAdminRef.set(getServiceHelper().trackService(EventAdmin.class));
 
+		// register node environment
+		nodeEnvironment = new NodeEnvironmentImpl();
+		getServiceHelper().registerService(INodeEnvironment.SERVICE_NAME, nodeEnvironment, "Eclipse Gyrex", "Node environment service.", null, null);
+
 		// register node with cloud
 		CloudState.registerNode();
 	}
@@ -84,6 +91,8 @@ public class CloudActivator extends BaseBundleActivator {
 	protected void doStop(final BundleContext context) throws Exception {
 		// unregister node with cloud
 		CloudState.unregisterNode();
+
+		nodeEnvironment = null;
 
 		instanceRef.set(null);
 		instanceLocationServiceRef.set(null);
@@ -102,6 +111,15 @@ public class CloudActivator extends BaseBundleActivator {
 			throw createBundleInactiveException();
 		}
 		return serviceProxy.getService();
+	}
+
+	/**
+	 * Returns the nodeEnvironment.
+	 * 
+	 * @return the nodeEnvironment
+	 */
+	public INodeEnvironment getNodeEnvironment() {
+		return nodeEnvironment;
 	}
 
 	public IPreferencesService getPreferenceService() {

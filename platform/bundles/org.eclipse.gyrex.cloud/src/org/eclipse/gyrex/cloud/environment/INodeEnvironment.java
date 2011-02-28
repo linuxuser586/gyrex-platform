@@ -27,6 +27,9 @@ import org.eclipse.gyrex.server.Platform;
  */
 public interface INodeEnvironment {
 
+	/** the service name */
+	String SERVICE_NAME = INodeEnvironment.class.getName();
+
 	/**
 	 * Returns the node id.
 	 * <p>
@@ -65,4 +68,20 @@ public interface INodeEnvironment {
 	 *         <code>false</code> otherwise
 	 */
 	boolean inStandaloneMode();
+
+	/**
+	 * Indicates if the node/instance the service runs on is approved to operate
+	 * in the cloud.
+	 * <p>
+	 * Nodes must be approved before they are allowed to operate in a cloud.
+	 * Usually, this is done by an administrator after the node is online. In
+	 * {@link Platform#inDevelopmentMode() development} when operating
+	 * {@link #inStandaloneMode() standalone} an attempt is made to approve the
+	 * node automatically.
+	 * </p>
+	 * 
+	 * @return <code>true</code> if the node is approved, <code>false</code>
+	 *         otherwise
+	 */
+	boolean isApproved();
 }
