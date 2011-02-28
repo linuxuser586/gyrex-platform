@@ -12,10 +12,15 @@
 package org.eclipse.gyrex.preferences.tests.internal;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.fail;
 
 import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
+import org.osgi.service.prefs.BackingStoreException;
+import org.osgi.service.prefs.Preferences;
 
 import org.junit.After;
 import org.junit.Before;
@@ -26,6 +31,27 @@ import org.junit.Test;
  */
 public class CloudPreferencesBlackBoxTests {
 
+	private static final String PATH_5 = "tests/with/some/deep/path";
+	private static final String PATH_1 = "tests";
+	private static final String VALUE_1 = "test";
+	private static final String KEY_1 = "key_1";
+
+	private void remove(final IEclipsePreferences node) throws BackingStoreException {
+		final Preferences parent = node.parent();
+		node.removeNode();
+		parent.flush();
+
+		assertFalse("node removal failed", node.nodeExists(""));
+		assertFalse("node removal failed at parent", parent.nodeExists(PATH_1));
+
+		try {
+			node.get(KEY_1, null);
+			fail("node method get should have thrown exception");
+		} catch (final IllegalStateException e) {
+			// expected
+		}
+	}
+
 	@Before
 	public void setUp() throws Exception {
 	}
@@ -35,14 +61,37 @@ public class CloudPreferencesBlackBoxTests {
 	}
 
 	@Test
-	public void testGetNode() throws Exception {
-		final CloudScope cloudScope = new CloudScope();
+	public void test001() throws Exception {
+		final IEclipsePreferences node = CloudScope.INSTANCE.getNode(PATH_1);
+		node.put(KEY_1, VALUE_1);
 
-		final IEclipsePreferences node = cloudScope.getNode("tests");
-		node.put("test2", "test");
 		node.flush();
 
-		assertEquals("preference value not persisted", "test", cloudScope.getNode("tests").get("test2", null));
+		assertEquals("preference value lost on persisted", VALUE_1, node.get(KEY_1, null));
+
+		node.sync();
+
+		assertEquals("preference value lost on sync", VALUE_1, node.get(KEY_1, null));
+
+		// cleanup
+		remove(node);
+	}
+
+	@Test
+	public void test002() throws Exception {
+		final IEclipsePreferences node = CloudScope.INSTANCE.getNode(PATH_1 + "/" + PATH_5);
+		node.put(KEY_1, VALUE_1);
+
+		CloudScope.INSTANCE.getNode(PATH_1).flush();
+
+		assertEquals("preference value lost on persisted", VALUE_1, node.get(KEY_1, null));
+
+		CloudScope.INSTANCE.getNode(PATH_1).sync();
+
+		assertEquals("preference value lost on sync", VALUE_1, node.get(KEY_1, null));
+
+		// cleanup
+		remove(CloudScope.INSTANCE.getNode(PATH_1));
 	}
 
 }
