@@ -651,6 +651,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			if (bytes == null) {
 				// node doesn't exist
 				// don't do anything here, complete removal is handled elsewhere
+				// TODO: the assumption above is wrong, it is also null if it's empty!
 				if (PreferencesDebug.debug) {
 					LOG.debug("Node {} doesn't exist in ZooKeeper", this);
 				}
