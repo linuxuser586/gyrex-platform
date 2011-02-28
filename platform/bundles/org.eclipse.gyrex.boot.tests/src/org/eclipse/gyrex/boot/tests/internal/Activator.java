@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -11,31 +11,43 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.tests.internal;
 
-import org.osgi.framework.BundleActivator;
+import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+
 import org.osgi.framework.BundleContext;
 
-public class Activator implements BundleActivator {
+public class Activator extends BaseBundleActivator {
 
-	private static BundleContext context;
+	private static final String SYMBOLIC_NAME = "org.eclipse.gyrex.boot.tests";
+	private static volatile Activator instance;
 
-	static BundleContext getContext() {
-		return context;
+	/**
+	 * Returns the instance.
+	 * 
+	 * @return the instance
+	 */
+	public static Activator getInstance() {
+		final Activator activator = instance;
+		if (activator == null) {
+			throw new IllegalStateException("inactive");
+		}
+		return activator;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
+	/**
+	 * Creates a new instance.
 	 */
-	public void start(BundleContext bundleContext) throws Exception {
-		Activator.context = bundleContext;
+	public Activator() {
+		super(SYMBOLIC_NAME);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
-	 */
-	public void stop(BundleContext bundleContext) throws Exception {
-		Activator.context = null;
+	@Override
+	protected void doStart(final BundleContext context) throws Exception {
+		instance = this;
+	}
+
+	@Override
+	protected void doStop(final BundleContext context) throws Exception {
+		instance = null;
 	}
 
 }
