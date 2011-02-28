@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.internal.storage;
 
+import java.io.UnsupportedEncodingException;
+
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.gyrex.preferences.internal.util.EclipsePreferencesUtil;
 
@@ -18,6 +20,8 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 import org.osgi.service.prefs.BackingStoreException;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.math.NumberUtils;
 
 /**
@@ -64,6 +68,16 @@ public final class RepositoryPreferences implements IRepositoryPreferences {
 	}
 
 	@Override
+	public byte[] getByteArray(final String key, final byte[] defaultValue) throws SecurityException {
+		final String value = get(key, null);
+		try {
+			return value == null ? defaultValue : Base64.decodeBase64(value.getBytes(CharEncoding.UTF_8));
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("Gyrex requires a platform which supports UTF-8.", e);
+		}
+	}
+
+	@Override
 	public String[] getChildrenNames(final String path) throws BackingStoreException, SecurityException, IllegalStateException {
 		// REMINDER: all paths must be interpreted relative to the repository node!!!
 		// (IEclipsePreferences interprets absolute paths as relative to the ROOT)
@@ -105,6 +119,15 @@ public final class RepositoryPreferences implements IRepositoryPreferences {
 	@Override
 	public void putBoolean(final String key, final boolean value, final boolean encrypt) {
 		put(key, Boolean.toString(value), encrypt);
+	}
+
+	@Override
+	public void putByteArray(final String key, final byte[] value, final boolean encrypt) throws SecurityException {
+		try {
+			put(key, new String(Base64.encodeBase64(value), CharEncoding.UTF_8), encrypt);
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("Gyrex requires a platform which supports UTF-8.", e);
+		}
 	}
 
 	@Override

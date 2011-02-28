@@ -15,10 +15,15 @@ import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
+import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
+import org.eclipse.gyrex.persistence.internal.storage.RepositoryPreferencesBasedMetadata;
+import org.eclipse.gyrex.persistence.internal.storage.RepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.content.BasicRepositoryContentTypeSupport;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentTypeSupport;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.persistence.storage.registry.IRepositoryDefinition;
 
 import org.eclipse.core.runtime.PlatformObject;
 
@@ -52,7 +57,11 @@ import org.apache.commons.lang.StringUtils;
  * </p>
  * <p>
  * This class must be subclassed by clients that contribute a repository
- * implementation to Gyrex.
+ * implementation to Gyrex. As such it is considered part of a service provider
+ * API which may evolve faster than the general API. Please get in touch with
+ * the development team through the prefered channels listed on <a
+ * href="http://www.eclipse.org/gyrex">the Gyrex website</a> to stay up-to-date
+ * of possible changes.
  * </p>
  */
 public abstract class Repository extends PlatformObject implements IRepositoryContstants {
@@ -94,7 +103,9 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	 *            the id
 	 * @return <code>true</code> if the id is valid, <code>false</code>
 	 *         otherwise
+	 * @deprecated replaced by {@link IdHelper#isValidId(String)}
 	 */
+	@Deprecated
 	public static boolean isValidId(final String id) {
 		if (null == id) {
 			return false;
@@ -148,7 +159,7 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	 * 
 	 * @param repositoryId
 	 *            the repository id (may not be <code>null</code>, must conform
-	 *            to {@link #isValidId(String)})
+	 *            to {@link IdHelper#isValidId(String)})
 	 * @param repositoryProvider
 	 *            the repository provider (may not be <code>null</code>)
 	 * @param metrics
@@ -246,6 +257,32 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	 */
 	public String getDescription() {
 		return "";
+	}
+
+	/**
+	 * Returns the repository metadata with the specified id.
+	 * <p>
+	 * This is a handle only method. The returned metadata may not exist.
+	 * </p>
+	 * <p>
+	 * The default implementation returns an instance which stores metadata in
+	 * the repository preferences. Subclasses may override and provide a custom
+	 * implementation.
+	 * </p>
+	 * 
+	 * @param id
+	 *            the metadata identifier (must validate using
+	 *            {@link IdHelper#isValidId(String)})
+	 * @return the {@link RepositoryMetadata}
+	 * @see RepositoryMetadata
+	 */
+	public RepositoryMetadata getMetadata(final String id) {
+		final RepositoryRegistry registry = PersistenceActivator.getInstance().getRepositoriesManager();
+		final IRepositoryDefinition definition = registry.getRepositoryDefinition(repositoryId);
+		if (definition == null) {
+			throw new IllegalStateException(String.format("Repository definition not found for repository %s.", repositoryId));
+		}
+		return new RepositoryPreferencesBasedMetadata(definition.getRepositoryPreferences(), id, repositoryId);
 	}
 
 	/**

@@ -117,6 +117,23 @@ public interface IRepositoryPreferences {
 	public boolean getBoolean(String key, boolean defaultValue) throws SecurityException;
 
 	/**
+	 * Return the value stored in the preference store for the given key as
+	 * array of <code>byte</code>s. See {@link #get(String, String)} for a
+	 * complete description of this method.
+	 * 
+	 * @param key
+	 *            the name of the preference (optionally including its path)
+	 * @param defaultValue
+	 *            the value to use if the preference is not defined
+	 * @return the value of the preference or the given default value
+	 * @throws SecurityException
+	 *             if the caller does not have permissions to access the
+	 *             preferences in the specified namespace
+	 * @see #get(String, String)
+	 */
+	public byte[] getByteArray(String key, byte[] defaultValue) throws SecurityException;
+
+	/**
 	 * Returns the names of the children of the repository preference node at
 	 * the specified path. (The returned array will be of size zero if the node
 	 * has no children and not <code>null</code>!)
@@ -249,6 +266,26 @@ public interface IRepositoryPreferences {
 	 *             preferences in the specified namespace
 	 */
 	void putBoolean(String key, boolean value, boolean encrypt) throws SecurityException;
+
+	/**
+	 * Sets the <code>byte</code> array value stored in the preference store for
+	 * the given key. See {@link #put(String, String, boolean)} for a complete
+	 * description of this method.
+	 * 
+	 * @param key
+	 *            the name of the preference (optionally including its path)
+	 * @param value
+	 *            the value to set, or <code>null</code> to
+	 *            {@link #remove(String, String) remove} the preference if it is
+	 *            defined
+	 * @param encrypt
+	 *            <code>true</code> if value is to be encrypted,
+	 *            <code>false</code> value does not need to be encrypted
+	 * @throws SecurityException
+	 *             if the caller does not have permissions to access the
+	 *             preferences in the specified namespace
+	 */
+	void putByteArray(String key, byte[] value, boolean encrypt) throws SecurityException;
 
 	/**
 	 * Sets the <code>float</code> value stored in the preference store for the

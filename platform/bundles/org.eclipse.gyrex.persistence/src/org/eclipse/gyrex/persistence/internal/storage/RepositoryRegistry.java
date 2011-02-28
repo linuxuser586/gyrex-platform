@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
@@ -75,7 +76,7 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 
 	@Override
 	public IRepositoryDefinition createRepository(final String repositoryId, final String repositoryProviderId) throws IllegalArgumentException {
-		if (!Repository.isValidId(repositoryId)) {
+		if (!IdHelper.isValidId(repositoryId)) {
 			throw new IllegalArgumentException("repository id is not valid");
 		}
 		if (StringUtils.isBlank(repositoryProviderId)) {

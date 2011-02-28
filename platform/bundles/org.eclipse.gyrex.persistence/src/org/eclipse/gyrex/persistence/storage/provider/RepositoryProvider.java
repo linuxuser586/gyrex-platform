@@ -13,6 +13,7 @@ package org.eclipse.gyrex.persistence.storage.provider;
 
 import java.text.MessageFormat;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
@@ -53,18 +54,18 @@ public abstract class RepositoryProvider extends PlatformObject {
 	 * 
 	 * @param id
 	 *            the repository provider id (may not be <code>null</code>, will
-	 *            be {@link Repository#isValidId(String) validated})
+	 *            be {@link IdHelper#isValidId(String) validated})
 	 * @param repositoryType
 	 *            the public repository type contract provided by this provider
 	 *            (may not be <code>null</code>, the type name will be
-	 *            {@link Repository#isValidId(String) validated})
-	 * @see Repository#isValidId(String)
+	 *            {@link IdHelper#isValidId(String) validated})
+	 * @see IdHelper#isValidId(String)
 	 */
 	protected RepositoryProvider(final String id, final Class<? extends Repository> repositoryType) {
 		if (null == id) {
 			throw new IllegalArgumentException("repository provider id must not be null");
 		}
-		if (!Repository.isValidId(id)) {
+		if (!IdHelper.isValidId(id)) {
 			throw new IllegalArgumentException(MessageFormat.format("repository provider id \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
 		}
 		providerId = id;
@@ -72,7 +73,7 @@ public abstract class RepositoryProvider extends PlatformObject {
 		if (null == repositoryType) {
 			throw new IllegalArgumentException("repository type must not be null");
 		}
-		if (!Repository.isValidId(repositoryType.getName())) {
+		if (!IdHelper.isValidId(repositoryType.getName())) {
 			throw new IllegalArgumentException(MessageFormat.format("repository type name \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", repositoryType.getName()));
 		}
 		this.repositoryType = repositoryType;
@@ -111,12 +112,12 @@ public abstract class RepositoryProvider extends PlatformObject {
 	 * Convenience method which returns the name of the public repository type
 	 * contract provided by this provider.
 	 * <p>
-	 * The type name was {@link Repository#isValidId(String) validated} during
+	 * The type name was {@link IdHelper#isValidId(String) validated} during
 	 * provider initialization.
 	 * </p>
 	 * 
 	 * @return the public repository type contract name
-	 * @see Repository#isValidId(String)
+	 * @see IdHelper#isValidId(String)
 	 * @see RepositoryProvider#getRepositoryType()
 	 */
 	public final String getRepositoryTypeName() {

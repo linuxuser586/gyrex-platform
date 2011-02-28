@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -13,9 +13,11 @@ package org.eclipse.gyrex.persistence.storage.content;
 
 import java.text.MessageFormat;
 
-import org.eclipse.core.runtime.PlatformObject;
-import org.eclipse.gyrex.persistence.storage.Repository;
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+
+import org.eclipse.core.runtime.PlatformObject;
+
 import org.osgi.framework.Version;
 
 /**
@@ -88,7 +90,7 @@ public final class RepositoryContentType extends PlatformObject {
 	}
 
 	private static final String checkRepositoryTypeId(final String repositoryTypeId) {
-		if (!Repository.isValidId(repositoryTypeId)) {
+		if (!IdHelper.isValidId(repositoryTypeId)) {
 			throw new IllegalArgumentException(MessageFormat.format("repository type name \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", repositoryTypeId));
 		}
 		return repositoryTypeId;
@@ -256,7 +258,7 @@ public final class RepositoryContentType extends PlatformObject {
 	 * 
 	 * @return the repository type name
 	 * @see RepositoryProvider#getRepositoryTypeName()
-	 * @see Repository#isValidId(String)
+	 * @see IdHelper#isValidId(String)
 	 */
 	public final String getRepositoryTypeName() {
 		return repositoryTypeName;
@@ -267,8 +269,9 @@ public final class RepositoryContentType extends PlatformObject {
 	 * <p>
 	 * Note, this is a required parameter. The version follows the OSGi version
 	 * numbers scheme which are composed of four segments - three integers and a
-	 * string respectively named: <code>'major.minor.service.qualifier'</code>. But it does not necessarily reflect a
-	 * bundle or package version. Content types may be versioned independently.
+	 * string respectively named: <code>'major.minor.service.qualifier'</code>.
+	 * But it does not necessarily reflect a bundle or package version. Content
+	 * types may be versioned independently.
 	 * </p>
 	 * <p>
 	 * The meaning of each segment is analogue to the OSGi meaning and can be

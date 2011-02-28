@@ -11,9 +11,9 @@
  */
 package org.eclipse.gyrex.server.tests.internal;
 
-import org.eclipse.gyrex.cds.solr.tests.AllSolrCdsTests;
 import org.eclipse.gyrex.cloud.tests.internal.AllCloudTests;
 import org.eclipse.gyrex.context.tests.internal.AllContextTests;
+import org.eclipse.gyrex.search.solr.tests.AllSolrCdsTests;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;

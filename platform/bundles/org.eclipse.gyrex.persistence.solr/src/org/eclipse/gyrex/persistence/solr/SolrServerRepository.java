@@ -22,8 +22,10 @@ import org.apache.solr.client.solrj.SolrServer;
  * A Solr repository based on SolrJ.
  * <p>
  * Typically, a Solr repository provides common functionality for working with
- * Apache Solr. This repository supports working with a single (aka. "default")
- * or multiple collections (aka. "indices").
+ * Apache Solr. The central point of entrance in SolrJ is a {@link SolrServer}.
+ * The repository provides access to {@link #getSolrServer() a main server} as
+ * well as {@link #getSolrServerOptimizedForQuery() a server optimized for
+ * queries}.
  * </p>
  * <p>
  * Note, this API depends on the SolrJ and Solr API. Thus, it is bound to the
