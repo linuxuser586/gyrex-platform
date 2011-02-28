@@ -22,6 +22,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.internal.configuration.ContextConfiguration;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
+import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.preferences.internal.util.EclipsePreferencesUtil;
 
 import org.eclipse.core.runtime.IPath;
@@ -48,7 +49,6 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 
 	private static final String EMPTY = "";
 	private static final String DEFAULT = "default";
-	private static final String PLATFORM = "platform";
 	private static final String UTF_8 = "UTF-8";
 
 	/**
@@ -158,8 +158,8 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 		final String pathToPreferencesKey = getPathToPreferencesKey(qualifier, key);
 		final List<Preferences> result = new ArrayList<Preferences>();
 
-		// build lookup tree from PLATFORM preferences
-		final Preferences platformPrefRoot = rootNode.node(PLATFORM).node(ContextConfiguration.CONTEXT_PREF_ROOT.toString());
+		// build lookup tree from CLOUD preferences
+		final Preferences platformPrefRoot = rootNode.node(CloudScope.NAME).node(ContextConfiguration.CONTEXT_PREF_ROOT.toString());
 		for (IPath contextPath = context.getContextPath(); !contextPath.isEmpty() && !contextPath.isRoot(); contextPath = contextPath.removeLastSegments(1)) {
 			appendIfPathExists(result, platformPrefRoot, getPreferencesPathToSettings(contextPath, pathToPreferencesKey));
 		}
