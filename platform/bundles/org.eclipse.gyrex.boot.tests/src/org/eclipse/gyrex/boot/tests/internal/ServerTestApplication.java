@@ -62,6 +62,8 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 						return Status.CANCEL_STATUS;
 					}
 
+					// TODO: implement optional wait for node approval (maybe using server role?)
+
 					// execute tests
 					RemotePluginTestRunner.main(arguments);
 
