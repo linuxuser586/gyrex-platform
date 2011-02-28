@@ -41,7 +41,7 @@ public class JettyEngineApplication implements IApplication {
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = Integer.valueOf(1);
 
-	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>();
+	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>(null);
 	private static final AtomicReference<Throwable> jettyErrorRef = new AtomicReference<Throwable>();
 
 	/**
@@ -174,7 +174,7 @@ public class JettyEngineApplication implements IApplication {
 		// set stop signal
 		final CountDownLatch stopSignal = new CountDownLatch(1);
 		if (!stopSignalRef.compareAndSet(null, stopSignal)) {
-			throw new IllegalStateException("ZooKeeper Gate already running!");
+			throw new IllegalStateException("Jetty engine already running!");
 		}
 
 		try {
