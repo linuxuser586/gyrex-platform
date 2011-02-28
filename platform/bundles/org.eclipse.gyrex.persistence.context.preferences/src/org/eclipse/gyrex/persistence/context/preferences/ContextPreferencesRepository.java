@@ -13,6 +13,7 @@ package org.eclipse.gyrex.persistence.context.preferences;
 
 import java.util.Collection;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.persistence.storage.Repository;
@@ -51,7 +52,7 @@ public abstract class ContextPreferencesRepository extends Repository implements
 	 * 
 	 * @param key
 	 *            the lookup key of the data (must validate using
-	 *            {@link Repository#isValidId(String)})
+	 *            {@link IdHelper#isValidId(String)})
 	 * @return the stored data (maybe <code>null</code> if no data is stored for
 	 *         the specified {@code key})
 	 * @throws IllegalArgumentException
@@ -74,7 +75,7 @@ public abstract class ContextPreferencesRepository extends Repository implements
 	 * 
 	 * @param key
 	 *            the lookup key of the data (must validate using
-	 *            {@link Repository#isValidId(String)})
+	 *            {@link IdHelper#isValidId(String)})
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
 	 * @throws BackingStoreException
@@ -90,7 +91,7 @@ public abstract class ContextPreferencesRepository extends Repository implements
 	 * 
 	 * @param key
 	 *            the lookup key of the data (must validate using
-	 *            {@link Repository#isValidId(String)})
+	 *            {@link IdHelper#isValidId(String)})
 	 * @param data
 	 *            the data to store (may not be <code>null</code>)
 	 * @throws IllegalArgumentException

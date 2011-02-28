@@ -15,10 +15,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.persistence.context.preferences.ContextPreferencesRepository;
-import org.eclipse.gyrex.persistence.storage.Repository;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -77,7 +77,7 @@ public class ContextPreferencesRepositoryImpl extends ContextPreferencesReposito
 	}
 
 	private String verifyKey(final String key) {
-		if (!Repository.isValidId(key)) {
+		if (!IdHelper.isValidId(key)) {
 			throw new IllegalArgumentException(NLS.bind("invalid key: {0} (repository {1})", key, getRepositoryId()));
 		}
 		return key;
