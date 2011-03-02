@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" activate="activate" deactivate="deactivate" enabled="true" name="org.eclipse.gyrex.jobs.provider.registry.component">
+   <implementation class="org.eclipse.gyrex.jobs.internal.registry.JobProviderRegistry"/>
+   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="service.description" type="String" value="Job Provider Registry Component"/>
+   <reference bind="setExtensionRegistry" cardinality="0..1" interface="org.eclipse.core.runtime.IExtensionRegistry" name="IExtensionRegistry" policy="dynamic" unbind="unsetExtensionRegistry"/>
+   <reference bind="addJobProvider" cardinality="0..n" interface="org.eclipse.gyrex.jobs.provider.JobProvider" name="JobProvider" policy="dynamic" unbind="removeJobProvider"/>
+</scr:component>
