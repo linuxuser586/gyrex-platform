@@ -62,7 +62,7 @@ public interface IQueueService {
 	 *            the queue id (must be a valid
 	 *            {@link IdHelper#isValidId(String) API id})
 	 * @param properties
-	 *            the create queue request properties
+	 *            the create queue request properties (maybe <code>null</code>)
 	 * @return a handle to the created queue
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
@@ -86,7 +86,7 @@ public interface IQueueService {
 	 *            the queue id (must be a valid
 	 *            {@link IdHelper#isValidId(String) API id})
 	 * @param properties
-	 *            the remove queue request properties
+	 *            the remove queue request properties (maybe <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
 	 * @throws IllegalStateException
@@ -109,7 +109,7 @@ public interface IQueueService {
 	 *            the queue id (must be a valid
 	 *            {@link IdHelper#isValidId(String) API id})
 	 * @param properties
-	 *            the get queue request properties
+	 *            the get queue request properties (maybe <code>null</code>)
 	 * @return a handle to the queue (maybe <code>null</code> if a queue of the
 	 *         specified id does not exist)
 	 * @throws IllegalArgumentException
@@ -134,7 +134,7 @@ public interface IQueueService {
 	 *            the queue id (must be a valid
 	 *            {@link IdHelper#isValidId(String) API id})
 	 * @param properties
-	 *            the update queue request properties
+	 *            the update queue request properties (maybe <code>null</code>)
 	 * @return a handle to the updated queue
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
