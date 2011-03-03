@@ -55,6 +55,10 @@ public class JettyEngineApplication implements IApplication {
 	}
 
 	private void configureServer(final Server server) {
+		if (JettyDebug.engine) {
+			LOG.debug("Configuring server {}", server);
+		}
+
 		// collect node properties for filtering
 		final Map<String, Object> nodeProperties = getNodeProperties();
 
@@ -68,6 +72,7 @@ public class JettyEngineApplication implements IApplication {
 		} else {
 			// start a default channel in development mode
 			if (Platform.inDevelopmentMode()) {
+				LOG.info("No channels configured. Enabling default channel on port 8080 in development mode.");
 				final ChannelDescriptor defaultChannel = new ChannelDescriptor();
 				defaultChannel.setId("default");
 				defaultChannel.setPort(8080);
@@ -104,6 +109,10 @@ public class JettyEngineApplication implements IApplication {
 					}
 					return;
 				}
+			}
+
+			if (JettyDebug.engine) {
+				LOG.debug("Configuring channel {}", channel);
 			}
 
 			SelectChannelConnector connector;
