@@ -227,7 +227,7 @@ public abstract class MetricSet extends BaseMetric {
 	 * 
 	 * @return the unmodifiable metric set properties
 	 */
-	public Map<String, String> getProperties() {
+	public final Map<String, String> getProperties() {
 		return properties;
 	}
 
