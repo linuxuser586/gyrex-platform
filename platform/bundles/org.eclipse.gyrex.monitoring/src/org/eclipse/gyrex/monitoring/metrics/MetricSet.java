@@ -15,6 +15,10 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -44,6 +48,9 @@ public abstract class MetricSet extends BaseMetric {
 	/** the description */
 	private final String description;
 
+	/** additional metric properties */
+	private final Map<String, String> properties;
+
 	/**
 	 * Creates a new metric set using the specified id and metrics.
 	 * <p>
@@ -64,6 +71,36 @@ public abstract class MetricSet extends BaseMetric {
 	 *            the metrics which form this set
 	 */
 	protected MetricSet(final String id, final String description, final BaseMetric... metrics) {
+		this(id, description, null, metrics);
+	}
+
+	/**
+	 * Creates a new metric set using the specified id and metrics.
+	 * <p>
+	 * The metrics are stored in an immutable way and can be retrieved using
+	 * {@link #getMetric(int, Class)}.
+	 * </p>
+	 * <p>
+	 * The ids of the metrics may but don't need to be prefixed with the metric
+	 * set id. In any case the will be interpreted within the scope of the
+	 * metric set id.
+	 * </p>
+	 * <p>
+	 * The specified properties may be used to further identify, classify,
+	 * annotate or group the metric set.
+	 * </p>
+	 * 
+	 * @param id
+	 *            the metric id
+	 * @param description
+	 *            the metric description
+	 * @param properties
+	 *            the metric properties (each key
+	 *            {@link IdHelper#isValidId(String) must be a valid identifier})
+	 * @param metrics
+	 *            the metrics which form this set
+	 */
+	protected MetricSet(final String id, final String description, final Map<String, String> properties, final BaseMetric... metrics) {
 		super(id);
 		if (null == metrics) {
 			throw new IllegalArgumentException("metrics may not be null");
@@ -77,6 +114,18 @@ public abstract class MetricSet extends BaseMetric {
 
 		// save description
 		this.description = StringUtils.trimToEmpty(description);
+
+		// save properties
+		if (null != properties) {
+			for (final Entry<String, String> entry : properties.entrySet()) {
+				if (!IdHelper.isValidId(entry.getKey())) {
+					throw new IllegalArgumentException(String.format("invalid property key: %s", entry.getKey()));
+				}
+			}
+			this.properties = Collections.unmodifiableMap(properties);
+		} else {
+			this.properties = Collections.emptyMap();
+		}
 	}
 
 	/**
@@ -166,6 +215,20 @@ public abstract class MetricSet extends BaseMetric {
 	 */
 	public final List<BaseMetric> getMetrics() {
 		return Collections.unmodifiableList(metrics);
+	}
+
+	/**
+	 * Returns the properties.
+	 * <p>
+	 * Metric set properties may be used to further identify metrics (for
+	 * example, in a UI). Each property key is guaranteed to be
+	 * {@link IdHelper#isValidId(String) a valid identifier}.
+	 * </p>
+	 * 
+	 * @return the unmodifiable metric set properties
+	 */
+	public Map<String, String> getProperties() {
+		return properties;
 	}
 
 	/**

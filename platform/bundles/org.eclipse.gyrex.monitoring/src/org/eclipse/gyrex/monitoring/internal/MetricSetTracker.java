@@ -13,13 +13,10 @@ package org.eclipse.gyrex.monitoring.internal;
 
 import java.lang.management.ManagementFactory;
 import java.util.Hashtable;
+import java.util.Map.Entry;
 
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 import org.eclipse.gyrex.monitoring.internal.MetricSetTracker.MetricSetJmxRegistration;
@@ -27,10 +24,14 @@ import org.eclipse.gyrex.monitoring.internal.mbeans.MetricSetMBean;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracker for {@link MetricSet}.
@@ -46,6 +47,8 @@ public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSetJmxRegi
 			this.metricSet = metricSet;
 		}
 	}
+
+	private static final Logger LOG = LoggerFactory.getLogger(MetricSetTracker.class);
 
 	public MetricSetTracker(final BundleContext context) {
 		super(context, MetricSet.class, null);
@@ -64,21 +67,8 @@ public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSetJmxRegi
 			final ObjectName objectName = getObjectName(reference, metricSet);
 			beanServer.registerMBean(new MetricSetMBean(metricSet, reference), objectName);
 			return new MetricSetJmxRegistration(objectName, metricSet);
-		} catch (final InstanceAlreadyExistsException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (final MBeanRegistrationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (final NotCompliantMBeanException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (final MalformedObjectNameException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (final NullPointerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (final Exception e) {
+			LOG.warn("Failed to expose metric {} using JMX. {}", metricSet, ExceptionUtils.getRootCauseMessage(e));
 		}
 		return null;
 	}
@@ -95,6 +85,15 @@ public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSetJmxRegi
 		properties.put("type", "MetricSet");
 		properties.put("name", StringUtils.removeStart(metricSet.getId(), symbolicName + "."));
 
+		// we also remember the service id in order to allow multiple metrics instances with same id
+		properties.put("service.id", String.valueOf(reference.getProperty(Constants.SERVICE_ID)));
+
+		// check additional metric set properties
+		for (final Entry<String, String> property : metricSet.getProperties().entrySet()) {
+			// prefix each with "metric." to avoid name clash with common properties
+			properties.put("metric.".concat(property.getKey()), property.getValue());
+		}
+
 		// create object name
 		return new ObjectName(symbolicName, properties);
 	}
@@ -105,12 +104,8 @@ public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSetJmxRegi
 			// unregister MBean
 			final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
 			beanServer.unregisterMBean(metricSetJmxRegistration.objectName);
-		} catch (final MBeanRegistrationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (final InstanceNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (final Exception e) {
+			LOG.warn("Failed to unregister metric JMX registration {}. {}", metricSetJmxRegistration.objectName, ExceptionUtils.getRootCauseMessage(e));
 		} finally {
 			// unget service
 			context.ungetService(reference);
