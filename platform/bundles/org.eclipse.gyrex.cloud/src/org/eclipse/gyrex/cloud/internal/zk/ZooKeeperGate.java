@@ -547,29 +547,38 @@ public class ZooKeeperGate {
 	}
 
 	/**
-	 * Reads a record from the specified path in ZooKeeper if it exists.
+	 * Reads a record from the specified path in ZooKeeper.
+	 * <p>
+	 * Throws {@link NoNodeException} if the path does not exists.
+	 * </p>
 	 * 
 	 * @param path
 	 *            the path to the record
 	 * @param stat
 	 *            optional object to populated with ZooKeeper statistics of the
 	 *            underlying node
-	 * @return the record data (maybe <code>null</code> if it doesn't exist)
+	 * @return the record data (maybe <code>null</code> if no data is stored at
+	 *         the specified path)
+	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
 	 */
-	public byte[] readRecord(final IPath path, final Stat stat) throws KeeperException, InterruptedException, IOException {
+	public byte[] readRecord(final IPath path, final Stat stat) throws NoNodeException, KeeperException, InterruptedException, IOException {
 		return readRecord(path, (ZooKeeperMonitor) null, stat);
 	}
 
 	/**
 	 * Reads a record from the specified path in ZooKeeper if it exists.
+	 * <p>
+	 * Returns the specified {@code defaultValue} if the path does not exists.
+	 * </p>
 	 * 
 	 * @param path
 	 *            the path to the record
 	 * @param defaultValue
-	 *            a default value to return the record does not exist.
+	 *            a default value to return if the record does not exist or no
+	 *            data is stored at the specified path.
 	 * @param stat
 	 *            optional object to populated with ZooKeeper statistics of the
 	 *            underlying node
@@ -580,19 +589,25 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public String readRecord(final IPath path, final String defaultValue, final Stat stat) throws KeeperException, InterruptedException, IOException {
-		final byte[] data = readRecord(path, stat);
-		if (data == null) {
-			return defaultValue;
-		}
 		try {
+			final byte[] data = readRecord(path, stat);
+			if (data == null) {
+				return defaultValue;
+			}
 			return new String(data, CharEncoding.UTF_8);
+		} catch (final NoNodeException e) {
+			return defaultValue;
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalStateException("JVM does not support UTF-8.", e);
 		}
 	}
 
 	/**
-	 * Reads a record from the specified path in ZooKeeper if it exists.
+	 * Reads a record from the specified path in ZooKeeper.
+	 * <p>
+	 * <p>
+	 * Throws {@link NoNodeException} if the path does not exists.
+	 * </p>
 	 * 
 	 * @param path
 	 *            the path to the record
@@ -601,24 +616,19 @@ public class ZooKeeperGate {
 	 * @param stat
 	 *            optional object to populated with ZooKeeper statistics of the
 	 *            underlying node
-	 * @return the record data (maybe <code>null</code> if it doesn't exist)
+	 * @return the record data (maybe <code>null</code> if no data is stored at
+	 *         the specified path)
+	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
 	 * @see {@link ZooKeeper#getData(String, ZooKeeperMonitor, org.apache.zookeeper.data.Stat)}
 	 */
-	public byte[] readRecord(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws KeeperException, InterruptedException, IOException {
+	public byte[] readRecord(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException, IOException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
-		try {
-			return ensureConnected().getData(path.toString(), watch, stat);
-		} catch (final KeeperException e) {
-			if (e.code() == KeeperException.Code.NONODE) {
-				return null;
-			}
-			throw e;
-		}
+		return ensureConnected().getData(path.toString(), watch, stat);
 	}
 
 	/**

@@ -34,6 +34,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -188,8 +189,8 @@ public class ZooKeeperQueue implements IQueue {
 	}
 
 	private Properties readQueueData() {
+		final Properties queueData = new Properties();
 		try {
-			final Properties queueData = new Properties();
 			final Stat stat = new Stat();
 			final byte[] record = ZooKeeperGate.get().readRecord(queuePath, stat);
 			if (record == null) {
@@ -213,6 +214,9 @@ public class ZooKeeperQueue implements IQueue {
 				return null;
 			}
 			return new Message(messageId, this, record, stat);
+		} catch (final NoNodeException e) {
+			// don't fail just return null
+			return null;
 		} catch (final Exception e) {
 			throw new QueueOperationFailedException(id, String.format("MESSAGE_READ(%s)", messageId), e);
 		}

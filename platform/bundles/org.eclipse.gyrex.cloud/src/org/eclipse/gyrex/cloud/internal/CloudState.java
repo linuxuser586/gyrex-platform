@@ -46,6 +46,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,7 +261,7 @@ public class CloudState implements IConnectionMonitor {
 			if (path.equals(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeInfo.getNodeId()).toString())) {
 				// refresh node info
 				try {
-					refreshNodeInfo();
+					refreshNodeInfoAssumingApproved();
 				} catch (final Exception e) {
 					// smart updated failed, fallback to a complete reconnect
 					if (CloudDebug.cloudState) {
@@ -378,19 +379,15 @@ public class CloudState implements IConnectionMonitor {
 	 */
 	NodeInfo readApprovedNodeInfo(final String nodeId) throws Exception {
 		final Stat stat = new Stat();
-		byte[] record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor, stat);
-		if (record == null) {
-			// check if the path doesn't exist and set a watch
-			if (!ZooKeeperGate.get().exists(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor)) {
-				return null;
-			}
-			// retry
-			record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor, stat);
-		}
+		try {
+			final byte[] record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor, stat);
 
-		// return node info if available
-		if (record != null) {
-			return new NodeInfo(new ZooKeeperNodeInfo(nodeId, true, record, stat.getVersion()));
+			// return node info if available
+			if (record != null) {
+				return new NodeInfo(new ZooKeeperNodeInfo(nodeId, true, record, stat.getVersion()));
+			}
+		} catch (final NoNodeException e) {
+			// ignore (return null below
 		}
 
 		return null;
@@ -406,7 +403,7 @@ public class CloudState implements IConnectionMonitor {
 	 * @throws Exception
 	 *             in case an error occurred refreshing the node info
 	 */
-	void refreshNodeInfo() throws Exception {
+	void refreshNodeInfoAssumingApproved() throws Exception {
 		registrationLock.lock();
 		try {
 			final NodeInfo oldInfo = myInfo.get();
@@ -416,6 +413,9 @@ public class CloudState implements IConnectionMonitor {
 
 			// read info
 			final NodeInfo newInfo = readApprovedNodeInfo(oldInfo.getNodeId());
+			if (newInfo == null) {
+				throw new IllegalStateException("no approved node info found");
+			}
 			if (!StringUtils.equals(oldInfo.getNodeId(), newInfo.getNodeId())) {
 				throw new IllegalStateException("node id mismatch");
 			}

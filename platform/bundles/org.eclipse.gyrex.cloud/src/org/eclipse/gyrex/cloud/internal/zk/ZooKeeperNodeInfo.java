@@ -25,6 +25,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -70,11 +71,10 @@ public class ZooKeeperNodeInfo {
 		byte[] record = null;
 		try {
 			record = ZooKeeperGate.get().readRecord(path.append(nodeId), stat);
+		} catch (final NoNodeException e) {
+			throw new IllegalStateException(String.format(approved ? "Approved record for node %s not found!" : "Pending record for node %s not found!", nodeId));
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Failed to read record for node %s! %s", nodeId, ExceptionUtils.getRootCauseMessage(e)), e);
-		}
-		if (record == null) {
-			throw new IllegalStateException(String.format(approved ? "Approved record for node %s not found!" : "Pending record for node %s not found!", nodeId));
 		}
 		return new ZooKeeperNodeInfo(nodeId, approved, record, stat.getVersion());
 	}
