@@ -191,9 +191,13 @@ public interface IRepositoryPreferences {
 
 	/**
 	 * Returns all of the keys that have an associated value in the repository
-	 * preference node. (The returned array will be of size zero if the node has
-	 * no preferences and not <code>null</code>!)
+	 * preference node at the specified path. (The returned array will be of
+	 * size zero if the node has no preferences and not <code>null</code>!)
 	 * 
+	 * @param path
+	 *            path to a descendants within the underlying repository
+	 *            preference node (maybe <code>null</code> or an empty string
+	 *            for the repository preference node itself)
 	 * @return an array of the keys that have an associated value in the
 	 *         repository preference node.
 	 * @throws BackingStoreException
@@ -206,7 +210,7 @@ public interface IRepositoryPreferences {
 	 *             if the repository preference node (or an ancestor) has been
 	 *             removed.
 	 */
-	public String[] getKeys() throws BackingStoreException, SecurityException, IllegalStateException;
+	public String[] getKeys(String path) throws BackingStoreException, SecurityException, IllegalStateException;
 
 	/**
 	 * Sets the value stored in the repository preference node for the given

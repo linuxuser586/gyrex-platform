@@ -98,7 +98,7 @@ public final class RepositoryPreferencesBasedMetadata extends RepositoryMetadata
 
 	@Override
 	public Collection<String> getKeys() throws BackingStoreException {
-		return Collections.unmodifiableCollection(Arrays.asList(preferences.getChildrenNames(nodePath.toString())));
+		return Collections.unmodifiableCollection(Arrays.asList(preferences.getKeys(nodePath.toString())));
 	}
 
 	private String getPathToKey(final String key) {

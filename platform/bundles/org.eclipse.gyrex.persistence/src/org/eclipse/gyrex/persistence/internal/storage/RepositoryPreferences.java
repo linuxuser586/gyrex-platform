@@ -97,8 +97,10 @@ public final class RepositoryPreferences implements IRepositoryPreferences {
 	}
 
 	@Override
-	public String[] getKeys() throws BackingStoreException, SecurityException, IllegalStateException {
-		return prefs.keys();
+	public String[] getKeys(final String path) throws BackingStoreException, SecurityException, IllegalStateException {
+		// REMINDER: all paths must be interpreted relative to the repository node!!!
+		// (IEclipsePreferences interprets absolute paths as relative to the ROOT)
+		return prefs.node(EclipsePreferencesUtil.makeRelative(path)).keys();
 	}
 
 	@Override
