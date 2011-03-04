@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" activate="activate" deactivate="deactivate" name="org.eclipse.gyrex.http.equinoxhttpservice.application.component">
-   <implementation class="org.eclipse.gyrex.http.equinoxhttpservice.internal.HttpServiceAppComponent"/>
-   <reference bind="setApplicationManager" cardinality="1..1" interface="org.eclipse.gyrex.http.application.manager.IApplicationManager" name="IApplicationManager" policy="static"/>
-   <reference bind="setRuntimeContextRegistry" cardinality="1..1" interface="org.eclipse.gyrex.context.registry.IRuntimeContextRegistry" name="IRuntimeContextRegistry" policy="static"/>
-</scr:component>
