@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<component id="org.eclipse.gyrex.preferences" version="2">
+    <resource path="src/org/eclipse/gyrex/preferences/internal/ZooKeeperBasedPreferences.java" type="org.eclipse.gyrex.preferences.internal.ZooKeeperBasedPreferences">
+        <filter comment="https://bugs.eclipse.org/337634" id="574660632">
+            <message_arguments>
+                <message_argument value="IEclipsePreferences"/>
+                <message_argument value="Preferences"/>
+                <message_argument value="ZooKeeperBasedPreferences"/>
+            </message_arguments>
+        </filter>
+    </resource>
+</component>

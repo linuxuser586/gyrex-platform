@@ -112,10 +112,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void closing(final Code reason) {
-			// this is pretty bad, we need to re-establish the connection somehow
-			// for now, simply mark as dis-connected in order to try to recover later
-			// TODO we may need to hook with the gate to be informed about connection state
-			connected.set(false);
+			// set dis-connected
+			disconnectTree();
 		};
 
 		@Override
@@ -241,7 +239,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public void accept(final IPreferenceNodeVisitor visitor) throws BackingStoreException {
-		ensureConnected();
+		ensureConnectedAndLoaded();
 		if (!visitor.visit(this)) {
 			return;
 		}
@@ -330,7 +328,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	@Override
 	public String[] childrenNames() throws BackingStoreException {
 		try {
-			ensureConnected();
+			ensureConnectedAndLoaded();
 			final Set<String> names = children.keySet();
 			return !names.isEmpty() ? (String[]) names.toArray(EMPTY_NAMES_ARRAY) : EMPTY_NAMES_ARRAY;
 		} catch (final Exception e) {
@@ -343,7 +341,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public void clear() throws BackingStoreException {
-		ensureConnected();
+		ensureConnectedAndLoaded();
 
 		// call each one separately (instead of Properties.clear) so
 		// clients get change notification
@@ -372,7 +370,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
-	private void ensureConnected() throws IllegalStateException {
+	private void ensureConnectedAndLoaded() throws IllegalStateException {
 		checkRemoved();
 
 		if (!connected.get() && connected.compareAndSet(false, true)) {
@@ -449,7 +447,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public void flush() throws BackingStoreException {
-		ensureConnected();
+		ensureConnectedAndLoaded();
 		try {
 			// save properties
 			saveProperties();
@@ -470,13 +468,9 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new IllegalArgumentException("key must not be null");
 		}
 
-		try {
-			ensureConnected();
-		} catch (final IllegalStateException e) {
-			// the node may be off-line
-			// double check for removal but don't fail if off-line
-			checkRemoved();
-		}
+		// ensure that the node is connected
+		// we do not allow off-line operation
+		ensureConnectedAndLoaded();
 
 		final String value = properties.getProperty(key);
 		return value == null ? def : value;
@@ -490,8 +484,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public byte[] getByteArray(final String key, final byte[] def) {
+		final String value = get(key, null);
 		try {
-			final String value = get(key, null);
 			return value == null ? def : Base64.decodeBase64(value.getBytes(CharEncoding.US_ASCII));
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalStateException("Java VM does not support US_ASCII encoding? " + e.getMessage());
@@ -524,7 +518,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public String[] keys() throws BackingStoreException {
-		ensureConnected();
+		ensureConnectedAndLoaded();
 
 		if (properties.isEmpty()) {
 			return EMPTY_NAMES_ARRAY;
@@ -567,10 +561,6 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// get list of children
 			final Stat stat = new Stat();
 			final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(zkPath, monitor, stat);
-			if (childrenNames == null) {
-				// path does not exist, ignore completely
-				return;
-			}
 
 			// don't load properties if version is in the past
 			if (!forceSyncWithRemoteVersion && (childrenVersion >= stat.getCversion())) {
@@ -648,15 +638,6 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// read record data
 			final Stat stat = new Stat();
 			final byte[] bytes = ZooKeeperGate.get().readRecord(zkPath, monitor, stat);
-			if (bytes == null) {
-				// node doesn't exist
-				// don't do anything here, complete removal is handled elsewhere
-				// TODO: the assumption above is wrong, it is also null if it's empty!
-				if (PreferencesDebug.debug) {
-					LOG.debug("Node {} doesn't exist in ZooKeeper", this);
-				}
-				return;
-			}
 
 			// don't load properties if version is in the past
 			if (!forceSyncWithRemoteVersion && (propertiesVersion >= stat.getVersion())) {
@@ -669,14 +650,16 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// load remote properties
 			final Properties loadedProps = new Properties();
-			loadedProps.load(new ByteArrayInputStream(bytes));
+			if (bytes != null) {
+				loadedProps.load(new ByteArrayInputStream(bytes));
 
-			// check version
-			final Object version = loadedProps.remove(VERSION_KEY);
-			if ((version == null) || !VERSION_VALUE.equals(version)) {
-				// ignore for now
-				LOG.warn("Properties with incompatible storage format version ({}) found for node {}.", version, this);
-				return;
+				// check version
+				final Object version = loadedProps.remove(VERSION_KEY);
+				if ((version == null) || !VERSION_VALUE.equals(version)) {
+					// ignore for now
+					LOG.warn("Properties with incompatible storage format version ({}) found for node {}.", version, this);
+					return;
+				}
 			}
 
 			// collect all property names
@@ -751,7 +734,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 
 		// ensure that the node is connected with ZooKeeper
-		ensureConnected();
+		ensureConnectedAndLoaded();
 
 		// TODO: investigate behavior when not connected
 		// we should probably allow traversal of *existing* childs but don't allow addition of new nodes
@@ -797,7 +780,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		// illegal state if this node has been removed.
 		// do this AFTER checking for the empty string.
-		checkRemoved();
+		ensureConnectedAndLoaded();
 
 		// use the root relative to this node instead of the global root
 		// in case we have a different hierarchy. (e.g. export)
@@ -836,7 +819,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new IllegalArgumentException("value must not be null");
 		}
 
-		ensureConnected();
+		ensureConnectedAndLoaded();
 
 		final String oldValue = properties.getProperty(key);
 		if (value.equals(oldValue)) {
@@ -895,7 +878,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new IllegalArgumentException("key must not be null");
 		}
 
-		ensureConnected();
+		ensureConnectedAndLoaded();
 
 		final String oldValue = properties.getProperty(key);
 		if (oldValue == null) {
@@ -1070,7 +1053,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public void sync() throws BackingStoreException {
-		ensureConnected();
+		ensureConnectedAndLoaded();
 
 		// sync tree
 		syncTree();
