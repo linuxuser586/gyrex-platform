@@ -496,27 +496,33 @@ public class ZooKeeperGate {
 	}
 
 	/**
-	 * Reads the list of children from the specified path in ZooKeeper if it
+	 * Reads the list of children from the specified path in ZooKeeper.
+	 * <p>
+	 * A {@link NoNodeException} will be thrown if no node with the given path
 	 * exists.
+	 * </p>
 	 * 
 	 * @param path
 	 *            the path to the record
 	 * @param stat
 	 *            optional object to populated with ZooKeeper statistics of the
 	 *            underlying node
-	 * @return the list of children (maybe <code>null</code> the path doesn't
-	 *         exist)
+	 * @return an unordered list of children of the node at the specified path
+	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
-	 * @throws IOException
+	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
 	public Collection<String> readChildrenNames(final IPath path, final Stat stat) throws InterruptedException, KeeperException {
 		return readChildrenNames(path, null, stat);
 	}
 
 	/**
-	 * Reads the list of children from the specified path in ZooKeeper if it
+	 * Reads the list of children from the specified path in ZooKeeper.
+	 * <p>
+	 * A {@link NoNodeException} will be thrown if no node with the given path
 	 * exists.
+	 * </p>
 	 * 
 	 * @param path
 	 *            the path to the record
@@ -525,25 +531,17 @@ public class ZooKeeperGate {
 	 * @param stat
 	 *            optional object to populated with ZooKeeper statistics of the
 	 *            underlying node
-	 * @return the list of children (maybe <code>null</code> if the path doesn't
-	 *         exist)
+	 * @return an unordered list of children of the node at the specified path
+	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
-	 * @throws IOException
 	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
-	public Collection<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws InterruptedException, KeeperException {
+	public Collection<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
-		try {
-			return ensureConnected().getChildren(path.toString(), watch, stat);
-		} catch (final KeeperException e) {
-			if (e.code() == KeeperException.Code.NONODE) {
-				return null;
-			}
-			throw e;
-		}
+		return ensureConnected().getChildren(path.toString(), watch, stat);
 	}
 
 	/**

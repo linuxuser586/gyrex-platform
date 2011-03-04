@@ -35,11 +35,15 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link ICloudManager} implementation.
  */
 public class CloudManagerImpl implements ICloudManager {
+
+	private static final Logger LOG = LoggerFactory.getLogger(CloudManagerImpl.class);
 
 	private IServiceProxy<INodeEnvironment> nodeEnvironmentService;
 	private ListenerList listenerList;
@@ -136,7 +140,7 @@ public class CloudManagerImpl implements ICloudManager {
 				zk.readChildrenNames(nodesPath, nodesMonitor, null);
 			}
 		} catch (final Exception e) {
-			e.printStackTrace();
+			LOG.warn("Unable to install node monitor at node {}. {}", nodesPath, ExceptionUtils.getRootCauseMessage(e));
 		}
 	}
 

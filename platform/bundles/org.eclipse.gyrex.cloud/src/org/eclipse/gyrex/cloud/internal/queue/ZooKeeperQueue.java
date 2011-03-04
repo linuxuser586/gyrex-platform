@@ -258,6 +258,9 @@ public class ZooKeeperQueue implements IQueue {
 				}
 			}
 		} catch (final Exception e) {
+			if (e instanceof KeeperException.NoNodeException) {
+				throw new IllegalStateException(String.format("queue '%s' does not exist", id));
+			}
 			throw new QueueOperationFailedException(id, "RECEIVE_MESSAGES", e);
 		}
 
