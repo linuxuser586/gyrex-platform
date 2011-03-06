@@ -18,7 +18,7 @@ import org.junit.runners.Suite;
  * Context Test Suite.
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ CloudPreferencesBlackBoxTests.class })
+@Suite.SuiteClasses({ CloudPreferencesBlackBoxTests.class, ZooKeeperPreferencesTests.class })
 public class AllPreferencesTests {
 
 }

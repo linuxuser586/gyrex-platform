@@ -385,6 +385,13 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					if (PreferencesDebug.debug) {
 						LOG.debug("Node {} connected, waiting for remote path to be created ({})", this, zkPath);
 					}
+
+					// the preference node has been created
+					// we must set it dirty in order to force #flush to create the path if needed
+					// and save an empty properties
+					propertiesDirty = true;
+
+					// done
 					return;
 				}
 
