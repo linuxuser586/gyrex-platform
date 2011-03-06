@@ -45,6 +45,7 @@ public class JettyManagerImpl implements IJettyManager {
 	private static final String PREF_NODE_CERTIFICATES = "certs";
 
 	private static final String PREF_KEY_CERTIFICATE_ID = "certificateId";
+	private static final String PREF_KEY_NODE_FILTER = "nodeFilter";
 	private static final String PREF_KEY_SECURE_CHANNEL_ID = "secureChannelId";
 	private static final String PREF_KEY_SECURE = "secure";
 	private static final String PREF_KEY_PORT = "port";
@@ -218,6 +219,7 @@ public class JettyManagerImpl implements IJettyManager {
 			descriptor.setSecure(node.getBoolean(PREF_KEY_SECURE, false));
 			descriptor.setSecureChannelId(node.get(PREF_KEY_SECURE_CHANNEL_ID, null));
 			descriptor.setCertificateId(node.get(PREF_KEY_CERTIFICATE_ID, null));
+			descriptor.setNodeFilter(node.get(PREF_KEY_NODE_FILTER, null));
 			return descriptor;
 		} catch (final IllegalArgumentException e) {
 			LOG.warn("Unable to read Jetty channel {}. {}", channelId, e.getMessage());
@@ -288,16 +290,22 @@ public class JettyManagerImpl implements IJettyManager {
 			node.putInt(PREF_KEY_PORT, channel.getPort());
 			node.putBoolean(PREF_KEY_SECURE, channel.isSecure());
 			final String secureChannelId = channel.getSecureChannelId();
-			if (secureChannelId != null) {
+			if (StringUtils.isNotBlank(secureChannelId)) {
 				node.put(PREF_KEY_SECURE_CHANNEL_ID, secureChannelId);
 			} else {
 				node.remove(PREF_KEY_SECURE_CHANNEL_ID);
 			}
 			final String certificateId = channel.getCertificateId();
-			if (certificateId != null) {
+			if (StringUtils.isNotBlank(certificateId)) {
 				node.put(PREF_KEY_CERTIFICATE_ID, certificateId);
 			} else {
 				node.remove(PREF_KEY_CERTIFICATE_ID);
+			}
+			final String nodeFilter = channel.getNodeFilter();
+			if (StringUtils.isNotBlank(nodeFilter)) {
+				node.put(PREF_KEY_NODE_FILTER, nodeFilter);
+			} else {
+				node.remove(PREF_KEY_NODE_FILTER);
 			}
 			node.flush();
 
