@@ -23,7 +23,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 /**
  * Description of a web channel
  */
-public class ChannelDescriptor {
+public final class ChannelDescriptor {
 
 	private String id;
 	private boolean secure;
@@ -93,7 +93,7 @@ public class ChannelDescriptor {
 	 *            the certificateId to set
 	 */
 	public void setCertificateId(final String certificateId) {
-		if (certificateId != null && !IdHelper.isValidId(certificateId)) {
+		if ((certificateId != null) && !IdHelper.isValidId(certificateId)) {
 			throw new IllegalArgumentException("invalid certificateId");
 		}
 		this.certificateId = certificateId;
@@ -160,7 +160,7 @@ public class ChannelDescriptor {
 	 *            the secureChannelId to set
 	 */
 	public void setSecureChannelId(final String secureChannelId) {
-		if (secureChannelId != null && !IdHelper.isValidId(secureChannelId)) {
+		if ((secureChannelId != null) && !IdHelper.isValidId(secureChannelId)) {
 			throw new IllegalArgumentException("invalid secureChannelId");
 		}
 		this.secureChannelId = secureChannelId;
