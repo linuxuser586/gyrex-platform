@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,18 +7,24 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.p2.internal;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import org.eclipse.equinox.p2.metadata.Version;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
+import org.eclipse.gyrex.p2.packages.IComponent;
 import org.eclipse.gyrex.p2.packages.IPackageManager;
 import org.eclipse.gyrex.p2.packages.PackageDefinition;
+import org.eclipse.gyrex.p2.packages.components.InstallableUnit;
 import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -37,9 +43,14 @@ import org.slf4j.LoggerFactory;
 public class PackageManager implements IPackageManager {
 
 	private static final String PREF_NODE_PACKAGES = "packages";
+	private static final String PREF_NODE_COMPONENTS = "components";
 
 	private static final String PREF_KEY_NODE_FILTER = "nodeFilter";
 	private static final String PREF_KEY_ROLLED_OUT = "rolledOut";
+	private static final String PREF_KEY_TYPE = "type";
+	private static final String PREF_KEY_VERSION = "version";
+
+	private static final String COMPONENT_TYPE_IU = "IU";
 
 	private static final Logger LOG = LoggerFactory.getLogger(PackageManager.class);
 
@@ -113,13 +124,31 @@ public class PackageManager implements IPackageManager {
 
 	private PackageDefinition readPackage(final String id) {
 		try {
-			final PackageDefinition descriptor = new PackageDefinition();
-			descriptor.setId(id);
+			final PackageDefinition pkgDefinition = new PackageDefinition();
+			pkgDefinition.setId(id);
 
 			final Preferences node = getPackageNode(id);
-			descriptor.setNodeFilter(node.get(PREF_KEY_NODE_FILTER, null));
-			return descriptor;
-		} catch (final IllegalArgumentException e) {
+			pkgDefinition.setNodeFilter(node.get(PREF_KEY_NODE_FILTER, null));
+
+			if (node.nodeExists(PREF_NODE_COMPONENTS)) {
+				final Preferences componentsNode = node.node(PREF_NODE_COMPONENTS);
+				for (final String componentId : componentsNode.childrenNames()) {
+					final Preferences componentNode = componentsNode.node(componentId);
+					final String type = componentNode.get(PREF_KEY_TYPE, null);
+					if (StringUtils.equals(COMPONENT_TYPE_IU, type)) {
+						final InstallableUnit iu = new InstallableUnit();
+						iu.setId(componentId);
+						final String version = componentNode.get(PREF_KEY_VERSION, null);
+						if (version != null) {
+							iu.setVersion(Version.create(version));
+						}
+						pkgDefinition.addComponentToInstall(iu);
+					}
+				}
+			}
+
+			return pkgDefinition;
+		} catch (final Exception e) {
 			LOG.warn("Unable to read package definition {}. {}", id, ExceptionUtils.getRootCauseMessage(e));
 			return null;
 		}
@@ -162,6 +191,38 @@ public class PackageManager implements IPackageManager {
 			} else {
 				node.remove(PREF_KEY_NODE_FILTER);
 			}
+
+			final Collection<IComponent> componentsToInstall = packageDefinition.getComponentsToInstall();
+			if (componentsToInstall.size() > 0) {
+				final Preferences componentsToInstallNode = node.node(PREF_NODE_COMPONENTS);
+				final Set<String> componentsWritten = new HashSet<String>();
+				for (final IComponent component : componentsToInstall) {
+					componentsWritten.add(component.getId());
+					final Preferences componentNode = componentsToInstallNode.node(component.getId());
+					if (component instanceof InstallableUnit) {
+						componentNode.put(PREF_KEY_TYPE, COMPONENT_TYPE_IU);
+						final InstallableUnit iu = (InstallableUnit) component;
+						final Version version = iu.getVersion();
+						if (null != version) {
+							final StringBuffer versionString = new StringBuffer();
+							version.toString(versionString);
+							componentNode.put(PREF_KEY_VERSION, versionString.toString());
+						} else {
+							componentNode.remove(PREF_KEY_VERSION);
+						}
+					}
+				}
+				for (final String child : componentsToInstallNode.childrenNames()) {
+					if (!componentsWritten.contains(child)) {
+						componentsToInstallNode.node(child).removeNode();
+					}
+				}
+			} else {
+				if (node.nodeExists(PREF_NODE_COMPONENTS)) {
+					node.node(PREF_NODE_COMPONENTS).removeNode();
+				}
+			}
+
 			node.flush();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error saving package definition to backend store. " + ExceptionUtils.getRootCauseMessage(e), e);

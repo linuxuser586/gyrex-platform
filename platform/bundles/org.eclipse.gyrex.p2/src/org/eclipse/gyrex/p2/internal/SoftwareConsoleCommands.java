@@ -117,7 +117,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 
 				URI location;
 				try {
-					location = new URI(ci.nextArgument());
+					location = new URI(uri);
 				} catch (final URISyntaxException e) {
 					ci.println("invalid uri:" + e.getMessage());
 					return;
