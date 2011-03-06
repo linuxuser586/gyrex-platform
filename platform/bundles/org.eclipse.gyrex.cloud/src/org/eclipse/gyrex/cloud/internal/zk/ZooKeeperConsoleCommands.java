@@ -16,9 +16,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.eclipse.gyrex.cloud.internal.CloudDebug;
+
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 import org.eclipse.osgi.framework.console.CommandProvider;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
@@ -265,7 +268,15 @@ public class ZooKeeperConsoleCommands implements CommandProvider {
 			ci.println("ZooKeeper not connected! " + e.getMessage());
 			return;
 		}
-		cmd.execute(keeper, ci);
+		try {
+			cmd.execute(keeper, ci);
+		} catch (final Exception e) {
+			if (CloudDebug.debug) {
+				ci.printStackTrace(e);
+			} else {
+				ci.println("ERROR: " + ExceptionUtils.getRootCauseMessage(e));
+			}
+		}
 	}
 
 	@Override
