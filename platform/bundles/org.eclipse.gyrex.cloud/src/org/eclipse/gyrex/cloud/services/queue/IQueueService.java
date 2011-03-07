@@ -40,9 +40,11 @@ import org.eclipse.gyrex.common.identifiers.IdHelper;
  * </p>
  * <p>
  * This interface is typically not implemented by clients but by service
- * providers. Please get in touch with the development team through the prefered
- * channels listed on <a href="http://www.eclipse.org/gyrex">the Gyrex
- * website</a> to stay up-to-date of possible changes for implementors.
+ * providers. As such it is considered part of a service provider API which may
+ * evolve faster than the general API. Please get in touch with the development
+ * team through the prefered channels listed on <a
+ * href="http://www.eclipse.org/gyrex">the Gyrex website</a> to stay up-to-date
+ * of possible changes for implementors.
  * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
