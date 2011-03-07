@@ -81,6 +81,7 @@ public class AppActivator extends BaseBundleActivator {
 	private BundleContext context;
 	private ServiceTracker<PackageAdmin, PackageAdmin> bundleTracker;
 	private volatile IServiceProxy<Location> instanceLocationProxy;
+	private volatile IPath instanceLocationPath;
 
 	/**
 	 * The constructor
@@ -212,6 +213,9 @@ public class AppActivator extends BaseBundleActivator {
 	 * @return path to the instance location
 	 */
 	public IPath getInstanceLocationPath() {
+		if (instanceLocationPath != null) {
+			return instanceLocationPath;
+		}
 		final URL url = getInstanceLocation().getURL();
 		if (url == null) {
 			throw new IllegalStateException("instance location not available");
@@ -219,7 +223,7 @@ public class AppActivator extends BaseBundleActivator {
 		if (!url.getProtocol().equals("file")) {
 			throw new IllegalStateException("instance location must be on local file system");
 		}
-		return new Path(url.getPath());
+		return instanceLocationPath = new Path(url.getPath());
 	}
 
 	/**
