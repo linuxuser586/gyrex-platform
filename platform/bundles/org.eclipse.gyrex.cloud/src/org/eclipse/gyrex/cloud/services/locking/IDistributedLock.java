@@ -12,20 +12,13 @@
 package org.eclipse.gyrex.cloud.services.locking;
 
 /**
- * A distributed, global synchronous lock used to control access to an exclusive
- * resource.
+ * A distributed lock.
  * <p>
- * This lock is distributed and not reentrant. It exists on a remote system and
- * is globally synchronous, i.e. at any snapshot in time no two clients think
- * they hold the same lock. A client in this definition may be another thread in
- * another process or system or another thread within the same process.
- * </p>
- * <p>
- * Exclusive locks are <em>session</em> locks. A session in this definition may
- * be a single, uninterrupted connection to the lock system. Thus, whenever the
- * connection is lost (or interrupted) the session may end and the lock is
- * released automatically by the system. Therefore, a client which acquires a
- * lock must check regularly if it still ( {@link #hasLock()} owns a lock).
+ * Due to the nature of distributed systems distributed locks are designed with
+ * failures in mind. For example, when a connection to a lock service is lost a
+ * session may end and the lock is released automatically by the system.
+ * Therefore, a client which acquires a lock must check regularly if it still (
+ * {@link #hasLock()} owns a lock).
  * </p>
  * <p>
  * This interface is typically not implemented by clients but by service
@@ -39,6 +32,34 @@ package org.eclipse.gyrex.cloud.services.locking;
  * @noimplement This interface is not intended to be implemented by clients.
  * @noextend This interface is not intended to be extended by clients.
  */
-public interface IExclusiveLock extends IDistributedLock {
+public interface IDistributedLock {
+
+	/**
+	 * Returns the lock identifier.
+	 * 
+	 * @return the lock id
+	 */
+	String getId();
+
+	/**
+	 * Indicates if the current thread owns the lock.
+	 * <p>
+	 * Returns <code>true</code> if and only if the current thread owns the lock
+	 * and the lock is still acquired by the node.
+	 * </p>
+	 * <p>
+	 * Clients which acquired a lock should call that method regularly in order
+	 * to ensure the lock is still valid.
+	 * </p>
+	 * 
+	 * @return
+	 */
+	boolean hasLock();
+
+	/**
+	 * Releases this lock. Locks must only be released by the thread that
+	 * currently owns the lock.
+	 */
+	void release();
 
 }
