@@ -57,12 +57,18 @@ public interface IZooKeeperLayout {
 	/** path with metric records for each node */
 	public static final IPath PATH_NODES_METRICS = PATH_NODE_ROOT.append("metrics").makeAbsolute();
 
-	/** root path for node specific preferences */
-	public static final IPath PATH_NODES_PREFERENCES_ROOT = PATH_NODE_ROOT.append("prefs").makeAbsolute();
-
 	/** root path for platform preferences stored in ZooKeeper */
 	public static final IPath PATH_PREFERENCES_ROOT = PATH_GYREX_ROOT.append("prefs").makeAbsolute();
 
-	/** root path for platform preferences stored in ZooKeeper */
+	/** root path for queues stored in ZooKeeper */
 	public static final IPath PATH_QUEUES_ROOT = PATH_GYREX_ROOT.append("queues").makeAbsolute();
+
+	/** root path for locks stored in ZooKeeper */
+	public static final IPath PATH_LOCKS_ROOT = PATH_GYREX_ROOT.append("locks").makeAbsolute();
+
+	/** root path for locks stored in ZooKeeper */
+	public static final IPath PATH_EXCLUSIVE_ROOT = PATH_GYREX_ROOT.append("exclusive").makeAbsolute();
+
+	/** root path for locks stored in ZooKeeper */
+	public static final IPath PATH_PERSISTENT_ROOT = PATH_GYREX_ROOT.append("persistent").makeAbsolute();
 }

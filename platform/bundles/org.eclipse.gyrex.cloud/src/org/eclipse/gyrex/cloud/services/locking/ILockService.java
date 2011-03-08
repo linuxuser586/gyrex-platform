@@ -51,6 +51,39 @@ import java.util.concurrent.TimeoutException;
 public interface ILockService {
 
 	/**
+	 * Acquires the specified durable lock.
+	 * <p>
+	 * If the specified lock is in use and the specified timeout is greater than
+	 * zero, the calling thread will block until one of the following happens:
+	 * <ul>
+	 * <li>This lock is available</li>
+	 * <li>The thread is interrupted</li>
+	 * <li>The specified timeout has elapsed</li>
+	 * </ul>
+	 * If the specified lock is in use and the specified timeout is equal to or
+	 * less than zero, the calling thread will block until the lock becomes
+	 * available.
+	 * </p>
+	 * <p>
+	 * </p>
+	 * 
+	 * @param lockId
+	 *            the lock identifier
+	 * @param callback
+	 *            a callback interface which will receive important lock
+	 *            lifecycle notifications
+	 * @param timeout
+	 *            the maximum wait time in milliseconds for acquiring the lock
+	 * @return the acquired lock
+	 * @throws InterruptedException
+	 *             if the current thread has been interrupted while waiting for
+	 *             the lock
+	 * @throws TimeoutException
+	 *             if the wait timed out
+	 */
+	IDurableLock acquireDurableLock(String lockId, ILockMonitor<IDurableLock> callback, long timeout) throws InterruptedException, TimeoutException;
+
+	/**
 	 * Acquires the specified exclusive lock.
 	 * <p>
 	 * If the specified lock is in use and the specified timeout is greater than
@@ -82,5 +115,36 @@ public interface ILockService {
 	 *             if the wait timed out
 	 */
 	IExclusiveLock acquireExclusiveLock(String lockId, ILockMonitor<IExclusiveLock> callback, long timeout) throws InterruptedException, TimeoutException;
+
+	/**
+	 * Attempts recovery of the specified durable lock.
+	 * <p>
+	 * This method may be used to recover a
+	 * {@link #acquireDurableLock(String, ILockMonitor, long) previously
+	 * acquired} durable lock. When this method succeeds the lock will be
+	 * recovered to the caller. If the lock is still in use it will be taken
+	 * away from the existing client.
+	 * </p>
+	 * <p>
+	 * If the lock does not exists, i.e. was not acquired before,
+	 * <code>null</code> will be returned.
+	 * </p>
+	 * <p>
+	 * If the lock exists but the recovery key does not match an
+	 * {@link IllegalArgumentException} will be thrown.
+	 * </p>
+	 * 
+	 * @param lockId
+	 *            the lock identifier
+	 * @param callback
+	 *            a callback interface which will receive important lock
+	 *            lifecycle notifications
+	 * @param recoveryKey
+	 *            the recovery key for the lock (obtained previously form
+	 *            {@link IDurableLock#getRecoveryKey()})
+	 * @return the recovered durable lock (may be <code>null</code> if the lock
+	 *         does not exist)
+	 */
+	IDurableLock recoverDurableLock(String lockId, ILockMonitor<IDurableLock> callback, String recoveryKey) throws IllegalArgumentException;
 
 }
