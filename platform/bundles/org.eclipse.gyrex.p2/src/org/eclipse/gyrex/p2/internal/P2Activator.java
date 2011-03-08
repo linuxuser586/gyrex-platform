@@ -1,10 +1,19 @@
 package org.eclipse.gyrex.p2.internal;
 
+import java.net.URL;
+import java.util.Collection;
+
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.p2.packages.IPackageManager;
 import org.eclipse.gyrex.p2.repositories.IRepositoryManager;
 
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.osgi.service.datalocation.Location;
+
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 
 public class P2Activator extends BaseBundleActivator {
 
@@ -26,6 +35,7 @@ public class P2Activator extends BaseBundleActivator {
 
 	private volatile PackageManager packageManager;
 	private volatile RepoManager repoManager;
+	private volatile IPath configLocationPath;
 
 	/**
 	 * Creates a new instance.
@@ -46,6 +56,31 @@ public class P2Activator extends BaseBundleActivator {
 		instance = null;
 		packageManager = null;
 		repoManager = null;
+	}
+
+	public IPath getConfigLocation() {
+		if (configLocationPath != null) {
+			return configLocationPath;
+		}
+		final BundleContext context = getBundle().getBundleContext();
+		Collection<ServiceReference<Location>> serviceReferences;
+		try {
+			serviceReferences = context.getServiceReferences(Location.class, Location.CONFIGURATION_FILTER);
+		} catch (final InvalidSyntaxException e) {
+			throw new IllegalStateException("error determining configuration location: " + e.getMessage(), e);
+		}
+		final Location userConfigLocation = context.getService(serviceReferences.iterator().next());
+		if (userConfigLocation.isReadOnly()) {
+			throw new IllegalStateException("config location is read-only");
+		}
+		final URL url = userConfigLocation.getURL();
+		if (url == null) {
+			throw new IllegalStateException("config location not available");
+		}
+		if (!url.getProtocol().equals("file")) {
+			throw new IllegalStateException("config location must be on local file system");
+		}
+		return configLocationPath = new Path(url.getPath());
 	}
 
 	@Override

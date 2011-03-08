@@ -33,7 +33,9 @@ public interface IPackageManager {
 	 * @param packageDefinition
 	 * @return
 	 */
-	boolean isRolledOut(PackageDefinition packageDefinition);
+	boolean isMarkedForInstall(PackageDefinition packageDefinition);
+
+	boolean isMarkedForUninstall(PackageDefinition packageDefinition);
 
 	/**
 	 * @param id

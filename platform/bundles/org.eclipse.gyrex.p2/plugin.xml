@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="org.eclipse.gyrex.p2.node.installer.application"
+         name="Software Packages Installer"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="false">
+         <run
+               class="org.eclipse.gyrex.p2.internal.installer.InstallerApplication">
+         </run>
+      </application>
+   </extension>
+   <extension
+         point="org.eclipse.gyrex.server.roles">
+      <role
+            id="org.eclipse.gyrex.p2.node.installer.role"
+            name="Software Package Installer">
+         <requireApplication
+               applicationId="org.eclipse.gyrex.p2.node.installer.application">
+         </requireApplication>
+      </role>
+   </extension>
+
+</plugin>

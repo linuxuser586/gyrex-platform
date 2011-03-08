@@ -46,7 +46,8 @@ public class PackageManager implements IPackageManager {
 	private static final String PREF_NODE_COMPONENTS = "components";
 
 	private static final String PREF_KEY_NODE_FILTER = "nodeFilter";
-	private static final String PREF_KEY_ROLLED_OUT = "rolledOut";
+	private static final String PREF_KEY_INSTALL = "install";
+	private static final String PREF_KEY_UNINSTALL = "uninstall";
 	private static final String PREF_KEY_TYPE = "type";
 	private static final String PREF_KEY_VERSION = "version";
 
@@ -102,7 +103,7 @@ public class PackageManager implements IPackageManager {
 	}
 
 	@Override
-	public boolean isRolledOut(final PackageDefinition packageDefinition) {
+	public boolean isMarkedForInstall(final PackageDefinition packageDefinition) {
 		try {
 			if (!IdHelper.isValidId(packageDefinition.getId())) {
 				throw new IllegalArgumentException("invalid id");
@@ -116,7 +117,28 @@ public class PackageManager implements IPackageManager {
 				throw new IllegalArgumentException("package does not exist");
 			}
 
-			return node.node(packageDefinition.getId()).getBoolean(PREF_KEY_ROLLED_OUT, false);
+			return node.node(packageDefinition.getId()).getBoolean(PREF_KEY_INSTALL, false);
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
+	@Override
+	public boolean isMarkedForUninstall(final PackageDefinition packageDefinition) {
+		try {
+			if (!IdHelper.isValidId(packageDefinition.getId())) {
+				throw new IllegalArgumentException("invalid id");
+			}
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+				throw new IllegalArgumentException("package does not exist");
+			}
+			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
+			if (!node.nodeExists(packageDefinition.getId())) {
+				throw new IllegalArgumentException("package does not exist");
+			}
+
+			return node.node(packageDefinition.getId()).getBoolean(PREF_KEY_UNINSTALL, false);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}

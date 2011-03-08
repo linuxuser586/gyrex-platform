@@ -194,7 +194,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 				}
 
 				// verify the package is not marked for roll-out
-				if (packageManager.isRolledOut(packageDefinition)) {
+				if (packageManager.isMarkedForInstall(packageDefinition)) {
 					ci.println("Package already rolled-out! Please create new package for updates or revoke package first.");
 					return;
 				}
