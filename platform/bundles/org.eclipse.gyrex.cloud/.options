@@ -12,3 +12,6 @@ org.eclipse.gyrex.cloud/cloudState=true
 
 # debug node metrics reported to cloud
 org.eclipse.gyrex.cloud/nodeMetrics=false
+
+# debug lock service
+org.eclipse.gyrex.cloud/lockService=true

@@ -14,7 +14,7 @@ package org.eclipse.gyrex.cloud.services.locking;
 /**
  * A monitor which receives lock lifecycle notifications.
  * <p>
- * This interface must be implemented by clients requesting a lock.
+ * This interface may be implemented by clients.
  * </p>
  * 
  * @param <L>

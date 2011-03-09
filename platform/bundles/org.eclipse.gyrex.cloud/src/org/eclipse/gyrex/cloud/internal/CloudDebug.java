@@ -25,5 +25,5 @@ public class CloudDebug extends BundleDebugOptions {
 	public static boolean cloudState;
 	public static boolean nodeMetrics;
 
-	public static boolean preferences;
+	public static boolean lockService;
 }

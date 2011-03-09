@@ -537,6 +537,9 @@ public class CloudState implements IConnectionMonitor {
 		Collections.reverse(roles); // de-activate in reverse order
 		LocalRolesManager.deactivateRoles(roles);
 
+		// stop cloud services
+		CloudActivator.getInstance().stopCloudServices();
+
 		// stop node metrics reporter
 		NodeMetricsReporter.stop();
 
@@ -581,6 +584,9 @@ public class CloudState implements IConnectionMonitor {
 
 		// start node metrics publisher (cpu load, memory resources)
 		NodeMetricsReporter.start();
+
+		// start cloud services
+		CloudActivator.getInstance().startCloudServices();
 
 		// activate cloud roles
 		final Collection<String> roles = node.getTags();

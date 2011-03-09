@@ -67,8 +67,8 @@ public interface IZooKeeperLayout {
 	public static final IPath PATH_LOCKS_ROOT = PATH_GYREX_ROOT.append("locks").makeAbsolute();
 
 	/** root path for locks stored in ZooKeeper */
-	public static final IPath PATH_EXCLUSIVE_ROOT = PATH_GYREX_ROOT.append("exclusive").makeAbsolute();
+	public static final IPath PATH_LOCKS_EXCLUSIVE = PATH_GYREX_ROOT.append("exclusive").makeAbsolute();
 
 	/** root path for locks stored in ZooKeeper */
-	public static final IPath PATH_PERSISTENT_ROOT = PATH_GYREX_ROOT.append("persistent").makeAbsolute();
+	public static final IPath PATH_LOCKS_DURABLE = PATH_GYREX_ROOT.append("persistent").makeAbsolute();
 }

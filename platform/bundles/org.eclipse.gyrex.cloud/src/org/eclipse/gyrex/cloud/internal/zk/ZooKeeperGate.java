@@ -23,6 +23,7 @@ import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.ISafeRunnable;
 import org.eclipse.core.runtime.ListenerList;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SafeRunner;
 
 import org.apache.commons.lang.CharEncoding;
@@ -275,7 +276,7 @@ public class ZooKeeperGate {
 		}
 	}
 
-	private void create(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
+	private IPath create(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
@@ -287,7 +288,7 @@ public class ZooKeeperGate {
 		ZooKeeperHelper.createParents(ensureConnected(), path);
 
 		// create node itself
-		ensureConnected().create(path.toString(), data, ZooDefs.Ids.OPEN_ACL_UNSAFE, createMode);
+		return new Path(ensureConnected().create(path.toString(), data, ZooDefs.Ids.OPEN_ACL_UNSAFE, createMode));
 	}
 
 	/**
@@ -301,12 +302,13 @@ public class ZooKeeperGate {
 	 *            the path to create
 	 * @param createMode
 	 *            the creation mode
+	 * @return the actual path of the created node
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
 	 */
-	public void createPath(final IPath path, final CreateMode createMode) throws KeeperException, InterruptedException, IOException {
-		create(path, createMode, null);
+	public IPath createPath(final IPath path, final CreateMode createMode) throws KeeperException, InterruptedException, IOException {
+		return create(path, createMode, null);
 	}
 
 	/**
@@ -322,15 +324,16 @@ public class ZooKeeperGate {
 	 *            the creation mode
 	 * @param recordData
 	 *            the record data
+	 * @return the actual path of the created node
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
 	 */
-	public void createPath(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
+	public IPath createPath(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
 		if (recordData == null) {
 			throw new IllegalArgumentException("recordData must not be null");
 		}
-		create(path, createMode, recordData);
+		return create(path, createMode, recordData);
 	}
 
 	/**
@@ -364,7 +367,7 @@ public class ZooKeeperGate {
 	/**
 	 * Removes a path in ZooKeeper.
 	 * <p>
-	 * If the path doedn't exist the operation is also considered successful.
+	 * If the path doesn't exist the operation is also considered successful.
 	 * Otherwise it behaves as {@link #deletePath(IPath, int)} with a version
 	 * value of <code>-1</code>.
 	 * </p>
@@ -493,6 +496,20 @@ public class ZooKeeperGate {
 		if (reconnectMonitor != null) {
 			SafeRunner.run(new NotifyConnectionListener(connected, reconnectMonitor, this));
 		}
+	}
+
+	/**
+	 * Returns the id of the current ZooKeeper session.
+	 * <p>
+	 * This method is used for debugging purposes and may not be referenced
+	 * elsewhere.
+	 * </p>
+	 * 
+	 * @return the session id
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public long getSessionId() {
+		return ensureConnected().getSessionId();
 	}
 
 	/**
