@@ -100,8 +100,61 @@ public final class BundleServiceHelper {
 	/**
 	 * Registers an OSGi service.
 	 * <p>
-	 * This is a convenience method which registers an OSGi service and
-	 * remembers the registration as long as the bundle is not stopped. The OSGi
+	 * This is a convenience method which registers an OSGi service. The OSGi
+	 * framework automatically unregisters all services a bundle may have
+	 * registered when the bundle is stopped.
+	 * </p>
+	 * 
+	 * @param clazz
+	 *            The class name under which the service can be located.
+	 * @param service
+	 *            The service object or a <code>ServiceFactory</code> object.
+	 * @param vendor
+	 *            an optional {@link Constants#SERVICE_VENDOR service vendor} to
+	 *            use (may be <code>null</code>)
+	 * @param description
+	 *            an optional {@link Constants#SERVICE_DESCRIPTION service
+	 *            description} to use (may be <code>null</code>)
+	 * @param pid
+	 *            an optional {@link Constants#SERVICE_PID service pid} to use
+	 *            (may be <code>null</code>)
+	 * @param ranking
+	 *            a {@link Constants#SERVICE_RANKING service ranking} to use
+	 *            (may be <code>null</code>)
+	 * @param <S>
+	 *            the service type
+	 * @return a <code>ServiceRegistration</code> object for use by the bundle
+	 *         registering the service to update the service's properties or to
+	 *         unregister the service
+	 * @see BundleContext#registerService(String, Object, Dictionary)
+	 */
+	public <S> ServiceRegistration<S> registerService(final Class<S> clazz, final S service, final String vendor, final String description, final String pid, final Integer ranking) {
+		final BundleContext bundleContext = contextRef.get();
+		if (null == bundleContext) {
+			throw newInactiveException();
+		}
+
+		final Dictionary<String, Object> properties = new Hashtable<String, Object>(4);
+		if (null != pid) {
+			properties.put(Constants.SERVICE_PID, pid);
+		}
+		if (null != vendor) {
+			properties.put(Constants.SERVICE_VENDOR, vendor);
+		}
+		if (null != description) {
+			properties.put(Constants.SERVICE_DESCRIPTION, description);
+		}
+		if (null != ranking) {
+			properties.put(Constants.SERVICE_RANKING, ranking);
+		}
+
+		return bundleContext.registerService(clazz, service, properties);
+	}
+
+	/**
+	 * Registers an OSGi service.
+	 * <p>
+	 * This is a convenience method which registers an OSGi service. The OSGi
 	 * framework automatically unregisters all services a bundle may have
 	 * registered when the bundle is stopped.
 	 * </p>
