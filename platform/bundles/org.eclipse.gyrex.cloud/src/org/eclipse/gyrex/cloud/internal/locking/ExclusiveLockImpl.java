@@ -315,7 +315,14 @@ public class ExclusiveLockImpl extends ZooKeeperBasedService implements IExclusi
 					}
 
 					// delete path
-					ZooKeeperGate.get().deletePath(lockNodePath.append(lockName));
+					try {
+						ZooKeeperGate.get().deletePath(lockNodePath.append(lockName), -1);
+					} catch (final NoNodeException e) {
+						// node already gone
+						if (CloudDebug.lockService) {
+							LOG.debug("Lock node already gone {}/{}", lockNodePath, myLockName);
+						}
+					}
 
 					// reset my lock name upon success
 					myLockName = null;
@@ -331,11 +338,6 @@ public class ExclusiveLockImpl extends ZooKeeperBasedService implements IExclusi
 			// session expired so assume the node was removed by ZooKeeper
 			if (CloudDebug.lockService) {
 				LOG.debug("ZooKeeper session expired. Relying on ZooKeeper server to remove lock node {}/{}", lockNodePath, myLockName);
-			}
-		} catch (final NoNodeException e) {
-			// node already gone
-			if (CloudDebug.lockService) {
-				LOG.debug("Lock node already gone {}/{}", lockNodePath, myLockName);
 			}
 		} catch (final Exception e) {
 			LOG.warn("Unable to remove lock node {}. Please check server logs and also ZooKeeper. If node still exists and the session is not closed it might never get released. However, it should get released automatically after the session times out on the ZooKeeper server. {}", lockNodePath.append(myLockName), ExceptionUtils.getRootCauseMessage(e));
