@@ -30,6 +30,7 @@ import org.eclipse.gyrex.cloud.services.locking.ILockMonitor;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -103,6 +104,24 @@ public class ExclusiveLockImpl extends ZooKeeperBasedService implements IExclusi
 		return NumberUtils.toInt(StringUtils.removeStart(nodeName, LOCK_NAME_PREFIX), -1);
 	};
 
+	private final ZooKeeperMonitor killMonitor = new ZooKeeperMonitor() {
+		@Override
+		protected void pathDeleted(final String path) {
+			close(false);
+		};
+
+		@Override
+		protected void recordChanged(final String path) {
+			// re-register
+			try {
+				ZooKeeperGate.get().readRecord(new Path(path), this, null);
+			} catch (final Exception e) {
+				LOG.warn("Error re-registering lock node watch for lock {}. {}", getId(), ExceptionUtils.getRootCauseMessage(e));
+				close(false);
+			}
+		};
+	};
+
 	private final String lockId;
 	private final IPath lockNodePath;
 	private final ILockMonitor<IExclusiveLock> lockMonitor;
@@ -133,10 +152,19 @@ public class ExclusiveLockImpl extends ZooKeeperBasedService implements IExclusi
 					// note, we rely on any previously given lock name as locks are session-only locks and
 					// typically may not be re-acquired
 					if (!isClosed() && (null == myLockName)) {
-						myLockName = ZooKeeperGate.get().createPath(lockNodePath.append(LOCK_NAME_PREFIX), CreateMode.EPHEMERAL_SEQUENTIAL).lastSegment();
+						final ZooKeeperGate zk = ZooKeeperGate.get();
+
+						// create ephemeral node
+						final IPath nodePath = zk.createPath(lockNodePath.append(LOCK_NAME_PREFIX), CreateMode.EPHEMERAL_SEQUENTIAL);
+
+						// extract lock name
+						myLockName = nodePath.lastSegment();
 						if (CloudDebug.lockService) {
 							LOG.debug("Created lock node {} for lock {}", myLockName, lockNodePath);
 						}
+
+						// allow remote kill
+						zk.readRecord(lockNodePath, killMonitor, null);
 					}
 					return true;
 				}
