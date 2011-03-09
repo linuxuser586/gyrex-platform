@@ -56,6 +56,10 @@ public interface IDistributedLock {
 	 * If this method returns false clients must cancel all activities which
 	 * require the exclusive lock.
 	 * </p>
+	 * <p>
+	 * Clients are also encourage to pass a {@link ILockMonitor} when acquiring
+	 * locks in order to get actively notified when the lock has been lost.
+	 * </p>
 	 * 
 	 * @return <code>true</code> if the lock is still valid, <code>false</code>
 	 *         otherwise
