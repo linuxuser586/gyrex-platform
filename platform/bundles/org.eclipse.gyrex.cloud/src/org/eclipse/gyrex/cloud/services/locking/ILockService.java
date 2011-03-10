@@ -126,12 +126,12 @@ public interface ILockService {
 	 * away from the existing client.
 	 * </p>
 	 * <p>
-	 * If the lock does not exists, i.e. was not acquired before,
-	 * <code>null</code> will be returned.
+	 * If the lock does not be found (eg., deleted by an administrator), an
+	 * {@link IllegalStateException} will be thrown.
 	 * </p>
 	 * <p>
 	 * If the lock exists but the recovery key does not match an
-	 * {@link IllegalArgumentException} will be thrown.
+	 * {@link IllegalStateException} will be thrown.
 	 * </p>
 	 * 
 	 * @param lockId
@@ -145,6 +145,6 @@ public interface ILockService {
 	 * @return the recovered durable lock (may be <code>null</code> if the lock
 	 *         does not exist)
 	 */
-	IDurableLock recoverDurableLock(String lockId, ILockMonitor<IDurableLock> callback, String recoveryKey) throws IllegalArgumentException;
+	IDurableLock recoverDurableLock(String lockId, ILockMonitor<IDurableLock> callback, String recoveryKey);
 
 }

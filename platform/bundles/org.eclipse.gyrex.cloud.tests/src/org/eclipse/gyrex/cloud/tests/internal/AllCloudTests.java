@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.tests.internal;
 
+import org.eclipse.gyrex.cloud.tests.internal.locking.DurableLockTests;
 import org.eclipse.gyrex.cloud.tests.internal.locking.ExclusiveLockTests;
 import org.eclipse.gyrex.cloud.tests.internal.queue.ZooKeeperQueueTests;
 
@@ -22,7 +23,7 @@ import org.junit.runners.Suite.SuiteClasses;
  *
  */
 @RunWith(Suite.class)
-@SuiteClasses({ ZooKeeperQueueTests.class, ExclusiveLockTests.class })
+@SuiteClasses({ ZooKeeperQueueTests.class, ExclusiveLockTests.class, DurableLockTests.class })
 public class AllCloudTests {
 
 }

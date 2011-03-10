@@ -28,26 +28,32 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.eclipse.gyrex.cloud.internal.locking.ExclusiveLockImpl;
+import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.cloud.internal.locking.DurableLockImpl;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
-public class ExclusiveLockTests {
+public class DurableLockTests {
+
+	private static final Logger LOG = LoggerFactory.getLogger(DurableLockTests.class);
 
 	private ScheduledExecutorService executorService;
 
-	private Callable<ExclusiveLockImpl> newAcquireLockCall(final ExclusiveLockImpl lock, final long timeout) {
-		return new Callable<ExclusiveLockImpl>() {
+	private Callable<DurableLockImpl> newAcquireLockCall(final DurableLockImpl lock, final long timeout) {
+		return new Callable<DurableLockImpl>() {
 			@Override
-			public ExclusiveLockImpl call() throws Exception {
+			public DurableLockImpl call() throws Exception {
 				lock.acquire(timeout);
 				return lock;
 			}
@@ -60,6 +66,14 @@ public class ExclusiveLockTests {
 	@Before
 	public void setUp() throws Exception {
 		executorService = Executors.newScheduledThreadPool(4);
+
+		// configure debug output
+		CloudDebug.debug = true;
+		CloudDebug.lockService = true;
+		CloudDebug.zooKeeperGateLifecycle = false;
+		CloudDebug.zooKeeperServer = false;
+		CloudDebug.nodeMetrics = false;
+		CloudDebug.cloudState = false;
 	}
 
 	/**
@@ -73,9 +87,9 @@ public class ExclusiveLockTests {
 	@Test
 	public void testAcquire001() throws Exception {
 		final String lockId = "test." + ZooKeeperGate.get().getSessionId() + "." + System.currentTimeMillis();
-		final Future<ExclusiveLockImpl> lock1 = executorService.submit(newAcquireLockCall(new ExclusiveLockImpl(lockId, null), 0));
+		final Future<DurableLockImpl> lock1 = executorService.submit(newAcquireLockCall(new DurableLockImpl(lockId, null), 0));
 
-		final ExclusiveLockImpl lock = lock1.get(15, TimeUnit.SECONDS);
+		final DurableLockImpl lock = lock1.get(15, TimeUnit.SECONDS);
 		assertNotNull(lock);
 		assertTrue(lock.isValid());
 
@@ -87,17 +101,17 @@ public class ExclusiveLockTests {
 	public void testAcquire002() throws Exception {
 		final String lockId = "test." + ZooKeeperGate.get().getSessionId() + "." + System.currentTimeMillis();
 
-		final ExclusiveLockImpl lock1 = new ExclusiveLockImpl(lockId, null);
-		final Future<ExclusiveLockImpl> lock1f = executorService.submit(newAcquireLockCall(lock1, 1000));
+		final DurableLockImpl lock1 = new DurableLockImpl(lockId, null);
+		final Future<DurableLockImpl> lock1f = executorService.submit(newAcquireLockCall(lock1, 1000));
 
-		final ExclusiveLockImpl lock1lock = lock1f.get(15, TimeUnit.SECONDS);
+		final DurableLockImpl lock1lock = lock1f.get(15, TimeUnit.SECONDS);
 		assertNotNull(lock1lock);
 		assertNotNull("lock1 must have a name at this point", lock1.getMyLockName());
 		assertTrue(lock1lock.isValid());
 
 		// check that's impossible to acquire a second log
-		final ExclusiveLockImpl lock2 = new ExclusiveLockImpl(lockId, null);
-		final Future<ExclusiveLockImpl> lock2f = executorService.submit(newAcquireLockCall(lock2, 0));
+		final DurableLockImpl lock2 = new DurableLockImpl(lockId, null);
+		final Future<DurableLockImpl> lock2f = executorService.submit(newAcquireLockCall(lock2, 0));
 		try {
 			lock2f.get(10, TimeUnit.SECONDS);
 			fail("timeout expected, call should never succeed");
@@ -107,8 +121,8 @@ public class ExclusiveLockTests {
 		assertNotNull("lock2 is still waiting so it must have a name", lock2.getMyLockName());
 
 		// check that acquire timeouts work
-		final ExclusiveLockImpl lock3 = new ExclusiveLockImpl(lockId, null);
-		final Future<ExclusiveLockImpl> lock3f = executorService.submit(newAcquireLockCall(lock3, 2000));
+		final DurableLockImpl lock3 = new DurableLockImpl(lockId, null);
+		final Future<DurableLockImpl> lock3f = executorService.submit(newAcquireLockCall(lock3, 2000));
 		try {
 			lock3f.get(10, TimeUnit.SECONDS);
 			fail("timeout expected, call should never succeed");
@@ -116,7 +130,7 @@ public class ExclusiveLockTests {
 			// check exception
 			assertTrue("timeout expected but wrong exception thrown", e.getCause() instanceof TimeoutException);
 			// also check that no lock is left in ZooKeeper
-			final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(IZooKeeperLayout.PATH_LOCKS_EXCLUSIVE.append(lockId), null);
+			final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(IZooKeeperLayout.PATH_LOCKS_DURABLE.append(lockId), null);
 			assertEquals("only two children are allowed for lock node", 2, childrenNames.size());
 			assertTrue("lock2 must exist", childrenNames.contains(lock1.getMyLockName()));
 			assertTrue("lock2 must exist", childrenNames.contains(lock2.getMyLockName()));
@@ -128,7 +142,7 @@ public class ExclusiveLockTests {
 		assertFalse(lock1lock.isValid());
 
 		// check lock 2 is now available
-		final ExclusiveLockImpl lock2lock = lock2f.get(10, TimeUnit.SECONDS);
+		final DurableLockImpl lock2lock = lock2f.get(10, TimeUnit.SECONDS);
 		assertNotNull(lock2lock);
 		assertTrue(lock2lock.isValid());
 
@@ -140,11 +154,18 @@ public class ExclusiveLockTests {
 	@Test
 	public void testDisconnect001() throws Exception {
 		final String lockId = "test." + ZooKeeperGate.get().getSessionId() + "." + System.currentTimeMillis();
-		final Future<ExclusiveLockImpl> lock1 = executorService.submit(newAcquireLockCall(new ExclusiveLockImpl(lockId, null), 0));
+		LOG.info("Durable lock recovery test. Lock: {}", lockId);
 
-		final ExclusiveLockImpl lock = lock1.get(15, TimeUnit.SECONDS);
+		final Future<DurableLockImpl> lock1 = executorService.submit(newAcquireLockCall(new DurableLockImpl(lockId, null), 0));
+		final DurableLockImpl lock = lock1.get(15, TimeUnit.SECONDS);
 		assertNotNull(lock);
 		assertTrue(lock.isValid());
+
+		LOG.info("Acquired lock 1: {}", lock);
+
+		// check for recovery key
+		final String recoveryKey = lock.getRecoveryKey();
+		assertNotNull(recoveryKey);
 
 		// now kill the ZooKeeper connection
 		// note, we must set a latch to "2" because connected is called twice
@@ -163,6 +184,8 @@ public class ExclusiveLockTests {
 				// empty
 			}
 		});
+
+		LOG.info("Shutting down ZooKeeper gate");
 		ZooKeeperGate.get().testShutdown();
 
 		// lock must be invalid now
@@ -170,8 +193,20 @@ public class ExclusiveLockTests {
 
 		// wait reconnect
 		reconnected.await(20, TimeUnit.SECONDS);
+		LOG.info("Reconnected ZooKeeper gate");
 
 		// must still be invalid
 		assertFalse(lock.isValid());
+
+		// attempt recovery
+		LOG.info("Recovering lock: {}", lockId);
+		final DurableLockImpl recoveredLock = new DurableLockImpl(lockId, null);
+		recoveredLock.recover(recoveryKey);
+		LOG.info("Durable lock recoverd: {}", recoveredLock);
+
+		assertTrue(recoveredLock.isValid());
+		assertNotNull(recoveredLock.getRecoveryKey());
+		assertFalse("recovery keys should be different", StringUtils.equals(recoveryKey, recoveredLock.getRecoveryKey()));
+
 	}
 }

@@ -35,7 +35,6 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
@@ -246,23 +245,39 @@ public class ZooKeeperGate {
 			}
 
 			// handle event
-			if (event.getState() == KeeperState.SyncConnected) {
-				// SyncConnected ==> connection is UP
-				LOG.info("ZooKeeper Gate is now UP. Connection to cloud established.");
-				connected.set(true);
+			switch (event.getState()) {
+				case SyncConnected:
+					// SyncConnected ==> connection is UP
+					LOG.info("ZooKeeper Gate is now UP. Connection to cloud established.");
+					connected.set(true);
 
-				// notify connection listeners
-				fireConnectionEvent(true);
-			} else if (event.getState() == KeeperState.Expired) {
-				// we rely on Expired event for real DOWN detection
-				LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost.", event.getState());
-				connected.set(false);
+					// notify connection listeners
+					fireConnectionEvent(true);
+					break;
 
-				// trigger clean shutdown (and notify listeners)
-				shutdown(true);
-			} else {
-				// ZooKeeper will re-try on it's own in all other cases
-				LOG.info("ZooKeeper is now {}. Gate is not intervening. ({})", event.getState(), zooKeeper);
+				case Expired:
+				case Disconnected:
+					// we rely on Expired event for real DOWN detection
+					LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost.");
+					connected.set(false);
+
+					// trigger clean shutdown (and notify listeners)
+					shutdown(true);
+					break;
+
+				case AuthFailed:
+					// AuthFailed ==> impossible to connect
+					LOG.warn("ZooKeeper Gate is unable to connect. Authentication faild.");
+					connected.set(false);
+
+					// trigger clean shutdown (but don't notify listeners because they should never got notified before)
+					shutdown(false);
+					break;
+
+				default:
+					// ZooKeeper will re-try on it's own in all other cases
+					LOG.warn("ZooKeeper is now {}. Gate is not intervening. ({})", event.getState(), zooKeeper);
+					break;
 			}
 		}
 
@@ -353,12 +368,12 @@ public class ZooKeeperGate {
 	 * @throws InterruptedException
 	 * @throws IOException
 	 */
-	public void createPath(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
+	public IPath createPath(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
 		if (recordData == null) {
 			throw new IllegalArgumentException("recordData must not be null");
 		}
 		try {
-			createPath(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
+			return createPath(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalStateException("JVM does not support UTF-8.", e);
 		}
@@ -714,6 +729,20 @@ public class ZooKeeperGate {
 		}
 	}
 
+	/**
+	 * Closes the gate.
+	 * <p>
+	 * This method is used for testing purposes and may not be referenced
+	 * elsewhere.
+	 * </p>
+	 * 
+	 * @throws InterruptedException
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public void testShutdown() throws InterruptedException {
+		shutdown(true);
+	}
+
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
@@ -807,6 +836,34 @@ public class ZooKeeperGate {
 		}
 		try {
 			return writeRecord(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("JVM does not support UTF-8.", e);
+		}
+	}
+
+	/**
+	 * Writes a record at the specified path in ZooKeeper.
+	 * <p>
+	 * If the path does not exist a {@link NoNodeException} will be thrown.
+	 * </p>
+	 * <p>
+	 * If the version does not match a {@link BadVersionException} will be
+	 * thrown.
+	 * </p>
+	 * 
+	 * @param path
+	 *            the path to create
+	 * @param recordData
+	 *            the record data
+	 * @param version
+	 * @return ZooKeeper statistics about the underlying node
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public Stat writeRecord(final IPath path, final String recordData, final int version) throws InterruptedException, KeeperException, IOException {
+		try {
+			return writeRecord(path, recordData.getBytes(CharEncoding.UTF_8), version);
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalStateException("JVM does not support UTF-8.", e);
 		}

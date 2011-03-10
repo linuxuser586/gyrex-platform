@@ -30,16 +30,20 @@ public abstract class ZooKeeperBasedService {
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 	private final IConnectionMonitor connectionMonitor = new IConnectionMonitor() {
+		private final AtomicBoolean everConnected = new AtomicBoolean();
 
 		@Override
 		public void connected(final ZooKeeperGate gate) {
-			// ignore
+			if (everConnected.compareAndSet(false, true)) {
+				// ignore first connect call (this is the initial call)
+			} else {
+				reconnect();
+			}
 		}
 
 		@Override
 		public void disconnected(final ZooKeeperGate gate) {
-			// auto-close service on disconnect
-			close(false);
+			disconnect();
 		}
 	};
 
@@ -73,20 +77,28 @@ public abstract class ZooKeeperBasedService {
 
 	/**
 	 * Closes the service.
-	 * 
-	 * @param regular
-	 *            <code>true</code> if the close is a regular close, i.e. wanted
-	 *            by a client and not because of a connection loss,
-	 *            <code>false</code> otherwise
 	 */
-	protected final void close(final boolean regular) {
+	protected final void close() {
 		if (closed.compareAndSet(false, true)) {
 			try {
-				doClose(regular);
+				doClose();
 			} finally {
 				ZooKeeperGate.removeConnectionMonitor(connectionMonitor);
 			}
 		}
+	}
+
+	/**
+	 * Disconnects the service.
+	 * <p>
+	 * The default implementation just closes the service performing an
+	 * irregular close. Subclasses may override and customize the behavior.
+	 * </p>
+	 */
+	protected void disconnect() {
+		// auto-close service on disconnect
+		LOG.warn("Connection to the cloud has been lost. Closing active service {}.", ZooKeeperBasedService.this);
+		close();
 	}
 
 	/**
@@ -102,7 +114,7 @@ public abstract class ZooKeeperBasedService {
 	 *            by a client and not because of a connection loss,
 	 *            <code>false</code> otherwise
 	 */
-	protected void doClose(final boolean regular) {
+	protected void doClose() {
 		// empty
 	}
 
@@ -158,6 +170,18 @@ public abstract class ZooKeeperBasedService {
 	 */
 	protected final boolean isClosed() {
 		return closed.get();
+	}
+
+	/**
+	 * Reconnects the service.
+	 * <p>
+	 * The default implementation does nothing which basically means that
+	 * reconnection is not supported. Subclasses may override and customize the
+	 * behavior.
+	 * </p>
+	 */
+	protected void reconnect() {
+
 	}
 
 	/**

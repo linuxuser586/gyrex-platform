@@ -66,6 +66,10 @@ public class ZooKeeperMonitor implements Watcher {
 					// connection established, nothing to do because watches
 					// will be automatically re-registered and delivered by ZooKeeper
 					break;
+				case Disconnected:
+					// session disconnected, the gate will close
+					closing(KeeperException.Code.CONNECTIONLOSS);
+					break;
 				case Expired:
 					// session expired, the gate will close
 					closing(KeeperException.Code.SESSIONEXPIRED);

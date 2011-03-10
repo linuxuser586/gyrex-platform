@@ -18,8 +18,6 @@ import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
 import org.eclipse.gyrex.cloud.services.locking.ILockMonitor;
 import org.eclipse.gyrex.cloud.services.locking.ILockService;
 
-import org.apache.commons.lang.NotImplementedException;
-
 /**
  * ZooKeeper based {@link ILockService} implementation.
  */
@@ -27,7 +25,7 @@ public class ZooKeeperLockService implements ILockService {
 
 	@Override
 	public IDurableLock acquireDurableLock(final String lockId, final ILockMonitor<IDurableLock> callback, final long timeout) throws InterruptedException, TimeoutException {
-		throw new NotImplementedException();
+		return new DurableLockImpl(lockId, callback).acquire(timeout);
 	}
 
 	@Override
@@ -37,7 +35,7 @@ public class ZooKeeperLockService implements ILockService {
 
 	@Override
 	public IDurableLock recoverDurableLock(final String lockId, final ILockMonitor<IDurableLock> callback, final String recoveryKey) throws IllegalArgumentException {
-		throw new NotImplementedException();
+		return new DurableLockImpl(lockId, callback).recover(recoveryKey);
 	}
 
 }
