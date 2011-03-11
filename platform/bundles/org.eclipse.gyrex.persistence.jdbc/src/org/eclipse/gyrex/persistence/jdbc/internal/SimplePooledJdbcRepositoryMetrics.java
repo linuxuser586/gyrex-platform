@@ -53,7 +53,7 @@ public class SimplePooledJdbcRepositoryMetrics extends MetricSet {
 	private final ErrorMetric errorMetric;
 
 	protected SimplePooledJdbcRepositoryMetrics(final String id, final String repositoryId, final String initialStatus, final String initialStatusReason, final long initialChannelsCapacity, final long initialChannelsMinimum) {
-		super(id, String.format("Metrics for repository %s", repositoryId), new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new PoolMetric(id + ".pool", initialChannelsCapacity, initialChannelsMinimum), new ErrorMetric(id + ".errors", true) });
+		super(id, String.format("Metrics for repository %s", repositoryId), new BaseMetric[] { new StatusMetric(id + ".status", initialStatus, initialStatusReason), new PoolMetric(id + ".pool", initialChannelsCapacity, initialChannelsMinimum), new ErrorMetric(id + ".errors", 5) });
 		poolStatusMetric = getMetric(0, StatusMetric.class);
 		poolMetric = getMetric(1, PoolMetric.class);
 		errorMetric = getMetric(2, ErrorMetric.class);

@@ -13,9 +13,9 @@ package org.eclipse.gyrex.monitoring.metrics;
 
 import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -119,19 +119,18 @@ public class ErrorMetric extends BaseMetric {
 	private volatile long totalNumberOfErrors;
 
 	/** a map recording error stats */
-	private final ConcurrentMap<String, ErrorStats> errorStats;
+	private final LinkedHashMap<String, ErrorStats> errorStats;
 
 	/**
 	 * Creates a new error metric instance.
 	 * 
 	 * @param id
 	 *            the metric id
-	 * @param trackErrorStats
-	 *            <code>true</code> if errors should be tracked to generate
-	 *            {@link #getErrorStats() statistics}, <code>false</code>
-	 *            otherwise
+	 * @param errorStatsCapacity
+	 *            the capacity of {@link #getErrorStats() error statistics},
+	 *            <code>zero</code> or less disables error statistics completely
 	 */
-	public ErrorMetric(final String id, final boolean trackErrorStats) {
+	public ErrorMetric(final String id, final int errorStatsCapacity) {
 		super(id);
 
 		// note, we do not invoke setStatus here because calling non-private
@@ -140,9 +139,16 @@ public class ErrorMetric extends BaseMetric {
 		lastErrorDetails = EMPTY;
 
 		// initialize error stats
-		if (trackErrorStats) {
-//			errorStats = new ConcurrentHashMap<String, ErrorStats>(5);
-			errorStats = null; // disabled for now
+		if (errorStatsCapacity > 0) {
+			errorStats = new LinkedHashMap<String, ErrorStats>(4, 0.75f, true) {
+				/** serialVersionUID */
+				private static final long serialVersionUID = 5450217680895615135L;
+
+				@Override
+				protected boolean removeEldestEntry(final Map.Entry<String, ErrorStats> eldest) {
+					return size() > errorStatsCapacity;
+				}
+			};
 		} else {
 			errorStats = null;
 		}

@@ -29,7 +29,7 @@ public class SolrRepositoryMetrics extends MetricSet {
 	private static BaseMetric[] createMetrics(final String initialStatus, final String initialStatusReason) {
 		final List<BaseMetric> metrics = new ArrayList<BaseMetric>(6);
 		metrics.add(new StatusMetric("status", initialStatus, initialStatusReason));
-		metrics.add(new ErrorMetric("error", true)); /* IDX_ERROR */
+		metrics.add(new ErrorMetric("error", 5)); /* IDX_ERROR */
 		metrics.add(new ThroughputMetric("query.throughput")); /* IDX_THROUGHPUT_QUERY */
 		metrics.add(new ThroughputMetric("update.throughput")); /* IDX_THROUGHPUT_UPDATE */
 		metrics.add(new ThroughputMetric("admin.throughput")); /* IDX_THROUGHPUT_ADMIN */

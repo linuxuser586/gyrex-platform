@@ -35,7 +35,7 @@ public class ApplicationHandlerCollectionMetrics extends MetricSet {
 	 * Creates a new instance.
 	 */
 	protected ApplicationHandlerCollectionMetrics() {
-		super(HttpJettyActivator.SYMBOLIC_NAME + ".handler.applications", "Metrics for Jetty Server requests handled by Gyrex applications.", new StatusMetric("status", "created", "not initialized"), new ThroughputMetric("requests"), new ErrorMetric("errors", false), new CapacityMetric("applications", -1));
+		super(HttpJettyActivator.SYMBOLIC_NAME + ".handler.applications", "Metrics for Jetty Server requests handled by Gyrex applications.", new StatusMetric("status", "created", "not initialized"), new ThroughputMetric("requests"), new ErrorMetric("errors", 5), new CapacityMetric("applications", -1));
 		statusMetric = getMetric(0, StatusMetric.class);
 		requestsMetric = getMetric(1, ThroughputMetric.class);
 		errorsMetric = getMetric(2, ErrorMetric.class);
