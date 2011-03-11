@@ -1,3 +1,5 @@
 # global debug option
 org.eclipse.gyrex.p2/debug=true
 
+# installation
+org.eclipse.gyrex.p2/nodeInstallation=true

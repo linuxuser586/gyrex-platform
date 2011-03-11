@@ -31,6 +31,11 @@
             startLevel="4"
             trigger="onCloudConnect">
       </defaultStart>
+      <defaultStart
+            mode="any"
+            roleId="org.eclipse.gyrex.p2.node.installer.role"
+            trigger="onCloudConnect">
+      </defaultStart>
    </extension>
 
 </plugin>

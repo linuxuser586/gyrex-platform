@@ -29,13 +29,13 @@ public interface IPackageManager {
 
 	Collection<PackageDefinition> getPackages();
 
-	/**
-	 * @param packageDefinition
-	 * @return
-	 */
 	boolean isMarkedForInstall(PackageDefinition packageDefinition);
 
 	boolean isMarkedForUninstall(PackageDefinition packageDefinition);
+
+	void markedForInstall(PackageDefinition packageDefinition);
+
+	void markedForUninstall(PackageDefinition packageDefinition);
 
 	/**
 	 * @param id

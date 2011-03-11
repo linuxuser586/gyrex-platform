@@ -667,6 +667,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				// start a delete attempt only if the node is not recoverable
 				return !isRecoverable();
 
+			case ACQUIRE_FAILED:
+				// delete if we can't acquire cleanly
+				return true;
+
 			default:
 				// delete in all other cases
 				LOG.warn("Unhandled lock kill reason {}. Please report this issue to the developers. They should sanity check the implementation.", killReason);

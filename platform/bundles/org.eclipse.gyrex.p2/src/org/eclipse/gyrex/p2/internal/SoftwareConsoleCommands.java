@@ -20,12 +20,14 @@ import java.util.TreeMap;
 import org.eclipse.equinox.p2.metadata.Version;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
+import org.eclipse.gyrex.p2.internal.installer.PackageScanner;
 import org.eclipse.gyrex.p2.packages.IPackageManager;
 import org.eclipse.gyrex.p2.packages.PackageDefinition;
 import org.eclipse.gyrex.p2.packages.components.InstallableUnit;
-import org.eclipse.gyrex.p2.repositories.IRepositoryManager;
+import org.eclipse.gyrex.p2.repositories.IRepositoryDefinitionManager;
 import org.eclipse.gyrex.p2.repositories.RepositoryDefinition;
 
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 import org.eclipse.osgi.framework.console.CommandProvider;
 
@@ -48,7 +50,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 			this.help = help;
 		}
 
-		public abstract void execute(IRepositoryManager repoManager, IPackageManager packageManager, CommandInterpreter ci) throws Exception;
+		public abstract void execute(IRepositoryDefinitionManager repoManager, IPackageManager packageManager, CommandInterpreter ci) throws Exception;
 
 		public String getHelp() {
 			return help;
@@ -66,7 +68,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		}
 
 		@Override
-		public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+		public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 			final String what = ci.nextArgument();
 			if (what == null) {
 				printInvalidArgs("Don't know what to list. Repos? Packages?", ci);
@@ -102,7 +104,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		commands.put("addRepo", new Command("<id> <uri> - adds a repository") {
 
 			@Override
-			public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 				final String id = ci.nextArgument();
 				if (!IdHelper.isValidId(id)) {
 					printInvalidArgs("invalid repo id", ci);
@@ -134,7 +136,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		commands.put("rmRepo", new Command("<id> - removes a repository") {
 
 			@Override
-			public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 				final String id = ci.nextArgument();
 				if (!IdHelper.isValidId(id)) {
 					printInvalidArgs("invalid repo id", ci);
@@ -148,7 +150,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		commands.put("addPkg", new Command("<id> - adds a package") {
 
 			@Override
-			public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 				final String id = ci.nextArgument();
 				if (!IdHelper.isValidId(id)) {
 					printInvalidArgs("invalid package id", ci);
@@ -165,7 +167,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		commands.put("rmPkg", new Command("<id> - removes a package") {
 
 			@Override
-			public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 				final String id = ci.nextArgument();
 				if (!IdHelper.isValidId(id)) {
 					printInvalidArgs("invalid package id", ci);
@@ -180,7 +182,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		commands.put("addIU2Pkg", new Command("<packageId> <installableUnitId> [<installUnitVersion>] - adds an installable unit to a package") {
 
 			@Override
-			public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 				final String id = ci.nextArgument();
 				if (!IdHelper.isValidId(id)) {
 					printInvalidArgs("invalid package id", ci);
@@ -227,7 +229,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		commands.put("rollout", new Command("<packageId> - rolls out a package") {
 
 			@Override
-			public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 				final String id = ci.nextArgument();
 				if (!IdHelper.isValidId(id)) {
 					printInvalidArgs("invalid package id", ci);
@@ -240,7 +242,8 @@ public class SoftwareConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				ci.println("package added");
+				packageManager.markedForInstall(packageDefinition);
+				ci.println("package marked for rollout");
 			}
 
 		});
@@ -248,7 +251,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 		commands.put("revoke", new Command("<packageId> - revokes a package") {
 
 			@Override
-			public void execute(final IRepositoryManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
 				final String id = ci.nextArgument();
 				if (!IdHelper.isValidId(id)) {
 					printInvalidArgs("invalid package id", ci);
@@ -261,10 +264,42 @@ public class SoftwareConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				ci.println("package added");
+				packageManager.markedForUninstall(packageDefinition);
+				ci.println("package revoked");
 			}
 
 		});
+
+		commands.put("update", new Command("updated the local node") {
+
+			@Override
+			public void execute(final IRepositoryDefinitionManager repoManager, final IPackageManager packageManager, final CommandInterpreter ci) throws Exception {
+				final PackageScanner packageScanner = PackageScanner.getInstance();
+				if (packageScanner.getState() == Job.RUNNING) {
+					ci.println("update already in progess");
+					return;
+				} else {
+					if (!packageScanner.cancel()) {
+						ci.println("update already in progess; unable to cancel");
+						return;
+					}
+				}
+
+				// enable debug logging
+				final boolean wasDebugging = P2Debug.nodeInstallation;
+				P2Debug.nodeInstallation = true;
+
+				// execute
+				packageScanner.schedule();
+				packageScanner.join();
+
+				// reset logging
+				P2Debug.nodeInstallation = wasDebugging;
+				ci.println("update finished");
+			}
+
+		});
+
 	}
 
 	static void printHelp(final CommandInterpreter ci) {
@@ -288,7 +323,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 			return;
 		}
 
-		IRepositoryManager repoManager = null;
+		IRepositoryDefinitionManager repoManager = null;
 		try {
 			repoManager = P2Activator.getInstance().getRepositoryManager();
 		} catch (final IllegalStateException e) {

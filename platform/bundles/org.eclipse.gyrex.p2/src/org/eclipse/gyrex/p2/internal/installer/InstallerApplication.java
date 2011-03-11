@@ -1,26 +1,37 @@
 package org.eclipse.gyrex.p2.internal.installer;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
+
+import org.eclipse.gyrex.p2.internal.P2Debug;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Application which scans for new packages and installs them on the local node.
  */
 public class InstallerApplication implements IApplication {
 
+	private static final Logger LOG = LoggerFactory.getLogger(InstallerApplication.class);
+
 	private static final AtomicReference<PackageScanner> jobRef = new AtomicReference<PackageScanner>();
 	private final AtomicReference<IApplicationContext> contextRef = new AtomicReference<IApplicationContext>();
 
 	@Override
 	public Object start(final IApplicationContext context) throws Exception {
-		final PackageScanner job = new PackageScanner();
+		final PackageScanner job = PackageScanner.getInstance();
 		if (!jobRef.compareAndSet(null, job)) {
 			throw new IllegalStateException("installer application already started");
 		}
 
 		// schedule job
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Scheduling package scanner to check in {} minutes.", TimeUnit.MILLISECONDS.toMinutes(PackageScanner.INITIAL_SLEEP_TIME));
+		}
 		job.schedule(PackageScanner.INITIAL_SLEEP_TIME);
 
 		// signal running

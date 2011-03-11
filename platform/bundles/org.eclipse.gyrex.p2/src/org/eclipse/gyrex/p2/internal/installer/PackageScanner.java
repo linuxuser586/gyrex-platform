@@ -15,7 +15,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.p2.internal.P2Activator;
 import org.eclipse.gyrex.p2.internal.P2Debug;
 import org.eclipse.gyrex.p2.packages.IPackageManager;
@@ -27,7 +29,9 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.core.runtime.jobs.Job;
 
+import org.osgi.framework.InvalidSyntaxException;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,10 +63,25 @@ public class PackageScanner extends Job {
 		}
 	}
 
-	static final long INITIAL_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
-	private static final long MAX_SLEEP_TIME = TimeUnit.HOURS.toMillis(2);
-
 	private static final Logger LOG = LoggerFactory.getLogger(PackageScanner.class);
+
+	static final long INITIAL_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
+	static final long MAX_SLEEP_TIME = TimeUnit.HOURS.toMillis(2);
+	private static final AtomicReference<PackageScanner> instanceRef = new AtomicReference<PackageScanner>();
+
+	/**
+	 * Returns the singleton package scanner instance.
+	 * 
+	 * @return the singleton package scanner instance
+	 */
+	public static PackageScanner getInstance() {
+		final PackageScanner scanner = instanceRef.get();
+		if (null != scanner) {
+			return scanner;
+		}
+		instanceRef.compareAndSet(null, new PackageScanner());
+		return instanceRef.get();
+	}
 
 	private long sleepTime = INITIAL_SLEEP_TIME;
 
@@ -78,7 +97,7 @@ public class PackageScanner extends Job {
 
 	private IStatus doRun(final IProgressMonitor monitor) {
 		try {
-			// TODO: get node environment and check node filter
+			final INodeEnvironment nodeEnvironment = P2Activator.getInstance().getService(INodeEnvironment.class);
 
 			// collect packages that should be rolled out
 			final Set<PackageDefinition> packagesToInstall = new HashSet<PackageDefinition>();
@@ -87,34 +106,51 @@ public class PackageScanner extends Job {
 			final IPackageManager packageManager = P2Activator.getInstance().getPackageManager();
 			final Collection<PackageDefinition> packages = packageManager.getPackages();
 			for (final PackageDefinition packageDefinition : packages) {
+				// check filter
+				if (StringUtils.isNotBlank(packageDefinition.getNodeFilter())) {
+					try {
+						if (!nodeEnvironment.matches(packageDefinition.getNodeFilter())) {
+							if (P2Debug.nodeInstallation) {
+								LOG.debug("Ignoring package {}. Not applicable to current node.", packageDefinition.getId());
+							}
+							continue;
+						}
+					} catch (final InvalidSyntaxException e) {
+						if (P2Debug.nodeInstallation) {
+							LOG.debug("Ignoring package {}. Error in node filter syntax: {}", packageDefinition.getId(), e.getMessage());
+						}
+						continue;
+					}
+				}
+
 				// check if package has been rolled out on local node
 				final boolean installed = PackageInstallState.isInstalled(packageDefinition);
 
 				// add as roll-out or removal
 				if (packageManager.isMarkedForInstall(packageDefinition)) {
 					if (!installed) {
-						if (P2Debug.debug) {
+						if (P2Debug.nodeInstallation) {
 							LOG.debug("Found new package to install: {}", packageDefinition.getId());
 						}
 						packagesToInstall.add(packageDefinition);
 					} else {
-						if (P2Debug.debug) {
+						if (P2Debug.nodeInstallation) {
 							LOG.debug("Package {} already installed. Will be ignored.", packageDefinition.getId());
 						}
 					}
 				} else if (packageManager.isMarkedForUninstall(packageDefinition)) {
 					if (installed) {
-						if (P2Debug.debug) {
+						if (P2Debug.nodeInstallation) {
 							LOG.debug("Found package that should be removed: {}", packageDefinition.getId());
 						}
 						packagesToRemove.add(packageDefinition);
 					} else {
-						if (P2Debug.debug) {
+						if (P2Debug.nodeInstallation) {
 							LOG.debug("Package {} not installed. Will be ignored.", packageDefinition.getId());
 						}
 					}
 				} else {
-					if (P2Debug.debug) {
+					if (P2Debug.nodeInstallation) {
 						LOG.debug("Package {} neither marked for installation nor for removal. Will be ignored.", packageDefinition.getId());
 					}
 				}
@@ -122,15 +158,16 @@ public class PackageScanner extends Job {
 
 			// check if there is something to install
 			if (packagesToInstall.isEmpty() && packagesToRemove.isEmpty()) {
-				if (P2Debug.debug) {
+				if (P2Debug.nodeInstallation) {
 					LOG.debug("Nothing to install or remove.");
 				}
 				return Status.OK_STATUS;
 			}
 
 			// schedule installer job
+			LOG.info("Pending software package modifications found. Scheduling software installation for local node.");
 			final PackageInstallerJob packageInstallerJob = new PackageInstallerJob(packagesToInstall, packagesToRemove);
-			packageInstallerJob.schedule();
+			packageInstallerJob.schedule(500l);
 
 			// done
 			return Status.OK_STATUS;
@@ -157,7 +194,7 @@ public class PackageScanner extends Job {
 			return status;
 		} finally {
 			// reschedule
-			if (P2Debug.debug) {
+			if (P2Debug.nodeInstallation) {
 				LOG.debug("Rescheduling installer to run again in {} minutes", TimeUnit.MILLISECONDS.toMinutes(sleepTime));
 			}
 			schedule(sleepTime);

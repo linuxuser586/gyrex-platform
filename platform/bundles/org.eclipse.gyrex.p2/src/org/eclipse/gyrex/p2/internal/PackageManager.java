@@ -144,6 +144,54 @@ public class PackageManager implements IPackageManager {
 		}
 	}
 
+	@Override
+	public void markedForInstall(final PackageDefinition packageDefinition) {
+		try {
+			if (!IdHelper.isValidId(packageDefinition.getId())) {
+				throw new IllegalArgumentException("invalid id");
+			}
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+				throw new IllegalArgumentException("package does not exist");
+			}
+			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
+			if (!node.nodeExists(packageDefinition.getId())) {
+				throw new IllegalArgumentException("package does not exist");
+			}
+
+			final Preferences pkgNode = node.node(packageDefinition.getId());
+			pkgNode.putBoolean(PREF_KEY_INSTALL, true);
+			pkgNode.putBoolean(PREF_KEY_UNINSTALL, false);
+			pkgNode.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
+	@Override
+	public void markedForUninstall(final PackageDefinition packageDefinition) {
+		try {
+			if (!IdHelper.isValidId(packageDefinition.getId())) {
+				throw new IllegalArgumentException("invalid id");
+			}
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+				throw new IllegalArgumentException("package does not exist");
+			}
+			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
+			if (!node.nodeExists(packageDefinition.getId())) {
+				throw new IllegalArgumentException("package does not exist");
+			}
+
+			final Preferences pkgNode = node.node(packageDefinition.getId());
+			pkgNode.putBoolean(PREF_KEY_INSTALL, false);
+			pkgNode.putBoolean(PREF_KEY_UNINSTALL, true);
+			pkgNode.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
 	private PackageDefinition readPackage(final String id) {
 		try {
 			final PackageDefinition pkgDefinition = new PackageDefinition();

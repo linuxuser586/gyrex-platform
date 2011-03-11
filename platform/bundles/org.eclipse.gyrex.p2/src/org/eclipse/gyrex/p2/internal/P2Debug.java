@@ -19,4 +19,5 @@ import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 public class P2Debug extends BundleDebugOptions {
 
 	public static boolean debug;
+	public static boolean nodeInstallation;
 }

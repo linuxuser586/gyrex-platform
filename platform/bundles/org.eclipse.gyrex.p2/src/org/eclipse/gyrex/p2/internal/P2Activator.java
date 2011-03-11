@@ -5,7 +5,7 @@ import java.util.Collection;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.p2.packages.IPackageManager;
-import org.eclipse.gyrex.p2.repositories.IRepositoryManager;
+import org.eclipse.gyrex.p2.repositories.IRepositoryDefinitionManager;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -96,7 +96,7 @@ public class P2Activator extends BaseBundleActivator {
 		return manager;
 	}
 
-	public IRepositoryManager getRepositoryManager() {
+	public IRepositoryDefinitionManager getRepositoryManager() {
 		final RepoManager manager = repoManager;
 		if (manager == null) {
 			throw createBundleInactiveException();

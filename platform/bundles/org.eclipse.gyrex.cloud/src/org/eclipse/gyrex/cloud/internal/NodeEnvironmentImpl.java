@@ -12,6 +12,8 @@
 package org.eclipse.gyrex.cloud.internal;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
@@ -19,6 +21,8 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateConfig;
 
 import org.eclipse.core.runtime.preferences.InstanceScope;
 
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.prefs.Preferences;
 
 /**
@@ -33,6 +37,16 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 			return new NodeInfo().getNodeId();
 		}
 		return nodeInfo.getNodeId();
+	}
+
+	private Map<String, Object> getNodeProperties() {
+		final Map<String, Object> nodeProperties = new HashMap<String, Object>(2);
+		nodeProperties.put("id", getNodeId());
+		final Set<String> tags = getTags();
+		if (!tags.isEmpty()) {
+			nodeProperties.put("tag", tags.toArray(new String[tags.size()]));
+		}
+		return nodeProperties;
 	}
 
 	@Override
@@ -58,5 +72,10 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 			return false;
 		}
 		return nodeInfo.isApproved();
+	}
+
+	@Override
+	public boolean matches(final String filter) throws InvalidSyntaxException {
+		return FrameworkUtil.createFilter(filter).matches(getNodeProperties());
 	}
 }

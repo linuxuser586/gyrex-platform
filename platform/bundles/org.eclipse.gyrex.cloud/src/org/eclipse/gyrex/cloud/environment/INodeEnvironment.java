@@ -15,6 +15,10 @@ import java.util.Set;
 
 import org.eclipse.gyrex.server.Platform;
 
+import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
+
 /**
  * A service which can be queried for further information of the node
  * environment.
@@ -84,4 +88,29 @@ public interface INodeEnvironment {
 	 *         otherwise
 	 */
 	boolean isApproved();
+
+	/**
+	 * Performs matching of the specified filter string against a set of
+	 * properties describing the node.
+	 * <p>
+	 * The filter will be created using
+	 * {@link FrameworkUtil#createFilter(String)} and matching will be performed
+	 * using {@link Filter#matches(java.util.Map)}. The map passed to
+	 * {@link Filter#matches(java.util.Map)} will contain the following
+	 * properties.
+	 * </p>
+	 * <ul>
+	 * <li>id</li> - {@link #getNodeId() the node id}
+	 * <li>tag</li> - an array of strings containing {@link #getTags() the node
+	 * tags}
+	 * </ul>
+	 * 
+	 * @param filter
+	 *            the filter string (may not be <code>null</code>)
+	 * @return <code>true</code> if the filter matches, <code>false</code>
+	 *         otherwise
+	 * @throws InvalidSyntaxException
+	 *             if the filter syntax is invalid
+	 */
+	boolean matches(String filter) throws InvalidSyntaxException;
 }
