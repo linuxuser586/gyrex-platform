@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +21,8 @@ import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.monitoring.metrics.StatusMetric;
 import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 
-import org.eclipse.osgi.util.NLS;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.text.StrBuilder;
 
 public class SolrRepositoryMetrics extends MetricSet {
 
@@ -36,30 +35,6 @@ public class SolrRepositoryMetrics extends MetricSet {
 		metrics.add(new ThroughputMetric("admin.throughput")); /* IDX_THROUGHPUT_ADMIN */
 		metrics.add(new ThroughputMetric("other.throughput")); /* IDX_THROUGHPUT_OTHER */
 		return metrics.toArray(new BaseMetric[metrics.size()]);
-	}
-
-	private static String getError(final Exception e) {
-		return NLS.bind("[{0}] {1}", e.getClass().getSimpleName(), e.getMessage());
-	}
-
-	private static String getErrorDetails(final String requestInfo, final Exception e) {
-		final StringWriter errorDetailsStringWriter = new StringWriter(1024);
-		final PrintWriter errorDetailsWriter = new PrintWriter(errorDetailsStringWriter);
-		errorDetailsWriter.append("[request] ").append(requestInfo);
-		errorDetailsWriter.println();
-
-		errorDetailsWriter.append("[").append(e.getClass().getSimpleName()).append("]  ").append(e.getMessage());
-		errorDetailsWriter.println();
-
-		Throwable cause = e.getCause();
-		while ((null != cause) && (cause != e)) {
-			errorDetailsWriter.append("caused by [").append(cause.getClass().getSimpleName()).append("]  ").append(cause.getMessage());
-			errorDetailsWriter.println();
-			cause = e.getCause();
-		}
-
-		errorDetailsWriter.flush();
-		return errorDetailsStringWriter.toString();
 	}
 
 	private final StatusMetric statusMetric;
@@ -89,6 +64,22 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 */
 	public ThroughputMetric getAdminThroughputMetric() {
 		return (ThroughputMetric) adminMetric;
+	}
+
+	private String getErrorDetails(final String requestInfo, final Exception exception) {
+		final StrBuilder builder = new StrBuilder();
+
+		builder.appendln("REQUEST");
+		builder.appendln(requestInfo);
+		builder.appendNewLine();
+
+		builder.appendln("EXCEPTION");
+		final String[] rootCauseStackTrace = ExceptionUtils.getRootCauseStackTrace(exception);
+		for (final String line : rootCauseStackTrace) {
+			builder.appendln(line);
+		}
+
+		return builder.toString();
 	}
 
 	/**
@@ -145,7 +136,7 @@ public class SolrRepositoryMetrics extends MetricSet {
 	 *            the exception
 	 */
 	public void recordException(final String requestInfo, final Exception exception) {
-		final String error = getError(exception);
+		final String error = ExceptionUtils.getRootCauseMessage(exception);
 		final String errorDetails = getErrorDetails(requestInfo, exception);
 		getErrorMetric().setLastError(error, errorDetails);
 	}
