@@ -1,15 +1,17 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.common.services;
+
+import org.osgi.framework.BundleContext;
 
 /**
  * A proxy for tracking and accessing a single OSGi service instance.
@@ -73,7 +75,14 @@ public interface IServiceProxy<T> {
 	 * <p>
 	 * <p>
 	 * Note, the returned service object must not be hold on for a longer
-	 * duration. It is only intended for short durations.
+	 * duration. It is only intended for short durations. The bundle which
+	 * provides the service may be stopped at any time, which makes the service
+	 * invalid. If you do not wish this behavior you need to
+	 * {@link BundleContext#getService(org.osgi.framework.ServiceReference) get
+	 * the service} directly from the {@link BundleContext} and
+	 * {@link BundleContext#ungetService(org.osgi.framework.ServiceReference)
+	 * unget} it when you are done. This procedure requires more code but
+	 * ensures that the service is available during your usage.
 	 * </p>
 	 * 
 	 * @return a service object

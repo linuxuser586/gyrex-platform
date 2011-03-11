@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.common.services.BundleServiceHelper;
+import org.eclipse.gyrex.common.services.IServiceProxy;
 
 import org.eclipse.core.runtime.ListenerList;
 
@@ -224,6 +225,29 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 */
 	protected Class getDebugOptions() {
 		return null; // no debug options
+	}
+
+	/**
+	 * This is a pure convenience method which just calls
+	 * <code>getServiceHelper().trackService(serviceClass).getService()</code>.
+	 * <p>
+	 * Please carefully read {@link IServiceProxy#getService()}. The returned
+	 * service object must not be hold on for a longer duration. It is only
+	 * intended for short durations as it immediately ungets the service. The
+	 * bundle which provides the service may be stopped at any time which makes
+	 * the service invalid.
+	 * </p>
+	 * 
+	 * @param <T>
+	 *            the service type
+	 * @param serviceClass
+	 *            the service class
+	 * @return the service instance
+	 * @throws IllegalStateException
+	 *             if the bundle is inactive or the service is not available
+	 */
+	public final <T> T getService(final Class<T> serviceClass) throws IllegalStateException {
+		return getServiceHelper().trackService(serviceClass).getService();
 	}
 
 	/**
