@@ -49,8 +49,8 @@ import org.slf4j.LoggerFactory;
  * No {@link #getLocation() location} is provided for cloud preferences.
  * </p>
  * <p>
- * The path for preferences defined in the platform scope hierarchy is as
- * follows: <code>/cloud/&lt;qualifier&gt;</code>
+ * The path for preferences defined in the cloud scope hierarchy is as follows:
+ * <code>/cloud/&lt;qualifier&gt;</code>
  * </p>
  * <p>
  * This class is not intended to be subclassed. A shared instance may be
