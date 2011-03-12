@@ -25,5 +25,6 @@ public class CloudDebug extends BundleDebugOptions {
 	public static boolean cloudState;
 	public static boolean nodeMetrics;
 
-	public static boolean lockService;
+	public static boolean zooKeeperLockService;
+	public static boolean zooKeeperPreferences;
 }

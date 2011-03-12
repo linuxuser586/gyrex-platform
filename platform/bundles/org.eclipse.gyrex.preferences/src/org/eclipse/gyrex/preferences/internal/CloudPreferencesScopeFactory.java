@@ -13,7 +13,6 @@ package org.eclipse.gyrex.preferences.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
@@ -30,26 +29,20 @@ import org.slf4j.LoggerFactory;
 public class CloudPreferencesScopeFactory implements IScope {
 
 	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferencesScopeFactory.class);
-	private static final AtomicReference<ZooKeeperBasedPreferences> rootCloudNode = new AtomicReference<ZooKeeperBasedPreferences>();
-	private static final AtomicReference<ZooKeeperPreferenceConnector> rootCloudNodeConnector = new AtomicReference<ZooKeeperPreferenceConnector>();
+	private static final AtomicReference<CloudPreferences> rootCloudNode = new AtomicReference<CloudPreferences>();
 
 	/**
 	 * Stops the factory and releases any resource.
 	 */
 	public static void stop() {
 		// flush the preferences
-		final ZooKeeperBasedPreferences node = rootCloudNode.get();
+		final CloudPreferences node = rootCloudNode.get();
 		if (node != null) {
 			try {
 				node.flush();
 			} catch (final Exception e) {
-				LOG.warn("Failed to flush platform preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
+				LOG.warn("Failed to flush cloud preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
 			}
-		}
-
-		final ZooKeeperPreferenceConnector connector = rootCloudNodeConnector.getAndSet(null);
-		if (connector != null) {
-			ZooKeeperGate.removeConnectionMonitor(connector);
 		}
 	}
 
@@ -68,7 +61,7 @@ public class CloudPreferencesScopeFactory implements IScope {
 		}
 
 		// check if already created
-		ZooKeeperBasedPreferences node = rootCloudNode.get();
+		final CloudPreferences node = rootCloudNode.get();
 		if (null != node) {
 			if (PreferencesDebug.debug) {
 				LOG.debug("Cloud preference factory called multiple times for name {} and parent {}.", new Object[] { name, parent.absolutePath(), new Exception("Call Stack") });
@@ -81,20 +74,9 @@ public class CloudPreferencesScopeFactory implements IScope {
 		}
 
 		// create
-		node = new ZooKeeperBasedPreferences(parent, name);
-		if (rootCloudNode.compareAndSet(null, node)) {
-			// activate connector
-			final ZooKeeperPreferenceConnector connector = new ZooKeeperPreferenceConnector(node);
-			if (rootCloudNodeConnector.compareAndSet(null, connector)) {
-				ZooKeeperGate.addConnectionMonitor(connector);
-			}
-		} else {
-			node = rootCloudNode.get();
-			if (null == node) {
-				throw new IllegalStateException("Unable to initialize cloud preferences root node. Please check server logs. You may need to teach the developers about concurrent programming.");
-			}
-		}
+		rootCloudNode.compareAndSet(null, new CloudPreferences(parent, name));
 
-		return node;
+		// done
+		return rootCloudNode.get();
 	}
 }

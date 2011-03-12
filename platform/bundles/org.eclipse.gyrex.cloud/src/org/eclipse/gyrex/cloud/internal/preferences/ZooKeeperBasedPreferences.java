@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.preferences.internal;
+package org.eclipse.gyrex.cloud.internal.preferences;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
+import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperBasedService;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 
@@ -45,7 +46,6 @@ import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 /**
  * ZooKeeper based preferences.
  */
-public class ZooKeeperBasedPreferences implements IEclipsePreferences {
+public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService implements IEclipsePreferences {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperBasedPreferences.class);
 
@@ -66,7 +66,6 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private static final String FALSE = Boolean.FALSE.toString();
 	private static final String TRUE = Boolean.TRUE.toString();
 
-	/** connection monitor to sync the loaded preference tree */
 	private final IEclipsePreferences parent;
 	private final String name;
 	private final IPath path;
@@ -88,7 +87,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void childrenChanged(final String path) {
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Node {} updated remotely: CHILDREN CHANGED", path);
 			}
 
@@ -111,14 +110,8 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 
 		@Override
-		protected void closing(final Code reason) {
-			// set dis-connected
-			disconnectTree();
-		};
-
-		@Override
 		protected void pathCreated(final String path) {
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Node {} updated remotely: CREATED", path);
 			}
 
@@ -145,7 +138,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void pathDeleted(final String path) {
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Node {} updated remotely: REMOVED", path);
 			}
 
@@ -170,7 +163,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		@Override
 		protected void recordChanged(final String path) {
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Node {} updated remotely: PROPERTIES", path);
 			}
 
@@ -209,11 +202,15 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	/**
 	 * Creates a new instance.
+	 * <p>
+	 * The preferences will be located at the specified path
+	 * </p>
 	 * 
 	 * @param parent
 	 * @param name
 	 */
-	public ZooKeeperBasedPreferences(final IEclipsePreferences parent, final String name) {
+	public ZooKeeperBasedPreferences(final IEclipsePreferences parent, final String name, final IPath zooKeeperParentPath) {
+		super(50l, 3); /* experiment with a short retry dely for preferences */
 		if (parent == null) {
 			throw new IllegalArgumentException("parent must not be null");
 		}
@@ -229,7 +226,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 
 		// cache ZooKeeper path
-		zkPath = IZooKeeperLayout.PATH_PREFERENCES_ROOT.append(path);
+		zkPath = zooKeeperParentPath.append(path);
 	}
 
 	@Override
@@ -351,7 +348,12 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
-	void disconnectTree() {
+	@Override
+	protected void disconnect() {
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("Disconnecting preference node {}.", this);
+		}
+
 		// set disconnected
 		connected.set(false);
 
@@ -363,7 +365,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			}
 
 			for (final ZooKeeperBasedPreferences child : children.values()) {
-				child.disconnectTree();
+				child.disconnect();
 			}
 		} finally {
 			childrenModifyLock.unlock();
@@ -376,13 +378,13 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		if (!connected.get() && connected.compareAndSet(false, true)) {
 			try {
 
-				if (PreferencesDebug.debug) {
+				if (CloudDebug.zooKeeperPreferences) {
 					LOG.debug("Connecting preference node {}.", this);
 				}
 
 				// check if path exists
 				if (!ZooKeeperGate.get().exists(zkPath, monitor)) {
-					if (PreferencesDebug.debug) {
+					if (CloudDebug.zooKeeperPreferences) {
 						LOG.debug("Node {} connected, waiting for remote path to be created ({})", this, zkPath);
 					}
 
@@ -401,7 +403,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				// load children (and force sync with remote)
 				loadChildren(true);
 			} catch (final Exception e) {
-				if (PreferencesDebug.debug) {
+				if (CloudDebug.zooKeeperPreferences) {
 					LOG.debug("Exception while connecting node {}: {}", this, e.getMessage());
 					LOG.debug("Stack for connection request for node {}.", this, new Exception("Stack for preference node connection request."));
 				}
@@ -524,6 +526,16 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	}
 
 	@Override
+	protected String getToStringDetails() {
+		final StringBuilder details = new StringBuilder();
+		details.append(absolutePath());
+		if (!connected.get()) {
+			details.append(" DISCONNECTED");
+		}
+		return details.toString();
+	}
+
+	@Override
 	public String[] keys() throws BackingStoreException {
 		ensureConnectedAndLoaded();
 
@@ -561,7 +573,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				return;
 			}
 
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Loading children for node {} (cversion {}) from {}", new Object[] { this, childrenVersion, zkPath });
 			}
 
@@ -571,7 +583,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// don't load properties if version is in the past
 			if (!forceSyncWithRemoteVersion && (childrenVersion >= stat.getCversion())) {
-				if (PreferencesDebug.debug) {
+				if (CloudDebug.zooKeeperPreferences) {
 					LOG.debug("Not updating children of node {} - local cversion ({}) >= ZooKeeper cversion ({})", new Object[] { this, childrenVersion, stat.getCversion() });
 				}
 				return;
@@ -583,7 +595,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				// detect added nodes
 				if (!children.containsKey(name)) {
 					// does not exist locally, assume added in ZooKeeper
-					final ZooKeeperBasedPreferences child = new ZooKeeperBasedPreferences(this, name);
+					final ZooKeeperBasedPreferences child = newChild(name);
 					children.put(name, child);
 					addedNodes.add(child);
 				}
@@ -607,7 +619,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				 */
 			}
 
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Loaded children for node {} (now at cversion {})", this, childrenVersion);
 			}
 		} finally {
@@ -638,7 +650,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				return;
 			}
 
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Reading properties for node {} (version {}) from ZooKeeper {}", new Object[] { this, propertiesVersion, zkPath });
 			}
 
@@ -648,7 +660,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// don't load properties if version is in the past
 			if (!forceSyncWithRemoteVersion && (propertiesVersion >= stat.getVersion())) {
-				if (PreferencesDebug.debug) {
+				if (CloudDebug.zooKeeperPreferences) {
 					LOG.debug("Not updating properties of node {} - local version ({}) >= ZooKeeper version ({})", new Object[] { this, propertiesVersion, stat.getVersion() });
 				}
 				return;
@@ -681,7 +693,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				if (newValue == null) {
 					// does not exists in ZooKeeper, assume removed
 					properties.remove(key);
-					if (PreferencesDebug.debug) {
+					if (CloudDebug.zooKeeperPreferences) {
 						LOG.debug("Node {} property removed: {}", key);
 					}
 					// create event
@@ -689,7 +701,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				} else if ((oldValue == null) || !oldValue.equals(newValue)) {
 					// assume added or updated in ZooKeeper
 					properties.put(key, newValue);
-					if (PreferencesDebug.debug) {
+					if (CloudDebug.zooKeeperPreferences) {
 						if (oldValue == null) {
 							LOG.debug("Node {} property added: {} - {}", key, newValue);
 						} else {
@@ -704,7 +716,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// mark clean
 			propertiesDirty = false;
 
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Loaded properties for node {} (now at version {})", this, propertiesVersion);
 			}
 		} finally {
@@ -723,6 +735,16 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	public String name() {
 		return name;
 	}
+
+	/**
+	 * Must be implemented by subclasses to create and return a new child
+	 * instance.
+	 * 
+	 * @param name
+	 *            the child name
+	 * @return the created child
+	 */
+	protected abstract ZooKeeperBasedPreferences newChild(final String name);
 
 	@Override
 	public Preferences node(final String path) {
@@ -759,7 +781,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				child = children.get(key);
 				while (child == null) {
 					if (!children.containsKey(key)) {
-						children.put(key, new ZooKeeperBasedPreferences(this, key));
+						children.put(key, newChild(key));
 						added = true;
 						// remove from pending removals list
 						pendingChildRemovals.remove(key);
@@ -833,7 +855,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return;
 		}
 
-		if (PreferencesDebug.debug) {
+		if (CloudDebug.zooKeeperPreferences) {
 			LOG.debug("[PUT] {} - {}: {}", new Object[] { this, key, value });
 		}
 
@@ -880,6 +902,16 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	}
 
 	@Override
+	protected void reconnect() {
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("Reconnecting preference node {}.", this);
+		}
+
+		// load but only if remote is different
+		ensureConnectedAndLoaded();
+	}
+
+	@Override
 	public void remove(final String key) {
 		if (key == null) {
 			throw new IllegalArgumentException("key must not be null");
@@ -892,7 +924,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return;
 		}
 
-		if (PreferencesDebug.debug) {
+		if (CloudDebug.zooKeeperPreferences) {
 			LOG.debug("[REMOVE] {} - {}", new Object[] { this, key });
 		}
 
@@ -966,7 +998,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return;
 		}
 
-		if (PreferencesDebug.debug) {
+		if (CloudDebug.zooKeeperPreferences) {
 			LOG.debug("Saving children of node {} (cversion {})", this, childrenVersion);
 		}
 
@@ -985,7 +1017,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// remove children marked for removal
 			for (final String childName : pendingChildRemovals) {
 				final IPath childPath = zkPath.append(childName);
-				if (PreferencesDebug.debug) {
+				if (CloudDebug.zooKeeperPreferences) {
 					LOG.debug("Removing child node {} at {}", childName, childPath);
 				}
 				ZooKeeperGate.get().deletePath(childPath);
@@ -1008,13 +1040,13 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return;
 		}
 
-		if (PreferencesDebug.debug) {
+		if (CloudDebug.zooKeeperPreferences) {
 			LOG.debug("Saving properties of node {} (version {})", this, propertiesVersion);
 		}
 
 		// don't flush if not dirty
 		if (!propertiesDirty) {
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Aborting property saving of node {} - properties not dirty", this);
 			}
 			return;
@@ -1049,7 +1081,7 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// mark clean
 			propertiesDirty = false;
 
-			if (PreferencesDebug.debug) {
+			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Saved properties of node {} (now at version {})", this, propertiesVersion);
 			}
 
@@ -1094,10 +1126,5 @@ public class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		} finally {
 			childrenModifyLock.unlock();
 		}
-	}
-
-	@Override
-	public String toString() {
-		return absolutePath();
 	}
 }

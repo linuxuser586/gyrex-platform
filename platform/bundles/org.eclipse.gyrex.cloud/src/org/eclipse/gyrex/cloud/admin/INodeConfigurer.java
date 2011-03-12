@@ -17,6 +17,9 @@ import org.eclipse.core.runtime.IStatus;
 
 /**
  * The node specific cloud configuration.
+ * 
+ * @noextend This interface is not intended to be extended by clients.
+ * @noimplement This interface is not intended to be implemented by clients.o
  */
 public interface INodeConfigurer {
 

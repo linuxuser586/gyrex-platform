@@ -61,10 +61,10 @@ public abstract class ZooKeeperBasedService {
 	 * Creates a new instance.
 	 */
 	public ZooKeeperBasedService(final long retryDelay, final int retryCount) {
-		if (retryDelay <= 50) {
+		if (retryDelay < 50) {
 			throw new IllegalArgumentException("retry delay to low");
 		}
-		if (retryCount <= 1) {
+		if (retryCount < 1) {
 			throw new IllegalArgumentException("retry count to low");
 		}
 		this.retryDelay = retryDelay;

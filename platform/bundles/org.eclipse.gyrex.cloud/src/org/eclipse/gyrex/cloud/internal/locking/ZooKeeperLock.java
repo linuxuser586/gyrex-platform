@@ -110,7 +110,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 			// start acquire loop
 			do {
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Starting acquire lock loop for lock {}/{}", lockNodePath, myLockName);
 				}
 
@@ -142,7 +142,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 				// the active lock name
 				activeLockName = (String) nodeNames[0];
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Found active lock {} for lock {}", activeLockName, lockNodePath);
 				}
 
@@ -166,7 +166,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 						throw new LockAcquirationFailedException(getId(), "Impossible to acquire lock. The preceding lock could not be discovered.");
 					}
 				}
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Found preceding lock {} for lock {}", precedingNodeName, lockNodePath);
 				}
 
@@ -174,27 +174,27 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				// 5. if exists( ) returns false, go to step 2. Otherwise, wait for a notification for the pathname from the previous step before going to step 2.
 				final WaitForDeletionMonitor waitForDeletionMonitor = new WaitForDeletionMonitor();
 				if (zk.exists(lockNodePath.append(precedingNodeName), waitForDeletionMonitor)) {
-					if (CloudDebug.lockService) {
+					if (CloudDebug.zooKeeperLockService) {
 						LOG.debug("Waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
 					}
 					if (!waitForDeletionMonitor.await(timeout)) {
-						if (CloudDebug.lockService) {
+						if (CloudDebug.zooKeeperLockService) {
 							LOG.debug("Timeout waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
 						}
 						// node has not been deleted
 						throw new TimeoutException(String.format("Unable to acquire lock %s within the given timeout.", getId()));
 					}
-					if (CloudDebug.lockService) {
+					if (CloudDebug.zooKeeperLockService) {
 						LOG.debug("Preceeing lock {} released lock {}", precedingNodeName, lockNodePath);
 					}
 				}
 
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("End acquire lock loop for lock {}/{}", lockNodePath, myLockName);
 				}
 			} while ((timeout <= 0) || (abortTime > System.currentTimeMillis()));
 
-			if (CloudDebug.lockService) {
+			if (CloudDebug.zooKeeperLockService) {
 				LOG.debug("Timeout retrying to acquire lock {}/{}", lockNodePath, myLockName);
 			}
 
@@ -219,7 +219,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 				// extract lock name
 				myLockName = nodePath.lastSegment();
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Created lock node {} for lock {}", myLockName, lockNodePath);
 				}
 
@@ -246,13 +246,13 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 			// delete path
 			try {
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Deleting lock node in ZooKeeper {}/{}", lockNodePath, myLockName);
 				}
 				ZooKeeperGate.get().deletePath(lockNodePath.append(lockName), -1);
 			} catch (final NoNodeException e) {
 				// node already gone
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Lock node already gone {}/{}", lockNodePath, myLockName);
 				}
 			}
@@ -295,7 +295,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			if (!isClosed() && (null == myLockName)) {
 				final ZooKeeperGate zk = ZooKeeperGate.get();
 
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Recovery attempt for lock node {} for lock {}", lockName, lockNodePath);
 				}
 
@@ -309,7 +309,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				// check that node exists
 				if (StringUtils.isBlank(record)) {
 					// does not exist, so return false here which indicates the we cannot recover
-					if (CloudDebug.lockService) {
+					if (CloudDebug.zooKeeperLockService) {
 						LOG.debug("Recovery attempt failed. Lock node {}/{} does not exists", lockNodePath, lockName);
 					}
 					throw new LockAcquirationFailedException(lockId, "Unable to recover lock. The lock could not be found.");
@@ -317,7 +317,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 				// check that content matches
 				if (!StringUtils.equals(record, expectedNodeContent)) {
-					if (CloudDebug.lockService) {
+					if (CloudDebug.zooKeeperLockService) {
 						LOG.debug("Recovery attempt failed. Recovery key does not match for lock node {}/{}", lockNodePath, lockName);
 					}
 					throw new LockAcquirationFailedException(lockId, "Unable to recover lock. The recovery key does not match.");
@@ -325,7 +325,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 				// reset lock name
 				myLockName = nodePath.lastSegment();
-				if (CloudDebug.lockService) {
+				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Recovered lock node {} for lock {}", myLockName, lockNodePath);
 				}
 
@@ -520,7 +520,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 	@Override
 	protected void doClose() {
-		if (CloudDebug.lockService) {
+		if (CloudDebug.zooKeeperLockService) {
 			LOG.debug("Closing lock {}/{}", lockNodePath, myLockName);
 		}
 
@@ -592,7 +592,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			return;
 		}
 
-		if (CloudDebug.lockService) {
+		if (CloudDebug.zooKeeperLockService) {
 			LOG.debug("Killing lock {}/{}", lockNodePath, myLockName);
 		}
 
@@ -606,7 +606,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			notifyLockReleased(killReason);
 		} catch (final SessionExpiredException e) {
 			// session expired so assume the node was removed by ZooKeeper
-			if (CloudDebug.lockService) {
+			if (CloudDebug.zooKeeperLockService) {
 				LOG.debug("ZooKeeper session expired. Relying on ZooKeeper server to remove lock node {}/{}", lockNodePath, myLockName);
 			}
 			// sent notification

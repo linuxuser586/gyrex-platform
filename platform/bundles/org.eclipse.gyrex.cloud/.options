@@ -14,4 +14,7 @@ org.eclipse.gyrex.cloud/cloudState=true
 org.eclipse.gyrex.cloud/nodeMetrics=false
 
 # debug lock service
-org.eclipse.gyrex.cloud/lockService=true
+org.eclipse.gyrex.cloud/zooKeeperLockService=true
+
+# debug preferences
+org.eclipse.gyrex.cloud/zooKeeperPreferences=true
