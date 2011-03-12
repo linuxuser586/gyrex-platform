@@ -17,6 +17,8 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO: investigate if this is really necessary
+// ( we already have the ZooKeeperMonitor#closing in the preferences itself)
 final class ZooKeeperPreferenceConnector implements IConnectionMonitor {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperPreferenceConnector.class);
