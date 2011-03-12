@@ -29,6 +29,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.classic.jul.LevelChangePropagator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.joran.spi.Interpreter;
@@ -90,6 +91,13 @@ public class LogbackConfigurator {
 
 		// get root logger
 		final Logger rootLogger = lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+
+		// propagate level changes to java.util.logging
+		final LevelChangePropagator levelChangePropagator = new LevelChangePropagator();
+		levelChangePropagator.setResetJUL(true);
+		levelChangePropagator.setContext(lc);
+		lc.addListener(levelChangePropagator);
+		levelChangePropagator.start();
 
 		// add console logger in debug or dev mode
 		if (Platform.inDebugMode() || Platform.inDevelopmentMode()) {
