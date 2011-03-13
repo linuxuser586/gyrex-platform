@@ -227,7 +227,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				myRecoveryKey = createRecoveryKey(myLockName, lockNodeContent);
 
 				// allow remote kill
-				zk.readRecord(lockNodePath, killMonitor, null);
+				zk.readRecord(nodePath, killMonitor, null);
 			}
 			return true;
 		}
@@ -337,7 +337,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				zk.writeRecord(nodePath, myRecoveryKey, stat.getVersion());
 
 				// allow remote kill
-				zk.readRecord(lockNodePath, killMonitor, null);
+				zk.readRecord(nodePath, killMonitor, null);
 			}
 			return true;
 		}
@@ -371,17 +371,29 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperLock.class);
 
-	static String createRecoveryKey(final String lockName, final String nodeContent) {
+	/**
+	 * This method is only public for testing purposes. It must not be called by
+	 * clients.
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public static String createRecoveryKey(final String lockName, final String nodeContent) {
 		return lockName.concat(SEPARATOR).concat(nodeContent);
 	}
 
-	static String[] extractRecoveryKeyDetails(final String recoveryKey) {
+	/**
+	 * This method is only public for testing purposes. It must not be called by
+	 * clients.
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public static String[] extractRecoveryKeyDetails(final String recoveryKey) {
 		final String[] keySegments = StringUtils.splitByWholeSeparator(recoveryKey, SEPARATOR);
 		if (keySegments.length < 2) {
 			throw new IllegalArgumentException("invalid recovery key format");
 		}
 		final String lockName = keySegments[0];
-		final String nodeContent = StringUtils.removeStart(recoveryKey, lockName.concat("_"));
+		final String nodeContent = StringUtils.removeStart(recoveryKey, lockName.concat(SEPARATOR));
 
 		if (StringUtils.isBlank(lockName) || StringUtils.isBlank(nodeContent)) {
 			throw new IllegalArgumentException("invalid recovery key format");
@@ -396,6 +408,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	final ZooKeeperMonitor killMonitor = new ZooKeeperMonitor() {
 		@Override
 		protected void closing(final org.apache.zookeeper.KeeperException.Code reason) {
+			// only react if we are still active (ZOOKEEPER-442)
+			if (!isValid() || isClosed()) {
+				return;
+			}
 			// the connection has been lost or the session expired
 			LOG.warn("Lock {} has been lost due to disconnect (reason {})!", getId(), reason);
 			killLock(KillReason.ZOOKEEPER_DISCONNECT);
@@ -403,12 +419,20 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 		@Override
 		protected void pathDeleted(final String path) {
+			// only react if we are still active (ZOOKEEPER-442)
+			if (!isValid() || isClosed()) {
+				return;
+			}
 			LOG.warn("Lock {} has been deleted on the lock server!", getId());
 			killLock(KillReason.LOCK_DELETED);
 		};
 
 		@Override
 		protected void recordChanged(final String path) {
+			// only react if we are still active (ZOOKEEPER-442)
+			if (!isValid() || isClosed()) {
+				return;
+			}
 			// the lock record has been changed remotely
 			// this means the lock was stolen
 			LOG.warn("Lock {} has been stolen!", getId());

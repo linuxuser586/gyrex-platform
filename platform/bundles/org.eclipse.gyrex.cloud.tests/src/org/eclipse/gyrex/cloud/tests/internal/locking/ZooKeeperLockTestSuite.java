@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 AGETO Service GmbH and others.
+ * Copyright (c) 2011 <enter-company-name-here> and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,12 +7,9 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     Gunnar Wagenknecht - initial API and implementation
+ *     <enter-developer-name-here> - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.cloud.tests.internal;
-
-import org.eclipse.gyrex.cloud.tests.internal.locking.ZooKeeperLockTestSuite;
-import org.eclipse.gyrex.cloud.tests.internal.queue.ZooKeeperQueueTests;
+package org.eclipse.gyrex.cloud.tests.internal.locking;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -22,7 +19,6 @@ import org.junit.runners.Suite.SuiteClasses;
  *
  */
 @RunWith(Suite.class)
-@SuiteClasses({ ZooKeeperQueueTests.class, ZooKeeperLockTestSuite.class })
-public class AllCloudTests {
-
+@SuiteClasses({ ZooKeeperLockTests.class, ExclusiveLockTests.class, DurableLockTests.class })
+public class ZooKeeperLockTestSuite {
 }

@@ -33,6 +33,8 @@ import org.eclipse.gyrex.cloud.internal.locking.DurableLockImpl;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
+import org.eclipse.gyrex.cloud.services.locking.IDurableLock;
+import org.eclipse.gyrex.cloud.services.locking.ILockMonitor;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
@@ -45,6 +47,28 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class DurableLockTests {
+
+	final class LockMonitorTestHelper implements ILockMonitor<IDurableLock> {
+
+		final CountDownLatch lockReleasedLatch = new CountDownLatch(1);
+		final CountDownLatch lockLostLatch = new CountDownLatch(1);
+		final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
+
+		@Override
+		public void lockAcquired(final IDurableLock lock) {
+			lockAcquiredLatch.countDown();
+		}
+
+		@Override
+		public void lockLost(final IDurableLock lock) {
+			lockLostLatch.countDown();
+		}
+
+		@Override
+		public void lockReleased(final IDurableLock lock) {
+			lockReleasedLatch.countDown();
+		}
+	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(DurableLockTests.class);
 
@@ -69,7 +93,7 @@ public class DurableLockTests {
 
 		// configure debug output
 		CloudDebug.debug = true;
-		CloudDebug.lockService = true;
+		CloudDebug.zooKeeperLockService = true;
 		CloudDebug.zooKeeperGateLifecycle = false;
 		CloudDebug.zooKeeperServer = false;
 		CloudDebug.nodeMetrics = false;
@@ -152,7 +176,7 @@ public class DurableLockTests {
 	}
 
 	@Test
-	public void testDisconnect001() throws Exception {
+	public void testDisconnectAndRecover001() throws Exception {
 		final String lockId = "test." + ZooKeeperGate.get().getSessionId() + "." + System.currentTimeMillis();
 		LOG.info("Durable lock recovery test. Lock: {}", lockId);
 
@@ -208,5 +232,48 @@ public class DurableLockTests {
 		assertNotNull(recoveredLock.getRecoveryKey());
 		assertFalse("recovery keys should be different", StringUtils.equals(recoveryKey, recoveredLock.getRecoveryKey()));
 
+	}
+
+	@Test
+	public void testKill001() throws Exception {
+		final String lockId = "test." + ZooKeeperGate.get().getSessionId() + "." + System.currentTimeMillis();
+		LOG.info("Durable lock recovery test. Lock: {}", lockId);
+
+		final LockMonitorTestHelper lockMonitor = new LockMonitorTestHelper();
+		final Future<DurableLockImpl> lock1 = executorService.submit(newAcquireLockCall(new DurableLockImpl(lockId, lockMonitor), 0));
+		final DurableLockImpl lock = lock1.get(15, TimeUnit.SECONDS);
+		assertNotNull(lock);
+		assertTrue(lock.isValid());
+
+		LOG.info("Acquired lock: {}", lock);
+
+		// check for recovery key
+		final String recoveryKey = lock.getRecoveryKey();
+		assertNotNull(recoveryKey);
+
+		// now kill the lock using ZooKeeper
+		LOG.info("Deleting lock path in ZooKeeper");
+		ZooKeeperGate.get().deletePath(IZooKeeperLayout.PATH_LOCKS_DURABLE.append(lockId).append(lock.getMyLockName()));
+
+		// wait for event propagation
+		// (the timing is a guess)
+		try {
+			lockMonitor.lockLostLatch.await(1, TimeUnit.SECONDS);
+		} catch (final Exception e1) {
+			// ignore
+		}
+
+		// lock must be invalid now
+		assertFalse("lock must be invalid after remote kill", lock.isValid());
+
+		// attempt recovery
+		LOG.info("Testing tecovering lock: {}", lockId);
+		final DurableLockImpl recoveredLock = new DurableLockImpl(lockId, null);
+		try {
+			recoveredLock.recover(recoveryKey);
+			fail("Should not be possible to recover a killed lock");
+		} catch (final IllegalStateException e) {
+			// this is good
+		}
 	}
 }
