@@ -617,6 +617,9 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			return;
 		}
 
+		// immediately close in order to prevent re-entry
+		close();
+
 		if (CloudDebug.zooKeeperLockService) {
 			LOG.debug("Killing lock {}/{}", lockNodePath, myLockName);
 		}
