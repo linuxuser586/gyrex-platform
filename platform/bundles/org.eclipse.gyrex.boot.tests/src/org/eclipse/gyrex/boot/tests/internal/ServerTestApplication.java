@@ -44,7 +44,7 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 					}
 
 					// wait for cloud connection
-					long timeout = 12000;
+					long timeout = 20000;
 					ZooKeeperGate gate = null;
 					while ((timeout > 0) && (gate == null)) {
 						try {
