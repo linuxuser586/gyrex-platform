@@ -366,16 +366,17 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 	}
 
+	private static final String SEPARATOR = "__";
 	private static final String LOCK_NAME_PREFIX = "lock-";
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperLock.class);
 
 	static String createRecoveryKey(final String lockName, final String nodeContent) {
-		return lockName.concat("_").concat(nodeContent);
+		return lockName.concat(SEPARATOR).concat(nodeContent);
 	}
 
 	static String[] extractRecoveryKeyDetails(final String recoveryKey) {
-		final String[] keySegments = StringUtils.split(recoveryKey, '_');
+		final String[] keySegments = StringUtils.splitByWholeSeparator(recoveryKey, SEPARATOR);
 		if (keySegments.length < 2) {
 			throw new IllegalArgumentException("invalid recovery key format");
 		}
@@ -459,7 +460,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		if (null == nodeInfo) {
 			nodeInfo = new NodeInfo();
 		}
-		lockNodeContent = nodeInfo.getNodeId() + "-" + nodeInfo.getLocation() + "-" + DigestUtils.shaHex(UUID.randomUUID().toString());
+		lockNodeContent = nodeInfo.getNodeId() + SEPARATOR + nodeInfo.getLocation() + SEPARATOR + DigestUtils.shaHex(UUID.randomUUID().toString());
 
 		// check implementation
 		try {
