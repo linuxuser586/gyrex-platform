@@ -9,27 +9,42 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.p2.repositories;
+package org.eclipse.gyrex.p2.internal.packages;
 
 import java.util.Collection;
 
 /**
- * Manages the set of repositories across all nodes in the cloud.
+ * Manages the available packages that may be installed on nodes in the cloud.
  * 
  * @noimplement This interface is not intended to be implemented by clients.
  * @noextend This interface is not intended to be extended by clients.
  */
-public interface IRepositoryDefinitionManager {
+public interface IPackageManager {
 
 	/**
-	 * Returns a list of all defined repositories.
-	 * 
-	 * @return an unordered collection of repository definitions
+	 * @param id
+	 * @return
 	 */
-	Collection<RepositoryDefinition> getRepositories();
+	PackageDefinition getPackage(String id);
 
-	void removeRepository(String id);
+	Collection<PackageDefinition> getPackages();
 
-	void saveRepository(RepositoryDefinition repository);
+	boolean isMarkedForInstall(PackageDefinition packageDefinition);
+
+	boolean isMarkedForUninstall(PackageDefinition packageDefinition);
+
+	void markedForInstall(PackageDefinition packageDefinition);
+
+	void markedForUninstall(PackageDefinition packageDefinition);
+
+	/**
+	 * @param id
+	 */
+	void removePackage(String id);
+
+	/**
+	 * @param packageDefinition
+	 */
+	void savePackage(PackageDefinition packageDefinition);
 
 }

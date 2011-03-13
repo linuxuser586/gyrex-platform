@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.p2.packages;
+package org.eclipse.gyrex.p2.internal.packages;
 
 /**
  * A package component

@@ -89,6 +89,11 @@ public class InstallLog {
 		writeHeader();
 	}
 
+	public void canceled() {
+		logFileWriter.println();
+		logFileWriter.println("Installation canceled by operator.");
+	}
+
 	public void close() {
 		writeFooter();
 		logFileWriter.flush();
@@ -121,12 +126,12 @@ public class InstallLog {
 		printStatus(result, "");
 		logFileWriter.println(op.getResolutionDetails());
 
-		if (result.matches(IStatus.ERROR | IStatus.CANCEL)) {
-			logFileWriter.println();
-			logFileWriter.println("Software installation not possible.");
-		} else if (result.getCode() == UpdateOperation.STATUS_NOTHING_TO_UPDATE) {
+		if (result.getCode() == UpdateOperation.STATUS_NOTHING_TO_UPDATE) {
 			logFileWriter.println();
 			logFileWriter.println("Nothing to install.");
+		} else if (result.matches(IStatus.ERROR | IStatus.CANCEL)) {
+			logFileWriter.println();
+			logFileWriter.println("Software installation not possible.");
 		} else if (!result.isOK()) {
 			logFileWriter.println();
 			logFileWriter.println("Install operation resolved with warnings. An installation will be forced.");

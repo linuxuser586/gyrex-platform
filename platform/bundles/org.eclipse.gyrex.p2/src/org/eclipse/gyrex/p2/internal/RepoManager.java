@@ -18,8 +18,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
-import org.eclipse.gyrex.p2.repositories.IRepositoryDefinitionManager;
-import org.eclipse.gyrex.p2.repositories.RepositoryDefinition;
+import org.eclipse.gyrex.p2.internal.repositories.IRepositoryDefinitionManager;
+import org.eclipse.gyrex.p2.internal.repositories.RepositoryDefinition;
 import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;

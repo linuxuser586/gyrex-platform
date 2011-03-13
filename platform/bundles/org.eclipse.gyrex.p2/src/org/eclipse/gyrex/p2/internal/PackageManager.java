@@ -21,10 +21,10 @@ import java.util.Set;
 import org.eclipse.equinox.p2.metadata.Version;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
-import org.eclipse.gyrex.p2.packages.IComponent;
-import org.eclipse.gyrex.p2.packages.IPackageManager;
-import org.eclipse.gyrex.p2.packages.PackageDefinition;
-import org.eclipse.gyrex.p2.packages.components.InstallableUnit;
+import org.eclipse.gyrex.p2.internal.packages.IComponent;
+import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
+import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
+import org.eclipse.gyrex.p2.internal.packages.components.InstallableUnit;
 import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -252,7 +252,11 @@ public class PackageManager implements IPackageManager {
 		try {
 			final String id = packageDefinition.getId();
 			if (!IdHelper.isValidId(id)) {
-				throw new IllegalArgumentException("invalid repository id");
+				throw new IllegalArgumentException("invalid package id");
+			}
+			final Collection<IComponent> componentsToInstall = packageDefinition.getComponentsToInstall();
+			if (componentsToInstall.isEmpty()) {
+				throw new IllegalArgumentException("package does not have components");
 			}
 			final Preferences node = getPackageNode(id);
 			final String nodeFilter = packageDefinition.getNodeFilter();
@@ -262,34 +266,27 @@ public class PackageManager implements IPackageManager {
 				node.remove(PREF_KEY_NODE_FILTER);
 			}
 
-			final Collection<IComponent> componentsToInstall = packageDefinition.getComponentsToInstall();
-			if (componentsToInstall.size() > 0) {
-				final Preferences componentsToInstallNode = node.node(PREF_NODE_COMPONENTS);
-				final Set<String> componentsWritten = new HashSet<String>();
-				for (final IComponent component : componentsToInstall) {
-					componentsWritten.add(component.getId());
-					final Preferences componentNode = componentsToInstallNode.node(component.getId());
-					if (component instanceof InstallableUnit) {
-						componentNode.put(PREF_KEY_TYPE, COMPONENT_TYPE_IU);
-						final InstallableUnit iu = (InstallableUnit) component;
-						final Version version = iu.getVersion();
-						if (null != version) {
-							final StringBuffer versionString = new StringBuffer();
-							version.toString(versionString);
-							componentNode.put(PREF_KEY_VERSION, versionString.toString());
-						} else {
-							componentNode.remove(PREF_KEY_VERSION);
-						}
+			final Preferences componentsToInstallNode = node.node(PREF_NODE_COMPONENTS);
+			final Set<String> componentsWritten = new HashSet<String>();
+			for (final IComponent component : componentsToInstall) {
+				componentsWritten.add(component.getId());
+				final Preferences componentNode = componentsToInstallNode.node(component.getId());
+				if (component instanceof InstallableUnit) {
+					componentNode.put(PREF_KEY_TYPE, COMPONENT_TYPE_IU);
+					final InstallableUnit iu = (InstallableUnit) component;
+					final Version version = iu.getVersion();
+					if (null != version) {
+						final StringBuffer versionString = new StringBuffer();
+						version.toString(versionString);
+						componentNode.put(PREF_KEY_VERSION, versionString.toString());
+					} else {
+						componentNode.remove(PREF_KEY_VERSION);
 					}
 				}
-				for (final String child : componentsToInstallNode.childrenNames()) {
-					if (!componentsWritten.contains(child)) {
-						componentsToInstallNode.node(child).removeNode();
-					}
-				}
-			} else {
-				if (node.nodeExists(PREF_NODE_COMPONENTS)) {
-					node.node(PREF_NODE_COMPONENTS).removeNode();
+			}
+			for (final String child : componentsToInstallNode.childrenNames()) {
+				if (!componentsWritten.contains(child)) {
+					componentsToInstallNode.node(child).removeNode();
 				}
 			}
 

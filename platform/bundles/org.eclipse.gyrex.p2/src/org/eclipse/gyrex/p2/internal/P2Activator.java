@@ -4,8 +4,8 @@ import java.net.URL;
 import java.util.Collection;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.p2.packages.IPackageManager;
-import org.eclipse.gyrex.p2.repositories.IRepositoryDefinitionManager;
+import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
+import org.eclipse.gyrex.p2.internal.repositories.IRepositoryDefinitionManager;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;

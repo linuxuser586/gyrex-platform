@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.p2.repositories;
+package org.eclipse.gyrex.p2.internal.repositories;
 
 import java.net.URI;
 

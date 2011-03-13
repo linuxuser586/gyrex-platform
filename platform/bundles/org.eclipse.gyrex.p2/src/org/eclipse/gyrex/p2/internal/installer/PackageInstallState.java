@@ -14,11 +14,12 @@ package org.eclipse.gyrex.p2.internal.installer;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Date;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.gyrex.p2.internal.P2Activator;
-import org.eclipse.gyrex.p2.packages.PackageDefinition;
+import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
 
 import org.eclipse.core.runtime.IPath;
 
@@ -27,6 +28,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 
 /**
  * Helper for working with package install state.
@@ -58,12 +60,11 @@ public class PackageInstallState {
 	}
 
 	public static boolean isInstalled(final PackageDefinition packageDefinition) throws BackingStoreException {
+		// TODO this is a hack, we need query this from the profile
+		// we also cannot store this in the cloud as it might get out of sync on re-install
 		return getPackageFile(packageDefinition).toFile().isFile();
 	}
 
-	/**
-	 *
-	 */
 	public static void removeActiveInstallSessionId() {
 		final File sessionFile = getBaseLocation().append("sessionActive").toFile();
 		installSessionIdLock.lock();
@@ -85,6 +86,16 @@ public class PackageInstallState {
 			throw new IllegalStateException("Unable to write active install session id. " + ExceptionUtils.getRootCauseMessage(e), e);
 		} finally {
 			installSessionIdLock.unlock();
+		}
+	}
+
+	public static void setInstalled(final PackageDefinition packageDefinition) {
+		try {
+			final File file = getPackageFile(packageDefinition).toFile();
+			FileUtils.forceMkdir(file.getParentFile());
+			FileUtils.writeStringToFile(file, DateFormatUtils.ISO_DATE_TIME_ZONE_FORMAT.format(new Date()), CharEncoding.UTF_8);
+		} catch (final IOException e) {
+			throw new IllegalStateException("Unable to mark package as installed. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
 	}
 

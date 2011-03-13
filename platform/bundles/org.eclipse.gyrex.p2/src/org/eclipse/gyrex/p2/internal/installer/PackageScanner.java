@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.p2.internal.P2Activator;
 import org.eclipse.gyrex.p2.internal.P2Debug;
-import org.eclipse.gyrex.p2.packages.IPackageManager;
-import org.eclipse.gyrex.p2.packages.PackageDefinition;
+import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
+import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;

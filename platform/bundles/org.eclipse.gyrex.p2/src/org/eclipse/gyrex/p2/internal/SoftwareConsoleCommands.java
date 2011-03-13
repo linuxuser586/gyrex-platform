@@ -21,11 +21,11 @@ import org.eclipse.equinox.p2.metadata.Version;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.p2.internal.installer.PackageScanner;
-import org.eclipse.gyrex.p2.packages.IPackageManager;
-import org.eclipse.gyrex.p2.packages.PackageDefinition;
-import org.eclipse.gyrex.p2.packages.components.InstallableUnit;
-import org.eclipse.gyrex.p2.repositories.IRepositoryDefinitionManager;
-import org.eclipse.gyrex.p2.repositories.RepositoryDefinition;
+import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
+import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
+import org.eclipse.gyrex.p2.internal.packages.components.InstallableUnit;
+import org.eclipse.gyrex.p2.internal.repositories.IRepositoryDefinitionManager;
+import org.eclipse.gyrex.p2.internal.repositories.RepositoryDefinition;
 
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.framework.console.CommandInterpreter;

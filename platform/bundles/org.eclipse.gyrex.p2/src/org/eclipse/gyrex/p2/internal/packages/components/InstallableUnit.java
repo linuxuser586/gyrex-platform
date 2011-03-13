@@ -9,12 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.p2.packages.components;
+package org.eclipse.gyrex.p2.internal.packages.components;
 
 import org.eclipse.equinox.p2.metadata.Version;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
-import org.eclipse.gyrex.p2.packages.IComponent;
+import org.eclipse.gyrex.p2.internal.packages.IComponent;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
