@@ -112,30 +112,31 @@ public class Message implements IMessage {
 	/**
 	 * Removes a message from the queue.
 	 * <p>
-	 * This will hide a message in the queue for the specified timeout. As long
-	 * as the timeout is not elapsed {@link #isHidden()} will return
-	 * <code>true</code>.
+	 * This will delete a message in the queue but only if it hasn't changed
+	 * from the current view.
 	 * </p>
 	 * 
 	 * @param failIfDeleted
-	 * @return
+	 *            <code>true</code> if a {@link NoSuchElementException} should
+	 *            be thrown if the message doesn't exist anymore,
+	 *            <code>false</code> otherwise
+	 * @return <code>true</code> if the message has been deleted successfully,
+	 *         <code>false</code> otherwise
 	 * @throws NoSuchElementException
+	 *             if the message could not be found and
+	 *             <code>failIfDeleted</code> was <code>true</code>
 	 */
 	public boolean delete(final boolean failIfDeleted) throws NoSuchElementException {
 		try {
-			// check timeout is still valid
-			if (invisibleTimeoutTS < System.currentTimeMillis()) {
-				return false;
-			}
-
-			// delete but assume that we have the current view
+			// note, we don't check the timeout here
+			// we delete the message in any case if the version hasn't change in ZooKeeper
 			ZooKeeperGate.get().deletePath(zooKeeperQueue.queuePath.append(messageId), zkNodeDataVersion);
 
 			// the call succeeded
 			return true;
 		} catch (final Exception e) {
-			// reset timeout
-			invisibleTimeoutTS = 0;
+			// don't reset timeout here (delete does not influence it)
+			//invisibleTimeoutTS = 0;
 
 			// special handling if node does not exists
 			if (e instanceof KeeperException.NoNodeException) {
@@ -153,6 +154,15 @@ public class Message implements IMessage {
 			// fail operation
 			throw new QueueOperationFailedException(queueId, String.format("DELETE_MESSAGE(%s)", messageId), e);
 		}
+	}
+
+	/**
+	 * Returns the body.
+	 * 
+	 * @return the body
+	 */
+	public byte[] getBody() {
+		return body;
 	}
 
 	@Override
@@ -218,7 +228,7 @@ public class Message implements IMessage {
 		final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		final DataOutputStream dos = new DataOutputStream(bos);
 		dos.writeInt(1); // serialized format version
-		dos.writeLong(0L); // invisible timeout
+		dos.writeLong(invisibleTimeoutTS); // invisible timeout
 		dos.writeInt(body.length); // body size
 		dos.write(body); // body
 		return bos.toByteArray();
