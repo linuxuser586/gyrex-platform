@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("restriction")
 public class ServerTestApplication extends ServerApplication implements IApplication {
 
+	private static final long SLEEP_TIME = 500l;
 	private static final Logger LOG = LoggerFactory.getLogger(ServerTestApplication.class);
 
 	@Override
@@ -44,15 +45,15 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 					}
 
 					// wait for cloud connection
-					long timeout = 20000;
+					long timeout = Long.getLong("gyrex.servertestapp.cloudOnlineQaitTimeout", 60000l);
 					ZooKeeperGate gate = null;
 					while ((timeout > 0) && (gate == null)) {
 						try {
 							gate = ZooKeeperGate.get();
 						} catch (final IllegalStateException e) {
 							LOG.info("waiting for ZooKeeper connection...");
-							timeout -= 250;
-							Thread.sleep(250);
+							timeout -= SLEEP_TIME;
+							Thread.sleep(SLEEP_TIME);
 						}
 					}
 
