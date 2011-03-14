@@ -20,5 +20,6 @@ public class JobsDebug extends BundleDebugOptions {
 
 	public static boolean debug;
 	public static boolean providerRegistry;
+	public static boolean workerEngine;
 
 }

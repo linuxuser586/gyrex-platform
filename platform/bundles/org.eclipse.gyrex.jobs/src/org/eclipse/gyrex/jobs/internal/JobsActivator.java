@@ -13,7 +13,9 @@ package org.eclipse.gyrex.jobs.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.common.services.IServiceProxy;
 
 import org.osgi.framework.BundleContext;
 
@@ -27,6 +29,21 @@ public class JobsActivator extends BaseBundleActivator {
 	private static final AtomicReference<JobsActivator> instanceRef = new AtomicReference<JobsActivator>();
 
 	/**
+	 * Returns the instance.
+	 * 
+	 * @return the instance
+	 */
+	public static JobsActivator getInstance() {
+		final JobsActivator activator = instanceRef.get();
+		if (activator == null) {
+			throw new IllegalStateException("inactive");
+		}
+		return activator;
+	}
+
+	private volatile IServiceProxy<IQueueService> queueServiceProxy;
+
+	/**
 	 * Creates a new instance.
 	 */
 	public JobsActivator() {
@@ -36,15 +53,30 @@ public class JobsActivator extends BaseBundleActivator {
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
+		queueServiceProxy = getServiceHelper().trackService(IQueueService.class);
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		instanceRef.set(null);
+		queueServiceProxy = null;
 	}
 
 	@Override
 	protected Class getDebugOptions() {
 		return JobsDebug.class;
+	}
+
+	/**
+	 * Returns the queueServiceProxy.
+	 * 
+	 * @return the queueServiceProxy
+	 */
+	public IQueueService getQueueService() {
+		final IServiceProxy<IQueueService> proxy = queueServiceProxy;
+		if (proxy == null) {
+			createBundleInactiveException();
+		}
+		return proxy.getService();
 	}
 }
