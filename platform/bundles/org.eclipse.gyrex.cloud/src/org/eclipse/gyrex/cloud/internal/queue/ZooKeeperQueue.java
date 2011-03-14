@@ -45,8 +45,7 @@ import org.slf4j.LoggerFactory;
 public class ZooKeeperQueue implements IQueue {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperQueue.class);
-
-	private static final String PREFIX = "msg";
+	private static final String PREFIX = "msg-";
 
 	final String id;
 	final IPath queuePath;
@@ -177,8 +176,8 @@ public class ZooKeeperQueue implements IQueue {
 				LOG.warn("Incorrect child name {} in queue {}.", new Object[] { childName, id });
 				continue;
 			}
-			final long sequenceNumber = NumberUtils.toLong(StringUtils.substring(childName, PREFIX.length()));
-			if (sequenceNumber <= 0) {
+			final long sequenceNumber = NumberUtils.toLong(StringUtils.substring(childName, PREFIX.length()), -1);
+			if (sequenceNumber < 0) {
 				LOG.warn("Incorrect sequence number in child name {} in queue {}.", new Object[] { childName, id });
 				continue;
 			}
