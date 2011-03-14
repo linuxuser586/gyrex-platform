@@ -15,7 +15,7 @@ package org.eclipse.gyrex.cloud.services.queue;
  * An unchecked exception thrown by {@link IQueueService} when a queue already
  * exists.
  */
-public class DuplicateQueueException extends RuntimeException {
+public final class DuplicateQueueException extends RuntimeException {
 
 	/** serialVersionUID */
 	private static final long serialVersionUID = -2844312618464571431L;
