@@ -32,6 +32,7 @@ import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -81,7 +82,7 @@ public class CloudState implements IConnectionMonitor {
 		protected IStatus run(final IProgressMonitor monitor) {
 			try {
 				ZooKeeperNodeInfo.approve(nodeInfo.getNodeId(), null, nodeInfo.getLocation());
-				LOG.error("Node {} approved autoamtically. Welcome to your local cloud!", nodeInfo.getNodeId());
+				LOG.warn("Node {} approved automatically. Welcome to your local cloud!", nodeInfo.getNodeId());
 				return Status.OK_STATUS;
 			} catch (final Exception e) {
 				LOG.error("Unable to automatically approve node {}. Please check server logs. {}", new Object[] { nodeInfo.getNodeId(), ExceptionUtils.getRootCauseMessage(e), e });
@@ -378,16 +379,29 @@ public class CloudState implements IConnectionMonitor {
 	 *             in case an error occurred reading the node info
 	 */
 	NodeInfo readApprovedNodeInfo(final String nodeId) throws Exception {
+		final IPath approvedNodeIdPath = IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId);
 		final Stat stat = new Stat();
-		try {
-			final byte[] record = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeId), monitor, stat);
 
-			// return node info if available
-			if (record != null) {
-				return new NodeInfo(new ZooKeeperNodeInfo(nodeId, true, record, stat.getVersion()));
+		// check existence in a loop which ensures that we catch deletions in progress
+		// this also sets a watch in case the path must be created first
+		int attempts = 0;
+		while (ZooKeeperGate.get().exists(approvedNodeIdPath, monitor)) {
+			try {
+				// read record
+				// (note, we don't set a monitor here, it's already set during the #exists call)
+				final byte[] record = ZooKeeperGate.get().readRecord(approvedNodeIdPath, stat);
+
+				// return node info if available
+				if (record != null) {
+					return new NodeInfo(new ZooKeeperNodeInfo(nodeId, true, record, stat.getVersion()));
+				}
+			} catch (final NoNodeException e) {
+				// someone deleted the path in between
+				attempts++;
+				if (attempts > 5) {
+					throw new IllegalStateException("Failed read approved node info. The exists call succeeds but the read call says it doesn't exist. Please verify the ZooKeeper state.");
+				}
 			}
-		} catch (final NoNodeException e) {
-			// ignore (return null below
 		}
 
 		return null;
