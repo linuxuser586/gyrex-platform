@@ -481,6 +481,12 @@ public class ZooKeeperGate {
 
 	/**
 	 * Checks if the specified path exists.
+	 * <p>
+	 * If the watch is non-null and the call is successful (no exception is
+	 * thrown), a watch will be left on the node with the given path. The watch
+	 * will be triggered by a successful operation that creates/delete the node
+	 * or sets the data on the node.
+	 * </p>
 	 * 
 	 * @param path
 	 *            the path to create
