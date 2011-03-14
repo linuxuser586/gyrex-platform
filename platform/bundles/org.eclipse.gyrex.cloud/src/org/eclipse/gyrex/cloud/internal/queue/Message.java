@@ -21,6 +21,7 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
@@ -232,5 +233,12 @@ public class Message implements IMessage {
 		dos.writeInt(body.length); // body size
 		dos.write(body); // body
 		return bos.toByteArray();
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("Message [messageId=").append(messageId).append(", queueId=").append(queueId).append(", invisibleTill=").append(invisibleTimeoutTS > 0 ? DateFormatUtils.ISO_DATE_TIME_ZONE_FORMAT.format(invisibleTimeoutTS) : "0").append(", version=").append(zkNodeDataVersion).append("]");
+		return builder.toString();
 	}
 }

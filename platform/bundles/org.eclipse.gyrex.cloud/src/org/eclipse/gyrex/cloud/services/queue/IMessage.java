@@ -46,4 +46,17 @@ public interface IMessage {
 	 * @return the queue identifier
 	 */
 	String getQueueId();
+
+	/**
+	 * Returns a human readable string describing the message.
+	 * <p>
+	 * The returned string should be used for logging purposes. It gives further
+	 * information about the message to administrators, operators and developers
+	 * which aid in analyzing and discovering message issues.
+	 * </p>
+	 * 
+	 * @return a human readable string
+	 */
+	@Override
+	public String toString();
 }
