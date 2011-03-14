@@ -45,7 +45,7 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 					}
 
 					// wait for cloud connection
-					long timeout = Long.getLong("gyrex.servertestapp.cloudOnlineQaitTimeout", 60000l);
+					long timeout = Long.getLong("gyrex.servertestapp.cloudOnlineTimeout", 60000l);
 					ZooKeeperGate gate = null;
 					while ((timeout > 0) && (gate == null)) {
 						try {
