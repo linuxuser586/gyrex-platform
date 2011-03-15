@@ -16,7 +16,7 @@ import org.eclipse.gyrex.http.jetty.admin.ChannelDescriptor;
 import org.eclipse.gyrex.http.jetty.admin.ICertificate;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.app.JettyGateway;
-import org.eclipse.gyrex.http.jetty.internal.connectors.CertificateSslConnector;
+import org.eclipse.gyrex.http.jetty.internal.connectors.CertificateSslContextFactory;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
@@ -24,6 +24,7 @@ import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.http.HttpSchemes;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import org.osgi.framework.Filter;
@@ -118,7 +119,7 @@ public class JettyEngineApplication implements IApplication {
 			SelectChannelConnector connector;
 			if (channel.isSecure()) {
 				final ICertificate certificate = jettyManager.getCertificate(channel.getCertificateId());
-				connector = new CertificateSslConnector(certificate);
+				connector = new SslSelectChannelConnector(new CertificateSslContextFactory(certificate));
 			} else {
 				connector = new SelectChannelConnector();
 			}

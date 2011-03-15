@@ -262,12 +262,11 @@ public class ApplicationHandler extends ServletContextHandler {
 	}
 
 	@Override
-	protected void dump(final Appendable out, final String indent) throws IOException {
-		out.append(toString()).append(isStarted() ? " started" : " STOPPED").append('\n');
+	public void dump(final Appendable out, final String indent) throws IOException {
+		super.dump(out, indent);
 		for (final String url : urls) {
 			out.append(indent).append(" +-").append(url).append('\n');
 		}
-		dumpHandlers(out, indent);
 	}
 
 	/**

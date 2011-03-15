@@ -8,7 +8,7 @@
  *
  * Contributors:
  *     Jay Rosenthal - initial API and implementation
- *     Gunnar Wagenknecht - adapted to Gyrex
+ *     Gunnar Wagenknecht - copied from Equinox, adapted to Gyrex
  *******************************************************************************/
 package org.eclipse.gyrex.http.jetty.internal.admin;
 
@@ -45,7 +45,7 @@ public class X500PrincipalHelper {
 	public final static String attrEMAIL = "EMAILADDRESS"; //$NON-NLS-1$
 	public final static String attrUID = "UID"; //$NON-NLS-1$
 
-	ArrayList rdnNameArray = new ArrayList();
+	ArrayList<ArrayList<String>> rdnNameArray = new ArrayList<ArrayList<String>>();
 
 	private final static String attrTerminator = "="; //$NON-NLS-1$
 
@@ -95,7 +95,7 @@ public class X500PrincipalHelper {
 	 *         attribute. Values are in the order they occur. May be empty.
 	 */
 	public ArrayList getAllValues(final String attributeID) {
-		final ArrayList retList = new ArrayList();
+		final ArrayList<String> retList = new ArrayList<String>();
 		final String searchPart = attributeID + attrTerminator;
 
 		for (final Iterator iter = rdnNameArray.iterator(); iter.hasNext();) {
@@ -220,7 +220,7 @@ public class X500PrincipalHelper {
 	private void parseDN(final String dn) throws IllegalArgumentException {
 		int startIndex = 0;
 		char c = '\0';
-		ArrayList nameValues = new ArrayList();
+		ArrayList<String> nameValues = new ArrayList<String>();
 
 		// Clear the existing array, in case this instance is being re-used
 		rdnNameArray.clear();
@@ -246,7 +246,7 @@ public class X500PrincipalHelper {
 			if (c != '+') {
 				rdnNameArray.add(nameValues);
 				if (endIndex != dn.length()) {
-					nameValues = new ArrayList();
+					nameValues = new ArrayList<String>();
 				} else {
 					nameValues = null;
 				}
