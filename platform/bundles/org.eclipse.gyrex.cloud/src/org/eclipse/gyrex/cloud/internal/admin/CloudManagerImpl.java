@@ -35,6 +35,7 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,6 +158,8 @@ public class CloudManagerImpl implements ICloudManager {
 				nodes.add(new NodeDescriptor(nodeId, approved));
 			}
 			return Collections.unmodifiableCollection(nodes);
+		} catch (final NoNodeException e) {
+			return Collections.emptyList();
 		} catch (final Exception e) {
 			throw new RuntimeException("Error reading list of nodes. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
