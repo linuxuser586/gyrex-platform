@@ -74,9 +74,6 @@ class BundleFinder implements PrivilegedAction<List<Bundle>> {
 		return result;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.security.PrivilegedAction#run()
-	 */
 	@Override
 	public List<Bundle> run() {
 		return internalFindBundles();

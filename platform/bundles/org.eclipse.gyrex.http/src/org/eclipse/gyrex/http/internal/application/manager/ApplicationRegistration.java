@@ -22,6 +22,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
+import org.eclipse.gyrex.http.internal.HttpAppManagerApplication;
 
 import org.eclipse.core.runtime.CoreException;
 
@@ -40,7 +41,6 @@ public class ApplicationRegistration {
 	private final String providerId;
 	private final IRuntimeContext context;
 	private final ConcurrentMap<IApplicationContext, ApplicationInstance> activeApplications = new ConcurrentHashMap<IApplicationContext, ApplicationInstance>(1);
-	private final ApplicationManager applicationManager;
 	private final Map<String, String> initProperties;
 
 	private final Lock applicationCreationLock = new ReentrantLock();
@@ -53,8 +53,7 @@ public class ApplicationRegistration {
 	 * @param context
 	 * @param initProperties
 	 */
-	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> initProperties, final ApplicationManager applicationManager) {
-		this.applicationManager = applicationManager;
+	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> initProperties) {
 		this.applicationId = applicationId.intern();
 		this.providerId = providerId.intern();
 		this.context = context;
@@ -101,7 +100,7 @@ public class ApplicationRegistration {
 		// TODO: should support multiple provider versions somehow
 		// (maybe through the context which defines which version to use?)
 		// (another alternative would be version ranges at registration times)
-		final ApplicationProviderRegistration providerRegistration = applicationManager.getProviderRegistration(getProviderId());
+		final ApplicationProviderRegistration providerRegistration = HttpAppManagerApplication.getInstance().getProviderRegistry().getProviderRegistration(getProviderId());
 		if (null == providerRegistration) {
 			return null;
 		}

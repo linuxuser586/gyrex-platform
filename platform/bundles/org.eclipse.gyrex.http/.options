@@ -1,3 +1,4 @@
 # global debug option
 org.eclipse.gyrex.http/debug=true
 
+org.eclipse.gyrex.http/gatewayBinding=true

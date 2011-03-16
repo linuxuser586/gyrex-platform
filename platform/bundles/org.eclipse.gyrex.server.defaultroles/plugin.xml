@@ -28,12 +28,18 @@
       <defaultStart
             mode="any"
             roleId="org.eclipse.gyrex.http.jetty.roles.engine"
-            startLevel="4"
+            startLevel="10"
             trigger="onCloudConnect">
       </defaultStart>
       <defaultStart
             mode="any"
             roleId="org.eclipse.gyrex.p2.node.installer.role"
+            startLevel="50"
+            trigger="onCloudConnect">
+      </defaultStart>
+      <defaultStart
+            mode="any"
+            roleId="org.eclipse.gyrex.http.appmanager"
             trigger="onCloudConnect">
       </defaultStart>
    </extension>

@@ -13,6 +13,7 @@ package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.text.MessageFormat;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
@@ -88,8 +89,17 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 *             {@link IRuntimeContextPreferences#flush(String)}
 	 */
 	public static void setRepository(final IRuntimeContext context, final RepositoryContentType contentType, final String repositoryId) throws BackingStoreException {
+		if (context == null) {
+			throw new IllegalArgumentException("context must not be null");
+		}
+		if (contentType == null) {
+			throw new IllegalArgumentException("contentType must not be null");
+		}
 		final IRuntimeContextPreferences preferences = context.getPreferences();
 		if (null != repositoryId) {
+			if (!IdHelper.isValidId(repositoryId)) {
+				throw new IllegalArgumentException("repositoryId is invalid");
+			}
 			preferences.put(PersistenceActivator.SYMBOLIC_NAME, getContextPreferenceKey(contentType), repositoryId, false);
 		} else {
 			preferences.remove(PersistenceActivator.SYMBOLIC_NAME, getContextPreferenceKey(contentType));

@@ -18,9 +18,14 @@ import java.util.UUID;
 
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.internal.ContextActivator;
+import org.eclipse.gyrex.context.internal.GyrexContextHandle;
+import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
+import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.preferences.DefaultScope;
 
@@ -40,12 +45,22 @@ public class PreferencesBlackBoxTests {
 	private static final Logger LOG = LoggerFactory.getLogger(PreferencesBlackBoxTests.class);
 
 	private IServiceProxy<IRuntimeContextRegistry> contextRegistryProxy;
-	private IRuntimeContextRegistry contextRegistry;
+	private ContextRegistryImpl contextRegistry;
+
+	private GyrexContextHandle assertContextDefined(final IPath path) {
+		final ContextDefinition definition = new ContextDefinition(path);
+		definition.setName("Test Context");
+		contextRegistry.saveDefinition(definition);
+		assertNotNull("context definition must exists after create", contextRegistry.get(path));
+		final GyrexContextHandle context = contextRegistry.get(path);
+		assertNotNull("context handle must exists", context);
+		assertNotNull("context handle must map to real context", context.get());
+		return context;
+	}
 
 	@Before
 	public void setUp() throws Exception {
-		contextRegistryProxy = Activator.getActivator().getServiceHelper().trackService(IRuntimeContextRegistry.class);
-		contextRegistry = contextRegistryProxy.getService();
+		contextRegistry = ContextActivator.getInstance().getContextRegistryImpl();
 	}
 
 	/**
@@ -54,8 +69,6 @@ public class PreferencesBlackBoxTests {
 	@After
 	public void tearDown() throws Exception {
 		contextRegistry = null;
-		contextRegistryProxy.dispose();
-		contextRegistryProxy = null;
 	}
 
 	/**
@@ -70,11 +83,11 @@ public class PreferencesBlackBoxTests {
 		assertNotNull("no preferences for context " + rootContext, rootPrefs);
 
 		// get another context
-		final IRuntimeContext parentContext = contextRegistry.get(new Path("/parent"));
+		final IRuntimeContext parentContext = assertContextDefined(new Path("/parent"));
 		final IRuntimeContextPreferences parentPrefs = parentContext.getPreferences();
 
 		// get another context
-		final IRuntimeContext childContext = contextRegistry.get(new Path("/parent/child/child"));
+		final IRuntimeContext childContext = assertContextDefined(new Path("/parent/child/child"));
 		final IRuntimeContextPreferences childPrefs = childContext.getPreferences();
 
 		// generate key + value for test
@@ -82,7 +95,7 @@ public class PreferencesBlackBoxTests {
 		final String value = "avalue" + System.currentTimeMillis();
 
 		// set a default ... should be available in all
-		final Preferences defaultNode = new DefaultScope().getNode(Activator.SYMBOLIC_NAME);
+		final Preferences defaultNode = DefaultScope.INSTANCE.getNode(Activator.SYMBOLIC_NAME);
 		LOG.trace("Setting default for key {} in node {}", key, defaultNode.node(Activator.SYMBOLIC_NAME).absolutePath());
 		defaultNode.put(key, value);
 

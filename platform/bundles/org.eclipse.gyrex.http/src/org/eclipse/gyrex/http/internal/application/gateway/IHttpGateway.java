@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal.application.gateway;
 
-import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 
 /**
  * A gateway for connecting a HTTP environment (eg. Jetty) with the application
@@ -30,9 +29,12 @@ public interface IHttpGateway {
 	 * Returns the URL registry for the specified application manager.
 	 * 
 	 * @param applicationManager
-	 *            the backing application manager
+	 *            the backing application manager binding (must be used for
+	 *            access/creating application instances which are unique across
+	 *            all gateways)
 	 * @return the URL registry
 	 */
-	IUrlRegistry getUrlRegistry(ApplicationManager applicationManager);
+	// TODO clarify if application instance uniqueness across all gateways really works
+	IUrlRegistry getUrlRegistry(HttpGatewayBinding applicationManager);
 
 }

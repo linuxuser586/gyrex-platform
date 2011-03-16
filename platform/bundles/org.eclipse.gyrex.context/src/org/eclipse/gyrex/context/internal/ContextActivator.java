@@ -42,6 +42,7 @@ public class ContextActivator extends BaseBundleActivator {
 	}
 
 	private final AtomicReference<IServiceProxy<IPreferencesService>> preferencesServiceProxyRef = new AtomicReference<IServiceProxy<IPreferencesService>>();
+	private final AtomicReference<ContextRegistryImpl> contextRegistryRef = new AtomicReference<ContextRegistryImpl>();
 
 	/**
 	 * Creates a new instance.
@@ -62,10 +63,9 @@ public class ContextActivator extends BaseBundleActivator {
 		objectProviderRegistry.start(context);
 		addShutdownParticipant(objectProviderRegistry);
 
-		// register the context registry
 		final ContextRegistryImpl contextRegistry = new ContextRegistryImpl(objectProviderRegistry);
 		getServiceHelper().registerService(IRuntimeContextRegistry.class.getName(), contextRegistry, "Eclipse.org Gyrex", "Eclipse Gyrex Contextual Runtime Registry", null, null);
-		addShutdownParticipant(contextRegistry);
+		contextRegistryRef.set(contextRegistry);
 
 		// start the context manager
 		final ContextManagerImpl contextManager = new ContextManagerImpl(contextRegistry);
@@ -77,11 +77,21 @@ public class ContextActivator extends BaseBundleActivator {
 	protected void doStop(final BundleContext context) throws Exception {
 		instanceRef.set(null);
 		preferencesServiceProxyRef.set(null);
+		final ContextRegistryImpl contextRegistry = contextRegistryRef.getAndSet(null);
+		if (null != contextRegistry) {
+			contextRegistry.close();
+		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#getDebugOptions()
+	/**
+	 * Returns the contextRegistryRef.
+	 * 
+	 * @return the contextRegistryRef
 	 */
+	public ContextRegistryImpl getContextRegistryImpl() {
+		return contextRegistryRef.get();
+	}
+
 	@Override
 	protected Class getDebugOptions() {
 		return ContextDebug.class;

@@ -16,7 +16,6 @@ import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
-import org.osgi.util.tracker.ServiceTracker;
 
 public class HttpActivator extends BaseBundleActivator {
 
@@ -59,8 +58,6 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 	}
 
-	private ServiceTracker gatewayTracker;
-
 	/**
 	 * Creates a new instance.
 	 * <p>
@@ -75,34 +72,12 @@ public class HttpActivator extends BaseBundleActivator {
 	@Override
 	protected synchronized void doStart(final BundleContext context) throws Exception {
 		sharedInstance = this;
-
-		// track the http gateway
-		if (null == gatewayTracker) {
-			gatewayTracker = new HttpGatewayTracker(context);
-			gatewayTracker.open();
-		}
 	}
 
 	@Override
 	protected synchronized void doStop(final BundleContext context) throws Exception {
-		// stop gateway tracker
-		if (null != gatewayTracker) {
-			gatewayTracker.close();
-			gatewayTracker = null;
-		}
-
 		// unset instance
 		sharedInstance = null;
-	}
-
-	/**
-	 * Returns the bundle that contains the provided object, or
-	 * <code>null</code> if the bundle could not be determined.
-	 * 
-	 * @return the bundle or <code>null</code>
-	 */
-	public Bundle getBundleId(final Object object) {
-		return null != object ? getBundleId(object.getClass()) : null;
 	}
 
 	/**
@@ -110,6 +85,7 @@ public class HttpActivator extends BaseBundleActivator {
 	 * 
 	 * @return the bundle or <code>null</code>
 	 */
+	// TODO implement security
 	public Bundle getCallingBundle() {
 		final Bundle bundle = getBundle();
 		if (null == bundle) {
@@ -123,4 +99,5 @@ public class HttpActivator extends BaseBundleActivator {
 	protected Class getDebugOptions() {
 		return HttpDebug.class;
 	}
+
 }

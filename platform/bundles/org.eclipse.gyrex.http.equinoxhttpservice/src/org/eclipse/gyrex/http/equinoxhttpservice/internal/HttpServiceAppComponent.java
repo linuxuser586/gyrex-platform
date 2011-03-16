@@ -59,20 +59,24 @@ public class HttpServiceAppComponent {
 		final IApplicationManager manager = getApplicationManager();
 
 		try {
+			// try registration
 			manager.register(DEFAULT_APP_ID, HttpServiceAppProvider.ID, context, null);
-		} catch (final ApplicationRegistrationException e) {
-			LOG.warn("Unable to start default HttpService application; failed to register the application instance: {} ", e.toString());
-			return;
-		}
 
-		try {
-			manager.mount("http:/", DEFAULT_APP_ID);
-			manager.mount("https:/", DEFAULT_APP_ID);
-		} catch (final MountConflictException e) {
-			LOG.warn("Unable to start default HttpService application; failed to mount the application: {} ", e.toString());
-			return;
-		} catch (final MalformedURLException e) {
-			// should not happen, URLs are hard-coded at development time
+			// install mounts
+			try {
+				manager.mount("http:/", DEFAULT_APP_ID);
+				manager.mount("https:/", DEFAULT_APP_ID);
+			} catch (final MountConflictException e) {
+				LOG.warn("Unable to register default HttpService application; failed to mount the application: {} ", e.toString());
+				return;
+			} catch (final MalformedURLException e) {
+				// should not happen, URLs are hard-coded at development time
+				return;
+			}
+
+		} catch (final ApplicationRegistrationException e) {
+			// already registered
+			LOG.info("Application with id {} already registered. Not registering HttpService application again. ", DEFAULT_APP_ID);
 			return;
 		}
 	}

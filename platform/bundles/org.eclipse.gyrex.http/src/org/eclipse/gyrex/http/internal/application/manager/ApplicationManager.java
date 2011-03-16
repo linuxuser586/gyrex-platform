@@ -13,108 +13,142 @@ package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Dictionary;
-import java.util.Hashtable;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map.Entry;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
-import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
-import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
-import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
+import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.gyrex.preferences.CloudScope;
 
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.Constants;
-import org.osgi.framework.ServiceReference;
-import org.osgi.framework.ServiceRegistration;
-import org.osgi.util.tracker.ServiceTracker;
-import org.osgi.util.tracker.ServiceTrackerCustomizer;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
+import org.osgi.service.prefs.BackingStoreException;
+import org.osgi.service.prefs.Preferences;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
  * The application manager.
  * 
  * @TODO we need to support providers in multiple versions
  */
-public class ApplicationManager implements IApplicationManager, ServiceTrackerCustomizer {
+public class ApplicationManager implements IApplicationManager {
 
-	private final BundleContext context;
-	private final ServiceTracker providerTracker;
-	private final ConcurrentMap<String, ApplicationProviderRegistration> providersById = new ConcurrentHashMap<String, ApplicationProviderRegistration>(1);
-	private final ConcurrentMap<String, ApplicationRegistration> applicationsById = new ConcurrentHashMap<String, ApplicationRegistration>(1);
-	private final IUrlRegistry urlRegistry;
-	private final IHttpGateway httpGateway;
-	private ServiceRegistration serviceRegistration;
+	public static final String NODE_URLS = "urls";
+	public static final String NODE_APPLICATIONS = "applications";
+	public static final String NODE_PROPERTIES = "properties";
+	public static final String KEY_CONTEXT_PATH = "contextPath";
+	public static final String KEY_PROVIDER_ID = "providerId";
+	public static final String KEY_ACTIVE = "active";
 
-	public ApplicationManager(final BundleContext context, final IHttpGateway httpGateway) {
-		this.context = context;
-		this.httpGateway = httpGateway;
-		providerTracker = new ServiceTracker(context, ApplicationProvider.class.getName(), this);
-		urlRegistry = httpGateway.getUrlRegistry(this);
+	public static IEclipsePreferences getAppsNode() {
+		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(HttpActivator.SYMBOLIC_NAME).node(NODE_APPLICATIONS);
+	}
+
+	public static IEclipsePreferences getUrlsNode() {
+		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(HttpActivator.SYMBOLIC_NAME).node(NODE_URLS);
 	}
 
 	@Override
-	public Object addingService(final ServiceReference reference) {
-		final Object service = context.getService(reference);
-		if (service instanceof ApplicationProvider) {
-			final ApplicationProvider provider = (ApplicationProvider) service;
-			final ApplicationProviderRegistration registration = new ApplicationProviderRegistration(reference, provider);
-			providersById.putIfAbsent(provider.getId(), registration);
+	public void activate(final String applicationId) {
+		if (!IdHelper.isValidId(applicationId)) {
+			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
 		}
-		return service;
+
+		try {
+			// check if there is a registration
+			final Preferences node = getAppsNode();
+			if (!node.nodeExists(applicationId)) {
+				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
+			}
+
+			// activate
+			node.node(applicationId).putBoolean(KEY_ACTIVE, true);
+			node.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error removing application registration info from the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
+	@Override
+	public void deactivate(final String applicationId) {
+		if (!IdHelper.isValidId(applicationId)) {
+			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
+		}
+
+		try {
+			// check if there is a registration
+			final Preferences node = getAppsNode();
+			if (!node.nodeExists(applicationId)) {
+				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
+			}
+
+			// deactivate
+			node.node(applicationId).putBoolean(KEY_ACTIVE, false);
+			node.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error removing application registration info from the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
 	}
 
 	/**
-	 * Closes the manager and releases all resources held by it.
-	 */
-	public void close() {
-		providerTracker.close();
-		serviceRegistration.unregister();
-		serviceRegistration = null;
-	}
-
-	/**
-	 * Returns the registration for the specified application id.
+	 * Gets an {@link ApplicationRegistration} object for a registered
+	 * applications
 	 * 
 	 * @param applicationId
-	 *            the application id
-	 * @return the application registration, or <code>null</code> if no
-	 *         application is registered (or the registration has been removed)
+	 * @return
 	 */
 	public ApplicationRegistration getApplicationRegistration(final String applicationId) {
-		return applicationsById.get(applicationId);
-	}
+		try {
+			final Preferences appNode = getAppsNode().node(applicationId);
+			if (!appNode.nodeExists("")) {
+				throw new IllegalStateException(String.format("application %s does not exists", applicationId));
+			}
 
-	/**
-	 * Returns a provider registration.
-	 * 
-	 * @param providerId
-	 *            the provider id
-	 * @return the provider registration, or <code>null</code> if no such
-	 *         provider is registered (or was unregistered meanwhile)
-	 */
-	public ApplicationProviderRegistration getProviderRegistration(final String providerId) {
-		return providersById.get(providerId);
-	}
+			final String providerId = appNode.get(KEY_PROVIDER_ID, null);
+			if (StringUtils.isBlank(providerId)) {
+				throw new IllegalStateException(String.format("application information %s contains invalid provider id %s", applicationId, String.valueOf(providerId)));
+			}
 
-	/**
-	 * Returns the ApplicationMountRegistry.
-	 * 
-	 * @return the ApplicationMountRegistry
-	 */
-	private IUrlRegistry getUrlRegistry() {
-		if (null == urlRegistry) {
-			throw new IllegalStateException("http gateway inactive");
+			final String contextPath = appNode.get(KEY_CONTEXT_PATH, null);
+			if (StringUtils.isBlank(contextPath) || !Path.EMPTY.isValidPath(contextPath)) {
+				throw new IllegalStateException(String.format("application information %s contains invalid context path %s", applicationId, String.valueOf(contextPath)));
+			}
+
+			Map<String, String> properties = null;
+			if (appNode.nodeExists(NODE_PROPERTIES)) {
+				final Preferences propertiesNode = appNode.node(NODE_PROPERTIES);
+				final String[] keys = propertiesNode.keys();
+				if (keys.length > 0) {
+					properties = new HashMap<String, String>(keys.length);
+					for (final String key : keys) {
+						properties.put(key, propertiesNode.get(key, null));
+					}
+				}
+			}
+
+			final IRuntimeContext context = HttpActivator.getInstance().getService(IRuntimeContextRegistry.class).get(new Path(contextPath));
+			if (context == null) {
+				throw new IllegalStateException(String.format("context %s does not exists", contextPath));
+			}
+			return new ApplicationRegistration(applicationId, providerId, context, properties);
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error reading application info for application %s. %s", applicationId, ExceptionUtils.getRootCauseMessage(e)), e);
 		}
-		return urlRegistry;
 	}
 
-	@Override
-	public void modifiedService(final ServiceReference reference, final Object service) {
-		// nothing
+	public Collection<String> getRegisteredApplications() throws BackingStoreException {
+		return Arrays.asList(getAppsNode().childrenNames());
 	}
 
 	@Override
@@ -122,23 +156,31 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 		// parse the url
 		final URL parsedUrl = parseAndVerifyUrl(url);
 
-		// register url
-		final String existingApplicationId = getUrlRegistry().registerIfAbsent(parsedUrl, applicationId);
-		if (null != existingApplicationId) {
-			throw new MountConflictException(url);
+		// verify application id
+		if (!IdHelper.isValidId(applicationId)) {
+			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
 		}
-	}
 
-	/**
-	 * Opens the manager.
-	 */
-	public void open() {
-		providerTracker.open();
+		try {
+			// verify the application exists
+			final Preferences node = getAppsNode();
+			if (!node.nodeExists(applicationId)) {
+				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
+			}
 
-		final Dictionary<String, Object> props = new Hashtable<String, Object>(2);
-		props.put(Constants.SERVICE_VENDOR, "Eclipse Gyrex");
-		props.put(Constants.SERVICE_DESCRIPTION, "Application management service for gateway " + httpGateway.getName());
-		serviceRegistration = context.registerService(IApplicationManager.class.getName(), this, props);
+			// verify the url is not registered yet
+			final String externalForm = parsedUrl.toExternalForm();
+			final Preferences urlsNode = getUrlsNode();
+			if (null != urlsNode.get(externalForm, null)) {
+				throw new MountConflictException(url);
+			}
+
+			// put url
+			urlsNode.put(externalForm, applicationId);
+			urlsNode.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error persisting application registration info to the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
 	}
 
 	private URL parseAndVerifyUrl(final String url) throws MalformedURLException {
@@ -159,42 +201,39 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 
 	@Override
 	public void register(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> properties) throws ApplicationRegistrationException {
-		if (null == applicationId) {
-			throw new IllegalArgumentException("application id must not be null");
+		if (!IdHelper.isValidId(applicationId)) {
+			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
 		}
-		if (null == providerId) {
-			throw new IllegalArgumentException("url application provider id not be null");
+		if (!IdHelper.isValidId(providerId)) {
+			throw new IllegalArgumentException("invalid provider id; please use only ascii chars a-z, 0-9, ., _ and/or -");
 		}
 		if (null == context) {
 			throw new IllegalArgumentException("context must not be null");
 		}
-		final ApplicationRegistration applicationRegistration = new ApplicationRegistration(applicationId, providerId, context, properties, this);
-		final ApplicationRegistration existing = applicationsById.putIfAbsent(applicationId.intern(), applicationRegistration);
-		if (null != existing) {
-			throw new ApplicationRegistrationException(applicationId);
+
+		try {
+			// check if there is already a registration
+			final Preferences node = getAppsNode();
+			if (node.nodeExists(applicationId)) {
+				throw new ApplicationRegistrationException(applicationId);
+			}
+
+			// persist registration
+			final Preferences appNode = node.node(applicationId);
+			appNode.put(KEY_PROVIDER_ID, providerId);
+			appNode.put(KEY_CONTEXT_PATH, context.getContextPath().toString());
+
+			if (null != properties) {
+				final Preferences propertiesNode = appNode.node(NODE_PROPERTIES);
+				for (final Entry<String, String> entry : properties.entrySet()) {
+					propertiesNode.put(entry.getKey(), entry.getValue());
+				}
+			}
+
+			node.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error persisting application registration info to the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
-
-	}
-
-	@Override
-	public void removedService(final ServiceReference reference, final Object service) {
-		if (service instanceof ApplicationProvider) {
-			removeProvider((ApplicationProvider) service);
-		}
-
-		// unget the service
-		context.ungetService(reference);
-	}
-
-	private void removeProvider(final ApplicationProvider provider) {
-		// remove provider registration
-		final ApplicationProviderRegistration providerRegistration = providersById.remove(provider.getId());
-		if (null == providerRegistration) {
-			return;
-		}
-
-		// unmount and destroy all applications bound to the provider
-		providerRegistration.destroy();
 	}
 
 	@Override
@@ -202,24 +241,41 @@ public class ApplicationManager implements IApplicationManager, ServiceTrackerCu
 		// parse the url
 		final URL parsedUrl = parseAndVerifyUrl(url);
 
-		// remove
-		final String applicationId = getUrlRegistry().unregister(parsedUrl);
+		final String applicationId;
+		try {
+			// check if defined
+			final String externalForm = parsedUrl.toExternalForm();
+			final Preferences urlsNode = getUrlsNode();
+			applicationId = urlsNode.get(externalForm, null);
 
-		// throw IllegalStateException if nothing was removed
-		if (null == applicationId) {
-			throw new IllegalStateException("no application was mounted for url '" + parsedUrl.toExternalForm() + "' (submitted url was '" + url + "')");
+			// throw IllegalStateException if nothing was removed
+			if (null == applicationId) {
+				throw new IllegalStateException("no application was mounted for url '" + externalForm + "' (submitted url was '" + url + "')");
+			}
+
+			// remove from persisted info
+			urlsNode.remove(externalForm);
+			urlsNode.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error persisting application registration info to the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
 	}
 
 	@Override
 	public void unregister(final String applicationId) {
-		final ApplicationRegistration applicationRegistration = applicationsById.remove(applicationId);
-		if (applicationRegistration != null) {
-			try {
-				applicationRegistration.destroy();
-			} finally {
-				getUrlRegistry().applicationUnregistered(applicationId);
+		// remove persistent info
+		try {
+			// check if there is a registration
+			final Preferences node = getAppsNode();
+			if (!node.nodeExists(applicationId)) {
+				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
 			}
+
+			// remove
+			node.node(applicationId).removeNode();
+			node.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error removing application registration info from the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
 	}
 

@@ -15,9 +15,9 @@ import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.eclipse.gyrex.http.internal.application.gateway.HttpGatewayBinding;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
-import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandler;
 import org.eclipse.gyrex.http.jetty.internal.handlers.DefaultErrorHandlerResourcesHandler;
@@ -42,7 +42,7 @@ public class JettyGateway implements IHttpGateway {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JettyGateway.class);
 
-	private final ConcurrentMap<ApplicationManager, UrlRegistry> urlRegistryByManager = new ConcurrentHashMap<ApplicationManager, UrlRegistry>(1);
+	private final ConcurrentMap<HttpGatewayBinding, UrlRegistry> urlRegistryByManager = new ConcurrentHashMap<HttpGatewayBinding, UrlRegistry>(1);
 	private final Server server;
 	private final ApplicationHandlerCollection appHandlerCollection;
 	private final File logsBaseDirectory;
@@ -172,7 +172,7 @@ public class JettyGateway implements IHttpGateway {
 	}
 
 	@Override
-	public IUrlRegistry getUrlRegistry(final ApplicationManager applicationManager) {
+	public IUrlRegistry getUrlRegistry(final HttpGatewayBinding applicationManager) {
 		final UrlRegistry registry = urlRegistryByManager.get(applicationManager);
 		if (null != registry) {
 			return registry;

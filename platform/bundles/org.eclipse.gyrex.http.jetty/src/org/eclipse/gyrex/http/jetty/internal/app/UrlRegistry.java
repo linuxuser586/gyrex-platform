@@ -11,13 +11,12 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.jetty.internal.app;
 
-import java.net.URL;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.eclipse.gyrex.http.internal.application.gateway.HttpGatewayBinding;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
-import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
@@ -36,7 +35,7 @@ public class UrlRegistry implements IUrlRegistry {
 	private static final Logger LOG = LoggerFactory.getLogger(UrlRegistry.class);
 
 	private final JettyGateway jettyGateway;
-	private final ApplicationManager applicationManager;
+	private final HttpGatewayBinding applicationManager;
 
 	private final ConcurrentMap<String, String> applicationIdsByUrl = new ConcurrentHashMap<String, String>(30);
 	private final ConcurrentMap<String, Handler> appHandlerByAppId = new ConcurrentHashMap<String, Handler>();
@@ -47,7 +46,7 @@ public class UrlRegistry implements IUrlRegistry {
 	 * @param applicationManager
 	 * @param server
 	 */
-	public UrlRegistry(final JettyGateway jettyGateway, final ApplicationManager applicationManager) {
+	public UrlRegistry(final JettyGateway jettyGateway, final HttpGatewayBinding applicationManager) {
 		this.jettyGateway = jettyGateway;
 		this.applicationManager = applicationManager;
 	}
@@ -100,11 +99,9 @@ public class UrlRegistry implements IUrlRegistry {
 	}
 
 	@Override
-	public String registerIfAbsent(final URL url, final String applicationId) {
-		final String externalForm = url.toExternalForm();
-
+	public String registerIfAbsent(final String url, final String applicationId) {
 		// try to "register" the url
-		final String existingRegistration = applicationIdsByUrl.putIfAbsent(externalForm, applicationId);
+		final String existingRegistration = applicationIdsByUrl.putIfAbsent(url, applicationId);
 		if (null != existingRegistration) {
 			// already got an existing handler, abort
 			return existingRegistration;
@@ -114,7 +111,7 @@ public class UrlRegistry implements IUrlRegistry {
 		final Handler handler = ensureHandler(applicationId);
 
 		// add url to handler
-		jettyGateway.getApplicationHandler(handler).addUrl(externalForm);
+		jettyGateway.getApplicationHandler(handler).addUrl(url);
 
 		try {
 			// register handler
@@ -127,14 +124,15 @@ public class UrlRegistry implements IUrlRegistry {
 				// ignore
 			}
 			// throw exception
-			throw new IllegalStateException("Error while binding application '" + applicationId + "' to url '" + externalForm + "' with the underlying Jetty engine. " + e.getMessage(), e);
+			throw new IllegalStateException("Error while binding application '" + applicationId + "' to url '" + url + "' with the underlying Jetty engine. " + e.getMessage(), e);
 		}
 
 		// no application previously registered using that url
 		return null;
 	}
 
-	private String unregister(final String url) {
+	@Override
+	public String unregister(final String url) {
 		final String appId = applicationIdsByUrl.remove(url);
 		if (null == appId) {
 			return null;
@@ -160,11 +158,6 @@ public class UrlRegistry implements IUrlRegistry {
 
 		// return app id
 		return appId;
-	}
-
-	@Override
-	public String unregister(final URL url) {
-		return unregister(url.toExternalForm());
 	}
 
 }

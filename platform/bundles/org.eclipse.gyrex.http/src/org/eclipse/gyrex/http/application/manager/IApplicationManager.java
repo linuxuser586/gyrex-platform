@@ -43,6 +43,44 @@ public interface IApplicationManager {
 	String SERVICE_NAME = IApplicationManager.class.getName();
 
 	/**
+	 * Activates an application.
+	 * <p>
+	 * This method has no effect if the application is already active.
+	 * </p>
+	 * 
+	 * @param applicationId
+	 *            the id of the application which should be activated
+	 * @throws IllegalArgumentException
+	 *             if the specified application id is invalid
+	 * @throws IllegalStateException
+	 *             if no application is mounted for the specified url
+	 */
+	void activate(String applicationId) throws IllegalArgumentException, IllegalArgumentException;
+
+	/**
+	 * Deactivates an application.
+	 * <p>
+	 * If the application is currently active all its mounted URLs will be
+	 * unmounted. Any active {@link Application} instance will be destroyed. As
+	 * a result, it will not be available anymore for handling requests.
+	 * Deactivated applications will retain any of its persisted settings and
+	 * mounts, though. Those will be restored when the application is activated
+	 * again.
+	 * </p>
+	 * <p>
+	 * This method has no effect if the application is not active.
+	 * </p>
+	 * 
+	 * @param applicationId
+	 *            the id of the application which should be activated
+	 * @throws IllegalArgumentException
+	 *             if the specified application id is invalid
+	 * @throws IllegalStateException
+	 *             if no application is mounted for the specified url
+	 */
+	void deactivate(String applicationId) throws IllegalArgumentException, IllegalArgumentException;
+
+	/**
 	 * Mounts an application at the specified URL.
 	 * <p>
 	 * An URL must begin with a protocol (<code>http://</code> or
@@ -131,7 +169,7 @@ public interface IApplicationManager {
 	 *            {@link Application#initialize(org.eclipse.gyrex.http.application.service.IApplicationServiceSupport)}
 	 *            is invoked
 	 * @throws ApplicationRegistrationException
-	 *             if an application with the specified id is already defined
+	 *             if an application with the specified id is already registered
 	 */
 	void register(String applicationId, String providerId, IRuntimeContext context, Map<String, String> properties) throws ApplicationRegistrationException;
 
@@ -155,6 +193,10 @@ public interface IApplicationManager {
 	 * 
 	 * @param applicationId
 	 *            the id of the application which should be unregistered
+	 * @throws IllegalArgumentException
+	 *             if the specified application id is invalid
+	 * @throws IllegalStateException
+	 *             if no application is mounted for the specified url
 	 */
-	void unregister(String applicationId);
+	void unregister(String applicationId) throws IllegalArgumentException, IllegalArgumentException;
 }

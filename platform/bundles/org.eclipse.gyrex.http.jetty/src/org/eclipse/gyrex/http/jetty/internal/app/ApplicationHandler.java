@@ -264,8 +264,10 @@ public class ApplicationHandler extends ServletContextHandler {
 	@Override
 	public void dump(final Appendable out, final String indent) throws IOException {
 		super.dump(out, indent);
+		out.append(indent).append(" |").append('\n');
+		out.append(indent).append(" +- mounted urls").append('\n');
 		for (final String url : urls) {
-			out.append(indent).append(" +-").append(url).append('\n');
+			out.append(indent).append(" | ").append(indent).append(" +- ").append(url).append('\n');
 		}
 	}
 

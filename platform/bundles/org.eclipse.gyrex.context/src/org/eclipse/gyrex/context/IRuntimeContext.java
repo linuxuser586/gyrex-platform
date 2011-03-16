@@ -50,6 +50,11 @@ import org.eclipse.core.runtime.Path;
  * has to be used to lookup a particular context. For the same reasons, a
  * context does not offer modification APIs to clients.
  * </p>
+ * <p>
+ * If a context is removed (for example, by an administrator) all methods
+ * defined by this interface (except {@link #getContextPath()} and methods
+ * defined by {@link Object}) will throw an {@link IllegalStateException}.
+ * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
  * @noextend This interface is not intended to be extended by clients.

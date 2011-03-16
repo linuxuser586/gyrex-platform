@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.context.internal.registry;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,24 +26,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
 import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.internal.provider.ObjectProviderRegistry;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.e4.core.di.IDisposable;
 import org.eclipse.osgi.util.NLS;
+
+import org.osgi.service.prefs.BackingStoreException;
+import org.osgi.service.prefs.Preferences;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
  * The {@link IRuntimeContextRegistry} implementation.
  */
 //TODO: this should be a ServiceFactory which knows about the bundle requesting the manager for context access permission checks
 @SuppressWarnings("restriction")
-public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownParticipant {
+public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 	private static final Set<String> forbiddenPathSegments;
 	static {
@@ -78,6 +87,11 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownPa
 			throw new IllegalArgumentException("invalid context path; device id must be null; " + contextPath);
 		}
 
+		// check for empty path
+		if (contextPath.isEmpty()) {
+			return Path.ROOT;
+		}
+
 		// verify segments
 		for (final String segment : contextPath.segments()) {
 			if (forbiddenPathSegments.contains(segment)) {
@@ -105,6 +119,31 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownPa
 		if (closed.get()) {
 			throw new IllegalStateException("context registry closed");
 		}
+	}
+
+	public void close() throws Exception {
+		// set closed
+		closed.set(true);
+
+		// dispose active contexts
+		IRuntimeContext[] activeContexts;
+		contextRegistryModifyLock.lock();
+		try {
+			activeContexts = contexts.values().toArray(new IRuntimeContext[contexts.size()]);
+			contexts.clear();
+		} finally {
+			contextRegistryModifyLock.unlock();
+		}
+
+		// dispose all the active contexts
+		for (final IRuntimeContext context : activeContexts) {
+			if (context instanceof IDisposable) {
+				((IDisposable) context).dispose();
+			}
+		}
+
+		// clear handles
+		handles.clear();
 	}
 
 	/**
@@ -149,11 +188,56 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownPa
 		return getHandle(contextPath);
 	}
 
+	private Preferences getContextDefinitionStore() {
+		return CloudScope.INSTANCE.getNode(ContextActivator.SYMBOLIC_NAME).node("definedContexts");
+	}
+
+	public Collection<ContextDefinition> getDefinedContexts() {
+		checkClosed();
+		try {
+			final Preferences node = getContextDefinitionStore();
+			final String[] keys = node.keys();
+			final List<ContextDefinition> contexts = new ArrayList<ContextDefinition>(keys.length + 1);
+			contexts.add(getRootDefinition());
+			for (final String path : keys) {
+				final ContextDefinition definition = new ContextDefinition(new Path(path));
+				definition.setName(node.get(path, null));
+				contexts.add(definition);
+			}
+			return Collections.unmodifiableList(contexts);
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error reading context definitions. %s", ExceptionUtils.getRootCauseMessage(e)), e);
+		}
+	}
+
+	public ContextDefinition getDefinition(IPath contextPath) {
+		checkClosed();
+		contextPath = sanitize(contextPath);
+
+		// the root definition is always defined
+		if (contextPath.isRoot()) {
+			return getRootDefinition();
+		}
+
+		final Preferences node = getContextDefinitionStore();
+		final String name = node.get(contextPath.toString(), null);
+		if (name == null) {
+			return null;
+		}
+		final ContextDefinition definition = new ContextDefinition(contextPath);
+		definition.setName(name);
+		return definition;
+	}
+
 	public GyrexContextHandle getHandle(IPath contextPath) {
 		checkClosed();
 		contextPath = sanitize(contextPath);
 		GyrexContextHandle contextHandle = handles.get(contextPath);
 		if (null == contextHandle) {
+			final ContextDefinition definition = getDefinition(contextPath);
+			if (definition == null) {
+				return null;
+			}
 			contextHandle = handles.putIfAbsent(contextPath, new GyrexContextHandle(contextPath, this));
 			if (null == contextHandle) {
 				contextHandle = handles.get(contextPath);
@@ -198,6 +282,11 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownPa
 				return context;
 			}
 
+			final ContextDefinition definition = getDefinition(contextPath);
+			if (definition == null) {
+				throw new IllegalStateException(String.format("Context '%s' does not exists.", contextPath.toString()));
+			}
+
 			context = new GyrexContextImpl(contextPath, this);
 			contexts.put(contextPath, context);
 
@@ -208,30 +297,47 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry, IShutdownPa
 		return context;
 	}
 
-	@Override
-	public void shutdown() throws Exception {
-		// set closed
-		closed.set(true);
+	private ContextDefinition getRootDefinition() {
+		final ContextDefinition rootDefinition = new ContextDefinition(Path.ROOT);
+		rootDefinition.setName("ROOT");
+		return rootDefinition;
+	}
 
-		// dispose active contexts
-		IRuntimeContext[] activeContexts;
-		contextRegistryModifyLock.lock();
+	public void removeDefinition(final ContextDefinition contextDefinition) {
+		checkClosed();
+		final IPath path = sanitize(contextDefinition.getPath());
+
+		// prevent root modification
+		if (path.isRoot()) {
+			throw new IllegalArgumentException("cannot remove root context");
+		}
+
 		try {
-			activeContexts = contexts.values().toArray(new IRuntimeContext[contexts.size()]);
-			contexts.clear();
-		} finally {
-			contextRegistryModifyLock.unlock();
+			final Preferences node = getContextDefinitionStore();
+			node.remove(path.toString());
+			node.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error removing context definition %s. %s", path, ExceptionUtils.getRootCauseMessage(e)), e);
+		}
+	}
+
+	public void saveDefinition(final ContextDefinition contextDefinition) {
+		checkClosed();
+		final IPath path = sanitize(contextDefinition.getPath());
+
+		// prevent root modification
+		if (path.isRoot()) {
+			throw new IllegalArgumentException("cannot modify root context");
 		}
 
-		// dispose all the active contexts
-		for (final IRuntimeContext context : activeContexts) {
-			if (context instanceof IDisposable) {
-				((IDisposable) context).dispose();
-			}
+		try {
+			final Preferences node = getContextDefinitionStore();
+			final String name = contextDefinition.getName();
+			node.put(path.toString(), StringUtils.isNotBlank(name) ? name : "");
+			node.flush();
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error saving context definition %s. %s", path, ExceptionUtils.getRootCauseMessage(e)), e);
 		}
-
-		// clear handles
-		handles.clear();
 	}
 
 }

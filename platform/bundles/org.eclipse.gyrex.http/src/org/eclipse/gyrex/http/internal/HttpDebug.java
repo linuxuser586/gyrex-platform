@@ -16,5 +16,6 @@ import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 public class HttpDebug extends BundleDebugOptions {
 
 	public static boolean debug;
+	public static boolean gatewayBinding;
 
 }

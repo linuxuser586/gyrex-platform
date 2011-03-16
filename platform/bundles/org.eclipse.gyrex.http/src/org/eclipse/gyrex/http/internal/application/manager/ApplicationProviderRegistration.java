@@ -20,6 +20,7 @@ import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 
 import org.eclipse.core.runtime.CoreException;
 
+import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
 
 import org.slf4j.Logger;
@@ -32,8 +33,10 @@ public class ApplicationProviderRegistration {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationProviderRegistration.class);
 
-	private final AtomicReference<ApplicationProvider> provider;
+	private final AtomicReference<ApplicationProvider> provider = new AtomicReference<ApplicationProvider>();
 	private final List<ApplicationRegistration> activeApplications = new CopyOnWriteArrayList<ApplicationRegistration>();
+
+	private final String contributorInfo;
 
 	/**
 	 * Creates a new instance.
@@ -41,8 +44,11 @@ public class ApplicationProviderRegistration {
 	 * @param reference
 	 * @param provider
 	 */
-	public ApplicationProviderRegistration(final ServiceReference reference, final ApplicationProvider provider) {
-		this.provider = new AtomicReference<ApplicationProvider>(provider);
+	public ApplicationProviderRegistration(final ServiceReference<ApplicationProvider> reference, final ApplicationProvider provider) {
+		this.provider.set(provider);
+
+		final Bundle bundle = reference.getBundle();
+		contributorInfo = null != bundle ? String.format("%s (%s)", bundle.getSymbolicName(), bundle.getVersion().toString()) : "<unknown>";
 	}
 
 	/**
@@ -77,5 +83,12 @@ public class ApplicationProviderRegistration {
 			applicationRegistration.destroy();
 		}
 		activeApplications.clear();
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("ApplicationProviderRegistration [provider=").append(provider.get()).append(", contributedBy=").append(contributorInfo).append(", activeApplications=").append(activeApplications.size()).append("]");
+		return builder.toString();
 	}
 }

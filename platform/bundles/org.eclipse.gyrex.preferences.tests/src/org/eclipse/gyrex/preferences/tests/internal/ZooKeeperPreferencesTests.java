@@ -14,9 +14,11 @@ package org.eclipse.gyrex.preferences.tests.internal;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
+import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.preferences.CloudScope;
+import org.eclipse.gyrex.preferences.internal.PreferencesDebug;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -36,6 +38,10 @@ public class ZooKeeperPreferencesTests {
 
 	@Before
 	public void setUp() throws Exception {
+		// enabled debugging
+		PreferencesDebug.debug = true;
+		CloudDebug.debug = true;
+		CloudDebug.zooKeeperPreferences = true;
 	}
 
 	@After

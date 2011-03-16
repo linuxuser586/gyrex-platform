@@ -11,22 +11,19 @@
  */
 package org.eclipse.gyrex.http.tests.internal;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.fail;
 
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.manager.MountConflictException;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.application.gateway.HttpGatewayBinding;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
-import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistration;
 
 import org.eclipse.core.runtime.CoreException;
 
@@ -67,7 +64,7 @@ public class ApplicationManagerTest {
 		}
 
 		@Override
-		public IUrlRegistry getUrlRegistry(final ApplicationManager applicationManager) {
+		public IUrlRegistry getUrlRegistry(final HttpGatewayBinding applicationManager) {
 			return new TestUrlRegistry();
 		}
 
@@ -75,7 +72,7 @@ public class ApplicationManagerTest {
 
 	static class TestUrlRegistry implements IUrlRegistry {
 
-		ConcurrentHashMap<URL, String> map = new ConcurrentHashMap<URL, String>();
+		ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
 
 		/* (non-Javadoc)
 		 * @see org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry#applicationUnregistered(java.lang.String)
@@ -87,56 +84,36 @@ public class ApplicationManagerTest {
 		}
 
 		@Override
-		public String registerIfAbsent(final URL url, final String applicationId) {
+		public String registerIfAbsent(final String url, final String applicationId) {
 			return map.putIfAbsent(url, applicationId);
 		}
 
 		@Override
-		public String unregister(final URL url) {
+		public String unregister(final String url) {
 			return map.remove(url);
 		}
 
 	}
 
-	/**
-	 * @throws java.lang.Exception
-	 */
 	@Before
 	public void setUp() throws Exception {
 	}
 
-	/**
-	 * @throws java.lang.Exception
-	 */
 	@After
 	public void tearDown() throws Exception {
 	}
 
-	/**
-	 * Test method for
-	 * {@link org.eclipse.gyrex.http.internal.application.manager.ApplicationManager#mount(java.lang.String, java.lang.String)}
-	 * .
-	 */
 	@Test
 	public void testMount() {
 		// create manager
 		final BundleContext context = Activator.getBundleContext();
-		final ApplicationManager applicationManager = new ApplicationManager(context, new TestGateway());
+		final ApplicationManager applicationManager = new ApplicationManager();
 
 		ServiceRegistration serviceRegistration = null;
 		try {
-			// open manager
-			applicationManager.open();
-
 			// register provider
 			final TestAppProvider appProvider = new TestAppProvider();
 			serviceRegistration = context.registerService(ApplicationProvider.class.getName(), appProvider, null);
-
-			// assert registration not null
-			final ApplicationProviderRegistration providerRegistration = applicationManager.getProviderRegistration(appProvider.getId());
-			if (null == providerRegistration) {
-				fail("provider not registered correctly with manager; please check provider registration test");
-			}
 
 			// define application
 			final String applicationId = "testMountApp" + String.valueOf(System.currentTimeMillis());
@@ -180,9 +157,6 @@ public class ApplicationManagerTest {
 
 			testMountAndUnmountConflicts(applicationManager, applicationId, urlWithoutServerWithoutPath1, urlWithoutServerWithoutPath2);
 		} finally {
-			// cleanup
-			applicationManager.close();
-
 			if (null != serviceRegistration) {
 				serviceRegistration.unregister();
 			}
@@ -244,42 +218,6 @@ public class ApplicationManagerTest {
 			fail("invalid test url '" + url + "': " + e.getMessage());
 		} catch (final IllegalArgumentException e) {
 			fail("invalid test url '" + url + "': " + e.getMessage());
-		}
-	}
-
-	@Test
-	public void testProviderRegistration() {
-		// create manager
-		final BundleContext context = Activator.getBundleContext();
-		final ApplicationManager applicationManager = new ApplicationManager(context, new TestGateway());
-		final TestAppProvider appProvider = new TestAppProvider();
-
-		try {
-			// open manager
-			applicationManager.open();
-
-			// ensure that there is no registration when starting the test
-			if (null != applicationManager.getProviderRegistration(appProvider.getId())) {
-				fail("there is already a provider registered; that should not happen");
-			}
-
-			// register provider
-			final ServiceRegistration serviceRegistration = context.registerService(ApplicationProvider.class.getName(), appProvider, null);
-
-			// assert registration not null
-			ApplicationProviderRegistration providerRegistration = applicationManager.getProviderRegistration(appProvider.getId());
-			assertNotNull("provider not registered with manager", providerRegistration);
-
-			// unregister
-			serviceRegistration.unregister();
-
-			// assert registration is null
-			providerRegistration = applicationManager.getProviderRegistration(appProvider.getId());
-			assertNull("provider should be unregistered at this point", providerRegistration);
-
-		} finally {
-			// cleanup
-			applicationManager.close();
 		}
 	}
 

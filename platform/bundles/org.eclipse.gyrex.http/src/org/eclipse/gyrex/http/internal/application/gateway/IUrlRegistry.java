@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal.application.gateway;
 
-import java.net.URL;
 
 /**
  * The URL registry is responsible for mapping URLs to applications.
@@ -42,7 +41,7 @@ public interface IUrlRegistry {
 	 *         registered, <code>null</code> if the url was not previously
 	 *         registered and is now registered with the application
 	 */
-	String registerIfAbsent(URL url, String applicationId);
+	String registerIfAbsent(String url, String applicationId);
 
 	/**
 	 * Unregisters the specified URL.
@@ -52,6 +51,6 @@ public interface IUrlRegistry {
 	 * @return the id of the existing application the URL was registered with,
 	 *         <code>null</code> if the url was not previously registered
 	 */
-	String unregister(URL url);
+	String unregister(String url);
 
 }

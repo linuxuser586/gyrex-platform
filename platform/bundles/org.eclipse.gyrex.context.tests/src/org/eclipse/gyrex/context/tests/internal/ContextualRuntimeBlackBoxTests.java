@@ -17,18 +17,25 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
-import org.eclipse.core.runtime.Path;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.internal.ContextActivator;
+import org.eclipse.gyrex.context.internal.GyrexContextHandle;
+import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
+import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
-import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
+
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  *
@@ -111,35 +118,49 @@ public class ContextualRuntimeBlackBoxTests {
 		}
 	}
 
-	private IServiceProxy<IRuntimeContextRegistry> contextRegistryProxy;
-	private IRuntimeContextRegistry contextRegistry;
+	private ContextRegistryImpl contextRegistry;
 	private IServiceProxy<IRuntimeContextManager> contextManagerProxy;
 	private IRuntimeContextManager contextManager;
 
-	/**
-	 * @throws java.lang.Exception
-	 */
+	private GyrexContextHandle assertContextDefined(final IPath path) {
+		final ContextDefinition definition = new ContextDefinition(path);
+		definition.setName("Test Context");
+		contextRegistry.saveDefinition(definition);
+		assertNotNull("context definition must exists after create", contextRegistry.get(path));
+		final GyrexContextHandle context = contextRegistry.get(path);
+		assertNotNull("context handle must exists", context);
+		assertNotNull("context handle must map to real context", context.get());
+		return context;
+	}
+
 	@Before
 	public void setUp() throws Exception {
-		contextRegistryProxy = Activator.getActivator().getServiceHelper().trackService(IRuntimeContextRegistry.class);
-		contextRegistry = contextRegistryProxy.getService();
+		contextRegistry = ContextActivator.getInstance().getContextRegistryImpl();
 
 		contextManagerProxy = Activator.getActivator().getServiceHelper().trackService(IRuntimeContextManager.class);
 		contextManager = contextManagerProxy.getService();
 	}
 
-	/**
-	 * @throws java.lang.Exception
-	 */
 	@After
 	public void tearDown() throws Exception {
 		contextRegistry = null;
-		contextRegistryProxy.dispose();
-		contextRegistryProxy = null;
 
 		contextManager = null;
 		contextManagerProxy.dispose();
 		contextManagerProxy = null;
+	}
+
+	@Test
+	public void test0001_ContextualDefinition() {
+		final IRuntimeContext rootContext = contextRegistry.get(Path.ROOT);
+		assertNotNull("root context may never be null", rootContext);
+
+		final GyrexContextHandle testContext = contextRegistry.get(SOME_CONTEXT_PATH);
+		if (null != testContext) {
+			testRemove(testContext);
+		}
+
+		assertContextDefined(SOME_CONTEXT_PATH);
 	}
 
 	/**
@@ -154,12 +175,13 @@ public class ContextualRuntimeBlackBoxTests {
 
 		try {
 			final IRuntimeContext rootContext = contextRegistry.get(Path.ROOT);
+			assertNotNull("root context may never be null", rootContext);
 
 			final DummyObject dummyObject = rootContext.get(DummyObject.class);
 			assertNotNull("The dummy object from the root context must not be null!", dummyObject);
 			assertEquals("The context of the dummy object does not match!", rootContext, dummyObject.context);
 
-			final IRuntimeContext testContext = contextRegistry.get(SOME_CONTEXT_PATH);
+			final IRuntimeContext testContext = assertContextDefined(SOME_CONTEXT_PATH);
 			final DummyObject dummyObject2 = testContext.get(DummyObject.class);
 			assertNotNull("The dummy object from the test context must not be null!", dummyObject2);
 			assertEquals("The context of the dummy object from the test context does not match!", testContext, dummyObject2.context);
@@ -197,7 +219,7 @@ public class ContextualRuntimeBlackBoxTests {
 			assertNotNull("The dummy object from the root context must not be null!", dummyObject);
 			assertEquals("The context of the dummy object does not match!", rootContext, dummyObject.context);
 
-			final IRuntimeContext testContext = contextRegistry.get(SOME_CONTEXT_PATH);
+			final IRuntimeContext testContext = assertContextDefined(SOME_CONTEXT_PATH);
 			final DummyObject dummyObject2 = testContext.get(DummyObject.class);
 			assertNotNull("The dummy object from the test context must not be null!", dummyObject2);
 			assertEquals("The context of the dummy object from the test context does not match!", testContext, dummyObject2.context);
@@ -240,7 +262,7 @@ public class ContextualRuntimeBlackBoxTests {
 			serviceRegistration = Activator.getActivator().getServiceHelper().registerService(RuntimeContextObjectProvider.class.getName(), new DummyObjectProvider(), "Eclipse.org Gyrex", "Dummy object provider.", "org.eclipse.gyrex.context.tests.dummy1", Integer.MAX_VALUE);
 			serviceRegistration2 = Activator.getActivator().getServiceHelper().registerService(RuntimeContextObjectProvider.class.getName(), new DummyObjectProvider2(), "Eclipse.org Gyrex", "Dummy object provider 2.", SERVICE_PID_DUMMY2, Integer.MIN_VALUE);
 
-			final IRuntimeContext testContext = contextRegistry.get(SOME_CONTEXT_PATH);
+			final IRuntimeContext testContext = assertContextDefined(SOME_CONTEXT_PATH);
 
 			// get object
 			// this must return the object from provider 1 because of the higher service ranking
@@ -270,6 +292,21 @@ public class ContextualRuntimeBlackBoxTests {
 		} finally {
 			safeUnregister(serviceRegistration);
 			safeUnregister(serviceRegistration2);
+		}
+	}
+
+	private void testRemove(final GyrexContextHandle context) {
+		final IPath path = context.getContextPath();
+		final ContextDefinition definition = contextRegistry.getDefinition(path);
+		assertNotNull("definiton must not be null if a context exists", definition);
+		contextRegistry.removeDefinition(definition);
+		assertNotNull("definitiono must be gone after remove", contextRegistry.getDefinition(path));
+
+		try {
+			context.get();
+			fail("definition has been removed!");
+		} catch (final IllegalStateException e) {
+			// good
 		}
 	}
 }
