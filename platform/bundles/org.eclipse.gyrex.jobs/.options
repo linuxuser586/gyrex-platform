@@ -1,8 +1,0 @@
-# global debug option
-org.eclipse.gyrex.jobs/debug=true
-
-# debug job provider registry
-org.eclipse.gyrex.jobs/providerRegistry=true
-
-# debug worker engine
-org.eclipse.gyrex.jobs/workerEngine=true
