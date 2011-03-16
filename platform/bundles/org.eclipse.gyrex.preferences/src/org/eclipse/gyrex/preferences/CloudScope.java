@@ -11,8 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.preferences;
 
+import org.eclipse.gyrex.preferences.internal.PreferencesActivator;
 import org.eclipse.gyrex.preferences.internal.util.EclipsePreferencesUtil;
 
+import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IScopeContext;
@@ -80,6 +82,12 @@ public final class CloudScope implements IScopeContext {
 			while (null == cloudRootNode) {
 				pass++;
 				try {
+					// this is really weird but our scope factory can only be understood by the preference service
+					// if the extension registry is available, we therefor force its activation here
+					// (see http://bugs.eclipse.org/340243)
+					PreferencesActivator.getInstance().getService(IExtensionRegistry.class);
+
+					// now instantiate the node
 					cloudRootNode = (IEclipsePreferences) EclipsePreferencesUtil.getPreferencesService().getRootNode().node(NAME);
 				} catch (final IllegalStateException e) {
 					if (pass > 5) {
