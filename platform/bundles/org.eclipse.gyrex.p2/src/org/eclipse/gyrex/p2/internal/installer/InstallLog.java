@@ -20,6 +20,7 @@ import java.net.URL;
 import java.util.Date;
 
 import org.eclipse.equinox.p2.operations.InstallOperation;
+import org.eclipse.equinox.p2.operations.UninstallOperation;
 import org.eclipse.equinox.p2.operations.UpdateOperation;
 import org.eclipse.equinox.p2.repository.IRepository;
 import org.eclipse.equinox.p2.repository.IRepositoryManager;
@@ -158,6 +159,22 @@ public class InstallLog {
 		for (final URI uri : repositories) {
 			logFileWriter.print("  ");
 			logFileWriter.println(uri.toString());
+		}
+	}
+
+	public void logUninstallStatus(final UninstallOperation op, final IStatus result) {
+		logFileWriter.println();
+		logFileWriter.println("Software Removal");
+		logFileWriter.println("----------------");
+		printStatus(result, "");
+		logFileWriter.println(op.getResolutionDetails());
+
+		if (result.matches(IStatus.ERROR | IStatus.CANCEL)) {
+			logFileWriter.println();
+			logFileWriter.println("Software removal not possible.");
+		} else if (!result.isOK()) {
+			logFileWriter.println();
+			logFileWriter.println("Uninstall operation resolved with warnings. An uninstallation will be forced.");
 		}
 	}
 

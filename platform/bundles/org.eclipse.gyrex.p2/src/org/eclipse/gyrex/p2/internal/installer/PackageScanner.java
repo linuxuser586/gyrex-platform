@@ -167,7 +167,10 @@ public class PackageScanner extends Job {
 			}
 
 			// check if there is something to install
-			if (packagesToInstall.isEmpty() && packagesToRemove.isEmpty()) {
+			// also check if there is an active install session
+			// in such a case we force the installer job to run in order
+			// to catch up or recover
+			if (packagesToInstall.isEmpty() && packagesToRemove.isEmpty() && (null == PackageInstallState.getActiveInstallSessionId())) {
 				if (P2Debug.nodeInstallation) {
 					LOG.debug("Nothing to install or remove.");
 				}

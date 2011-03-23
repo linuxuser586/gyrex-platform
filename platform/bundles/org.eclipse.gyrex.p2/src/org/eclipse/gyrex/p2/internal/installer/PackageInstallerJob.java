@@ -25,6 +25,7 @@ import org.eclipse.equinox.p2.metadata.IInstallableUnit;
 import org.eclipse.equinox.p2.operations.InstallOperation;
 import org.eclipse.equinox.p2.operations.ProvisioningJob;
 import org.eclipse.equinox.p2.operations.ProvisioningSession;
+import org.eclipse.equinox.p2.operations.UninstallOperation;
 import org.eclipse.equinox.p2.operations.UpdateOperation;
 
 import org.eclipse.gyrex.boot.internal.app.ServerApplication;
@@ -188,9 +189,61 @@ public class PackageInstallerJob extends Job {
 		return job.getRestartPolicy();
 	}
 
-	private void remove(final IProvisioningAgent agent, final InstallLog installLog) {
-		// TODO Auto-generated method stub
+	private int remove(final PackageDefinition packageDefinition, final IProvisioningAgent agent, final InstallLog installLog) {
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Uninstalling package: {}", packageDefinition);
+		}
 
+		// get repositories
+		final URI[] repositories = RepoUtil.getFilteredRepositories();
+		installLog.logRepositories(repositories);
+
+		// node filter is checked in PackageScanner already
+		// TODO should we check here again?
+
+		// find the IUs to un-install
+		final IInstallableUnit packageUnit = PackageInstallState.createUnit(packageDefinition);
+
+		// check lock
+		checkLock();
+
+		// create install operation
+		final UninstallOperation op = provisioningHelper.getUninstallOperation(Collections.singletonList(packageUnit), repositories);
+
+		// check if installable
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Resolving p2 uninstall operation for package {}...", packageDefinition);
+		}
+		final IStatus result = op.resolveModal(null);
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Resolved p2 uninstall operation for package {}: {}", packageDefinition, op.getResolutionDetails());
+		}
+
+		// log status
+		installLog.logUninstallStatus(op, result);
+
+		if (result.matches(IStatus.ERROR | IStatus.CANCEL)) {
+			LOG.warn("Uninstall operation not possible. {}", op.getResolutionDetails());
+			throw new IllegalStateException("Install operation not possible. " + op.getResolutionDetails());
+		} else if (!result.isOK()) {
+			LOG.warn("Uninstall operation resolved with warnings. An installation will be forced. {}", op.getResolutionDetails());
+		}
+
+		// check lock
+		checkLock();
+
+		// perform install
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Performing installation of package {}...", packageDefinition);
+		}
+		final ProvisioningJob job = op.getProvisioningJob(null);
+		final IStatus installResult = job.runModal(null);
+		if (!result.isOK()) {
+			LOG.warn("Install operation failed. {}", installResult.getMessage());
+			throw new IllegalStateException("Install operation failed. " + installResult.getMessage(), installResult.getException());
+		}
+
+		return job.getRestartPolicy();
 	}
 
 	@SuppressWarnings("restriction")
@@ -202,6 +255,8 @@ public class PackageInstallerJob extends Job {
 		// acquire global installation lock
 		LOG.info("Software installation started. Checking for global installation lock.");
 		final ILockService lockService = P2Activator.getInstance().getService(ILockService.class);
+
+		// try recovering an existing lock
 		if (null != activeSessionId) {
 			if (P2Debug.nodeInstallation) {
 				LOG.debug("Recovering active installation session.");
@@ -216,7 +271,10 @@ public class PackageInstallerJob extends Job {
 				// on the other hand, how broken can the system be if we reached this point?
 				return Status.CANCEL_STATUS;
 			}
-		} else {
+		}
+
+		// start new session if lock could not be recovered
+		if (lock == null) {
 			if (P2Debug.nodeInstallation) {
 				LOG.debug("Starting new installation session.");
 			}
@@ -250,9 +308,6 @@ public class PackageInstallerJob extends Job {
 				installLog.recoveredSession(recoveredInstallSessionId);
 			}
 
-			// create helper
-			provisioningHelper = new ProvisioningHelper(new ProvisioningSession(agent), IProfileRegistry.SELF);
-
 			// check lock
 			checkLock();
 
@@ -262,12 +317,34 @@ public class PackageInstallerJob extends Job {
 				throw new IllegalStateException("The current system has not been provisioned using p2. Unable to acquire provisioning agent.");
 			}
 
+			// create helper
+			provisioningHelper = new ProvisioningHelper(new ProvisioningSession(agent), IProfileRegistry.SELF);
+
 			// backup configuration
 			final Configurator configurator = P2Activator.getInstance().getService(Configurator.class);
 			installLog.logConfiguration(configurator.getUrlInUse());
 
 			// check lock
 			checkLock();
+
+			// perform removals first
+			if (!packagesToRemove.isEmpty()) {
+				for (final PackageDefinition packageDefinition : packagesToRemove) {
+					final int restartPolicy = remove(packageDefinition, agent, installLog);
+
+					// restart after the first package which requires a restart
+					// without releasing the installation lock and continue with
+					// installation after successful restart
+					if (restartPolicy == ProvisioningJob.RESTART_ONLY) {
+						LOG.warn("Restart required after un-installing package {}. Restarting now.", packageDefinition);
+						installLog.restart();
+						scheduleRestart();
+						return Status.OK_STATUS;
+					}
+				}
+			} else {
+				installLog.nothingToRemove();
+			}
 
 			// perform installation
 			if (!packagesToInstall.isEmpty()) {
@@ -281,16 +358,11 @@ public class PackageInstallerJob extends Job {
 						LOG.warn("Restart required after installing package {}. Restarting now.", packageDefinition);
 						installLog.restart();
 						scheduleRestart();
+						return Status.OK_STATUS;
 					}
-					return Status.OK_STATUS;
 				}
 			} else {
 				installLog.nothingToAdd();
-			}
-			if (!packagesToRemove.isEmpty()) {
-				remove(agent, installLog);
-			} else {
-				installLog.nothingToRemove();
 			}
 
 			// apply configuration
