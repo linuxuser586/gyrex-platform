@@ -312,7 +312,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 					if (CloudDebug.zooKeeperLockService) {
 						LOG.debug("Recovery attempt failed. Lock node {}/{} does not exists", lockNodePath, lockName);
 					}
-					throw new LockAcquirationFailedException(lockId, "Unable to recover lock. The lock could not be found.");
+					//throw new LockAcquirationFailedException(lockId, "Unable to recover lock. The lock could not be found.");
+					return false;
 				}
 
 				// check that content matches
@@ -506,7 +507,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		try {
 			// create (or recover) lock node with a pathname of "_locknode_/lock-" and the sequence flag set
 			if (recover) {
-				execute(new RecoverLockNode(recoveryKey));
+				if (!execute(new RecoverLockNode(recoveryKey))) {
+					// false indicated that the lock as been removed
+					return null;
+				}
 			} else {
 				execute(new CreateLockNode());
 			}
