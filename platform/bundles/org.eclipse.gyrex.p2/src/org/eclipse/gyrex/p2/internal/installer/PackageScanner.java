@@ -17,6 +17,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.equinox.p2.core.IProvisioningAgent;
+import org.eclipse.equinox.p2.core.IProvisioningAgentProvider;
+
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.p2.internal.P2Activator;
 import org.eclipse.gyrex.p2.internal.P2Debug;
@@ -65,7 +68,7 @@ public class PackageScanner extends Job {
 
 	private static final Logger LOG = LoggerFactory.getLogger(PackageScanner.class);
 
-	static final long INITIAL_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
+	static final long INITIAL_SLEEP_TIME = TimeUnit.MINUTES.toMillis(3);
 	static final long MAX_SLEEP_TIME = TimeUnit.HOURS.toMillis(2);
 	private static final AtomicReference<PackageScanner> instanceRef = new AtomicReference<PackageScanner>();
 
@@ -96,8 +99,15 @@ public class PackageScanner extends Job {
 	}
 
 	private IStatus doRun(final IProgressMonitor monitor) {
+		IProvisioningAgent agent = null;
 		try {
 			final INodeEnvironment nodeEnvironment = P2Activator.getInstance().getService(INodeEnvironment.class);
+
+			// get agent
+			agent = P2Activator.getInstance().getService(IProvisioningAgentProvider.class).createAgent(null);
+			if (agent == null) {
+				throw new IllegalStateException("The current system has not been provisioned using p2. Unable to acquire provisioning agent.");
+			}
 
 			// collect packages that should be rolled out
 			final Set<PackageDefinition> packagesToInstall = new HashSet<PackageDefinition>();
@@ -124,7 +134,7 @@ public class PackageScanner extends Job {
 				}
 
 				// check if package has been rolled out on local node
-				final boolean installed = PackageInstallState.isInstalled(packageDefinition);
+				final boolean installed = PackageInstallState.isInstalled(agent, packageDefinition);
 
 				// add as roll-out or removal
 				if (packageManager.isMarkedForInstall(packageDefinition)) {
@@ -177,6 +187,11 @@ public class PackageScanner extends Job {
 		} catch (final Exception e) {
 			LOG.error("Error while checking for new or revoked software packages. {}", ExceptionUtils.getRootCauseMessage(e), e);
 			return Status.CANCEL_STATUS;
+		} finally {
+			// close agent
+			if (null != agent) {
+				agent.stop();
+			}
 		}
 	}
 

@@ -9,12 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.p2.internal.packages.components;
+package org.eclipse.gyrex.p2.internal.packages;
 
 import org.eclipse.equinox.p2.metadata.Version;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
-import org.eclipse.gyrex.p2.internal.packages.IComponent;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
@@ -22,7 +21,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 /**
  * An installable unit.
  */
-public final class InstallableUnit implements IComponent {
+public final class InstallableUnitReference {
 
 	private String id;
 	private Version version;
@@ -38,7 +37,7 @@ public final class InstallableUnit implements IComponent {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		final InstallableUnit other = (InstallableUnit) obj;
+		final InstallableUnitReference other = (InstallableUnitReference) obj;
 		if (id == null) {
 			if (other.id != null) {
 				return false;
@@ -56,7 +55,11 @@ public final class InstallableUnit implements IComponent {
 		return true;
 	}
 
-	@Override
+	/**
+	 * The unit id.
+	 * 
+	 * @return
+	 */
 	public String getId() {
 		return id;
 	}
@@ -74,8 +77,8 @@ public final class InstallableUnit implements IComponent {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((version == null) ? 0 : version.hashCode());
+		result = (prime * result) + ((id == null) ? 0 : id.hashCode());
+		result = (prime * result) + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 

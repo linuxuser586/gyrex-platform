@@ -138,10 +138,6 @@ public class InstallLog {
 		}
 	}
 
-	/**
-	 * @param metadataRepositoryManager
-	 * @param artifactRepositoryManager
-	 */
 	public void logRepositories(final IMetadataRepositoryManager metadataRepositoryManager, final IArtifactRepositoryManager artifactRepositoryManager) {
 		logFileWriter.println();
 		logFileWriter.println("Software Repositories");
@@ -152,6 +148,17 @@ public class InstallLog {
 		logFileWriter.println();
 		logFileWriter.println("Artifact Repositories:");
 		printRepositories(metadataRepositoryManager);
+	}
+
+	public void logRepositories(final URI[] repositories) {
+		logFileWriter.println();
+		logFileWriter.println("Software Repositories");
+		logFileWriter.println("---------------------");
+		logFileWriter.println();
+		for (final URI uri : repositories) {
+			logFileWriter.print("  ");
+			logFileWriter.println(uri.toString());
+		}
 	}
 
 	public void nothingToAdd() {
@@ -201,6 +208,16 @@ public class InstallLog {
 				printStatus(child, childIdent);
 			}
 		}
+	}
+
+	public void recoveredSession(final String recoveredInstallSessionId) {
+		logFileWriter.println();
+		logFileWriter.println("Continuing with previous installation session");
+	}
+
+	public void restart() {
+		logFileWriter.println();
+		logFileWriter.println("Restarting system. Installation will continue afterwards.");
 	}
 
 	@Override

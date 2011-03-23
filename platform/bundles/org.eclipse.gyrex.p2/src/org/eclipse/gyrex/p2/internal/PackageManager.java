@@ -21,10 +21,9 @@ import java.util.Set;
 import org.eclipse.equinox.p2.metadata.Version;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
-import org.eclipse.gyrex.p2.internal.packages.IComponent;
 import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
+import org.eclipse.gyrex.p2.internal.packages.InstallableUnitReference;
 import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
-import org.eclipse.gyrex.p2.internal.packages.components.InstallableUnit;
 import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -206,7 +205,7 @@ public class PackageManager implements IPackageManager {
 					final Preferences componentNode = componentsNode.node(componentId);
 					final String type = componentNode.get(PREF_KEY_TYPE, null);
 					if (StringUtils.equals(COMPONENT_TYPE_IU, type)) {
-						final InstallableUnit iu = new InstallableUnit();
+						final InstallableUnitReference iu = new InstallableUnitReference();
 						iu.setId(componentId);
 						final String version = componentNode.get(PREF_KEY_VERSION, null);
 						if (version != null) {
@@ -254,7 +253,7 @@ public class PackageManager implements IPackageManager {
 			if (!IdHelper.isValidId(id)) {
 				throw new IllegalArgumentException("invalid package id");
 			}
-			final Collection<IComponent> componentsToInstall = packageDefinition.getComponentsToInstall();
+			final Collection<InstallableUnitReference> componentsToInstall = packageDefinition.getComponentsToInstall();
 			if (componentsToInstall.isEmpty()) {
 				throw new IllegalArgumentException("package does not have components");
 			}
@@ -268,20 +267,18 @@ public class PackageManager implements IPackageManager {
 
 			final Preferences componentsToInstallNode = node.node(PREF_NODE_COMPONENTS);
 			final Set<String> componentsWritten = new HashSet<String>();
-			for (final IComponent component : componentsToInstall) {
+			for (final InstallableUnitReference component : componentsToInstall) {
 				componentsWritten.add(component.getId());
 				final Preferences componentNode = componentsToInstallNode.node(component.getId());
-				if (component instanceof InstallableUnit) {
-					componentNode.put(PREF_KEY_TYPE, COMPONENT_TYPE_IU);
-					final InstallableUnit iu = (InstallableUnit) component;
-					final Version version = iu.getVersion();
-					if (null != version) {
-						final StringBuffer versionString = new StringBuffer();
-						version.toString(versionString);
-						componentNode.put(PREF_KEY_VERSION, versionString.toString());
-					} else {
-						componentNode.remove(PREF_KEY_VERSION);
-					}
+				componentNode.put(PREF_KEY_TYPE, COMPONENT_TYPE_IU);
+				final InstallableUnitReference iu = component;
+				final Version version = iu.getVersion();
+				if (null != version) {
+					final StringBuffer versionString = new StringBuffer();
+					version.toString(versionString);
+					componentNode.put(PREF_KEY_VERSION, versionString.toString());
+				} else {
+					componentNode.remove(PREF_KEY_VERSION);
 				}
 			}
 			for (final String child : componentsToInstallNode.childrenNames()) {

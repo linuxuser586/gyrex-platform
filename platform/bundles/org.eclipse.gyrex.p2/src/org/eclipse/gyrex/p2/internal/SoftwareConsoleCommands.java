@@ -22,8 +22,8 @@ import org.eclipse.equinox.p2.metadata.Version;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.p2.internal.installer.PackageScanner;
 import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
+import org.eclipse.gyrex.p2.internal.packages.InstallableUnitReference;
 import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
-import org.eclipse.gyrex.p2.internal.packages.components.InstallableUnit;
 import org.eclipse.gyrex.p2.internal.repositories.IRepositoryDefinitionManager;
 import org.eclipse.gyrex.p2.internal.repositories.RepositoryDefinition;
 
@@ -201,7 +201,7 @@ public class SoftwareConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				final InstallableUnit iu = new InstallableUnit();
+				final InstallableUnitReference iu = new InstallableUnitReference();
 				final String iuId = ci.nextArgument();
 				if (!IdHelper.isValidId(iuId)) {
 					printInvalidArgs("invalid installable unit id", ci);

@@ -11,9 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.p2.internal.installer;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.net.URI;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -21,31 +20,24 @@ import java.util.concurrent.TimeoutException;
 import org.eclipse.equinox.internal.provisional.configurator.Configurator;
 import org.eclipse.equinox.p2.core.IProvisioningAgent;
 import org.eclipse.equinox.p2.core.IProvisioningAgentProvider;
+import org.eclipse.equinox.p2.engine.IProfileRegistry;
 import org.eclipse.equinox.p2.metadata.IInstallableUnit;
-import org.eclipse.equinox.p2.metadata.Version;
 import org.eclipse.equinox.p2.operations.InstallOperation;
 import org.eclipse.equinox.p2.operations.ProvisioningJob;
 import org.eclipse.equinox.p2.operations.ProvisioningSession;
 import org.eclipse.equinox.p2.operations.UpdateOperation;
-import org.eclipse.equinox.p2.query.IQuery;
-import org.eclipse.equinox.p2.query.IQueryResult;
-import org.eclipse.equinox.p2.query.QueryUtil;
-import org.eclipse.equinox.p2.repository.artifact.IArtifactRepositoryManager;
-import org.eclipse.equinox.p2.repository.metadata.IMetadataRepositoryManager;
 
+import org.eclipse.gyrex.boot.internal.app.ServerApplication;
 import org.eclipse.gyrex.cloud.services.locking.IDurableLock;
 import org.eclipse.gyrex.cloud.services.locking.ILockMonitor;
 import org.eclipse.gyrex.cloud.services.locking.ILockService;
 import org.eclipse.gyrex.p2.internal.P2Activator;
 import org.eclipse.gyrex.p2.internal.P2Debug;
-import org.eclipse.gyrex.p2.internal.packages.IComponent;
 import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
-import org.eclipse.gyrex.p2.internal.packages.components.InstallableUnit;
 import org.eclipse.gyrex.p2.internal.repositories.RepoUtil;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
@@ -111,6 +103,8 @@ public class PackageInstallerJob extends Job {
 
 	private IDurableLock lock;
 
+	private ProvisioningHelper provisioningHelper;
+
 	/**
 	 * Creates a new instance.
 	 * 
@@ -132,69 +126,42 @@ public class PackageInstallerJob extends Job {
 		}
 	}
 
-	private void install(final PackageDefinition installPackage, final IProvisioningAgent agent, final InstallLog installLog) {
-		// configure metadata & artifact repository
-		final IMetadataRepositoryManager metadataRepositoryManager = (IMetadataRepositoryManager) agent.getService(IMetadataRepositoryManager.SERVICE_NAME);
-		final IArtifactRepositoryManager artifactRepositoryManager = (IArtifactRepositoryManager) agent.getService(IArtifactRepositoryManager.SERVICE_NAME);
-		RepoUtil.configureRepositories(metadataRepositoryManager, artifactRepositoryManager);
-		installLog.logRepositories(metadataRepositoryManager, artifactRepositoryManager);
+	private int install(final PackageDefinition installPackage, final IProvisioningAgent agent, final InstallLog installLog) {
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Installing package: {}", installPackage);
+		}
+
+		// get repositories
+		final URI[] repositories = RepoUtil.getFilteredRepositories();
+		installLog.logRepositories(repositories);
 
 		// node filter is checked in PackageScanner already
 		// TODO should we check here again?
 
 		// find the IUs to install
-		final Set<IInstallableUnit> unitsToInstall = new HashSet<IInstallableUnit>();
-		final Collection<IComponent> componentsToInstall = installPackage.getComponentsToInstall();
-		for (final IComponent component : componentsToInstall) {
-			if (component instanceof InstallableUnit) {
-				final String id = component.getId();
-				final Version version = ((InstallableUnit) component).getVersion();
-				IQuery<IInstallableUnit> query;
-				if (null != version) {
-					query = QueryUtil.createIUQuery(id, version);
-				} else {
-					query = QueryUtil.createLatestQuery(QueryUtil.createIUQuery(id));
-				}
-				if (P2Debug.nodeInstallation) {
-					LOG.debug("Performing query for IU {} (version {}): {}", new Object[] { id, version, query });
-				}
-				final IQueryResult<IInstallableUnit> queryResult = metadataRepositoryManager.query(query, new NullProgressMonitor());
-				if (queryResult.isEmpty()) {
-					LOG.warn("Component {} specified in package {} could not be found. Please check repository configuration.", component, installPackage.getId());
-					// TODO should abort installation?
-					continue;
-				}
-				final Iterator<IInstallableUnit> iterator = queryResult.iterator();
-				while (iterator.hasNext()) {
-					final IInstallableUnit unit = iterator.next();
-					if (P2Debug.nodeInstallation) {
-						LOG.debug("Found unit {} (version {}) for component {}", new Object[] { unit.getId(), unit.getVersion(), component });
-					}
-					unitsToInstall.add(unit);
-				}
-			}
-		}
-
-		if (unitsToInstall.isEmpty()) {
-			installLog.nothingToAdd();
-			return;
-		}
+		final IInstallableUnit packageUnit = PackageInstallState.createUnit(installPackage);
 
 		// check lock
 		checkLock();
 
 		// create install operation
-		final InstallOperation op = new InstallOperation(new ProvisioningSession(agent), unitsToInstall);
+		final InstallOperation op = provisioningHelper.getInstallOperation(Collections.singletonList(packageUnit), repositories);
 
 		// check if installable
-		final IStatus result = op.resolveModal(new NullProgressMonitor());
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Resolving p2 install operation for package {}...", installPackage);
+		}
+		final IStatus result = op.resolveModal(null);
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Resolved p2 install operation for package {}: {}", installPackage, op.getResolutionDetails());
+		}
 
 		// log status
 		installLog.logInstallStatus(op, result);
 
 		if (result.getCode() == UpdateOperation.STATUS_NOTHING_TO_UPDATE) {
 			LOG.warn("Nothing to update.");
-			return;
+			return ProvisioningJob.RESTART_NONE;
 		}
 
 		if (result.matches(IStatus.ERROR | IStatus.CANCEL)) {
@@ -208,19 +175,17 @@ public class PackageInstallerJob extends Job {
 		checkLock();
 
 		// perform install
-		final ProvisioningJob job = op.getProvisioningJob(new NullProgressMonitor());
-		final IStatus installResult = job.runModal(new NullProgressMonitor());
+		if (P2Debug.nodeInstallation) {
+			LOG.debug("Performing installation of package {}...", installPackage);
+		}
+		final ProvisioningJob job = op.getProvisioningJob(null);
+		final IStatus installResult = job.runModal(null);
 		if (!result.isOK()) {
 			LOG.warn("Install operation failed. {}", installResult.getMessage());
 			throw new IllegalStateException("Install operation failed. " + installResult.getMessage(), installResult.getException());
 		}
 
-		// mark packages as installed
-		PackageInstallState.setInstalled(installPackage);
-
-		// TODO check job restart policy
-		// TODO rework to install packages one by one
-		// TODO restart after the first package which requires a restart
+		return job.getRestartPolicy();
 	}
 
 	private void remove(final IProvisioningAgent agent, final InstallLog installLog) {
@@ -270,12 +235,23 @@ public class PackageInstallerJob extends Job {
 		InstallLog installLog = null;
 		IProvisioningAgent agent = null;
 		try {
-			// set (new) active install session id
+			// if we already have a session id, record it as recovered install session
+			final String recoveredInstallSessionId = activeSessionId;
+
+			// set (new) active install session id (in any case to be in sync with the lock id)
 			activeSessionId = lock.getRecoveryKey();
 			PackageInstallState.setActiveInstallSessionId(activeSessionId);
 
 			// report progress in an installation log in the install area
 			installLog = new InstallLog(activeSessionId);
+
+			// write recovery note
+			if (null != recoveredInstallSessionId) {
+				installLog.recoveredSession(recoveredInstallSessionId);
+			}
+
+			// create helper
+			provisioningHelper = new ProvisioningHelper(new ProvisioningSession(agent), IProfileRegistry.SELF);
 
 			// check lock
 			checkLock();
@@ -296,7 +272,17 @@ public class PackageInstallerJob extends Job {
 			// perform installation
 			if (!packagesToInstall.isEmpty()) {
 				for (final PackageDefinition packageDefinition : packagesToInstall) {
-					install(packageDefinition, agent, installLog);
+					final int restartPolicy = install(packageDefinition, agent, installLog);
+
+					// restart after the first package which requires a restart
+					// without releasing the installation lock and continue with
+					// installation after successful restart
+					if (restartPolicy == ProvisioningJob.RESTART_ONLY) {
+						LOG.warn("Restart required after installing package {}. Restarting now.", packageDefinition);
+						installLog.restart();
+						scheduleRestart();
+					}
+					return Status.OK_STATUS;
 				}
 			} else {
 				installLog.nothingToAdd();
@@ -340,13 +326,16 @@ public class PackageInstallerJob extends Job {
 			LOG.error("Error during software installation. Please check installation log ({}). {}", new Object[] { installLog, ExceptionUtils.getRootCauseMessage(e), e });
 			return Status.CANCEL_STATUS;
 		} finally {
-			// TODO we should somehow actively suspend the lock
+			// TODO should we somehow actively suspend the lock?
 			//lock.suspend();
 
 			// close log
 			if (null != installLog) {
 				installLog.close();
 			}
+
+			// clear helper
+			provisioningHelper = null;
 
 			// close agent
 			if (null != agent) {
@@ -358,5 +347,19 @@ public class PackageInstallerJob extends Job {
 		}
 
 		return Status.OK_STATUS;
+	}
+
+	private void scheduleRestart() {
+		final Job restartJob = new Job("Restarting") {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				ServerApplication.signalRelaunch();
+				return Status.OK_STATUS;
+			}
+		};
+		restartJob.setSystem(true);
+		restartJob.setPriority(Job.SHORT);
+		restartJob.schedule(500L);
 	}
 }

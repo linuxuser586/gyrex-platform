@@ -36,11 +36,11 @@ public final class PackageDefinition {
 
 	private String id;
 	private String nodeFilter;
-	private Set<IComponent> componentsToInstall;
+	private Set<InstallableUnitReference> componentsToInstall;
 
-	public void addComponentToInstall(final IComponent component) {
+	public void addComponentToInstall(final InstallableUnitReference component) {
 		if (null == componentsToInstall) {
-			componentsToInstall = new HashSet<IComponent>(3);
+			componentsToInstall = new HashSet<InstallableUnitReference>(3);
 		}
 		if (!componentsToInstall.contains(component)) {
 			componentsToInstall.add(component);
@@ -52,7 +52,7 @@ public final class PackageDefinition {
 	 * 
 	 * @return the componentsToInstall
 	 */
-	public Collection<IComponent> getComponentsToInstall() {
+	public Collection<InstallableUnitReference> getComponentsToInstall() {
 		if (null != componentsToInstall) {
 			return Collections.unmodifiableCollection(componentsToInstall);
 		}
@@ -77,7 +77,7 @@ public final class PackageDefinition {
 		return nodeFilter;
 	}
 
-	public void removeComponentToInstall(final IComponent component) {
+	public void removeComponentToInstall(final InstallableUnitReference component) {
 		if (null != componentsToInstall) {
 			componentsToInstall.remove(component);
 		}
