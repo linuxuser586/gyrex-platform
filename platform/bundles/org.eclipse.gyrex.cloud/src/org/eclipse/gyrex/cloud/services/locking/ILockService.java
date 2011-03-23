@@ -126,8 +126,8 @@ public interface ILockService {
 	 * away from the existing client.
 	 * </p>
 	 * <p>
-	 * If the lock does not be found (eg., deleted by an administrator), an
-	 * {@link IllegalStateException} will be thrown.
+	 * If the lock does not exists anymore (eg., deleted by an administrator),
+	 * <code>null</code> will be returned.
 	 * </p>
 	 * <p>
 	 * If the lock exists but the recovery key does not match an
