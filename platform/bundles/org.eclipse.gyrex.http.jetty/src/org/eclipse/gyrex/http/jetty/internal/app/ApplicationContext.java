@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -34,6 +35,8 @@ import org.eclipse.gyrex.http.application.context.NamespaceException;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.http.PathMap;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.FilterMapping;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
 import org.eclipse.jetty.util.LazyList;
@@ -192,6 +195,34 @@ public class ApplicationContext implements IApplicationContext {
 	}
 
 	@Override
+	public void registerFilter(final String alias, final Filter filter, final Map<String, String> initparams) throws ServletException {
+		final String pathSpec = normalizeAliasToPathSpec(alias);
+
+		if (JettyDebug.applicationContext) {
+			LOG.debug("{} registering filter: {} (normalized to {}) --> {}", new Object[] { this, alias, pathSpec, filter });
+		}
+
+		// synchronize access to registry modifications
+		registryModificationLock.lock();
+		try {
+			// TODO: track bundle de-activation
+			//addBundleResourceMonitor(filter);
+
+			// create holder
+			final ApplicationFilterHolder holder = new ApplicationFilterHolder(filter);
+			if (null != initparams) {
+				holder.setInitParameters(initparams);
+			}
+
+			// register servlet
+			applicationHandler.getServletHandler().addFilterWithMapping(holder, pathSpec, null);
+
+		} finally {
+			registryModificationLock.unlock();
+		}
+	}
+
+	@Override
 	public void registerResources(final String alias, final String name, final IResourceProvider provider) throws NamespaceException {
 		final String pathSpec = normalizeAliasToPathSpec(alias);
 
@@ -261,6 +292,64 @@ public class ApplicationContext implements IApplicationContext {
 		final StringBuilder builder = new StringBuilder();
 		builder.append("ApplicationContext [").append(applicationHandler.getApplicationId()).append("]");
 		return builder.toString();
+	}
+
+	@Override
+	public void unregister(final Filter filter) {
+		if (JettyDebug.applicationContext) {
+			LOG.debug("{} unregistering filter: {}", new Object[] { this, filter });
+		}
+
+		registryModificationLock.lock();
+		try {
+			// TODO: remove bundle monitor
+			//removeBundleResourceMonitor(filter);
+
+			// collect list of remaining filters and filters to remove
+			final ApplicationServletHandler servletHandler = applicationHandler.getServletHandler();
+			final FilterHolder[] filters = servletHandler.getFilters();
+			final List<FilterHolder> newfilters = new ArrayList<FilterHolder>(filters.length);
+			final Set<FilterHolder> toRemove = new HashSet<FilterHolder>(filters.length);
+			final Set<String> toRemoveNames = new HashSet<String>(filters.length);
+			for (final FilterHolder filterHolder : filters) {
+				if (filterHolder.getFilter() == filter) {
+					toRemove.add(filterHolder);
+					toRemoveNames.add(filterHolder.getName());
+				} else {
+					newfilters.add(filterHolder);
+				}
+			}
+
+			// sanity check
+			if (toRemove.isEmpty()) {
+				throw new IllegalStateException("filter '" + filter + "' not found");
+			}
+
+			// collect remaining mappings
+			final FilterMapping[] mappings = servletHandler.getFilterMappings();
+			final List<FilterMapping> newMappings = new ArrayList<FilterMapping>(mappings.length);
+			for (final FilterMapping mapping : mappings) {
+				final String filterName = mapping.getFilterName();
+				if (!toRemove.contains(filterName)) {
+					newMappings.add(mapping);
+				}
+			}
+
+			// update mappings and servlets
+			servletHandler.setFilters(newfilters.toArray(new FilterHolder[newfilters.size()]));
+			servletHandler.setFilterMappings(newMappings.toArray(new FilterMapping[newMappings.size()]));
+
+			// stop removed filters
+			for (final FilterHolder filterHolder : toRemove) {
+				try {
+					filterHolder.doStop();
+				} catch (final Exception e) {
+					Log.ignore(e);
+				}
+			}
+		} finally {
+			registryModificationLock.unlock();
+		}
 	}
 
 	@Override

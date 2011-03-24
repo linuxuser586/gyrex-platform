@@ -15,11 +15,14 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Map;
 
+import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.eclipse.equinox.http.servlet.ExtendedHttpService;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
@@ -100,54 +103,58 @@ public interface IApplicationContext {
 	boolean handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ApplicationException;
 
 	/**
-	 * Registers resources into the URI namespace.
+	 * Registers a filter into the URI namespace.
 	 * <p>
 	 * The alias is the name in the URI namespace of the application at which
 	 * the registration will be mapped.
 	 * </p>
 	 * <p>
 	 * The purpose of this method is similar to
-	 * {@link HttpService#registerResources(String, String, HttpContext)} but
-	 * adapted to the {@link Application} scope.
+	 * {@link ExtendedHttpService#registerFilter(String, Filter, Dictionary, HttpContext)}
+	 * but adapted to the {@link Application} scope.
 	 * </p>
 	 * <p>
-	 * An alias must begin with slash ('/') and must not end with slash ('/'),
-	 * with the exception that an alias of the form &quot;/&quot; is used to
-	 * denote the root alias. The name parameter must also not end with slash
-	 * ('/'). See the OSGi Http Service specification text for details on how
-	 * HTTP requests are mapped to servlet and resource registrations.
+	 * An alias must begin with slash ('/') or a wildcard followed by a dot
+	 * ('*.') and must not end with slash ('/'), with the exception that an
+	 * alias of the form &quot;/&quot; is used to denote the root/default alias.
+	 * See the OSGi Http Service specification text for details on how HTTP
+	 * requests are mapped to servlet and resource registrations. Additionally,
+	 * extension aliases are supported. An extension alias begins with a
+	 * wildcard followed by a dot followed by the file extension. The filter is
+	 * called for every matching file extension.
 	 * </p>
 	 * <p>
-	 * For example, suppose the resource name <code>/tmp</code> is registered to
-	 * the alias <code>/files</code>. A request for <code>/files/foo.txt</code>
-	 * will map to the resource name <code>/tmp/foo.txt</code>.
+	 * The application will call the filter's <code>init</code> method before
+	 * returning.
 	 * </p>
 	 * <p>
-	 * The container will call the {@link IResourceProvider} argument to map
-	 * resource names to URLs.
+	 * All filters registered with the same application object will share the
+	 * same {@link ServletContext}.
 	 * </p>
 	 * <p>
-	 * The specified {@link IResourceProvider} object must be created by an OSGi
-	 * bundle. It will be the bundle that is responsible for the registration.
-	 * The container will monitor the bundle so that the registrations will be
+	 * The specified {@link Servlet} object must be created by an OSGi bundle.
+	 * It will be the bundle that is responsible for the registration. The
+	 * application will monitor the bundle so that the registrations will be
 	 * automatically (see {@link #unregister(String)} unregistered) when the
 	 * bundle is stopped.
 	 * </p>
 	 * 
 	 * @param alias
-	 *            name in the URI namespace at which the resources are
-	 *            registered
-	 * @param name
-	 *            the base name of the resources that will be registered
-	 * @param provider
-	 *            the {@link IResourceProvider} object for the registered
-	 *            resources
-	 * @throws NamespaceException
-	 *             if the registration fails because the alias is already in use
+	 *            name in the URI namespace at which the filter is registered
+	 * @param filter
+	 *            the filter object to register
+	 * @param initparams
+	 *            initialization arguments for the servlet or <code>null</code>
+	 *            if there are none. This argument is used by the servlet's
+	 *            <code>ServletConfig</code> object
+	 * @throws javax.servlet.ServletException
+	 *             if the filter's <code>init</code> method throws an exception,
+	 *             or the given filter object has already been registered at a
+	 *             different alias
 	 * @throws java.lang.IllegalArgumentException
-	 *             if any of the parameters are invalid
+	 *             if any of the arguments are invalid
 	 */
-	void registerResources(final String alias, final String name, final IResourceProvider provider) throws NamespaceException;
+	public void registerFilter(String alias, Filter filter, Map<String, String> initparams) throws ServletException;
 
 	/**
 	 * Registers a service into the URI namespace.
@@ -198,6 +205,56 @@ public interface IApplicationContext {
 	 *             if any of the arguments are invalid
 	 */
 	//void registerService(final String alias, final IAdaptable service) throws ServletException, NamespaceException;
+
+	/**
+	 * Registers resources into the URI namespace.
+	 * <p>
+	 * The alias is the name in the URI namespace of the application at which
+	 * the registration will be mapped.
+	 * </p>
+	 * <p>
+	 * The purpose of this method is similar to
+	 * {@link HttpService#registerResources(String, String, HttpContext)} but
+	 * adapted to the {@link Application} scope.
+	 * </p>
+	 * <p>
+	 * An alias must begin with slash ('/') and must not end with slash ('/'),
+	 * with the exception that an alias of the form &quot;/&quot; is used to
+	 * denote the root alias. The name parameter must also not end with slash
+	 * ('/'). See the OSGi Http Service specification text for details on how
+	 * HTTP requests are mapped to servlet and resource registrations.
+	 * </p>
+	 * <p>
+	 * For example, suppose the resource name <code>/tmp</code> is registered to
+	 * the alias <code>/files</code>. A request for <code>/files/foo.txt</code>
+	 * will map to the resource name <code>/tmp/foo.txt</code>.
+	 * </p>
+	 * <p>
+	 * The container will call the {@link IResourceProvider} argument to map
+	 * resource names to URLs.
+	 * </p>
+	 * <p>
+	 * The specified {@link IResourceProvider} object must be created by an OSGi
+	 * bundle. It will be the bundle that is responsible for the registration.
+	 * The container will monitor the bundle so that the registrations will be
+	 * automatically (see {@link #unregister(String)} unregistered) when the
+	 * bundle is stopped.
+	 * </p>
+	 * 
+	 * @param alias
+	 *            name in the URI namespace at which the resources are
+	 *            registered
+	 * @param name
+	 *            the base name of the resources that will be registered
+	 * @param provider
+	 *            the {@link IResourceProvider} object for the registered
+	 *            resources
+	 * @throws NamespaceException
+	 *             if the registration fails because the alias is already in use
+	 * @throws java.lang.IllegalArgumentException
+	 *             if any of the parameters are invalid
+	 */
+	void registerResources(final String alias, final String name, final IResourceProvider provider) throws NamespaceException;
 
 	/**
 	 * Registers a servlet into the URI namespace.
@@ -254,6 +311,34 @@ public interface IApplicationContext {
 	 *             if any of the arguments are invalid
 	 */
 	void registerServlet(final String alias, final Servlet servlet, final Map<String, String> initparams) throws ServletException, NamespaceException;
+
+	/**
+	 * Unregisters a previous registration done by
+	 * {@link #registerFilter(String, Filter, Map)} method.
+	 * <p>
+	 * After this call, the registered filter will no longer be available. The
+	 * application must call the <code>destroy</code> method of the filter
+	 * before returning.
+	 * </p>
+	 * <p>
+	 * If a bundle which was specified during the registration is stopped
+	 * without calling {@link #unregister(Filter)} then the application
+	 * automatically unregisters the registration of that bundle. However, if
+	 * the registration was for a filter, the <code>destroy</code> method of the
+	 * filter will not be called in this case since the bundle may be stopped.
+	 * {@link #unregister(Filter)} must be explicitly called to cause the
+	 * <code>destroy</code> method of the filter to be called. This can be done
+	 * in the <code>BundleActivator.stop</code> method of the bundle registering
+	 * the filter.
+	 * </p>
+	 * 
+	 * @param filter
+	 *            the filter to unregister
+	 * @throws java.lang.IllegalArgumentException
+	 *             if there is no registration for the filter or the calling
+	 *             bundle was not the bundle which registered the filter.
+	 */
+	void unregister(final Filter filter);
 
 	/**
 	 * Unregisters a previous registration done by

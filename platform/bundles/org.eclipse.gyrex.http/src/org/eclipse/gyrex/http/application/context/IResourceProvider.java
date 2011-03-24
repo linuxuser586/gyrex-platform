@@ -71,6 +71,6 @@ public interface IResourceProvider {
 	 *         there are no resources in the application whose path begins with
 	 *         the supplied path.
 	 */
-	public abstract Set getResourcePaths(final String path);
+	public abstract Set<String> getResourcePaths(final String path);
 
 }
