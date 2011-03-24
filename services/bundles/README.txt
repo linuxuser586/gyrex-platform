@@ -1,1 +1,0 @@
-This folder contains bundles of the CloudFree Services.
