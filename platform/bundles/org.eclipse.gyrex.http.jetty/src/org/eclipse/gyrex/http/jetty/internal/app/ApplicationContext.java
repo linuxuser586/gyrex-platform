@@ -62,10 +62,12 @@ public class ApplicationContext implements IApplicationContext {
 	private final class BundleResourceMonitor implements BundleListener {
 		private final String alias;
 		private BundleContext bundleContext;
+		private final long bundleId;
 
 		BundleResourceMonitor(final String alias, final BundleContext bundleContext) {
 			this.alias = alias;
 			this.bundleContext = bundleContext;
+			bundleId = bundleContext.getBundle().getBundleId();
 		}
 
 		void activate() {
@@ -78,6 +80,11 @@ public class ApplicationContext implements IApplicationContext {
 
 		@Override
 		public void bundleChanged(final BundleEvent event) {
+			if (bundleId != event.getBundle().getBundleId()) {
+				// ignore events for different bundles
+				// (clarify if we should ever get those here; I got a stacktrace once that indicates this)
+				return;
+			}
 			if (event.getType() == Bundle.STOPPING) {
 				try {
 					unregister(alias);
