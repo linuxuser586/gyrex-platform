@@ -5,5 +5,5 @@
       <provide interface="org.eclipse.gyrex.http.application.provider.ApplicationProvider"/>
    </service>
    <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
-   <property name="service.description" type="String" value="HttpService Application Provider"/>
+   <property name="service.description" type="String" value="Equinox HttpService Web Application Provider"/>
 </scr:component>

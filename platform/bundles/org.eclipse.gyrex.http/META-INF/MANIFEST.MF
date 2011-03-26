@@ -37,5 +37,5 @@ Export-Package: org.eclipse.gyrex.http.application,
  org.eclipse.gyrex.http.internal.application.gateway;x-friends:="org.eclipse.gyrex.http.tests,org.eclipse.gyrex.http.jetty",
  org.eclipse.gyrex.http.internal.application.manager;x-friends:="org.eclipse.gyrex.http.tests,org.eclipse.gyrex.http.jetty"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Service-Component: OSGI-INF/console-commands.xml, OSGI-INF/httpservice-app-provider.xml, OSGI-INF/httpservice-app-component.xml
+Service-Component: OSGI-INF/console-commands.xml, OSGI-INF/httpservice-app-provider.xml
 
