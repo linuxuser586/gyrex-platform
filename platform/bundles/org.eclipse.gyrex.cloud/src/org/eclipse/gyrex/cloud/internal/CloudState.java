@@ -603,12 +603,10 @@ public class CloudState implements IConnectionMonitor {
 		CloudActivator.getInstance().startCloudServices();
 
 		// activate cloud roles
-		final Collection<String> roles = node.getTags();
-		if (!roles.isEmpty()) {
-			LocalRolesManager.activateRoles(roles);
-		} else {
-			LocalRolesManager.activateRoles(ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT));
-		}
+		// TODO support mapping node tags to roles
+		//node.getTags();
+		final Collection<String> roles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT);
+		LocalRolesManager.activateRoles(roles);
 
 		// send node activation event
 		sendNodeEvent(node, true);
