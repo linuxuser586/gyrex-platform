@@ -148,7 +148,7 @@ public class HttpConsoleCommands implements CommandProvider {
 	}
 
 	static void printHelp(final CommandInterpreter ci) {
-		ci.println("context <cmd> [args]");
+		ci.println("http <cmd> [args]");
 		for (final String cmd : commands.keySet()) {
 			ci.println("\t" + cmd + " " + commands.get(cmd).getHelp());
 		}
