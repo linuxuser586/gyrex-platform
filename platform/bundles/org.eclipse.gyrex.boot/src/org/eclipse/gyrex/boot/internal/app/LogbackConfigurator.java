@@ -128,6 +128,7 @@ public class LogbackConfigurator {
 		lc.getLogger("org.apache.solr").setLevel(Level.WARN);
 		lc.getLogger("org.mortbay.log").setLevel(Level.INFO);
 		lc.getLogger("org.eclipse.jetty").setLevel(Level.INFO);
+		lc.getLogger("org.quartz").setLevel(Level.INFO);
 
 		// add error logger
 		final RollingFileAppender<ILoggingEvent> rfa = new RollingFileAppender<ILoggingEvent>();
