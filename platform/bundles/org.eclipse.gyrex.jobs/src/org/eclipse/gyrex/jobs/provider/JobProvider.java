@@ -11,8 +11,12 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.provider;
 
+import java.util.Collection;
+import java.util.Map;
+
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.core.runtime.jobs.Job;
 
@@ -51,18 +55,20 @@ public abstract class JobProvider extends PlatformObject {
 	 *            the job provider ids (may not be <code>null</code> or empty,
 	 *            will be {@link IdHelper#isValidId(String) validated})
 	 */
-	protected JobProvider(final String[] ids) {
-		if ((null == ids) || (ids.length == 0)) {
+	protected JobProvider(final Collection<String> ids) {
+		if ((null == ids) || (ids.isEmpty())) {
 			throw new IllegalArgumentException("job provider ids must not be null or empty");
 		}
-		providerIds = new String[ids.length];
-		for (int i = 0; i < ids.length; i++) {
-			final String id = ids[i];
+
+		// validate
+		for (final String id : ids) {
 			if (!IdHelper.isValidId(id)) {
 				throw new IllegalArgumentException(String.format("job provider id \"%s\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
 			}
-			providerIds[i] = id;
 		}
+
+		// save as arrays
+		providerIds = ids.toArray(new String[ids.size()]);
 	}
 
 	/**
@@ -75,6 +81,19 @@ public abstract class JobProvider extends PlatformObject {
 	}
 
 	/**
+	 * Creates a new Job.
+	 * <p>
+	 * Note, the job will be scheduled by the framework. Therefore,
+	 * implementations must not schedule it!
+	 * </p>
+	 * 
+	 * @param id
+	 * @param jobParameter
+	 * @return
+	 */
+	public abstract Job newJob(String id, Map<String, String> jobParameter) throws CoreException;
+
+	/**
 	 * Returns a string containing a concise, human-readable description of the
 	 * provider.
 	 * 
@@ -84,5 +103,4 @@ public abstract class JobProvider extends PlatformObject {
 	public final String toString() {
 		return getClass().getSimpleName() + " [" + StringUtils.join(providerIds, ',') + "]";
 	}
-
 }

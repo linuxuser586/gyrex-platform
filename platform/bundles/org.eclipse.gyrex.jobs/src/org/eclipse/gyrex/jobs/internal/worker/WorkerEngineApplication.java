@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.worker;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.app.IApplication;
@@ -31,7 +30,8 @@ public class WorkerEngineApplication implements IApplication {
 	private static final Integer EXIT_ERROR = Integer.valueOf(1);
 
 	private static final Logger LOG = LoggerFactory.getLogger(WorkerEngineApplication.class);
-	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>(null);
+	private static final AtomicReference<WorkerEngine> workerEngineRef = new AtomicReference<WorkerEngine>(null);
+	private IApplicationContext runningContext;
 
 	@Override
 	public Object start(final IApplicationContext context) throws Exception {
@@ -40,40 +40,41 @@ public class WorkerEngineApplication implements IApplication {
 		}
 
 		// set stop signal
-		final CountDownLatch stopSignal = new CountDownLatch(1);
-		if (!stopSignalRef.compareAndSet(null, stopSignal)) {
+		final WorkerEngine workerEngine = new WorkerEngine();
+		if (!workerEngineRef.compareAndSet(null, workerEngine)) {
 			throw new IllegalStateException("Worker engine already running!");
 		}
 
 		try {
 			// launch worker engine
+			workerEngine.schedule();
 
 			// signal running
 			context.applicationRunning();
 
-			// wait for stop
-			try {
-				stopSignal.await();
-			} catch (final InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
+			// finish async
+			runningContext = context;
+			return IApplicationContext.EXIT_ASYNC_RESULT;
 		} catch (final Exception e) {
 			LOG.error("Unable to start worker engine. Please check the log files.", e);
 			return EXIT_ERROR;
-		} finally {
-			// done, now reset signal to allow further starts
-			stopSignalRef.compareAndSet(stopSignal, null);
 		}
-
-		return EXIT_OK;
 	}
 
 	@Override
 	public void stop() {
-		final CountDownLatch stopSignal = stopSignalRef.get();
-		if (stopSignal != null) {
-			stopSignal.countDown();
+		final IApplicationContext context = runningContext;
+		if (context == null) {
+			throw new IllegalStateException("not started");
 		}
+
+		final WorkerEngine engine = workerEngineRef.getAndSet(null);
+		if (engine == null) {
+			return;
+		}
+
+		engine.cancel();
+		context.setResult(EXIT_OK, this);
 	}
 
 }

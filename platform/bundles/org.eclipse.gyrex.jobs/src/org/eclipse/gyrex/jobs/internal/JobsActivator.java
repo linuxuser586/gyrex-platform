@@ -16,8 +16,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.jobs.internal.jobs.JobsJobProvider;
 import org.eclipse.gyrex.jobs.internal.registry.JobProviderRegistry;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
+import org.eclipse.gyrex.jobs.provider.JobProvider;
 import org.eclipse.gyrex.jobs.schedules.IScheduleManager;
 
 import org.osgi.framework.BundleContext;
@@ -60,11 +62,13 @@ public class JobsActivator extends BaseBundleActivator {
 		instanceRef.set(this);
 		queueServiceProxy = getServiceHelper().trackService(IQueueService.class);
 
-		jobProviderRegistry = new JobProviderRegistry();
-		jobProviderRegistry.activate();
+		jobProviderRegistry = new JobProviderRegistry(context);
+		jobProviderRegistry.open();
 
 		scheduleManager = new ScheduleManagerImpl();
 		getServiceHelper().registerService(IScheduleManager.class, scheduleManager, "Eclipse Gyrex", "Gyrex Schedule Manager", null, null);
+
+		getServiceHelper().registerService(JobProvider.class, new JobsJobProvider(), "Eclipse Gyrex", "Gyrex System Jobs Provider", null, null);
 	}
 
 	@Override
@@ -75,7 +79,7 @@ public class JobsActivator extends BaseBundleActivator {
 
 		scheduleManager = null;
 
-		jobProviderRegistry.deactivate();
+		jobProviderRegistry.close();
 		jobProviderRegistry = null;
 	}
 

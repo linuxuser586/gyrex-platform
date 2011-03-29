@@ -153,7 +153,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		final String[] childrenNames = jobs.childrenNames();
 		entriesById = new HashMap<String, ScheduleEntryImpl>(childrenNames.length);
 		for (final String jobName : childrenNames) {
-			entriesById.put(jobName, new ScheduleEntryImpl(node.node(jobName)));
+			entriesById.put(jobName, new ScheduleEntryImpl(jobs.node(jobName)));
 		}
 	}
 
@@ -178,8 +178,8 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		// remove obsolete entries
 		final Preferences jobs = getEntriesNode();
 		for (final String jobName : jobs.childrenNames()) {
-			if (!entriesById.containsKey(jobName) && node.nodeExists(jobName)) {
-				node.node(jobName).removeNode();
+			if (!entriesById.containsKey(jobName) && jobs.nodeExists(jobName)) {
+				jobs.node(jobName).removeNode();
 			}
 		}
 

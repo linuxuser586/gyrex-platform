@@ -30,6 +30,9 @@ import org.quartz.JobDetail;
 import org.quartz.SchedulerException;
 import org.quartz.impl.DirectSchedulerFactory;
 import org.quartz.impl.SchedulerRepository;
+import org.quartz.simpl.RAMJobStore;
+import org.quartz.simpl.SimpleThreadPool;
+import org.quartz.spi.JobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +50,7 @@ public class Schedule implements IPreferenceChangeListener {
 	}
 
 	private final ScheduleImpl scheduleData;
-
-	private org.quartz.Scheduler quarzScheduler;
+	private org.quartz.Scheduler quartzScheduler;
 
 	/**
 	 * Creates a new instance.
@@ -65,15 +67,22 @@ public class Schedule implements IPreferenceChangeListener {
 		if (JobsDebug.schedulerEngine) {
 			LOG.debug("Activating schedule {}...", getId());
 		}
-		if (null != quarzScheduler) {
+		if (null != quartzScheduler) {
 			return;
 		}
 
 		try {
+			// make sure that Quartz does not check for updates
+			System.setProperty("org.terracotta.quartz.skipUpdateCheck", "true");
+
 			// create scheduler
 			final DirectSchedulerFactory factory = DirectSchedulerFactory.getInstance();
-			factory.createVolatileScheduler(1);
-			quarzScheduler = factory.getScheduler(getId());
+			final SimpleThreadPool threadPool = new SimpleThreadPool(1, Thread.NORM_PRIORITY);
+			threadPool.setInstanceId(getId());
+			threadPool.setInstanceName(getId());
+			final JobStore jobStore = new RAMJobStore();
+			factory.createScheduler(getId(), getId(), threadPool, jobStore);
+			quartzScheduler = factory.getScheduler(getId());
 
 			// TODO add support for calendars (we likely should support global calendars)
 
@@ -81,7 +90,7 @@ public class Schedule implements IPreferenceChangeListener {
 			refreshSchedule();
 
 			// start
-			quarzScheduler.start();
+			quartzScheduler.start();
 
 			// log success message
 			LOG.info("Activated schedule {}.", getId());
@@ -124,9 +133,9 @@ public class Schedule implements IPreferenceChangeListener {
 	}
 
 	private void quietShutdown() {
-		if (null != quarzScheduler) {
+		if (null != quartzScheduler) {
 			try {
-				quarzScheduler.shutdown();
+				quartzScheduler.shutdown();
 
 				// log success message
 				LOG.info("Deactivated schedule {}.", getId());
@@ -141,19 +150,22 @@ public class Schedule implements IPreferenceChangeListener {
 			} catch (final Exception ignored) {
 				// ignore
 			}
-			quarzScheduler = null;
+			quartzScheduler = null;
 		}
 	}
 
 	private void refreshSchedule() throws SchedulerException {
 
 		// delete all existing jobs
-		for (final String groupName : quarzScheduler.getJobGroupNames()) {
-			for (final String jobName : quarzScheduler.getJobNames(groupName)) {
-				if (JobsDebug.schedulerEngine) {
-					LOG.debug("Removing job {} from Quartz engine {}...", jobName, getId());
+		final String[] jobGroupNames = quartzScheduler.getJobGroupNames();
+		if (null != jobGroupNames) {
+			for (final String groupName : jobGroupNames) {
+				for (final String jobName : quartzScheduler.getJobNames(groupName)) {
+					if (JobsDebug.schedulerEngine) {
+						LOG.debug("Removing job {} from Quartz engine {}...", jobName, getId());
+					}
+					quartzScheduler.deleteJob(jobName, groupName);
 				}
-				quarzScheduler.deleteJob(jobName, groupName);
 			}
 		}
 
@@ -161,8 +173,10 @@ public class Schedule implements IPreferenceChangeListener {
 		final Collection<IScheduleEntry> entries = scheduleData.getEntries();
 		for (final IScheduleEntry entry : entries) {
 			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
-			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_PROVIDER_ID, entry.getJobProviderId());
+			// put all parameter
 			detail.getJobDataMap().putAll(entry.getJobParameter());
+			// put provider id
+			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_PROVIDER_ID, entry.getJobProviderId());
 
 			final String cronExpression = entry.getCronExpression();
 			final CronTrigger trigger = new CronTrigger(entry.getId());
@@ -176,7 +190,7 @@ public class Schedule implements IPreferenceChangeListener {
 			if (JobsDebug.schedulerEngine) {
 				LOG.debug("Adding job {} to Quartz engine {}...", entry, getId());
 			}
-			quarzScheduler.scheduleJob(detail, trigger);
+			quartzScheduler.scheduleJob(detail, trigger);
 		}
 	}
 

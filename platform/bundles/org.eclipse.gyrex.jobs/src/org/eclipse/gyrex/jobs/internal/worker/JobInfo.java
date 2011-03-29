@@ -21,6 +21,8 @@ import java.util.Properties;
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
+import org.apache.commons.io.output.ByteArrayOutputStream;
+
 /**
  * Serialization/deserialization helper for Job queue messages.
  */
@@ -29,6 +31,28 @@ public class JobInfo {
 	private static final String JOB_ID_KEY = "gyrex.jobinfo.jobid"; //$NON-NLS-1$
 	private static final String VERSION_KEY = "gyrex.jobinfo.version"; //$NON-NLS-1$
 	private static final String VERSION_VALUE = "1"; //$NON-NLS-1$
+
+	public static byte[] asMessage(final JobInfo info) throws IOException {
+		final Properties properties = new Properties();
+
+		// collect properties
+		final Map<String, String> jobProperties = info.getJobProperties();
+		for (final Iterator stream = jobProperties.keySet().iterator(); stream.hasNext();) {
+			final String key = (String) stream.next();
+			properties.put(key, jobProperties.get(key));
+		}
+
+		// put version
+		properties.put(VERSION_KEY, VERSION_VALUE);
+
+		// put id
+		properties.put(JOB_ID_KEY, info.getJobId());
+
+		// create bytes
+		final ByteArrayOutputStream out = new ByteArrayOutputStream();
+		properties.store(out, null);
+		return out.toByteArray();
+	}
 
 	public static JobInfo parse(final IMessage message) throws IOException {
 		final Properties properties = new Properties();
@@ -58,7 +82,6 @@ public class JobInfo {
 	}
 
 	private final String jobId;
-
 	private final Map<String, String> jobProperties;
 
 	/**

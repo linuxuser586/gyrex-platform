@@ -15,12 +15,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
+import org.eclipse.gyrex.jobs.internal.registry.JobProviderRegistry;
 import org.eclipse.gyrex.jobs.internal.scheduler.Schedule;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
@@ -51,7 +54,7 @@ public class JobsConsoleCommands implements CommandProvider {
 			this.help = help;
 		}
 
-		public abstract void execute(ScheduleManagerImpl manager, CommandInterpreter ci) throws Exception;
+		public abstract void execute(ScheduleManagerImpl manager, JobProviderRegistry registry, CommandInterpreter ci) throws Exception;
 
 		public String getHelp() {
 			return help;
@@ -67,7 +70,7 @@ public class JobsConsoleCommands implements CommandProvider {
 	static {
 		commands.put("ls", new Command("<schedules|jobs> [<searchString>] - lists schedules or running jobs") {
 			@Override
-			public void execute(final ScheduleManagerImpl manager, final CommandInterpreter ci) throws Exception {
+			public void execute(final ScheduleManagerImpl manager, final JobProviderRegistry registry, final CommandInterpreter ci) throws Exception {
 				final String what = ci.nextArgument();
 				if (StringUtils.isBlank(what)) {
 					ci.println("ERROR: please specify what to list");
@@ -96,6 +99,13 @@ public class JobsConsoleCommands implements CommandProvider {
 								for (final IScheduleEntry entry : entries) {
 									info.append(prefix).append(entry.getId()).append(' ').append(entry.getCronExpression()).append(' ').append(entry.getJobProviderId()).appendNewLine();
 									prefix = "             ";
+									final Map<String, String> parameter = entry.getJobParameter();
+									if (!parameter.isEmpty()) {
+										final Set<Entry<String, String>> entrySet = parameter.entrySet();
+										for (final Entry<String, String> param : entrySet) {
+											info.append(prefix).append("    ").append(param.getKey()).append('=').appendln(param.getValue());
+										}
+									}
 								}
 							} else {
 								info.append(prefix).appendln("(none)");
@@ -111,13 +121,20 @@ public class JobsConsoleCommands implements CommandProvider {
 							ci.println(id);
 						}
 					}
+				} else if (StringUtils.startsWith("jobs", what)) {
+					final SortedSet<String> providers = new TreeSet<String>(registry.getProviders());
+					for (final String id : providers) {
+						if (StringUtils.isBlank(searchString) || StringUtils.contains(id, searchString)) {
+							ci.println(id);
+						}
+					}
 				}
 			}
 		});
 
 		commands.put("createSchedule", new Command("<scheduleId> [<timeZone>] - creates a schedule") {
 			@Override
-			public void execute(final ScheduleManagerImpl manager, final CommandInterpreter ci) throws Exception {
+			public void execute(final ScheduleManagerImpl manager, final JobProviderRegistry registry, final CommandInterpreter ci) throws Exception {
 				final String scheduleId = ci.nextArgument();
 				if (!IdHelper.isValidId(scheduleId)) {
 					ci.println("ERROR: invalid schedule id");
@@ -138,7 +155,7 @@ public class JobsConsoleCommands implements CommandProvider {
 
 		commands.put("removeSchedule", new Command("<scheduleId> - removes a schedule") {
 			@Override
-			public void execute(final ScheduleManagerImpl manager, final CommandInterpreter ci) throws Exception {
+			public void execute(final ScheduleManagerImpl manager, final JobProviderRegistry registry, final CommandInterpreter ci) throws Exception {
 				final String scheduleId = ci.nextArgument();
 				if (!IdHelper.isValidId(scheduleId)) {
 					ci.println("ERROR: invalid schedule id");
@@ -151,7 +168,7 @@ public class JobsConsoleCommands implements CommandProvider {
 		});
 		commands.put("addEntryToSchedule", new Command("<scheduleId> <entryId> <cronExpression> <jobProviderId> - adds an entry to a schedule") {
 			@Override
-			public void execute(final ScheduleManagerImpl manager, final CommandInterpreter ci) throws Exception {
+			public void execute(final ScheduleManagerImpl manager, final JobProviderRegistry registry, final CommandInterpreter ci) throws Exception {
 				final String scheduleId = ci.nextArgument();
 				if (!IdHelper.isValidId(scheduleId)) {
 					ci.println("ERROR: invalid schedule id");
@@ -171,9 +188,14 @@ public class JobsConsoleCommands implements CommandProvider {
 					ci.println("ERROR: missing cron expression");
 					ci.println(getHelp());
 					return;
-				} else if (!CronExpression.isValidExpression(Schedule.asQuartzCronExpression(cronExpression))) {
-					ci.println("ERROR: invalid cron expression, please see http://en.wikipedia.org/wiki/Cron#CRON_expression");
-					return;
+				} else {
+					try {
+						new CronExpression(Schedule.asQuartzCronExpression(cronExpression));
+					} catch (final Exception e) {
+						ci.println("ERROR: invalid cron expression, please see http://en.wikipedia.org/wiki/Cron#CRON_expression");
+						ci.println("       " + ExceptionUtils.getRootCauseMessage(e));
+						return;
+					}
 				}
 
 				final String jobProviderId = ci.nextArgument();
@@ -198,7 +220,7 @@ public class JobsConsoleCommands implements CommandProvider {
 
 		commands.put("updateEntryJobParameter", new Command("<scheduleId> <entryId> <jobParamKey> [<jobParamValue>] - sets (or removes) an entry job paramater") {
 			@Override
-			public void execute(final ScheduleManagerImpl manager, final CommandInterpreter ci) throws Exception {
+			public void execute(final ScheduleManagerImpl manager, final JobProviderRegistry registry, final CommandInterpreter ci) throws Exception {
 				final String scheduleId = ci.nextArgument();
 				if (!IdHelper.isValidId(scheduleId)) {
 					ci.println("ERROR: invalid schedule id");
@@ -240,7 +262,7 @@ public class JobsConsoleCommands implements CommandProvider {
 
 		commands.put("enableSchedule", new Command("<scheduleId> - enables a schedule") {
 			@Override
-			public void execute(final ScheduleManagerImpl manager, final CommandInterpreter ci) throws Exception {
+			public void execute(final ScheduleManagerImpl manager, final JobProviderRegistry registry, final CommandInterpreter ci) throws Exception {
 				final String scheduleId = ci.nextArgument();
 				if (!IdHelper.isValidId(scheduleId)) {
 					ci.println("ERROR: invalid schedule id");
@@ -257,7 +279,7 @@ public class JobsConsoleCommands implements CommandProvider {
 
 		commands.put("disableSchedule", new Command("<scheduleId> - disables a schedule") {
 			@Override
-			public void execute(final ScheduleManagerImpl manager, final CommandInterpreter ci) throws Exception {
+			public void execute(final ScheduleManagerImpl manager, final JobProviderRegistry registry, final CommandInterpreter ci) throws Exception {
 				final String scheduleId = ci.nextArgument();
 				if (!IdHelper.isValidId(scheduleId)) {
 					ci.println("ERROR: invalid schedule id");
@@ -295,15 +317,17 @@ public class JobsConsoleCommands implements CommandProvider {
 		}
 
 		final ScheduleManagerImpl manager;
+		final JobProviderRegistry registry;
 		try {
 			manager = JobsActivator.getInstance().getScheduleManager();
+			registry = JobsActivator.getInstance().getJobProviderRegistry();
 		} catch (final IllegalStateException e) {
 			ci.println("ERROR: Required services not available! " + e.getMessage());
 			return;
 		}
 
 		try {
-			cmd.execute(manager, ci);
+			cmd.execute(manager, registry, ci);
 		} catch (final Exception e) {
 			if (JobsDebug.debug) {
 				ci.printStackTrace(e);

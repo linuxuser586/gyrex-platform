@@ -83,7 +83,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		jobProviderId = node.get(JOB_PROVIDER_ID, null);
 		if (node.nodeExists(PARAMETER)) {
 			final Preferences paramNode = node.node(PARAMETER);
-			final String[] keys = paramNode.childrenNames();
+			final String[] keys = paramNode.keys();
 			jobParamater = new HashMap<String, String>(keys.length);
 			for (final String key : keys) {
 				jobParamater.put(key, paramNode.get(key, null));
@@ -98,7 +98,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		if ((null != jobParamater) && !jobParamater.isEmpty()) {
 			final Preferences paramNode = node.node(PARAMETER);
 			// remove obsolete keys
-			for (final String key : paramNode.childrenNames()) {
+			for (final String key : paramNode.keys()) {
 				if (StringUtils.isBlank(jobParamater.get(key))) {
 					paramNode.remove(key);
 				}

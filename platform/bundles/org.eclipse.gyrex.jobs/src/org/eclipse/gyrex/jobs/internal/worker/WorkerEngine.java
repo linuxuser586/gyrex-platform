@@ -23,7 +23,9 @@ import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
+import org.eclipse.gyrex.jobs.provider.JobProvider;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -37,6 +39,8 @@ import org.slf4j.LoggerFactory;
  * The worker engine pulls jobs from queues and executes them.
  */
 public class WorkerEngine extends Job {
+
+	public static final String DEFAULT_QUEUE = "gyrex.jobs.scheduled";
 
 	private static final long INITIAL_SLEEP_TIME = TimeUnit.SECONDS.toMillis(30);
 	private static final long MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
@@ -54,9 +58,12 @@ public class WorkerEngine extends Job {
 		setPriority(LONG);
 	}
 
-	private Job createJob(final JobInfo info) {
-		// TODO Auto-generated method stub
-		return null;
+	private Job createJob(final JobInfo info) throws CoreException {
+		final JobProvider provider = JobsActivator.getInstance().getJobProviderRegistry().getProvider(info.getJobId());
+		if (null == provider) {
+			throw new IllegalStateException(String.format("Job provider %s not available!", info.getJobId()));
+		}
+		return provider.newJob(info.getJobId(), info.getJobProperties());
 	}
 
 	private IStatus doRun(final IProgressMonitor monitor) {
@@ -92,19 +99,11 @@ public class WorkerEngine extends Job {
 
 			} catch (final IOException e) {
 				LOG.warn("Invalid job info in message {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
-
-				// move message to the failure queue
-				if (queue.deleteMessage(message)) {
-					IQueue queueForFailedJobs = null;
-					try {
-						queueForFailedJobs = getQueueForFailedJobs();
-						queueForFailedJobs.sendMessage(message.getBody());
-					} catch (final Exception e2) {
-						LOG.error("Failed moving job message {} to failure queue {}. Job is lost. {}", new Object[] { message, queueForFailedJobs, ExceptionUtils.getRootCauseMessage(e2) });
-					}
-				} else {
-					LOG.error("Unable to delete job message. {}", message);
-				}
+				moveToErrorQueue(queue, message);
+				return Status.CANCEL_STATUS;
+			} catch (final CoreException e) {
+				LOG.warn("Error creating job {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
+				moveToErrorQueue(queue, message);
 				return Status.CANCEL_STATUS;
 			}
 
@@ -123,7 +122,7 @@ public class WorkerEngine extends Job {
 	 */
 	protected IQueue getQueue() {
 		final IQueueService queueService = JobsActivator.getInstance().getQueueService();
-		return queueService.getQueue("gyrex.jobs.scheduled", null);
+		return queueService.getQueue(DEFAULT_QUEUE, null);
 	}
 
 	/**
@@ -147,6 +146,21 @@ public class WorkerEngine extends Job {
 	 */
 	protected long getReceiveTimeout() {
 		return TimeUnit.MINUTES.toMillis(1);
+	}
+
+	private void moveToErrorQueue(final IQueue queue, final IMessage message) {
+		// move message to the failure queue
+		if (queue.deleteMessage(message)) {
+			IQueue queueForFailedJobs = null;
+			try {
+				queueForFailedJobs = getQueueForFailedJobs();
+				queueForFailedJobs.sendMessage(message.getBody());
+			} catch (final Exception e2) {
+				LOG.error("Failed moving job message {} to failure queue {}. Job is lost. {}", new Object[] { message, queueForFailedJobs, ExceptionUtils.getRootCauseMessage(e2) });
+			}
+		} else {
+			LOG.error("Unable to delete job message. {}", message);
+		}
 	}
 
 	@Override
