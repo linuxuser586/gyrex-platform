@@ -42,6 +42,18 @@
             roleId="org.eclipse.gyrex.http.appmanager"
             trigger="onCloudConnect">
       </defaultStart>
+      <defaultStart
+            mode="development"
+            roleId="org.eclipse.gyrex.jobs.roles.scheduler"
+            startLevel="100"
+            trigger="onCloudConnect">
+      </defaultStart>
+      <defaultStart
+            mode="development"
+            roleId="org.eclipse.gyrex.jobs.roles.worker"
+            startLevel="100"
+            trigger="onCloudConnect">
+      </defaultStart>
    </extension>
 
 </plugin>
