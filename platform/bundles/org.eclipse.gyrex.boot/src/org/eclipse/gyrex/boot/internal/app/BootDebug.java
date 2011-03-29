@@ -19,6 +19,6 @@ import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 public class BootDebug extends BundleDebugOptions {
 
 	public static boolean debug;
-	public static boolean debugRoles;
+	public static boolean roles;
 	public static boolean operationMode;
 }

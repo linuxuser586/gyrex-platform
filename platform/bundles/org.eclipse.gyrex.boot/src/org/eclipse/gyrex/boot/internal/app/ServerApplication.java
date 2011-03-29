@@ -27,7 +27,6 @@ import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.osgi.service.datalocation.Location;
 
 import org.osgi.framework.Bundle;
@@ -206,16 +205,13 @@ public class ServerApplication implements IApplication {
 	 * @return the enabled roles
 	 */
 	private List<String> getEnabledServerRoles(final String[] arguments) {
-		boolean ignoreConfiguredRoles = false;
 		boolean ignoreDefaultRoles = false;
 
 		// scan arguments for submitted roles
 		final List<String> roleIds = new ArrayList<String>();
 		for (int i = 0; i < arguments.length; i++) {
 			final String arg = arguments[i];
-			if ("-ignoreConfiguredRoles".equalsIgnoreCase(arg)) {
-				ignoreConfiguredRoles = true;
-			} else if ("-roles".equalsIgnoreCase(arg)) {
+			if ("-roles".equalsIgnoreCase(arg)) {
 				ignoreDefaultRoles = true;
 				if (++i >= arguments.length) {
 					throw new IllegalArgumentException("The argument '-roles' requires a following argument with the server roles to start.");
@@ -227,7 +223,7 @@ public class ServerApplication implements IApplication {
 				for (final String role : specifiedRoles) {
 					if (StringUtils.isNotBlank(role)) {
 						if (!roleIds.contains(role)) {
-							if (BootDebug.debugRoles) {
+							if (BootDebug.roles) {
 								LOG.debug("Role submitted via command line: " + role);
 							}
 							roleIds.add(role);
@@ -237,38 +233,13 @@ public class ServerApplication implements IApplication {
 			}
 		}
 
-		// read roles from preferences
-		if (!ignoreConfiguredRoles) {
-			// note, we read from the instance scope here
-			// it is assumed that an external entity properly
-			// sets the role for this particular node
-			final String[] rolesToStart = StringUtils.split(InstanceScope.INSTANCE.getNode(AppActivator.SYMBOLIC_NAME).get("rolesToStart", null), ',');
-			if (null != rolesToStart) {
-				ignoreDefaultRoles = true;
-				for (final String role : rolesToStart) {
-					if (StringUtils.isNotBlank(role)) {
-						if (!roleIds.contains(role)) {
-							if (BootDebug.debugRoles) {
-								LOG.debug("Configured role: " + role);
-							}
-							roleIds.add(role);
-						}
-					}
-				}
-			}
-		} else {
-			if (BootDebug.debugRoles) {
-				LOG.debug("Ignoring configured roles.");
-			}
-		}
-
 		// add default start roles
 		if (!ignoreDefaultRoles) {
 			final Collection<String> defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_BOOT);
 			for (final String role : defaultRoles) {
 				if (!roleIds.contains(role)) {
-					if (BootDebug.debugRoles) {
-						LOG.debug("Default start role: " + role);
+					if (BootDebug.roles) {
+						LOG.debug("Default start boot role: " + role);
 					}
 					roleIds.add(role);
 				}

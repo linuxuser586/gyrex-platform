@@ -59,14 +59,15 @@ public class ServerRole {
 	 * 
 	 * @throws BundleException
 	 */
-	public void activate() throws ActivationException {
+	void activate() throws ActivationException {
 		if (!active.compareAndSet(false, true)) {
 			return;
 		}
 
-		if (BootDebug.debugRoles) {
-			LOG.debug("Activating server role " + getId());
+		if (BootDebug.roles) {
+			LOG.debug("Activating server role {}...", getId());
 		}
+
 		for (final String bundleName : requiredBundleNames) {
 			try {
 				startBundle(bundleName);
@@ -87,23 +88,23 @@ public class ServerRole {
 	/**
 	 * Deactivates the server role.
 	 */
-	public void deactivate() {
+	void deactivate() {
 		if (!active.compareAndSet(true, false)) {
 			return;
 		}
 
-		if (BootDebug.debugRoles) {
-			LOG.debug("Deactivating server role " + getId());
+		if (BootDebug.roles) {
+			LOG.debug("Deactivating server role {}...", getId());
 		}
 
 		for (final Entry<String, ApplicationHandle> application : launchedApps.entrySet()) {
-			if (BootDebug.debugRoles) {
+			if (BootDebug.roles) {
 				LOG.debug("Stopping application {}", application.getKey());
 			}
 			try {
 				application.getValue().destroy();
 			} catch (final IllegalStateException e) {
-				if (BootDebug.debugRoles) {
+				if (BootDebug.roles) {
 					LOG.debug("Application {} already stopped.", application.getKey());
 				}
 			} catch (final Exception e) {
@@ -138,7 +139,7 @@ public class ServerRole {
 	 * @throws ApplicationException
 	 */
 	private void startApplication(final String applicationId) throws IllegalStateException, ApplicationException {
-		if (BootDebug.debugRoles) {
+		if (BootDebug.roles) {
 			LOG.debug("Starting application {}", applicationId);
 		}
 		final ApplicationDescriptor applicationDescriptor = AppActivator.getInstance().getEclipseApplication(applicationId);
@@ -157,7 +158,7 @@ public class ServerRole {
 	 * @throws BundleException
 	 */
 	private void startBundle(final String symbolicName) throws BundleException, IllegalStateException {
-		if (BootDebug.debugRoles) {
+		if (BootDebug.roles) {
 			LOG.debug("Starting bundle {}", symbolicName);
 		}
 		final Bundle bundle = AppActivator.getInstance().getBundle(symbolicName);

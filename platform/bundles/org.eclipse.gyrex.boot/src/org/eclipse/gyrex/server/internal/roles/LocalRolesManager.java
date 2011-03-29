@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.gyrex.boot.internal.app.BootDebug;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
 import org.slf4j.Logger;
@@ -37,17 +38,24 @@ public class LocalRolesManager {
 	 * @throws ActivationException
 	 */
 	private static boolean activate(final String roleId) throws ActivationException {
+		if (BootDebug.roles) {
+			LOG.debug("Activating role {}...", roleId);
+		}
+
 		if (activeRoles.containsKey(roleId)) {
+			if (BootDebug.roles) {
+				LOG.debug("Role {} already active.", roleId);
+			}
 			return true;
 		}
 
 		final ServerRole role = ServerRolesRegistry.getDefault().getRole(roleId);
 		if (role == null) {
+			LOG.warn("Role {} not found in registry. Please check installation that bundles contributing the role are properly installed and resolve.", roleId);
 			return false;
 		}
 
 		activeRoles.put(roleId, role);
-
 		role.activate();
 
 		return true;
@@ -55,7 +63,7 @@ public class LocalRolesManager {
 
 	/**
 	 * Activates roles.
-	 *
+	 * 
 	 * @param roleIds
 	 */
 	public static synchronized void activateRoles(final Collection<String> roleIds) {
@@ -70,7 +78,7 @@ public class LocalRolesManager {
 
 	/**
 	 * Activates the specified roles
-	 *
+	 * 
 	 * @param roleIds
 	 * @param failOnError
 	 */
@@ -79,6 +87,20 @@ public class LocalRolesManager {
 			if (!activate(roleId)) {
 				throw new IllegalArgumentException("Role " + roleId + " not found!");
 			}
+		}
+	}
+
+	/**
+	 * Deactives all roles which has been automatically started using the
+	 * specified trigger.
+	 * 
+	 * @param trigger
+	 */
+	public static synchronized void deactivateAllAutoStartRoles(final Trigger trigger) {
+		final List<String> roleIds = new ArrayList<String>(activeRoles.keySet());
+		Collections.reverse(roleIds);
+		for (final String roleId : roleIds) {
+			dectivate(roleId);
 		}
 	}
 
@@ -94,21 +116,8 @@ public class LocalRolesManager {
 	}
 
 	/**
-	 * Deactives all roles which has been automatically started using the specified trigger.
-	 * @param trigger
-	 */
-	public static synchronized void deactivateAllAutoStartRoles(Trigger trigger) {
-		final List<String> roleIds = new ArrayList<String>(activeRoles.keySet());
-		Collections.reverse(roleIds);
-		for (final String roleId : roleIds) {
-			dectivate(roleId);
-		}
-	}
-
-
-	/**
 	 * Deactivates roles.
-	 *
+	 * 
 	 * @param roleIds
 	 */
 	public static synchronized void deactivateRoles(final Collection<String> roleIds) {
@@ -128,7 +137,7 @@ public class LocalRolesManager {
 
 	/**
 	 * Refreshes the roles.
-	 *
+	 * 
 	 * @param roles
 	 */
 	public static synchronized void refreshRoles(final Collection<String> roles) {
