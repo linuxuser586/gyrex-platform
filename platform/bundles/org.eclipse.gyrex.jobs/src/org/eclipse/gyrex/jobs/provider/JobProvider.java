@@ -11,8 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.provider;
 
-import java.text.MessageFormat;
-
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.PlatformObject;
@@ -49,9 +47,9 @@ public abstract class JobProvider extends PlatformObject {
 	/**
 	 * Creates a new instance using the specified provider id.
 	 * 
-	 * @param id
-	 *            the job provider id (may not be <code>null</code>, will be
-	 *            {@link IdHelper#isValidId(String) validated})
+	 * @param ids
+	 *            the job provider ids (may not be <code>null</code> or empty,
+	 *            will be {@link IdHelper#isValidId(String) validated})
 	 */
 	protected JobProvider(final String[] ids) {
 		if ((null == ids) || (ids.length == 0)) {
@@ -61,7 +59,7 @@ public abstract class JobProvider extends PlatformObject {
 		for (int i = 0; i < ids.length; i++) {
 			final String id = ids[i];
 			if (!IdHelper.isValidId(id)) {
-				throw new IllegalArgumentException(MessageFormat.format("job provider id \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
+				throw new IllegalArgumentException(String.format("job provider id \"%s\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
 			}
 			providerIds[i] = id;
 		}

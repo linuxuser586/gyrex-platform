@@ -59,7 +59,7 @@ public class WorkerEngine extends Job {
 		return null;
 	}
 
-	private IStatus doExecuteScheduledJob(final IProgressMonitor monitor) {
+	private IStatus doRun(final IProgressMonitor monitor) {
 		try {
 			final IQueue queue = getQueue();
 			if (queue == null) {
@@ -152,7 +152,7 @@ public class WorkerEngine extends Job {
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
 		try {
-			final IStatus status = doExecuteScheduledJob(monitor);
+			final IStatus status = doRun(monitor);
 			if (!status.isOK()) {
 				// implement a back-off sleeping time (max 5 min)
 				engineSleepTime = Math.min(engineSleepTime * 2, MAX_SLEEP_TIME);

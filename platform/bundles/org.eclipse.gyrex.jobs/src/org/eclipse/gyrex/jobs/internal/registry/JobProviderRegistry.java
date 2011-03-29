@@ -54,6 +54,10 @@ public class JobProviderRegistry {
 		}
 	}
 
+	public JobProvider getProvider(final String id) {
+		return providerById.get(id);
+	}
+
 	public void removeJobProvider(final JobProvider provider) {
 		if (JobsDebug.providerRegistry) {
 			LOG.debug("Removing jobs provider: {}", provider);

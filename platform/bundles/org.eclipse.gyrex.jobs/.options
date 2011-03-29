@@ -6,3 +6,6 @@ org.eclipse.gyrex.jobs/providerRegistry=true
 
 # debug worker engine
 org.eclipse.gyrex.jobs/workerEngine=true
+
+# debug scheduler engine
+org.eclipse.gyrex.jobs/schedulerEngine=true

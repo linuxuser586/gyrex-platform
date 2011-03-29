@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.gyrex.jobs.console.component">
+   <implementation class="org.eclipse.gyrex.jobs.internal.JobsConsoleCommands"/>
+   <service>
+      <provide interface="org.eclipse.osgi.framework.console.CommandProvider"/>
+   </service>
+   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="service.description" type="String" value="Gyrex Jobs Console Commands"/>
+</scr:component>

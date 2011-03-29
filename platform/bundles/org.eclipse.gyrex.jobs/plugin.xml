@@ -15,5 +15,35 @@
          </run>
       </application>
    </extension>
+   <extension
+         id="schedulerengine"
+         name="Gyrex Job Scheduler Engine"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="false">
+         <run
+               class="org.eclipse.gyrex.jobs.internal.scheduler.SchedulerApplication">
+         </run>
+      </application>
+   </extension>
+   <extension
+         point="org.eclipse.gyrex.server.roles">
+      <role
+            id="org.eclipse.gyrex.jobs.roles.worker"
+            name="Gyrex Job Worker">
+         <requireApplication
+               applicationId="org.eclipse.gyrex.jobs.workerengine">
+         </requireApplication>
+      </role>
+      <role
+            id="org.eclipse.gyrex.jobs.roles.scheduler"
+            name="Gyrex Job Scheduler">
+         <requireApplication
+               applicationId="org.eclipse.gyrex.jobs.schedulerengine">
+         </requireApplication>
+      </role>
+   </extension>
 
 </plugin>

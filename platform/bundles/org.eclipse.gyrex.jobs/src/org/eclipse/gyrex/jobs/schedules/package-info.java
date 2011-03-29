@@ -9,18 +9,8 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.jobs.internal;
-
-import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 
 /**
- * debug options
+ * This package defines API for defining and managing job schedules.
  */
-public class JobsDebug extends BundleDebugOptions {
-
-	public static boolean debug;
-	public static boolean providerRegistry;
-	public static boolean workerEngine;
-	public static boolean schedulerEngine;
-
-}
+package org.eclipse.gyrex.jobs.schedules;
