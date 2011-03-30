@@ -46,6 +46,7 @@ import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,6 +101,12 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 				try {
 					// refresh children and notify listeners (but only if remote is newer)
 					loadChildren(false);
+				} catch (final NoNodeException e) {
+					// this can happen if a whole tree is being removed
+					// we don't synchronize so we must expect this
+					// handle this gracefully and rely on #pathDeleted being called
+					// assume not connected
+					connected.set(false);
 				} catch (final Exception e) {
 					// assume not connected
 					connected.set(false);
