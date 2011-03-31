@@ -11,14 +11,31 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.tests.internal;
 
+import java.util.Hashtable;
+import java.util.concurrent.CountDownLatch;
+
+import org.eclipse.gyrex.cloud.events.ICloudEventConstants;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
 
 public class Activator extends BaseBundleActivator {
 
 	private static final String SYMBOLIC_NAME = "org.eclipse.gyrex.boot.tests";
 	private static volatile Activator instance;
+
+	static final CountDownLatch cloudOnlineWatch = new CountDownLatch(1);
+
+	private static final EventHandler cloudOnlineHandler = new EventHandler() {
+
+		@Override
+		public void handleEvent(final Event event) {
+			cloudOnlineWatch.countDown();
+		}
+	};
 
 	/**
 	 * Returns the instance.
@@ -43,6 +60,10 @@ public class Activator extends BaseBundleActivator {
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instance = this;
+
+		final Hashtable<String, Object> properties = new Hashtable<String, Object>(1);
+		properties.put(EventConstants.EVENT_TOPIC, ICloudEventConstants.TOPIC_NODE_ONLINE);
+		context.registerService(EventHandler.class, cloudOnlineHandler, properties);
 	}
 
 	@Override
