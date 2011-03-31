@@ -18,7 +18,7 @@ import org.junit.runners.Suite;
  * Context Test Suite.
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ ContextualRuntimeBlackBoxTests.class, PreferencesBlackBoxTests.class })
+@Suite.SuiteClasses({ ContextRegistryTests.class, ContextualRuntimeBlackBoxTests.class, PreferencesBlackBoxTests.class })
 public class AllContextTests {
 
 }
