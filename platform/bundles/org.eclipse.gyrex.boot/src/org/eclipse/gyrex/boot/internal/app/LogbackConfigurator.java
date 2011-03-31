@@ -53,6 +53,9 @@ public class LogbackConfigurator {
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 		lc.reset();
 
+		// reset JUL
+		LogManager.getLogManager().reset();
+
 		// configure
 		final StatusManager sm = lc.getStatusManager();
 		if (sm != null) {
@@ -94,7 +97,6 @@ public class LogbackConfigurator {
 		final Logger rootLogger = lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
 
 		// propagate level changes to java.util.logging
-		LogManager.getLogManager().reset();
 		final LevelChangePropagator levelChangePropagator = new LevelChangePropagator();
 		levelChangePropagator.setResetJUL(true);
 		levelChangePropagator.setContext(lc);
