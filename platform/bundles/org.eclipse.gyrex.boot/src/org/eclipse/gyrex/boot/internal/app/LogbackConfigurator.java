@@ -13,6 +13,7 @@ package org.eclipse.gyrex.boot.internal.app;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.util.logging.LogManager;
 
 import org.eclipse.gyrex.server.Platform;
 
@@ -93,6 +94,7 @@ public class LogbackConfigurator {
 		final Logger rootLogger = lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
 
 		// propagate level changes to java.util.logging
+		LogManager.getLogManager().reset();
 		final LevelChangePropagator levelChangePropagator = new LevelChangePropagator();
 		levelChangePropagator.setResetJUL(true);
 		levelChangePropagator.setContext(lc);
