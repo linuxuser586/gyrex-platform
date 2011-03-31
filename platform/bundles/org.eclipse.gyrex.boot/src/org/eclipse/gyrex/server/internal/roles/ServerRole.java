@@ -28,6 +28,7 @@ import org.osgi.service.application.ApplicationDescriptor;
 import org.osgi.service.application.ApplicationException;
 import org.osgi.service.application.ApplicationHandle;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,6 +149,29 @@ public class ServerRole {
 		}
 		final ApplicationHandle handle = applicationDescriptor.launch(null);
 		launchedApps.put(applicationId, handle);
+
+		// wait for application to start
+		long timeout = 2000l;
+		String state = null;
+		do {
+			state = handle.getState();
+			if (!StringUtils.equals(state, ApplicationHandle.RUNNING)) {
+				try {
+					timeout -= 150;
+					Thread.sleep(150);
+				} catch (final InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		} while ((timeout > 0) && !StringUtils.equals(state, ApplicationHandle.RUNNING));
+
+		// log warning if it didn't start
+		if (!StringUtils.equals(state, ApplicationHandle.RUNNING)) {
+			LOG.warn("Application {} did not reach RUNNING state within timely manner (state ist {}). Server role {} might by dysfunctional!", new Object[] { applicationId, state, getId() });
+		} else if (BootDebug.roles) {
+			LOG.debug("Application {} started.", applicationId);
+		}
 	}
 
 	/**
