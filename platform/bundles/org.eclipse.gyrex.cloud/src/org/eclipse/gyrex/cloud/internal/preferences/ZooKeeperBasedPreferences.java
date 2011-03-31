@@ -128,12 +128,15 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 				// unset removed state
 				removed = false;
 
-				try {
-					// refresh properties (and force sync with remote)
-					loadProperties(true);
+				// note, this can be a result of a flush, therefore we only
+				// load properties and children if they are newer
 
-					// refresh children (and force sync with remote)
-					loadChildren(true);
+				try {
+					// refresh properties and notify listeners (but only if remote is newer)
+					loadProperties(false);
+
+					// refresh children and notify listeners (but only if remote is newer)
+					loadChildren(false);
 				} catch (final Exception e) {
 					// assume not connected
 					connected.set(false);
@@ -463,6 +466,10 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 
 	@Override
 	public void flush() throws BackingStoreException {
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("Flushing node {} (version {}, cversion {})", new Object[] { this, propertiesVersion, childrenVersion });
+		}
+
 		ensureConnectedAndLoaded();
 		try {
 			// save properties
@@ -475,6 +482,10 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 			connected.set(false);
 			// throw
 			throw new BackingStoreException(String.format("Error saving node data '%s' from ZooKeeper. %s", this, e.getMessage()), e);
+		}
+
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("Flushed node {} (version {}, cversion {})", new Object[] { this, propertiesVersion, childrenVersion });
 		}
 	}
 
