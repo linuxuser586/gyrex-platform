@@ -147,6 +147,34 @@ public class ApplicationManager implements IApplicationManager {
 		}
 	}
 
+	@Override
+	public Map<String, String> getProperties(final String applicationId) throws IllegalArgumentException {
+		// verify application id
+		if (!IdHelper.isValidId(applicationId)) {
+			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
+		}
+
+		try {
+			final Preferences appNode = getAppsNode().node(applicationId);
+			if (!appNode.nodeExists("")) {
+				return null;
+			}
+
+			final Map<String, String> properties = new HashMap<String, String>();
+			if (appNode.nodeExists(NODE_PROPERTIES)) {
+				final Preferences propertiesNode = appNode.node(NODE_PROPERTIES);
+				final String[] keys = propertiesNode.keys();
+				for (final String key : keys) {
+					properties.put(key, propertiesNode.get(key, null));
+				}
+			}
+
+			return properties;
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error reading application properties for application %s. %s", applicationId, ExceptionUtils.getRootCauseMessage(e)), e);
+		}
+	}
+
 	public Collection<String> getRegisteredApplications() throws BackingStoreException {
 		return Arrays.asList(getAppsNode().childrenNames());
 	}
@@ -233,6 +261,51 @@ public class ApplicationManager implements IApplicationManager {
 			node.flush();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error persisting application registration info to the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
+	@Override
+	public void setProperties(final String applicationId, final Map<String, String> properties) throws IllegalArgumentException, IllegalStateException {
+		// verify application id
+		if (!IdHelper.isValidId(applicationId)) {
+			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
+		}
+
+		try {
+			final Preferences appNode = getAppsNode().node(applicationId);
+			if (!appNode.nodeExists("")) {
+				throw new IllegalStateException(String.format("application %s does not exists", applicationId));
+			}
+
+			if ((null == properties) || properties.isEmpty()) {
+				if (appNode.nodeExists(NODE_PROPERTIES)) {
+					appNode.node(NODE_PROPERTIES).removeNode();
+					appNode.flush();
+				}
+			} else {
+				final Preferences propertiesNode = appNode.node(NODE_PROPERTIES);
+				// update all properties
+				for (final String key : properties.keySet()) {
+					final String value = properties.get(key);
+					if (StringUtils.isNotBlank(value)) {
+						propertiesNode.put(key, value);
+					} else {
+						propertiesNode.remove(key);
+					}
+				}
+
+				// remove obsolete properties
+				final String[] keys = propertiesNode.keys();
+				for (final String key : keys) {
+					if (!properties.containsKey(key)) {
+						propertiesNode.remove(key);
+					}
+				}
+
+				appNode.flush();
+			}
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error reading application properties for application %s. %s", applicationId, ExceptionUtils.getRootCauseMessage(e)), e);
 		}
 	}
 

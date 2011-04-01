@@ -81,6 +81,27 @@ public interface IApplicationManager {
 	void deactivate(String applicationId) throws IllegalArgumentException, IllegalArgumentException;
 
 	/**
+	 * Returns the properties currently set for application.
+	 * <p>
+	 * If the specified application is unknown, <code>null</code> will be
+	 * returned. The returned map can be freely modified. No changes will be
+	 * reflected to the persisted properties. In order to update any properties,
+	 * the updated map needs to be passed to {@link #setProperties(String, Map)}
+	 * .
+	 * </p>
+	 * 
+	 * @param applicationId
+	 *            the application id
+	 * @return a map of application properties which may the application further
+	 *         when
+	 *         {@link Application#initialize(org.eclipse.gyrex.http.application.service.IApplicationServiceSupport)}
+	 *         is invoked
+	 * @throws IllegalArgumentException
+	 *             if the application id is invalid
+	 */
+	Map<String, String> getProperties(String applicationId) throws IllegalArgumentException;
+
+	/**
 	 * Mounts an application at the specified URL.
 	 * <p>
 	 * An URL must begin with a protocol (<code>http://</code> or
@@ -133,6 +154,8 @@ public interface IApplicationManager {
 	 *             if an application for the specified URL is already registered
 	 * @throws MalformedURLException
 	 *             if the specified url is invalid
+	 * @throws IllegalStateException
+	 *             if no application with the specified id exists
 	 * @see Application
 	 * @see ApplicationProvider
 	 */
@@ -172,6 +195,32 @@ public interface IApplicationManager {
 	 *             if an application with the specified id is already registered
 	 */
 	void register(String applicationId, String providerId, IRuntimeContext context, Map<String, String> properties) throws ApplicationRegistrationException;
+
+	/**
+	 * Sets the properties of an application.
+	 * <p>
+	 * Note, although the properties will be updated it won't affect any running
+	 * applications. In order to re-initialize any running application they need
+	 * to be {@link #deactivate(String) deactivated first} and
+	 * {@link #activate(String) activated} again. The recommended workflow is to
+	 * {@link #deactivate(String) deactivate}, update the properties, and
+	 * {@link #activate(String) activate it again thereafter}.
+	 * </p>
+	 * 
+	 * @param applicationId
+	 *            the application id
+	 * @param properties
+	 *            application properties which may configure the application
+	 *            further when
+	 *            {@link Application#initialize(org.eclipse.gyrex.http.application.service.IApplicationServiceSupport)}
+	 *            is invoked
+	 * @throws IllegalArgumentException
+	 *             if any of the specified arguments are invalid (eg. an
+	 *             unsupported protocol is used)
+	 * @throws IllegalStateException
+	 *             if no application is registered for the specified id
+	 */
+	void setProperties(String applicationId, Map<String, String> properties) throws IllegalArgumentException, IllegalStateException;
 
 	/**
 	 * Unmounts an application mounted at the specified URL.
