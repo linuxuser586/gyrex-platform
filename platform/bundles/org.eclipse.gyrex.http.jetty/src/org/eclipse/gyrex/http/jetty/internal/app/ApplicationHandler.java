@@ -224,6 +224,11 @@ public class ApplicationHandler extends ServletContextHandler {
 						return;
 					}
 				}
+			} else {
+				// calculate paths for forwarded requests
+				if (DispatcherType.FORWARD.equals(dispatch) && target.startsWith(URIUtil.SLASH)) {
+					pathInfo = target;
+				}
 			}
 
 			// update the paths
