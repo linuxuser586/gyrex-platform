@@ -1,25 +1,21 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.derby.internal;
 
 import java.io.File;
-import java.util.Dictionary;
-import java.util.Hashtable;
-
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.Constants;
 
 public class DerbyActivator extends BaseBundleActivator {
 
@@ -35,9 +31,6 @@ public class DerbyActivator extends BaseBundleActivator {
 		super(PLUGIN_ID);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		// set the derby system home to the persistent bundle location
@@ -49,15 +42,9 @@ public class DerbyActivator extends BaseBundleActivator {
 
 		// initialize database
 		try {
-			getClass().getClassLoader().loadClass(DERBY_EMBEDDED_DRIVER).newInstance();
+			getBundle().loadClass(DERBY_EMBEDDED_DRIVER).newInstance();
 		} catch (final Exception e) {
 			throw new IllegalStateException("Could not load Derby database driver: " + e.getMessage());
 		}
-
-		// register repository type
-		final Dictionary<String, Object> serviceProperties = new Hashtable<String, Object>(2);
-		serviceProperties.put(Constants.SERVICE_VENDOR, "Gyrex");
-		serviceProperties.put(Constants.SERVICE_DESCRIPTION, "Embedded Derby JDBC Database Repository Type");
-		context.registerService(RepositoryProvider.class.getName(), new DerbyRepositoryType(), serviceProperties);
 	}
 }
