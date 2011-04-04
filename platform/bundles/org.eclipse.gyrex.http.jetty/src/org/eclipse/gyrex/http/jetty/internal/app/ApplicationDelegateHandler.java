@@ -30,6 +30,7 @@ import org.eclipse.jetty.server.handler.ScopedHandler;
 import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.log.Log;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,10 +155,15 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 
 		try {
 			// calculate target based on current path info
-			// also make sure the path absolute is absolute (required by ServletHandler down the road)
-			final String target = URIUtil.addPaths(URIUtil.SLASH, baseRequest.getPathInfo());
+			final String target = baseRequest.getPathInfo();
 			if (JettyDebug.handlers) {
 				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target '{}')", application, target);
+			}
+			// also make sure the path absolute is absolute (required by ServletHandler down the road)
+			if ((null == target) || !target.startsWith(URIUtil.SLASH)) {
+				// if not it might indicate a problem higher up the stack, thus, make sure to fail
+				// otherwise we might unveil unwanted resources (eg. display directory for wrong folder)
+				throw new ApplicationException(String.format("Unable to handle request. It seems the specified request is invalid (path info '%s'). At least an absolute path info is necessary in order to determine the request target within the registered application servlets and resources.", StringUtils.trimToEmpty(target)));
 			}
 			nextScope(target, baseRequest, baseRequest, response);
 		} catch (final ServletException e) {
