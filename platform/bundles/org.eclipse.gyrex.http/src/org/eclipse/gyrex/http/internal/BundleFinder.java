@@ -39,11 +39,14 @@ public class BundleFinder implements PrivilegedAction<List<Bundle>> {
 
 	private final Bundle host;
 
+	private final Bundle bundleFinderHost;
+
 	/**
 	 * Creates a new instance.
 	 */
 	public BundleFinder(final Bundle host) {
 		this.host = host;
+		bundleFinderHost = FrameworkUtil.getBundle(getClass());
 	}
 
 	private List<Bundle> findBundles() {
@@ -66,7 +69,7 @@ public class BundleFinder implements PrivilegedAction<List<Bundle>> {
 		final List<Bundle> result = new ArrayList<Bundle>(1);
 		for (final Class clazz : stack) {
 			final Bundle bundle = FrameworkUtil.getBundle(clazz);
-			if ((null != bundle) && !bundle.equals(host)) {
+			if ((null != bundle) && !bundle.equals(host) && !bundle.equals(bundleFinderHost)) {
 				result.add(bundle);
 				return result;
 			}
