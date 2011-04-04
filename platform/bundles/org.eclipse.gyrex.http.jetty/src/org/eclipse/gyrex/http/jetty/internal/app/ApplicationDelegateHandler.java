@@ -29,6 +29,7 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ScopedHandler;
 import org.eclipse.jetty.util.log.Log;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,7 +154,8 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 
 		try {
 			// calculate target based on current path info
-			final String target = baseRequest.getPathInfo();
+			// (make sure to handle NULL, target should never be null)
+			final String target = StringUtils.trimToEmpty(baseRequest.getPathInfo());
 			if (JettyDebug.handlers) {
 				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target {})", application, target);
 			}
