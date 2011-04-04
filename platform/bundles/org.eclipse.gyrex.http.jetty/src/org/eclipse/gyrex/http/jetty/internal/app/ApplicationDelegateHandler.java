@@ -27,9 +27,9 @@ import org.eclipse.gyrex.server.Platform;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ScopedHandler;
+import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.log.Log;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +64,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 	public void doScope(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
 
 		/*
-		 * This scope implementation is different. The we delegate to
+		 * This scope implementation is different. We delegate to
 		 * the application immediately. The assumption is, the context,
 		 *  path info and session has been properly set up by scoping
 		 * from previous handlers (scopes).
@@ -154,10 +154,10 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 
 		try {
 			// calculate target based on current path info
-			// (make sure to handle NULL, target should never be null)
-			final String target = StringUtils.trimToEmpty(baseRequest.getPathInfo());
+			// also make sure the path absolute is absolute (required by ServletHandler down the road)
+			final String target = URIUtil.addPaths(URIUtil.SLASH, baseRequest.getPathInfo());
 			if (JettyDebug.handlers) {
-				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target {})", application, target);
+				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target '{}')", application, target);
 			}
 			nextScope(target, baseRequest, baseRequest, response);
 		} catch (final ServletException e) {
