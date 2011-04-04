@@ -28,6 +28,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 
+import org.osgi.framework.Bundle;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 
@@ -243,7 +244,9 @@ public interface IApplicationContext {
 	 * <p>
 	 * If no {@link IResourceProvider} is specified (i.e., <code>null</code>), a
 	 * default implementation will be created which looks up resources from the
-	 * bundle calling this method.
+	 * bundle calling this method. The provider will use the
+	 * {@link Bundle#getEntry(String)} and {@link Bundle#getEntryPaths(String)}
+	 * methods.
 	 * </p>
 	 * 
 	 * @param alias
