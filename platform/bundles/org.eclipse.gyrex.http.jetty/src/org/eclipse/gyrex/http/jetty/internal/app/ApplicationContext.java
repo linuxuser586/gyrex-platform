@@ -32,6 +32,7 @@ import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.application.context.IResourceProvider;
 import org.eclipse.gyrex.http.application.context.NamespaceException;
+import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.http.PathMap;
@@ -223,11 +224,20 @@ public class ApplicationContext implements IApplicationContext {
 	}
 
 	@Override
-	public void registerResources(final String alias, final String name, final IResourceProvider provider) throws NamespaceException {
+	public void registerResources(final String alias, final String name, IResourceProvider provider) throws NamespaceException {
 		final String pathSpec = normalizeAliasToPathSpec(alias);
 
+		// create dynamic resource provider based on the calling bundle if non was specified
+		if (provider == null) {
+			final Bundle callingBundle = HttpJettyActivator.getInstance().getCallingBundle();
+			if (null == callingBundle) {
+				throw new IllegalArgumentException("unable to determine the calling bundle; please specify a non-null resource provider");
+			}
+			provider = new BundleResourceProvider(callingBundle);
+		}
+
 		if (JettyDebug.applicationContext) {
-			LOG.debug("{} registering servlet: {} (normalized to {}) --> {}", new Object[] { this, alias, pathSpec, provider });
+			LOG.debug("{} registering resource: {} (normalized to {}) --> {}", new Object[] { this, alias, pathSpec, provider });
 		}
 
 		// synchronize access to registry modifications

@@ -22,7 +22,7 @@ import org.osgi.framework.FrameworkUtil;
 /**
  * Finds the calling bundle
  */
-class BundleFinder implements PrivilegedAction<List<Bundle>> {
+public class BundleFinder implements PrivilegedAction<List<Bundle>> {
 
 	static final class Finder extends SecurityManager {
 		@Override

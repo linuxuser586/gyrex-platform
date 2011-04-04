@@ -237,8 +237,13 @@ public interface IApplicationContext {
 	 * The specified {@link IResourceProvider} object must be created by an OSGi
 	 * bundle. It will be the bundle that is responsible for the registration.
 	 * The container will monitor the bundle so that the registrations will be
-	 * automatically (see {@link #unregister(String)} unregistered) when the
+	 * automatically unregistered (see {@link #unregister(String)}) when the
 	 * bundle is stopped.
+	 * </p>
+	 * <p>
+	 * If no {@link IResourceProvider} is specified (i.e., <code>null</code>), a
+	 * default implementation will be created which looks up resources from the
+	 * bundle calling this method.
 	 * </p>
 	 * 
 	 * @param alias

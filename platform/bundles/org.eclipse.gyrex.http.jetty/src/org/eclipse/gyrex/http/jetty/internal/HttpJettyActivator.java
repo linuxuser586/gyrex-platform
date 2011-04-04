@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.http.internal.BundleFinder;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.admin.JettyManagerImpl;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
@@ -28,6 +29,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.osgi.util.NLS;
 
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
@@ -116,6 +118,15 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		statusMonitor = null;
 	}
 
+	public Bundle getCallingBundle() {
+		final Bundle bundle = getBundle();
+		if (null == bundle) {
+			return null;
+		}
+
+		return new BundleFinder(bundle).getCallingBundle();
+	}
+
 	@Override
 	protected Class getDebugOptions() {
 		return JettyDebug.class;
@@ -146,4 +157,5 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		}
 		return proxy.getService();
 	}
+
 }
