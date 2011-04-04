@@ -15,9 +15,6 @@
          <requireBundle
                symbolicName="org.eclipse.equinox.http.registry">
          </requireBundle>
-         <requireBundle
-               symbolicName="org.eclipse.gyrex.http.registry">
-         </requireBundle>
       </role>
    </extension>
    <extension
