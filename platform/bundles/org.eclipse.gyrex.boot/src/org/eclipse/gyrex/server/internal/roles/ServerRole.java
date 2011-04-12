@@ -233,6 +233,9 @@ public class ServerRole {
 			try {
 				do {
 					state = handle.getState();
+					if (BootDebug.roles) {
+						LOG.debug("Application {} state: {}", applicationId, state);
+					}
 					if (StringUtils.equals(state, ApplicationHandle.STOPPING)) {
 						try {
 							timeout -= 150;
@@ -245,6 +248,9 @@ public class ServerRole {
 				} while ((timeout > 0) && StringUtils.equals(state, ApplicationHandle.STOPPING));
 			} catch (final IllegalStateException e) {
 				// this is thrown when the service has been unregistered
+				if (BootDebug.roles) {
+					LOG.debug("Application {} state {}: {}", new Object[] { applicationId, state, e.getMessage() });
+				}
 			}
 
 			// log warning if it didn't stop
