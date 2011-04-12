@@ -49,6 +49,19 @@ public class ServerApplication implements IApplication {
 	/** LOG */
 	private static final Logger LOG = LoggerFactory.getLogger(ServerApplication.class);
 
+	/** shutdown hook */
+	private static final Thread shutdownHook = new Thread("Shutdown Hook") {
+		@Override
+		public void run() {
+			try {
+				LOG.info("Shutting down...");
+				signalShutdown(null);
+			} catch (final Exception e) {
+				// ignore
+			}
+		};
+	};
+
 	/** running state */
 	private static final AtomicBoolean running = new AtomicBoolean();
 
@@ -136,6 +149,13 @@ public class ServerApplication implements IApplication {
 
 		// signal shutdown
 		signal.countDown();
+
+		// remove shutdown hook
+		try {
+			Runtime.getRuntime().removeShutdownHook(shutdownHook);
+		} catch (final Exception e) {
+			// ignore
+		}
 	}
 
 	private ServiceRegistration frameworkLogServiceRegistration;
@@ -344,6 +364,9 @@ public class ServerApplication implements IApplication {
 				if (!stopOrRestartSignalRef.compareAndSet(null, stopOrRestartSignal)) {
 					throw new IllegalStateException("Server application already started!");
 				}
+
+				// install shutdown hook
+				Runtime.getRuntime().addShutdownHook(shutdownHook);
 
 				// bootstrap the platform
 				bootstrap();

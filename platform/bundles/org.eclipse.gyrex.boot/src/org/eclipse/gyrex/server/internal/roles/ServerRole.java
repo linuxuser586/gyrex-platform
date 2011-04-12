@@ -11,10 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.server.internal.roles;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.gyrex.boot.internal.app.AppActivator;
@@ -44,7 +44,7 @@ public class ServerRole {
 	private final List<String> requiredBundleNames;
 	private final List<String> requiredApplicationIds;
 
-	private final Map<String, ApplicationHandle> launchedApps = new HashMap<String, ApplicationHandle>(3);
+	private final LinkedHashMap<String, ApplicationHandle> launchedApps = new LinkedHashMap<String, ApplicationHandle>(3);
 
 	private final AtomicBoolean active = new AtomicBoolean();
 
@@ -98,19 +98,11 @@ public class ServerRole {
 			LOG.debug("Deactivating server role {}...", getId());
 		}
 
-		for (final Entry<String, ApplicationHandle> application : launchedApps.entrySet()) {
-			if (BootDebug.roles) {
-				LOG.debug("Stopping application {}", application.getKey());
-			}
-			try {
-				application.getValue().destroy();
-			} catch (final IllegalStateException e) {
-				if (BootDebug.roles) {
-					LOG.debug("Application {} already stopped.", application.getKey());
-				}
-			} catch (final Exception e) {
-				LOG.warn("Error during shutdown of application {} while deactivating role {}. {}", new Object[] { application.getKey(), getId(), e.getMessage() }, e);
-			}
+		// stop applications in reverse order
+		final List<String> launchedAppIds = new ArrayList<String>(launchedApps.keySet());
+		Collections.reverse(launchedAppIds);
+		for (final String applicationId : launchedAppIds) {
+			stopApplication(applicationId);
 		}
 	}
 
@@ -209,6 +201,61 @@ public class ServerRole {
 			throw e;
 		}
 
+	}
+
+	/**
+	 * @param applicationId
+	 */
+	private void stopApplication(final String applicationId) {
+		if (BootDebug.roles) {
+			LOG.debug("Stopping application {}", applicationId);
+		}
+		try {
+			final ApplicationHandle handle = launchedApps.get(applicationId);
+			if (null == handle) {
+				LOG.warn("Application handle for application {} not found! Unable to stop application.", applicationId);
+				return;
+			}
+
+			// shutdown the app
+			try {
+				handle.destroy();
+			} catch (final IllegalStateException e) {
+				// this is thrown when the service is not unregistered
+				if (BootDebug.roles) {
+					LOG.debug("Application {} not active.", applicationId);
+				}
+			}
+
+			// wait for application to shutdown
+			long timeout = 2000l;
+			String state = null;
+			try {
+				do {
+					state = handle.getState();
+					if (StringUtils.equals(state, ApplicationHandle.STOPPING)) {
+						try {
+							timeout -= 150;
+							Thread.sleep(150);
+						} catch (final InterruptedException e) {
+							Thread.currentThread().interrupt();
+							break;
+						}
+					}
+				} while ((timeout > 0) && StringUtils.equals(state, ApplicationHandle.STOPPING));
+			} catch (final IllegalStateException e) {
+				// this is thrown when the service has been unregistered
+			}
+
+			// log warning if it didn't stop
+			if (StringUtils.equals(state, ApplicationHandle.STOPPING)) {
+				LOG.warn("Application {} still in STOPPING state after waiting for ordered shutdown. Server role {} might not be shutdown cleanly!", new Object[] { applicationId, state, getId() });
+			} else if (BootDebug.roles) {
+				LOG.debug("Application {} stopped.", applicationId);
+			}
+		} catch (final Exception e) {
+			LOG.warn("Error during shutdown of application {} while deactivating role {}. {}", new Object[] { applicationId, getId(), e.getMessage() }, e);
+		}
 	}
 
 	@Override
