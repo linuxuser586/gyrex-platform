@@ -36,12 +36,15 @@ public class CloudPreferencesScopeFactory implements IScope {
 	 */
 	public static void stop() {
 		// flush the preferences
+		// TODO this is actually too late
+		// when the bundle is stopped the cloud is likely already disconnected
+		// for now there is some logic in ZooKeeperBasedPreferences
 		final CloudPreferences node = rootCloudNode.get();
 		if (node != null) {
 			try {
 				node.flush();
 			} catch (final Exception e) {
-				LOG.warn("Failed to flush cloud preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
+				LOG.debug("Failed to flush cloud preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
 			}
 		}
 	}

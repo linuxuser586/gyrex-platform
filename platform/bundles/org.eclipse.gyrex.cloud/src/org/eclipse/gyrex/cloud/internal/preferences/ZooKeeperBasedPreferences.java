@@ -364,6 +364,16 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 			LOG.debug("Disconnecting preference node {}.", this);
 		}
 
+		// try to flush any pending changes
+		// (just properties here as we are recursively disconnecting the children)
+		if (!removed && propertiesDirty) {
+			try {
+				saveProperties();
+			} catch (final Exception ignored) {
+				// ignore
+			}
+		}
+
 		// set disconnected
 		connected.set(false);
 
