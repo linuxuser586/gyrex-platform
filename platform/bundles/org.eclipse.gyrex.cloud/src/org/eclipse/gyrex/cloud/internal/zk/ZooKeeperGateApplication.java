@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -11,19 +11,17 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.zk;
 
-import java.util.concurrent.CountDownLatch;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.equinox.app.IApplication;
-import org.eclipse.equinox.app.IApplicationContext;
-
+import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
+import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +29,7 @@ import org.slf4j.LoggerFactory;
 /**
  * An application which maintains the lifecycle of the ZooKeeper gate.
  */
-public class ZooKeeperGateApplication implements IApplication {
+public class ZooKeeperGateApplication extends BaseApplication {
 
 	private final class ConnectRunnable implements Runnable, IConnectionMonitor {
 		private static final int INITIAL_CONNECT_DELAY = 1000;
@@ -55,13 +53,13 @@ public class ZooKeeperGateApplication implements IApplication {
 		}
 
 		@Override
-		public void connected(ZooKeeperGate gate) {
+		public void connected(final ZooKeeperGate gate) {
 			// reset delay on successful connect
 			delay = INITIAL_CONNECT_DELAY;
 		}
 
 		@Override
-		public void disconnected(ZooKeeperGate gate) {
+		public void disconnected(final ZooKeeperGate gate) {
 			if (CloudDebug.zooKeeperGateLifecycle) {
 				LOG.debug("Processing disconnect event from gate.");
 			}
@@ -115,25 +113,78 @@ public class ZooKeeperGateApplication implements IApplication {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGateApplication.class);
 
-	/** Exit object indicating error termination */
-	private static final Integer EXIT_ERROR = Integer.valueOf(1);
-
-	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>();
-	private static final AtomicReference<Throwable> zkErrorRef = new AtomicReference<Throwable>();
+	private ScheduledExecutorService executor;
 
 	/**
-	 * Force a shutdown of the ZooKeeper gate.
+	 * Creates a new instance.
 	 */
-	public static void forceShutdown() {
-		final CountDownLatch stopSignal = stopSignalRef.get();
-		if (stopSignal != null) {
-			stopSignal.countDown();
+	public ZooKeeperGateApplication() {
+		debug = CloudDebug.zooKeeperGateLifecycle;
+	}
+
+	@Override
+	protected void doCleanup() {
+		// unset gate application
+		ZooKeeperServerApplication.connectedGateApplication = null;
+
+		// ensure execute is stopped
+		if (null != executor) {
+			try {
+				executor.shutdownNow();
+			} catch (final Exception ignored) {
+				// ignored
+			}
+			executor = null;
 		}
 	}
 
-	boolean isActive() {
-		final CountDownLatch stopSignal = stopSignalRef.get();
-		return (stopSignal != null) && (stopSignal.getCount() > 0);
+	@Override
+	protected void doStart(final Map arguments) throws Exception {
+		// create initial config
+		final ZooKeeperGateConfig config = new ZooKeeperGateConfig(new NodeInfo());
+		config.readFromPreferences();
+
+		// initialize executor
+		executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(final Runnable r) {
+				final Thread t = new Thread(r, "ZooKeeper Gate Connect Thread");
+				t.setDaemon(true);
+				return t;
+			}
+		});
+
+		// kick off connection procedure
+		scheduleConnect(executor, ConnectRunnable.INITIAL_CONNECT_DELAY, config);
+
+		// register with embedded server if running
+		if (CloudActivator.getInstance().getNodeEnvironment().inStandaloneMode()) {
+			ZooKeeperServerApplication.connectedGateApplication = this;
+		}
+	}
+
+	@Override
+	protected Object doStop() {
+		// shutdown executor
+		executor.shutdownNow();
+		executor = null;
+
+		// unset gate application
+		ZooKeeperServerApplication.connectedGateApplication = null;
+
+		// shutdown ZooKeeper if still running
+		final ZooKeeperGate gate = ZooKeeperGate.getAndSet(null);
+		if (gate != null) {
+			gate.shutdown(true);
+		}
+
+		// exit
+		return EXIT_OK;
+	}
+
+	@Override
+	protected Logger getLogger() {
+		return LOG;
 	}
 
 	void scheduleConnect(final ScheduledExecutorService executor, final int delay, final ZooKeeperGateConfig config) {
@@ -143,84 +194,4 @@ public class ZooKeeperGateApplication implements IApplication {
 
 		executor.schedule(new ConnectRunnable(executor, config, delay), delay, TimeUnit.MILLISECONDS);
 	}
-
-	void signalStopped(final Throwable zkError) {
-		if (CloudDebug.zooKeeperGateLifecycle) {
-			LOG.debug("Received stop signal for ZooKeeper Gate manager.");
-		}
-		final CountDownLatch signal = stopSignalRef.get();
-		if (null != signal) {
-			zkErrorRef.set(zkError);
-			signal.countDown();
-		}
-	}
-
-	@Override
-	public Object start(final IApplicationContext context) throws Exception {
-		if (CloudDebug.zooKeeperGateLifecycle) {
-			LOG.debug("Starting ZooKeeper Gate manager.");
-		}
-
-		// create initial config
-		final ZooKeeperGateConfig config = new ZooKeeperGateConfig(new NodeInfo());
-		config.readFromPreferences();
-
-		// set stop signal
-		final CountDownLatch stopSignal = new CountDownLatch(1);
-		if (!stopSignalRef.compareAndSet(null, stopSignal)) {
-			throw new IllegalStateException("ZooKeeper Gate already running!");
-		}
-
-		try {
-			// initialize executor
-			final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-				@Override
-				public Thread newThread(final Runnable r) {
-					final Thread t = new Thread(r, "ZooKeeper Gate Connect Thread");
-					t.setDaemon(true);
-					return t;
-				}
-			});
-
-			// kick off connection procedure
-			scheduleConnect(executor, ConnectRunnable.INITIAL_CONNECT_DELAY, config);
-
-			// signal running
-			context.applicationRunning();
-
-			// wait for stop
-			try {
-				stopSignal.await();
-			} catch (final InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-
-			// shutdown executor
-			executor.shutdownNow();
-
-			// shutdown ZooKeeper if still running
-			final ZooKeeperGate gate = ZooKeeperGate.getAndSet(null);
-			if (gate != null) {
-				gate.shutdown(true);
-			}
-
-			if (CloudDebug.zooKeeperGateLifecycle) {
-				LOG.debug("ZooKeeper Gate manager shutdown complete.");
-			}
-
-			// exit
-			final Throwable error = zkErrorRef.getAndSet(null);
-			return error == null ? IApplication.EXIT_OK : EXIT_ERROR;
-
-		} finally {
-			// done, now reset signal to allow further starts
-			stopSignalRef.compareAndSet(stopSignal, null);
-		}
-	}
-
-	@Override
-	public void stop() {
-		signalStopped(null);
-	}
-
 }

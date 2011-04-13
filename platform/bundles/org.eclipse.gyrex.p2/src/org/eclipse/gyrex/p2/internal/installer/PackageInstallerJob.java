@@ -426,7 +426,7 @@ public class PackageInstallerJob extends Job {
 
 			@Override
 			protected IStatus run(final IProgressMonitor monitor) {
-				ServerApplication.signalRelaunch();
+				ServerApplication.restart();
 				return Status.OK_STATUS;
 			}
 		};

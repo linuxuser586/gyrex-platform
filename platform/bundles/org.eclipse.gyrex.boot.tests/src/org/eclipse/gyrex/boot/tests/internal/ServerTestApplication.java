@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.tests.internal;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.equinox.app.IApplication;
@@ -29,11 +30,10 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("restriction")
 public class ServerTestApplication extends ServerApplication implements IApplication {
 
-//	private static final long SLEEP_TIME = 500l;
 	private static final Logger LOG = LoggerFactory.getLogger(ServerTestApplication.class);
 
 	@Override
-	protected void onServerStarted(final String[] arguments) {
+	protected void onApplicationStarted(final Map arguments) {
 		// schedule test executions
 		final Job testRunner = new Job("PDE JUnit Test Runner") {
 			@Override
@@ -50,58 +50,20 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 					LOG.info("Waiting {}ms for node to become online...", timeout);
 					if (!Activator.cloudOnlineWatch.await(timeout, TimeUnit.MILLISECONDS)) {
 						LOG.error("Timeout waiting for ZooKeeper connection.");
-						ServerApplication.signalShutdown(new Exception("Timeout while waiting for node to establish connection with cloud. Unable to initialize cloud environment. Test execution aborted!"));
+						ServerApplication.shutdown(new Exception("Timeout while waiting for node to establish connection with cloud. Unable to initialize cloud environment. Test execution aborted!"));
 						return Status.CANCEL_STATUS;
 					}
 
-//					// prepare wait for cloud connection
-//					final long timeout = Long.getLong("gyrex.servertestapp.timeout", 60000l);
-//					final CountDownLatch connectedSignal = new CountDownLatch(1);
-//					ZooKeeperGate.addConnectionMonitor(new IConnectionMonitor() {
-//						@Override
-//						public void connected(final ZooKeeperGate gate) {
-//							connectedSignal.countDown();
-//						}
-//
-//						@Override
-//						public void disconnected(final ZooKeeperGate gate) {
-//							LOG.warn("ZooKeeper disconnected! No more tests should be run now.");
-//						}
-//					});
-//
-//					// now wait for cloud connection
-//					LOG.info("waiting for ZooKeeper connection...");
-//					if (!connectedSignal.await(timeout, TimeUnit.MILLISECONDS)) {
-//						LOG.error("Timeout waiting for ZooKeeper connection.");
-//						ServerApplication.signalShutdown(new Exception("Timeout while waiting for ZooKeeper connection. Unable to initialize cloud environment. Test execution aborted!"));
-//						return Status.CANCEL_STATUS;
-//					}
-//
-//					//  wait for node approval
-//					long approvalTimeout = 5000;
-//					NodeInfo nodeInfo = CloudState.getNodeInfo();
-//					while (((nodeInfo == null) || !nodeInfo.isApproved()) && (approvalTimeout > 0)) {
-//						LOG.info("Waiting for automatic approval of node...");
-//						approvalTimeout -= SLEEP_TIME;
-//						Thread.sleep(SLEEP_TIME);
-//						nodeInfo = CloudState.getNodeInfo();
-//					}
-//					if ((nodeInfo == null) || !nodeInfo.isApproved()) {
-//						LOG.error("Timeout waiting for automatic node approval.");
-//						ServerApplication.signalShutdown(new Exception("Timeout while waiting for automatic node approval. Unable to initialize cloud environment. Test execution aborted!"));
-//						return Status.CANCEL_STATUS;
-//					}
-
 					// execute tests
 					LOG.info("Executing tests...");
-					RemotePluginTestRunner.main(arguments);
+					RemotePluginTestRunner.main(getApplicationArguments(arguments));
 					LOG.info("Finished executing tests.");
 
 					// shutdown
-					ServerApplication.signalShutdown(null);
+					ServerApplication.shutdown(null);
 				} catch (final Exception e) {
 					LOG.error("Failed executing tests. Signaling shutdown!", e);
-					ServerApplication.signalShutdown(e);
+					ServerApplication.shutdown(e);
 				}
 				return Status.OK_STATUS;
 			}

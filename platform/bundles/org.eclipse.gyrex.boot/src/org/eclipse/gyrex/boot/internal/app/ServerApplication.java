@@ -16,13 +16,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.equinox.app.IApplication;
-import org.eclipse.equinox.app.IApplicationContext;
-
+import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
@@ -41,10 +39,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The server application which starts Gyrex.
  */
-public class ServerApplication implements IApplication {
-
-	/** Exit object indicating error termination */
-	private static final Integer EXIT_ERROR = new Integer(1);
+public class ServerApplication extends BaseApplication {
 
 	/** LOG */
 	private static final Logger LOG = LoggerFactory.getLogger(ServerApplication.class);
@@ -55,24 +50,17 @@ public class ServerApplication implements IApplication {
 		public void run() {
 			try {
 				LOG.info("Shutting down...");
-				signalShutdown(null);
+				shutdown(null);
 			} catch (final Exception e) {
 				// ignore
 			}
 		};
 	};
 
+	private static final AtomicReference<ServerApplication> singletonInstance = new AtomicReference<ServerApplication>();
+
 	/** running state */
 	private static final AtomicBoolean running = new AtomicBoolean();
-
-	/** the stop or restart signal */
-	private static final AtomicReference<CountDownLatch> stopOrRestartSignalRef = new AtomicReference<CountDownLatch>();
-
-	/** a flag indicating if the application should restart upon shutdown */
-	private static volatile boolean relaunch;
-
-	/** optional shutdown reason */
-	private static volatile Throwable shutdownReason;
 
 	/**
 	 * Indicates if the server is running.
@@ -109,11 +97,11 @@ public class ServerApplication implements IApplication {
 	}
 
 	/**
-	 * Signals a restart.
+	 * Restarts a running server.
 	 */
-	public static void signalRelaunch() {
-		final CountDownLatch signal = stopOrRestartSignalRef.get();
-		if (null == signal) {
+	public static void restart() {
+		final ServerApplication application = singletonInstance.get();
+		if (null == application) {
 			throw new IllegalStateException("Platform not started.");
 		}
 
@@ -121,44 +109,51 @@ public class ServerApplication implements IApplication {
 			LOG.debug("Relaunch request received!");
 		}
 
-		// set relaunch flag
-		relaunch = true;
+		// set restart flag
+		application.restart = true;
+		application.shutdownReason = null;
 
-		// signal shutdown
-		signal.countDown();
+		// stop application
+		application.stop();
 	}
 
 	/**
-	 * Signals a shutdown.
+	 * Shutdown a running server because of an error.
 	 */
-	public static void signalShutdown(final Throwable cause) {
-		final CountDownLatch signal = stopOrRestartSignalRef.get();
-		if (null == signal) {
+	public static void shutdown(final Throwable cause) {
+		final ServerApplication application = singletonInstance.get();
+		if (null == application) {
 			throw new IllegalStateException("Platform not started.");
 		}
 
-		if (BootDebug.debug) {
-			LOG.debug("Shutdown request received!");
-		}
-
-		// set shutdown flag
-		relaunch = false;
+		// don't restart
+		application.restart = false;
 
 		// set shutdown reason
-		shutdownReason = cause;
+		application.shutdownReason = cause;
 
-		// signal shutdown
-		signal.countDown();
-
-		// remove shutdown hook
-		try {
-			Runtime.getRuntime().removeShutdownHook(shutdownHook);
-		} catch (final Exception e) {
-			// ignore
-		}
+		// stop application
+		application.stop();
 	}
 
+	/** a flag indicating if the application should restart upon shutdown */
+	private volatile boolean restart;
+
+	/** optional shutdown reason */
+	private volatile Throwable shutdownReason;
+
+	/** framework log service */
 	private ServiceRegistration frameworkLogServiceRegistration;
+
+	/** the instance location */
+	private Location instanceLocation;
+
+	/**
+	 * Creates a new instance.
+	 */
+	public ServerApplication() {
+		debug = BootDebug.debug;
+	}
 
 	private void bootstrap() throws Exception {
 		if (BootDebug.debug) {
@@ -170,26 +165,26 @@ public class ServerApplication implements IApplication {
 		if (null != dsImplBundle) {
 			dsImplBundle.start(Bundle.START_TRANSIENT);
 		} else {
-			// TODO consider failing startup
-			LOG.warn("Bundle 'org.eclipse.equinox.ds' not available but may be required by parts of the system. Your system may not function properly.");
+			printError("Bundle 'org.eclipse.equinox.ds' not available but may be required by parts of the system. Your system will not function properly.", null);
+			throw new StartAbortedException();
 		}
 	}
 
-	private boolean checkInstanceLocation(final Location instanceLocation) {
+	private void checkInstanceLocation(final Location instanceLocation) {
 		// check if a valid location is set
 		// note, just checking Location#isSet isn't enough, we need to check the full URL
 		// we also allow a default to apply, thus #getURL is better then just #isSet to initialize with a default
 		// (we might later set our own here if we want this)
 		if ((instanceLocation == null) || (null == instanceLocation.getURL()) || !instanceLocation.getURL().toExternalForm().startsWith("file:") || instanceLocation.isReadOnly()) {
 			printError("Gyrex needs a valid local instance location (aka. 'workspace'). Please start with the -data option pointing to a valid, writable file system path.", null);
-			return false;
+			throw new StartAbortedException();
 		}
 
 		// lock the location
 		try {
 			if (instanceLocation.lock()) {
 				// great
-				return true;
+				return;
 			}
 
 			// we failed to create the directory.
@@ -205,8 +200,107 @@ public class ServerApplication implements IApplication {
 		} catch (final IOException e) {
 			printError("Unable to verify the specified workspace directory " + instanceLocation.getURL().toExternalForm() + ".", e);
 		}
-		return false;
+		throw new StartAbortedException();
+	}
 
+	@Override
+	protected void doCleanup() {
+		// reset running flag
+		running.set(false);
+
+		// release instance location lock
+		if (null != instanceLocation) {
+			instanceLocation.release();
+			instanceLocation = null;
+		}
+
+		// reset shutdown reason
+		shutdownReason = null;
+
+		// remove shutdown hook
+		try {
+			Runtime.getRuntime().removeShutdownHook(shutdownHook);
+		} catch (final Exception e) {
+			// ignore
+		}
+	}
+
+	@Override
+	protected void doStart(final Map arguments) throws Exception {
+		final String[] args = getApplicationArguments(arguments);
+
+		if (isRunning()) {
+			throw new IllegalStateException("server application already running");
+		}
+
+		// get instance location
+		try {
+			instanceLocation = AppActivator.getInstance().getInstanceLocation();
+		} catch (final Exception e) {
+			printError("An error occurred reading the instance location (aka. 'workspace'). Please verify that the installation is correct and all required components are available.", e);
+			throw new StartAbortedException();
+		}
+
+		// check the instance location
+		checkInstanceLocation(instanceLocation);
+
+		// configure logging
+		loggingOn(args);
+
+		try {
+			// install shutdown hook
+			Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+			// bootstrap the platform
+			bootstrap();
+
+			// set the platform running state early to allow server roles
+			// use Platform#isRunning in their activation logic
+			running.set(true);
+
+			// read enabled server roles from configuration
+			final List<String> roles = getEnabledServerRoles(args);
+
+			// activate server roles
+			LocalRolesManager.activateRoles(roles, true);
+		} catch (final Exception e) {
+			if (BootDebug.debug) {
+				LOG.debug("Platform start failed!", e);
+			}
+
+			// de-configure logging
+			loggingOff();
+
+			// TODO should evaluate and suggest solution to Ops
+			printError("Unable to start server. Please verify the installation is correct and all required components are available.", e);
+			throw new StartAbortedException();
+		}
+	}
+
+	@Override
+	protected Object doStop() {
+		// reset running flag
+		running.set(false);
+
+		// deactivate all roles
+		try {
+			LocalRolesManager.deactivateAllRoles();
+		} catch (final Exception ignore) {
+			// ignore
+		}
+
+		// de-configure logging
+		loggingOff();
+
+		// print error
+		final Throwable reason = shutdownReason;
+		if (reason != null) {
+			printError("Server shutdown forced due to error in underlying system. Please verify the installation is correct and all required components are available. ", reason);
+			return EXIT_ERROR;
+		}
+
+		// return result
+		return restart ? EXIT_RESTART : EXIT_OK;
 	}
 
 	/**
@@ -270,6 +364,11 @@ public class ServerApplication implements IApplication {
 
 	}
 
+	@Override
+	protected Logger getLogger() {
+		return LOG;
+	}
+
 	private void loggingOff() {
 		// disable framework logging
 		if (frameworkLogServiceRegistration != null) {
@@ -308,154 +407,6 @@ public class ServerApplication implements IApplication {
 		// hook with GyrexFrameworkLog
 		// (note, we use strings here in order to not import those classes)
 		frameworkLogServiceRegistration = AppActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.osgi.framework.log.FrameworkLog"), "Eclipse Gyrex", "SLF4J Logger Factory", "org.slf4j.Logger.org.eclipse.osgi.framework.log.FrameworkLog", null);
-	}
-
-	/**
-	 * Called during server start when the server has been started.
-	 */
-	protected void onServerStarted(final String[] arguments) {
-		// empty
-	}
-
-	@Override
-	public Object start(final IApplicationContext context) throws Exception {
-		final Object args = context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
-		if (null == args) {
-			throw new IllegalStateException("application arguments missing");
-		}
-		if (!(args instanceof String[])) {
-			throw new IllegalStateException("application arguments of wrong type");
-		}
-		final String[] arguments = (String[]) args;
-
-		if (isRunning()) {
-			throw new IllegalStateException("server application already running");
-		}
-
-		Location instanceLocation = null;
-		try {
-			// get instance location
-			try {
-				instanceLocation = AppActivator.getInstance().getInstanceLocation();
-			} catch (final Exception e) {
-				printError("An error occurred reading the instance location (aka. 'workspace'). Please verify that the installation is correct and all required components are available.", e);
-				return EXIT_ERROR;
-			}
-
-			// check the instance location
-			if (!checkInstanceLocation(instanceLocation)) {
-				return EXIT_ERROR;
-			}
-
-			// configure logging
-			loggingOn(arguments);
-
-			// relaunch flag
-			boolean relaunch = false;
-
-			try {
-				if (BootDebug.debug) {
-					LOG.debug("Starting platform...");
-				}
-
-				// note, this application is configured to run only ONCE
-				// enforce early
-				final CountDownLatch stopOrRestartSignal = new CountDownLatch(1);
-				if (!stopOrRestartSignalRef.compareAndSet(null, stopOrRestartSignal)) {
-					throw new IllegalStateException("Server application already started!");
-				}
-
-				// install shutdown hook
-				Runtime.getRuntime().addShutdownHook(shutdownHook);
-
-				// bootstrap the platform
-				bootstrap();
-
-				// set the platform running state early to allow server roles
-				// use Platform#isRunning in their activation logic
-				running.set(true);
-
-				// read enabled server roles from configuration
-				final List<String> roles = getEnabledServerRoles(arguments);
-
-				// activate server roles
-				LocalRolesManager.activateRoles(roles, true);
-
-				// signal that we are now up and running
-				context.applicationRunning();
-
-				// log message
-				if (BootDebug.debug) {
-					LOG.info("Platform started.");
-				}
-
-				// hook for executing server tests
-				onServerStarted(arguments);
-
-				// wait for shutdown
-				do {
-					try {
-						stopOrRestartSignal.await();
-					} catch (final InterruptedException e) {
-						// reset interrupted state
-						Thread.currentThread().interrupt();
-					}
-				} while ((stopOrRestartSignal.getCount() > 0) && Thread.interrupted());
-
-				// deactivate all roles
-				LocalRolesManager.deactivateAllRoles();
-
-				// get & reset relaunch flag
-				relaunch = ServerApplication.relaunch;
-				ServerApplication.relaunch = false;
-
-				if (BootDebug.debug) {
-					LOG.debug("Platform closed.");
-				}
-
-				// de-configure logging
-				loggingOff();
-
-				// print error
-				final Throwable reason = shutdownReason;
-				if (reason != null) {
-					printError("Server shutdown forced due to error in underlying system. Please verify the installation is correct and all required components are available. ", reason);
-					return EXIT_ERROR;
-				}
-			} catch (final Exception e) {
-				if (BootDebug.debug) {
-					LOG.debug("Platform start failed!", e);
-				}
-
-				// de-configure logging
-				loggingOff();
-
-				// TODO should evaluate and suggest solution to Ops
-				printError("Unable to start server. Please verify the installation is correct and all required components are available.", e);
-				return EXIT_ERROR;
-			}
-
-			return relaunch ? EXIT_RESTART : EXIT_OK;
-		} finally {
-			// reset running flag
-			running.set(false);
-
-			// release instance location lock
-			if (null != instanceLocation) {
-				instanceLocation.release();
-			}
-
-			// allow restart
-			stopOrRestartSignalRef.set(null);
-
-			// reset
-			shutdownReason = null;
-		}
-	}
-
-	@Override
-	public void stop() {
-		signalShutdown(null);
 	}
 
 }

@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.gyrex.boot.internal.app.BootDebug;
-import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,20 +41,24 @@ public class LocalRolesManager {
 			LOG.debug("Activating role {}...", roleId);
 		}
 
-		if (activeRoles.containsKey(roleId)) {
-			if (BootDebug.roles) {
-				LOG.debug("Role {} already active.", roleId);
+		final ServerRole role;
+		synchronized (activeRoles) {
+			if (activeRoles.containsKey(roleId)) {
+				if (BootDebug.roles) {
+					LOG.debug("Role {} already active.", roleId);
+				}
+				return true;
 			}
-			return true;
+
+			role = ServerRolesRegistry.getDefault().getRole(roleId);
+			if (role == null) {
+				LOG.warn("Role {} not found in registry. Please check installation that bundles contributing the role are properly installed and resolve.", roleId);
+				return false;
+			}
+
+			activeRoles.put(roleId, role);
 		}
 
-		final ServerRole role = ServerRolesRegistry.getDefault().getRole(roleId);
-		if (role == null) {
-			LOG.warn("Role {} not found in registry. Please check installation that bundles contributing the role are properly installed and resolve.", roleId);
-			return false;
-		}
-
-		activeRoles.put(roleId, role);
 		role.activate();
 
 		return true;
@@ -66,7 +69,7 @@ public class LocalRolesManager {
 	 * 
 	 * @param roleIds
 	 */
-	public static synchronized void activateRoles(final Collection<String> roleIds) {
+	public static void activateRoles(final Collection<String> roleIds) {
 		for (final String roleId : roleIds) {
 			try {
 				activate(roleId);
@@ -82,7 +85,7 @@ public class LocalRolesManager {
 	 * @param roleIds
 	 * @param failOnError
 	 */
-	public static synchronized void activateRoles(final Collection<String> roleIds, final boolean failOnError) throws Exception {
+	public static void activateRoles(final Collection<String> roleIds, final boolean failOnError) throws Exception {
 		for (final String roleId : roleIds) {
 			if (!activate(roleId)) {
 				throw new IllegalArgumentException("Role " + roleId + " not found!");
@@ -91,24 +94,13 @@ public class LocalRolesManager {
 	}
 
 	/**
-	 * Deactives all roles which has been automatically started using the
-	 * specified trigger.
-	 * 
-	 * @param trigger
-	 */
-	public static synchronized void deactivateAllAutoStartRoles(final Trigger trigger) {
-		final List<String> roleIds = new ArrayList<String>(activeRoles.keySet());
-		Collections.reverse(roleIds);
-		for (final String roleId : roleIds) {
-			dectivate(roleId);
-		}
-	}
-
-	/**
 	 * Deactivates <strong>all</strong> roles.
 	 */
-	public static synchronized void deactivateAllRoles() {
-		final List<String> roleIds = new ArrayList<String>(activeRoles.keySet());
+	public static void deactivateAllRoles() {
+		final List<String> roleIds;
+		synchronized (activeRoles) {
+			roleIds = new ArrayList<String>(activeRoles.keySet());
+		}
 		Collections.reverse(roleIds);
 		for (final String roleId : roleIds) {
 			dectivate(roleId);
@@ -120,14 +112,17 @@ public class LocalRolesManager {
 	 * 
 	 * @param roleIds
 	 */
-	public static synchronized void deactivateRoles(final Collection<String> roleIds) {
+	public static void deactivateRoles(final Collection<String> roleIds) {
 		for (final String roleId : roleIds) {
 			dectivate(roleId);
 		}
 	}
 
 	private static void dectivate(final String roleId) {
-		final ServerRole role = activeRoles.remove(roleId);
+		final ServerRole role;
+		synchronized (activeRoles) {
+			role = activeRoles.remove(roleId);
+		}
 		if (role == null) {
 			return;
 		}
@@ -140,7 +135,7 @@ public class LocalRolesManager {
 	 * 
 	 * @param roles
 	 */
-	public static synchronized void refreshRoles(final Collection<String> roles) {
+	public static void refreshRoles(final Collection<String> roles) {
 		// TODO Auto-generated method stub
 		for (final String role : roles) {
 			System.err.println("new role: " + role);
