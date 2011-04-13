@@ -508,7 +508,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			// create (or recover) lock node with a pathname of "_locknode_/lock-" and the sequence flag set
 			if (recover) {
 				if (!execute(new RecoverLockNode(recoveryKey))) {
-					// false indicated that the lock as been removed
+					// null indicated that the lock as been removed
 					return null;
 				}
 			} else {
