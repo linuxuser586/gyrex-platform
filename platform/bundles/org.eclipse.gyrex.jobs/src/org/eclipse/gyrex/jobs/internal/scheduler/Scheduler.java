@@ -207,11 +207,13 @@ public class Scheduler extends Job implements INodeChangeListener {
 			}
 			return status;
 		} finally {
-			// reschedule
-			if (JobsDebug.schedulerEngine) {
-				LOG.debug("Rescheduling scheduler engine to run again in {} seconds", TimeUnit.MILLISECONDS.toSeconds(engineSleepTime));
+			// reschedule if not canceled
+			if (!monitor.isCanceled()) {
+				if (JobsDebug.schedulerEngine) {
+					LOG.debug("Rescheduling scheduler engine to run again in {} seconds", TimeUnit.MILLISECONDS.toSeconds(engineSleepTime));
+				}
+				schedule(engineSleepTime);
 			}
-			schedule(engineSleepTime);
 		}
 	}
 
