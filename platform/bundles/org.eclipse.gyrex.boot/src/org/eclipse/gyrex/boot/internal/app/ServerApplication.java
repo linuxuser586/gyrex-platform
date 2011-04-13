@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
@@ -59,16 +58,14 @@ public class ServerApplication extends BaseApplication {
 
 	private static final AtomicReference<ServerApplication> singletonInstance = new AtomicReference<ServerApplication>();
 
-	/** running state */
-	private static final AtomicBoolean running = new AtomicBoolean();
-
 	/**
 	 * Indicates if the server is running.
 	 * 
 	 * @return <code>true</code> if running, <code>false</code> otherwise
 	 */
 	public static boolean isRunning() {
-		return running.get();
+		final ServerApplication application = singletonInstance.get();
+		return (null != application) && application.running;
 	}
 
 	private static void printError(final String message, final Throwable cause) {
@@ -135,6 +132,9 @@ public class ServerApplication extends BaseApplication {
 		// stop application
 		application.stop();
 	}
+
+	/** running state */
+	private volatile boolean running;
 
 	/** a flag indicating if the application should restart upon shutdown */
 	private volatile boolean restart;
@@ -206,7 +206,7 @@ public class ServerApplication extends BaseApplication {
 	@Override
 	protected void doCleanup() {
 		// reset running flag
-		running.set(false);
+		running = false;
 
 		// release instance location lock
 		if (null != instanceLocation) {
@@ -229,7 +229,7 @@ public class ServerApplication extends BaseApplication {
 	protected void doStart(final Map arguments) throws Exception {
 		final String[] args = getApplicationArguments(arguments);
 
-		if (isRunning()) {
+		if (!singletonInstance.compareAndSet(null, this)) {
 			throw new IllegalStateException("server application already running");
 		}
 
@@ -256,7 +256,7 @@ public class ServerApplication extends BaseApplication {
 
 			// set the platform running state early to allow server roles
 			// use Platform#isRunning in their activation logic
-			running.set(true);
+			running = true;
 
 			// read enabled server roles from configuration
 			final List<String> roles = getEnabledServerRoles(args);
@@ -280,7 +280,7 @@ public class ServerApplication extends BaseApplication {
 	@Override
 	protected Object doStop() {
 		// reset running flag
-		running.set(false);
+		running = false;
 
 		// deactivate all roles
 		try {
