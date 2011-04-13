@@ -170,6 +170,12 @@ public abstract class BaseApplication implements IApplication {
 	 * <p>
 	 * The default implementation does nothing. Subclasses may override.
 	 * </p>
+	 * <p>
+	 * Note, this method is called during {@link #start(IApplicationContext)}.
+	 * Implementors must not block and return in timely manner. Otherwise the
+	 * application will not react to any stop requests. Typically, work is
+	 * performed asynchronously (for example, using Eclipse Jobs).
+	 * </p>
 	 * 
 	 * @param arguments
 	 *            the map with application arguments retrieved from
@@ -206,6 +212,9 @@ public abstract class BaseApplication implements IApplication {
 			if (debug) {
 				getLogger().debug("{} started.", getName());
 			}
+
+			// inform other
+			onApplicationStarted(context.getArguments());
 
 			// wait for termination
 			do {
