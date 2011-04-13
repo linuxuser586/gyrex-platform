@@ -258,7 +258,7 @@ public class DurableLockTests {
 		// wait for event propagation
 		// (the timing is a guess)
 		try {
-			lockMonitor.lockLostLatch.await(1, TimeUnit.SECONDS);
+			lockMonitor.lockLostLatch.await(1, TimeUnit.MINUTES);
 		} catch (final Exception e1) {
 			// ignore
 		}
@@ -268,12 +268,7 @@ public class DurableLockTests {
 
 		// attempt recovery
 		LOG.info("Testing tecovering lock: {}", lockId);
-		final DurableLockImpl recoveredLock = new DurableLockImpl(lockId, null);
-		try {
-			recoveredLock.recover(recoveryKey);
-			fail("Should not be possible to recover a killed lock");
-		} catch (final IllegalStateException e) {
-			// this is good
-		}
+		final IDurableLock recoveredLock = new DurableLockImpl(lockId, null).recover(recoveryKey);
+		assertNull("Should not be possible to recover a killed lock", recoveredLock);
 	}
 }
