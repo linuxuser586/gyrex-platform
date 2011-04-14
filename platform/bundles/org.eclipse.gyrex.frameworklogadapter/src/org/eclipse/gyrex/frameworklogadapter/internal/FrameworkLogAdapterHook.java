@@ -41,6 +41,9 @@ import org.osgi.framework.ServiceReference;
  */
 public class FrameworkLogAdapterHook implements AdaptorHook {
 
+	public static final String PROP_BUFFER_SIZE = "gyrex.log.forwarder.buffer.size";
+	public static final String PROP_LOG_ENABLED = "gyrex.log.forwarder.enabled";
+
 	private static final AtomicReference<FrameworkLogAdapterHook> instanceRef = new AtomicReference<FrameworkLogAdapterHook>();
 
 	/**
@@ -106,14 +109,14 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 
 	@Override
 	public FrameworkLog createFrameworkLog() {
-		// we rely on 'eclipse.log.enabled=false', thus we use the default framework log
+		// we rely on 'eclipse.log.enabled=false' to disable the default Eclipse log
 		return null;
 	}
 
 	@Override
 	public void frameworkStart(final BundleContext context) throws BundleException {
 		// allow to disable via system property
-		final String enabled = System.getProperty("gyrex.log.forwarder.enabled", "true");
+		final String enabled = System.getProperty(PROP_LOG_ENABLED, "true");
 		if (!"true".equals(enabled)) {
 			return;
 		}
@@ -121,7 +124,7 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 		this.context = context;
 
 		if (null == logForwarder) {
-			logForwarder = new GyrexSlf4jForwarder();
+			logForwarder = new GyrexSlf4jForwarder(Integer.getInteger(PROP_BUFFER_SIZE, 0));
 		}
 
 		try {

@@ -169,11 +169,13 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 		}
 	}
 
+	private static final int DEFAULT_CAPACITY = 150;
+
 	static final String EQUINOX_LOGGER_NAME = "org.eclipse.equinox.logger";
 	static final String NEWLINE = System.getProperty("line.separator");
 
 	final AtomicBoolean closed = new AtomicBoolean(false);
-	final BlockingQueue<LogEntry> logBuffer = new LinkedBlockingQueue<LogEntry>(150);
+	final BlockingQueue<LogEntry> logBuffer;
 
 	final AtomicReference<SLF4JLogger> activeLogger = new AtomicReference<SLF4JLogger>();
 
@@ -185,6 +187,15 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 			return thread;
 		}
 	});
+
+	/**
+	 * Creates a new instance.
+	 * 
+	 * @param bufferSize
+	 */
+	public GyrexSlf4jForwarder(final int bufferSize) {
+		logBuffer = new LinkedBlockingQueue<LogEntry>(bufferSize > 0 ? bufferSize : DEFAULT_CAPACITY);
+	}
 
 	/**
 	 * Closes the forwarder
@@ -219,7 +230,9 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 	public void logged(final LogEntry entry) {
 		if ((null != entry) && !closed.get()) {
 			if (!logBuffer.offer(entry)) {
-				System.err.println("[Eclipse Gyrex] Log buffer capacity limit reached. Try lowering the log level.");
+				if (EclipseStarter.debug) {
+					System.err.println("[Eclipse Gyrex] Log buffer capacity limit reached. Try lowering the log level or increasing the buffer size (system property 'gyrex.log.forwarder.buffer.size').");
+				}
 			}
 		}
 	}
