@@ -64,8 +64,6 @@ public interface ILockService {
 	 * less than zero, the calling thread will block until the lock becomes
 	 * available.
 	 * </p>
-	 * <p>
-	 * </p>
 	 * 
 	 * @param lockId
 	 *            the lock identifier
@@ -96,8 +94,6 @@ public interface ILockService {
 	 * If the specified lock is in use and the specified timeout is equal to or
 	 * less than zero, the calling thread will block until the lock becomes
 	 * available.
-	 * </p>
-	 * <p>
 	 * </p>
 	 * 
 	 * @param lockId
