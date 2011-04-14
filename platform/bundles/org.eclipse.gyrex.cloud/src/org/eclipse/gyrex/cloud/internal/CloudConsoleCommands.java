@@ -184,14 +184,14 @@ public class CloudConsoleCommands implements CommandProvider {
 				}
 			}
 		});
-		cloudCommands.put("setOffline", new Command("sets the current node off-liine") {
+		cloudCommands.put("setOffline", new Command("sets the current node off-line") {
 			@Override
 			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
 				CloudState.unregisterNode();
 				ci.println("Node unregistered from cloud!");
 			}
 		});
-		cloudCommands.put("setOnline", new Command("sets the current node off-liine") {
+		cloudCommands.put("setOnline", new Command("sets the current node on-line") {
 			@Override
 			public void execute(final ICloudManager cloudManager, final CommandInterpreter ci) throws Exception {
 				CloudState.registerNode();
