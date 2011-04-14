@@ -13,17 +13,19 @@ package org.eclipse.gyrex.log.frameworklogadapter.internal;
 
 import java.io.IOException;
 import java.net.URLConnection;
-import java.util.Hashtable;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.SortedSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.core.runtime.adaptor.EclipseStarter;
+import org.eclipse.equinox.log.ExtendedLogReaderService;
+
 import org.eclipse.osgi.baseadaptor.BaseAdaptor;
 import org.eclipse.osgi.baseadaptor.hooks.AdaptorHook;
-import org.eclipse.osgi.framework.internal.core.FrameworkProperties;
 import org.eclipse.osgi.framework.log.FrameworkLog;
 import org.eclipse.osgi.util.NLS;
 
@@ -33,7 +35,6 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
-import org.osgi.framework.ServiceRegistration;
 
 /**
  * The adapter hook for the Gyrex extended {@link FrameworkLog}.
@@ -56,13 +57,11 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 		return frameworkLogAdapterHook;
 	}
 
-	private BaseAdaptor baseAdaptor;
-	private GyrexFrameworkLog log;
-	private ServiceRegistration logServiceRegistration;
+	private GyrexSlf4jForwarder logForwarder;
 	private BundleContext context;
 
-	private final SortedSet<ServiceReference> loggers = new ConcurrentSkipListSet<ServiceReference>();
-	private final ServiceListener slf4jBridge = new ServiceListener() {
+	private final SortedSet<ServiceReference<?>> loggers = new ConcurrentSkipListSet<ServiceReference<?>>();
+	private final ServiceListener slf4jLoggerListener = new ServiceListener() {
 		@Override
 		public void serviceChanged(final ServiceEvent event) {
 			switch (event.getType()) {
@@ -72,6 +71,22 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 
 				case ServiceEvent.UNREGISTERING:
 					unregisterLogger(event.getServiceReference());
+					break;
+			}
+		}
+	};
+
+	private final ConcurrentMap<ServiceReference<?>, ExtendedLogReaderService> readerServices = new ConcurrentHashMap<ServiceReference<?>, ExtendedLogReaderService>();
+	private final ServiceListener logReaderServiceListener = new ServiceListener() {
+		@Override
+		public void serviceChanged(final ServiceEvent event) {
+			switch (event.getType()) {
+				case ServiceEvent.REGISTERED:
+					registerWithLogReaderService(event.getServiceReference());
+					break;
+
+				case ServiceEvent.UNREGISTERING:
+					unregisterFromLogReaderService(event.getServiceReference());
 					break;
 			}
 		}
@@ -91,34 +106,37 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 
 	@Override
 	public FrameworkLog createFrameworkLog() {
-		if (null == log) {
-			log = new GyrexFrameworkLog();
-		}
-		if ("true".equals(FrameworkProperties.getProperty(EclipseStarter.PROP_CONSOLE_LOG))) {
-			log.setConsoleLog(true);
-		}
-		return log;
+		// we rely on 'eclipse.log.enabled=false', thus we use the default framework log
+		return null;
 	}
 
 	@Override
 	public void frameworkStart(final BundleContext context) throws BundleException {
-		this.context = context;
-
-		final FrameworkLog frameworkLog = baseAdaptor.getFrameworkLog();
-		if (frameworkLog != log) {
-			System.err.println(NLS.bind("[Eclipse Gyrex] Failed to install the GyrexFrameworkLog. FrameworkLog is of type \"{0}\". It seems that another framework hook already created the FrameworkLog. Please check the hook configuration.", frameworkLog.getClass().getName()));
+		// allow to disable via system property
+		final String enabled = System.getProperty("gyrex.log.forwarder.enabled", "true");
+		if (!"true".equals(enabled)) {
 			return;
 		}
 
-		final Hashtable<String, Object> properties = new Hashtable<String, Object>(3);
-		properties.put(org.osgi.framework.Constants.SERVICE_VENDOR, "Eclipse Gyrex");//$NON-NLS-1$
-		properties.put(org.osgi.framework.Constants.SERVICE_RANKING, new Integer(Integer.MAX_VALUE));
-		properties.put(org.osgi.framework.Constants.SERVICE_PID, "org.eclipse.gyrex.log.frameworklogadapter"); //$NON-NLS-1$
-		logServiceRegistration = context.registerService(FrameworkLog.class.getName(), frameworkLog, null);
+		this.context = context;
+
+		if (null == logForwarder) {
+			logForwarder = new GyrexSlf4jForwarder();
+		}
 
 		try {
+			// watch for SLF4J logger
 			// note, we do not import any SLF4J packages because the dependency is optional
-			context.addServiceListener(slf4jBridge, "(& (objectClass=org.slf4j.Logger) (service.pid=org.slf4j.Logger.org.eclipse.osgi.framework.log.FrameworkLog) )");
+			context.addServiceListener(slf4jLoggerListener, String.format("(& (objectClass=org.slf4j.Logger) (service.pid=org.slf4j.Logger-%s) )", GyrexSlf4jForwarder.EQUINOX_LOGGER_NAME));
+
+			// register forwarder with log reader service
+			context.addServiceListener(logReaderServiceListener, String.format("(& (objectClass=%s) )", ExtendedLogReaderService.class.getName()));
+
+			// capture all existing services
+			final Collection<ServiceReference<ExtendedLogReaderService>> serviceReferences = context.getServiceReferences(ExtendedLogReaderService.class, null);
+			for (final ServiceReference<ExtendedLogReaderService> serviceReference : serviceReferences) {
+				registerWithLogReaderService(serviceReference);
+			}
 		} catch (final InvalidSyntaxException e) {
 			// should not happen, we hardcoded the filter
 			System.err.println("[Eclipse Gyrex] Please inform the developers. There is an implementation error: " + e);
@@ -127,15 +145,28 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 
 	@Override
 	public void frameworkStop(final BundleContext context) throws BundleException {
-		context.removeServiceListener(slf4jBridge);
-		if (null != logServiceRegistration) {
-			logServiceRegistration.unregister();
-			logServiceRegistration = null;
+		if (logForwarder == null) {
+			return;
 		}
-		if (null != log) {
-			log.close();
-			log = null;
+
+		context.removeServiceListener(slf4jLoggerListener);
+		context.removeServiceListener(logReaderServiceListener);
+
+		// remove from all existing log readers
+
+		try {
+			final Collection<ServiceReference<ExtendedLogReaderService>> serviceReferences = context.getServiceReferences(ExtendedLogReaderService.class, null);
+			for (final ServiceReference<ExtendedLogReaderService> serviceReference : serviceReferences) {
+				unregisterFromLogReaderService(serviceReference);
+			}
+		} catch (final InvalidSyntaxException e) {
+			// should not happen, we hardcoded the filter
+			System.err.println("[Eclipse Gyrex] Please inform the developers. There is an implementation error: " + e);
 		}
+
+		logForwarder.close();
+		logForwarder = null;
+
 		this.context = null;
 	}
 
@@ -151,7 +182,7 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 
 	@Override
 	public void initialize(final BaseAdaptor adaptor) {
-		baseAdaptor = adaptor;
+		// empty
 	}
 
 	@Override
@@ -165,20 +196,45 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 		updateLogger();
 	}
 
+	void registerWithLogReaderService(final ServiceReference<?> serviceReference) {
+		if (null == logForwarder) {
+			return;
+		}
+
+		// get service
+		final ExtendedLogReaderService service = (ExtendedLogReaderService) context.getService(serviceReference);
+
+		// register listener
+		if (null == readerServices.putIfAbsent(serviceReference, service)) {
+			service.addLogListener(logForwarder, logForwarder);
+		}
+	}
+
+	void unregisterFromLogReaderService(final ServiceReference<?> serviceReference) {
+		// unregister listener
+		final ExtendedLogReaderService removed = readerServices.remove(serviceReference);
+		if (null != removed) {
+			removed.removeLogListener(logForwarder);
+		}
+
+		// unget service
+		context.ungetService(serviceReference);
+	}
+
 	void unregisterLogger(final ServiceReference serviceReference) {
 		loggers.remove(serviceReference);
 		updateLogger();
 	}
 
 	private void updateLogger() {
-		ServiceReference highestLoggerReference = null;
+		ServiceReference<?> highestLoggerReference = null;
 		try {
 			// the highest logger wins
 			highestLoggerReference = loggers.last();
-			log.setSLF4JLogger(context.getService(highestLoggerReference));
+			logForwarder.setSLF4JLogger(context.getService(highestLoggerReference));
 		} catch (final NoSuchElementException e) {
 			// no logger available
-			log.setSLF4JLogger(null);
+			logForwarder.setSLF4JLogger(null);
 		} catch (final Throwable e) {
 			System.err.println(NLS.bind("[Eclipse Gyrex] Failed to get SLF4J Logger. {0}", e));
 			// don't update logger, assume current one is still good
