@@ -24,8 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The role manager is responsible for managing the individual roles assigned to
- * a node.
+ * The role manager is responsible for managing the individual roles active on a
+ * node.
  */
 public class LocalRolesManager {
 
@@ -129,18 +129,4 @@ public class LocalRolesManager {
 
 		role.deactivate();
 	}
-
-	/**
-	 * Refreshes the roles.
-	 * 
-	 * @param roles
-	 */
-	public static void refreshRoles(final Collection<String> roles) {
-		// TODO Auto-generated method stub
-		for (final String role : roles) {
-			System.err.println("new role: " + role);
-		}
-
-	}
-
 }

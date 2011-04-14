@@ -13,23 +13,13 @@
  -->
 <plugin>
    <extension
+         id="mandatory"
+         name="Mandatory Roles"
          point="org.eclipse.gyrex.server.roles">
       <defaultStart
             mode="any"
             roleId="org.eclipse.gyrex.cloud.roles.coordinator"
             trigger="onBoot">
-      </defaultStart>
-      <defaultStart
-            mode="development"
-            roleId="org.eclipse.gyrex.cloud.roles.leader"
-            startLevel="-10"
-            trigger="onBoot">
-      </defaultStart>
-      <defaultStart
-            mode="any"
-            roleId="org.eclipse.gyrex.http.jetty.roles.engine"
-            startLevel="10"
-            trigger="onCloudConnect">
       </defaultStart>
       <defaultStart
             mode="any"
@@ -42,6 +32,24 @@
             roleId="org.eclipse.gyrex.http.appmanager"
             trigger="onCloudConnect">
       </defaultStart>
+   </extension>
+
+   <extension
+         id="development"
+         name="Default Development Roles"
+         point="org.eclipse.gyrex.server.roles">
+      <defaultStart
+            mode="development"
+            roleId="org.eclipse.gyrex.cloud.roles.leader"
+            startLevel="-10"
+            trigger="onBoot">
+      </defaultStart>
+      <defaultStart
+            mode="development"
+            roleId="org.eclipse.gyrex.http.jetty.roles.engine"
+            startLevel="10"
+            trigger="onCloudConnect">
+      </defaultStart>
       <defaultStart
             mode="development"
             roleId="org.eclipse.gyrex.jobs.roles.scheduler"
@@ -51,6 +59,33 @@
       <defaultStart
             mode="development"
             roleId="org.eclipse.gyrex.jobs.roles.worker"
+            startLevel="100"
+            trigger="onCloudConnect">
+      </defaultStart>
+   </extension>
+
+   <extension
+         id="production"
+         name="Default Production Roles"
+         point="org.eclipse.gyrex.server.roles">
+      <defaultStart
+            mode="production"
+            nodeFilter="(tag=webserver)"
+            roleId="org.eclipse.gyrex.http.jetty.roles.engine"
+            startLevel="10"
+            trigger="onCloudConnect">
+      </defaultStart>
+      <defaultStart
+            mode="production"
+            nodeFilter="(tag=worker)"
+            roleId="org.eclipse.gyrex.jobs.roles.worker"
+            startLevel="100"
+            trigger="onCloudConnect">
+      </defaultStart>
+      <defaultStart
+            mode="production"
+            nodeFilter="(tag=scheduler)"
+            roleId="org.eclipse.gyrex.jobs.roles.scheduler"
             startLevel="100"
             trigger="onCloudConnect">
       </defaultStart>

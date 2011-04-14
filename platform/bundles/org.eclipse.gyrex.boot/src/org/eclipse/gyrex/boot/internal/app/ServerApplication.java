@@ -21,8 +21,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
+import org.eclipse.gyrex.server.internal.roles.ServerRoleDefaultStartOption;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
-import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
 import org.eclipse.osgi.service.datalocation.Location;
 
@@ -349,7 +349,7 @@ public class ServerApplication extends BaseApplication {
 
 		// add default start roles
 		if (!ignoreDefaultRoles) {
-			final Collection<String> defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_BOOT);
+			final Collection<String> defaultRoles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(ServerRoleDefaultStartOption.Trigger.ON_BOOT);
 			for (final String role : defaultRoles) {
 				if (!roleIds.contains(role)) {
 					if (BootDebug.roles) {

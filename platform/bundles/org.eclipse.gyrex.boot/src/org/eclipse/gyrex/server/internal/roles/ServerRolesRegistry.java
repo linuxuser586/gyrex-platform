@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.gyrex.server.Platform;
+import org.eclipse.gyrex.server.internal.roles.ServerRoleDefaultStartOption.Mode;
+import org.eclipse.gyrex.server.internal.roles.ServerRoleDefaultStartOption.Trigger;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -35,60 +37,6 @@ import org.slf4j.LoggerFactory;
  * A registry that keeps track of registered server roles.
  */
 public class ServerRolesRegistry {
-
-	static enum Mode {
-		ANY, DEVELOPMENT, PRODUCTION
-	}
-
-	static class RoleDefaultStart {
-
-		private final String roleId;
-		private final Mode mode;
-		private final Trigger trigger;
-		private final int startLevel;
-
-		/**
-		 * Creates a new instance.
-		 * 
-		 * @param roleId
-		 * @param mode
-		 * @param trigger
-		 * @param startLevel
-		 */
-		public RoleDefaultStart(final String roleId, final Mode mode, final Trigger trigger, final int startLevel) {
-			this.roleId = roleId;
-			this.mode = mode;
-			this.trigger = trigger;
-			this.startLevel = startLevel;
-		}
-
-		/**
-		 * Returns the roleId.
-		 * 
-		 * @return the roleId
-		 */
-		public String getRoleId() {
-			return roleId;
-		}
-
-		/**
-		 * Returns the startLevel.
-		 * 
-		 * @return the startLevel
-		 */
-		public int getStartLevel() {
-			return startLevel;
-		}
-
-		public boolean matches(final Mode mode, final Trigger trigger) {
-			return ((this.mode == Mode.ANY) || (this.mode == mode)) && (this.trigger == trigger);
-		}
-
-	}
-
-	public static enum Trigger {
-		ON_BOOT, ON_CLOUD_CONNECT
-	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerRolesRegistry.class);
 
@@ -105,6 +53,7 @@ public class ServerRolesRegistry {
 	private static final String ATTR_TRIGGER = "trigger";
 	private static final String ATTR_MODE = "mode";
 	private static final String ATTR_ROLE_ID = "roleId";
+	private static final String ATTR_NODE_FILTER = "nodeFilter";
 
 	private static ServerRolesRegistry instance = new ServerRolesRegistry();
 
@@ -113,7 +62,7 @@ public class ServerRolesRegistry {
 	}
 
 	private Map<String, ServerRole> registeredRoles;
-	private final List<RoleDefaultStart> defaultStartRoles = new CopyOnWriteArrayList<RoleDefaultStart>();
+	private final List<ServerRoleDefaultStartOption> defaultStartRoles = new CopyOnWriteArrayList<ServerRoleDefaultStartOption>();
 
 	/**
 	 * Hidden constructor
@@ -137,6 +86,40 @@ public class ServerRolesRegistry {
 	};
 
 	/**
+	 * Returns a list of all default start options for the specified trigger.
+	 * <p>
+	 * The returned list is modifiable. However, modifications are not reflected
+	 * into the registry.
+	 * </p>
+	 * 
+	 * @param trigger
+	 *            a trigger
+	 * @return a modifiable list of default start options
+	 */
+	public List<ServerRoleDefaultStartOption> getAllDefaultStartOptions(final Trigger trigger) {
+		// detect mode
+		final Mode mode = Platform.inDevelopmentMode() ? ServerRoleDefaultStartOption.Mode.DEVELOPMENT : ServerRoleDefaultStartOption.Mode.PRODUCTION;
+
+		// collect default start settings
+		final List<ServerRoleDefaultStartOption> startoptions = new ArrayList<ServerRoleDefaultStartOption>();
+		for (final ServerRoleDefaultStartOption defaultStart : defaultStartRoles) {
+			if (defaultStart.matches(mode, trigger)) {
+				startoptions.add(defaultStart);
+			}
+		}
+		return startoptions;
+	};
+
+	/**
+	 * Returns a list of all registered roles.
+	 * 
+	 * @return an unmodifiable collection of all registered roles
+	 */
+	public Collection<ServerRole> getAllRoles() {
+		return Collections.unmodifiableCollection(registeredRoles.values());
+	}
+
+	/**
 	 * Returns a server role of the specified name
 	 * 
 	 * @param id
@@ -145,31 +128,31 @@ public class ServerRolesRegistry {
 	public ServerRole getRole(final String id) {
 		checkInitialized();
 		return registeredRoles.get(id);
-	};
+	}
 
-	public Collection<String> getRolesToStartByDefault(final Trigger trigger) {
+	public Collection<String> getRolesToStartByDefault(final ServerRoleDefaultStartOption.Trigger trigger) {
 		checkInitialized();
 
 		// collect default start settings
-		final List<RoleDefaultStart> roles = new ArrayList<ServerRolesRegistry.RoleDefaultStart>();
-		for (final RoleDefaultStart defaultStart : defaultStartRoles) {
-			final Mode mode = Platform.inDevelopmentMode() ? Mode.DEVELOPMENT : Mode.PRODUCTION;
+		final List<ServerRoleDefaultStartOption> roles = new ArrayList<ServerRoleDefaultStartOption>();
+		for (final ServerRoleDefaultStartOption defaultStart : defaultStartRoles) {
+			final ServerRoleDefaultStartOption.Mode mode = Platform.inDevelopmentMode() ? ServerRoleDefaultStartOption.Mode.DEVELOPMENT : ServerRoleDefaultStartOption.Mode.PRODUCTION;
 			if (defaultStart.matches(mode, trigger)) {
 				roles.add(defaultStart);
 			}
 		}
 
 		// sort according to start level
-		Collections.sort(roles, new Comparator<RoleDefaultStart>() {
+		Collections.sort(roles, new Comparator<ServerRoleDefaultStartOption>() {
 			@Override
-			public int compare(final RoleDefaultStart r1, final RoleDefaultStart r2) {
+			public int compare(final ServerRoleDefaultStartOption r1, final ServerRoleDefaultStartOption r2) {
 				return r1.getStartLevel() - r2.getStartLevel();
 			}
 		});
 
 		// get role ids
 		final List<String> roleIds = new ArrayList<String>(roles.size());
-		for (final RoleDefaultStart roleDefaultStart : roles) {
+		for (final ServerRoleDefaultStartOption roleDefaultStart : roles) {
 			final String roleId = roleDefaultStart.getRoleId();
 			if (!roleIds.contains(roleId)) {
 				roleIds.add(roleId);
@@ -186,31 +169,33 @@ public class ServerRolesRegistry {
 		}
 
 		final String modeStr = element.getAttribute(ATTR_MODE);
-		final Mode mode;
+		final ServerRoleDefaultStartOption.Mode mode;
 		if ("any".equals(modeStr)) {
-			mode = Mode.ANY;
+			mode = ServerRoleDefaultStartOption.Mode.ANY;
 		} else if ("development".equals(modeStr)) {
-			mode = Mode.DEVELOPMENT;
+			mode = ServerRoleDefaultStartOption.Mode.DEVELOPMENT;
 		} else if ("production".equals(modeStr)) {
-			mode = Mode.PRODUCTION;
+			mode = ServerRoleDefaultStartOption.Mode.PRODUCTION;
 		} else {
 			LOG.warn("Invalid defaultStart extension contributed by bundle {}: missing/wrong mode", element.getContributor().getName());
 			return;
 		}
 
 		final String triggerStr = element.getAttribute(ATTR_TRIGGER);
-		final Trigger trigger;
+		final ServerRoleDefaultStartOption.Trigger trigger;
 		if ("onBoot".equals(triggerStr)) {
-			trigger = Trigger.ON_BOOT;
+			trigger = ServerRoleDefaultStartOption.Trigger.ON_BOOT;
 		} else if ("onCloudConnect".equals(triggerStr)) {
-			trigger = Trigger.ON_CLOUD_CONNECT;
+			trigger = ServerRoleDefaultStartOption.Trigger.ON_CLOUD_CONNECT;
 		} else {
 			LOG.warn("Invalid defaultStart extension contributed by bundle {}: missing/wrong trigger", element.getContributor().getName());
 			return;
 		}
 
 		final int startLevel = NumberUtils.toInt(element.getAttribute(ATTR_START_LEVEL), 0);
-		defaultStartRoles.add(new RoleDefaultStart(roleId, mode, trigger, startLevel));
+		final String nodeFilter = StringUtils.trimToNull(element.getAttribute(ATTR_NODE_FILTER));
+
+		defaultStartRoles.add(new ServerRoleDefaultStartOption(roleId, mode, trigger, startLevel, nodeFilter));
 	}
 
 	private void readRole(final IConfigurationElement element) {

@@ -12,15 +12,16 @@
 package org.eclipse.gyrex.cloud.internal;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.events.ICloudEventConstants;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
@@ -29,8 +30,9 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 import org.eclipse.gyrex.server.Platform;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
+import org.eclipse.gyrex.server.internal.roles.ServerRoleDefaultStartOption;
+import org.eclipse.gyrex.server.internal.roles.ServerRoleDefaultStartOption.Trigger;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
-import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry.Trigger;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -40,6 +42,7 @@ import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.util.NLS;
 
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.event.Event;
 
 import org.apache.commons.lang.StringUtils;
@@ -200,6 +203,7 @@ public class CloudState implements IConnectionMonitor {
 	private final Lock registrationLock = new ReentrantLock();
 	private final AtomicReference<State> state = new AtomicReference<State>(State.DISCONNECTED);
 	private final AtomicReference<NodeInfo> myInfo = new AtomicReference<NodeInfo>();
+	private final AtomicReference<List<String>> myRoles = new AtomicReference<List<String>>();
 	private final ZooKeeperMonitor monitor = new ZooKeeperMonitor() {
 		@Override
 		protected void pathCreated(final String path) {
@@ -338,6 +342,41 @@ public class CloudState implements IConnectionMonitor {
 		}
 	}
 
+	private List<String> getCloudRolesToStart() {
+		// get all roles that should be started
+		final List<ServerRoleDefaultStartOption> startOptions = ServerRolesRegistry.getDefault().getAllDefaultStartOptions(Trigger.ON_CLOUD_CONNECT);
+
+		// filter based on node filter
+		final INodeEnvironment nodeEnvironment = CloudActivator.getInstance().getNodeEnvironment();
+		for (final Iterator stream = startOptions.iterator(); stream.hasNext();) {
+			final ServerRoleDefaultStartOption startOption = (ServerRoleDefaultStartOption) stream.next();
+			final String nodeFilter = startOption.getNodeFilter();
+			if (null != nodeFilter) {
+				try {
+					if (!nodeEnvironment.matches(nodeFilter)) {
+						stream.remove();
+					}
+				} catch (final InvalidSyntaxException e) {
+					stream.remove();
+					LOG.error("Invalid node filter for start option of role {}. {}", startOption.getRoleId(), e.getMessage());
+				}
+			}
+		}
+
+		// sort according to start level
+		Collections.sort(startOptions);
+
+		// get role ids
+		final List<String> roleIds = new ArrayList<String>(startOptions.size());
+		for (final ServerRoleDefaultStartOption roleDefaultStart : startOptions) {
+			final String roleId = roleDefaultStart.getRoleId();
+			if (!roleIds.contains(roleId)) {
+				roleIds.add(roleId);
+			}
+		}
+		return roleIds;
+	}
+
 	State getConnectState() {
 		return state.get();
 	}
@@ -451,10 +490,40 @@ public class CloudState implements IConnectionMonitor {
 			myInfo.set(newInfo);
 
 			// refresh roles
-			LocalRolesManager.refreshRoles(newInfo.getTags());
+			refreshServerRoles();
 		} finally {
 			registrationLock.unlock();
 		}
+	}
+
+	private void refreshServerRoles() {
+		// get roles that should be started
+		final List<String> rolesToStart = getCloudRolesToStart();
+
+		// set new roles
+		final List<String> alreadyStartedRoles = myRoles.getAndSet(rolesToStart);
+
+		// find roles to stop
+		if (null != alreadyStartedRoles) {
+			final List<String> toStop = new ArrayList<String>(alreadyStartedRoles.size());
+			for (final String roledId : alreadyStartedRoles) {
+				if (!rolesToStart.contains(roledId)) {
+					toStop.add(roledId);
+				}
+			}
+			// stop in reverse order
+			Collections.reverse(toStop);
+			LocalRolesManager.deactivateRoles(toStop);
+		}
+
+		// find new roles to start
+		final List<String> toStart = new ArrayList<String>(rolesToStart.size());
+		for (final String roledId : rolesToStart) {
+			if ((null == alreadyStartedRoles) || !alreadyStartedRoles.contains(roledId)) {
+				toStart.add(roledId);
+			}
+		}
+		LocalRolesManager.activateRoles(toStart);
 	}
 
 	/**
@@ -540,16 +609,12 @@ public class CloudState implements IConnectionMonitor {
 		// send offline event
 		sendNodeEvent(node, false);
 
-		// de-activate cloud roles
-		// TODO we shouldn't deactivate immediately but schedule a deactivation
-		// (there might be a temporary network partition which shouldn't bring down roles)
-		final List<String> roles = new ArrayList<String>(node.getTags());
-		if (roles.isEmpty()) {
-			// fallback to default roles
-			roles.addAll(ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT));
+		// de-activate all roles
+		final List<String> roles = myRoles.getAndSet(null);
+		if ((null != roles) && !roles.isEmpty()) {
+			Collections.reverse(roles); // de-activate in reverse order
+			LocalRolesManager.deactivateRoles(roles);
 		}
-		Collections.reverse(roles); // de-activate in reverse order
-		LocalRolesManager.deactivateRoles(roles);
 
 		// stop cloud services
 		CloudActivator.getInstance().stopCloudServices();
@@ -602,11 +667,12 @@ public class CloudState implements IConnectionMonitor {
 		// start cloud services
 		CloudActivator.getInstance().startCloudServices();
 
+		// get all roles that should be started
+		final List<String> roleIds = getCloudRolesToStart();
+
 		// activate cloud roles
-		// TODO support mapping node tags to roles
-		//node.getTags();
-		final Collection<String> roles = ServerRolesRegistry.getDefault().getRolesToStartByDefault(Trigger.ON_CLOUD_CONNECT);
-		LocalRolesManager.activateRoles(roles);
+		LocalRolesManager.activateRoles(roleIds);
+		myRoles.set(roleIds);
 
 		// send node activation event
 		sendNodeEvent(node, true);
