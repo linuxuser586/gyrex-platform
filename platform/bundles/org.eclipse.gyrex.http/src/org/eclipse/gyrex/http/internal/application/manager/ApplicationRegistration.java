@@ -22,7 +22,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
-import org.eclipse.gyrex.http.internal.HttpAppManagerApplication;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 
 import org.eclipse.core.runtime.CoreException;
 
@@ -54,8 +54,8 @@ public class ApplicationRegistration {
 	 * @param initProperties
 	 */
 	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> initProperties) {
-		this.applicationId = applicationId.intern();
-		this.providerId = providerId.intern();
+		this.applicationId = applicationId;
+		this.providerId = providerId;
 		this.context = context;
 		this.initProperties = initProperties;
 	}
@@ -100,7 +100,7 @@ public class ApplicationRegistration {
 		// TODO: should support multiple provider versions somehow
 		// (maybe through the context which defines which version to use?)
 		// (another alternative would be version ranges at registration times)
-		final ApplicationProviderRegistration providerRegistration = HttpAppManagerApplication.getInstance().getProviderRegistry().getProviderRegistration(getProviderId());
+		final ApplicationProviderRegistration providerRegistration = HttpActivator.getInstance().getProviderRegistry().getProviderRegistration(getProviderId());
 		if (null == providerRegistration) {
 			return null;
 		}
