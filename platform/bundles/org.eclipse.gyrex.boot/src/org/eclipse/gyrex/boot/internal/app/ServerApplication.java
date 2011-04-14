@@ -404,9 +404,9 @@ public class ServerApplication extends BaseApplication {
 			LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
 		}
 
-		// hook with GyrexFrameworkLog
+		// hook FrameworkLog with SLF4J forwarder
 		// (note, we use strings here in order to not import those classes)
-		frameworkLogServiceRegistration = AppActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.osgi.framework.log.FrameworkLog"), "Eclipse Gyrex", "SLF4J Logger Factory", "org.slf4j.Logger.org.eclipse.osgi.framework.log.FrameworkLog", null);
+		frameworkLogServiceRegistration = AppActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.equinox.logger"), "Eclipse Gyrex", "SLF4J Equinox Framework Logger", "org.slf4j.Logger-org.eclipse.equinox.logger", null);
 	}
 
 }

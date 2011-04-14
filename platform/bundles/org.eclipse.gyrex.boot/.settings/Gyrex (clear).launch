@@ -22,7 +22,7 @@
 <stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl}&#13;&#10;-console"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-XX:+UseParallelGC -XX:MaxPermSize=128m&#13;&#10;-Dequinox.ds.print=true&#13;&#10;-Declipse.rap.registerWithHttpService=false&#13;&#10;-Dosgi.framework.extensions=org.eclipse.gyrex.log.frameworklogadapter&#13;&#10;-Dosgi.hook.configurators.exclude=org.eclipse.core.runtime.internal.adaptor.EclipseLogHook"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-XX:+UseParallelGC -XX:MaxPermSize=128m&#13;&#10;-Dequinox.ds.print=true&#13;&#10;-Declipse.rap.registerWithHttpService=false&#13;&#10;-Dosgi.framework.extensions=org.eclipse.gyrex.log.frameworklogadapter"/>
 <stringAttribute key="pde.version" value="3.3"/>
 <stringAttribute key="product" value="org.eclipse.cloudfree.examples.fanshop.product"/>
 <booleanAttribute key="restart" value="true"/>
