@@ -1,8 +1,0 @@
-# global debug option
-org.eclipse.gyrex.http/debug=true
-
-# the gateway binding
-org.eclipse.gyrex.http/gatewayBinding=true
-
-# the HttpService implementation
-org.eclipse.gyrex.http/httpService=true
