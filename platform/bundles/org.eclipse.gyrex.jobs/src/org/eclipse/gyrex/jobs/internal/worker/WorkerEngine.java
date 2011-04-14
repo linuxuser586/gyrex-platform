@@ -176,11 +176,13 @@ public class WorkerEngine extends Job {
 			}
 			return status;
 		} finally {
-			// reschedule
-			if (JobsDebug.workerEngine) {
-				LOG.debug("Rescheduling worker engine to run again in {} seconds", TimeUnit.MILLISECONDS.toSeconds(engineSleepTime));
+			// reschedule if not canceled
+			if (!monitor.isCanceled()) {
+				if (JobsDebug.workerEngine) {
+					LOG.debug("Rescheduling worker engine to run again in {} seconds", TimeUnit.MILLISECONDS.toSeconds(engineSleepTime));
+				}
+				schedule(engineSleepTime);
 			}
-			schedule(engineSleepTime);
 		}
 	}
 

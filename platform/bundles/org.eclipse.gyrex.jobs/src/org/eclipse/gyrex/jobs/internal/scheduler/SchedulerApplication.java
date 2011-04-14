@@ -80,6 +80,7 @@ public class SchedulerApplication implements IApplication {
 
 		if (!scheduler.cancel()) {
 			try {
+				LOG.info("Waiting for scheduler engine to shutdown...");
 				scheduler.join();
 			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();

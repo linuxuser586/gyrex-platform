@@ -73,7 +73,22 @@ public class WorkerEngineApplication implements IApplication {
 			return;
 		}
 
-		engine.cancel();
+		if (JobsDebug.schedulerEngine) {
+			LOG.debug("Stopping scheduler engine application...");
+		}
+
+		if (!engine.cancel()) {
+			try {
+				LOG.info("Waiting for worker engine to finish remaining work...");
+				engine.join();
+			} catch (final InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+
+		if (JobsDebug.schedulerEngine) {
+			LOG.debug("Starting scheduler engine stopped.");
+		}
 		context.setResult(EXIT_OK, this);
 	}
 
