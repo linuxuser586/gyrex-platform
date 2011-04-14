@@ -204,11 +204,11 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 
 		// check the log level
 		switch (logLevel) {
-			case LogService.LOG_INFO:
 			case LogService.LOG_WARNING:
 			case LogService.LOG_ERROR:
 				return true;
 
+			case LogService.LOG_INFO:
 			case LogService.LOG_DEBUG:
 			default:
 				return EclipseStarter.debug;
