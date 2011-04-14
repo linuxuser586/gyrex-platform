@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.log.frameworklogadapter.internal;
+package org.eclipse.gyrex.frameworklogadapter.internal;
 
 import org.eclipse.osgi.baseadaptor.HookConfigurator;
 import org.eclipse.osgi.baseadaptor.HookRegistry;

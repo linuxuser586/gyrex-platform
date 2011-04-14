@@ -1,10 +1,10 @@
-package org.eclipse.gyrex.log.http.internal;
+package org.eclipse.gyrex.http.log.internal;
 
 import javax.servlet.ServletException;
 
 import org.eclipse.equinox.http.servlet.ExtendedHttpService;
 
-import org.eclipse.gyrex.log.http.wildfire.WidlfireLogWriterFilter;
+import org.eclipse.gyrex.http.log.wildfire.WidlfireLogWriterFilter;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;

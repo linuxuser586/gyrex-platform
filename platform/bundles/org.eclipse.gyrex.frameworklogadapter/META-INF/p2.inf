@@ -9,7 +9,7 @@
 # Contributors:
 #     Gunnar Wagenknecht - initial API and implementation
 ###############################################################################
-instructions.configure=\
-  addProgramProperty(propName:osgi.framework.extensions,propValue:org.eclipse.gyrex.log.frameworklogadapter);
-instructions.unconfigure=\
-  removeProgramProperty(propName:osgi.framework.extensions,propValue:org.eclipse.gyrex.log.frameworklogadapter);
+#instructions.configure=\
+#  addProgramProperty(propName:osgi.framework.extensions,propValue:org.eclipse.gyrex.frameworklogadapter);
+#instructions.unconfigure=\
+#  removeProgramProperty(propName:osgi.framework.extensions,propValue:org.eclipse.gyrex.frameworklogadapter);

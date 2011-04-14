@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Gyrex HTTP Log Integration
-Bundle-SymbolicName: org.eclipse.gyrex.log.http
+Bundle-SymbolicName: org.eclipse.gyrex.http.log
 Bundle-Version: 1.0.0.qualifier
-Bundle-Activator: org.eclipse.gyrex.log.http.internal.HttpLogActivator
+Bundle-Activator: org.eclipse.gyrex.http.log.internal.HttpLogActivator
 Bundle-Vendor: Eclipse Gyrex
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Import-Package: ch.qos.logback.classic;version="0.9.19",
@@ -20,7 +20,7 @@ Import-Package: ch.qos.logback.classic;version="0.9.19",
  org.osgi.util.tracker;version="1.4.2",
  org.slf4j;version="1.5.11"
 Bundle-ActivationPolicy: lazy
-Export-Package: org.eclipse.gyrex.log.http.internal;x-internal:=true,
- org.eclipse.gyrex.log.http.wildfire
+Export-Package: org.eclipse.gyrex.http.log.internal;x-internal:=true,
+ org.eclipse.gyrex.http.log.wildfire;version="1.0.0"
 Require-Bundle: org.eclipse.gyrex.common;bundle-version="1.0.0",
  org.eclipse.equinox.http.servlet;bundle-version="1.1.0"

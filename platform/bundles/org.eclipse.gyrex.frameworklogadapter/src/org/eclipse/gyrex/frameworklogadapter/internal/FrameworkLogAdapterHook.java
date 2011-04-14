@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.log.frameworklogadapter.internal;
+package org.eclipse.gyrex.frameworklogadapter.internal;
 
 import java.io.IOException;
 import java.net.URLConnection;

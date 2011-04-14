@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.log.http.wildfire;
+package org.eclipse.gyrex.http.log.wildfire;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,7 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.eclipse.gyrex.log.http.internal.WildfireAppender;
+import org.eclipse.gyrex.http.log.internal.WildfireAppender;
 
 /**
  * A servlet filter which captures log messages and writes them in the HTTP
@@ -32,7 +32,7 @@ import org.eclipse.gyrex.log.http.internal.WildfireAppender;
  */
 public class WidlfireLogWriterFilter implements Filter {
 
-	public static final String ATTR_NAME_LOGGING_ENABLED = "org.eclipse.gyrex.log.http.wildfire.enabled";
+	public static final String ATTR_NAME_LOGGING_ENABLED = "org.eclipse.gyrex.http.log.wildfire.enabled";
 
 	/**
 	 * Disables logging for the specified HttpSession.

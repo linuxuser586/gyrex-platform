@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.log.http.internal;
+package org.eclipse.gyrex.http.log.internal;
 
 import java.io.IOException;
 import java.io.StringWriter;
