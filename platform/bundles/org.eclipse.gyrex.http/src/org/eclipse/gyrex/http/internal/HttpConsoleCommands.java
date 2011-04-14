@@ -23,6 +23,7 @@ import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.http.application.manager.ApplicationRegistrationException;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistration;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistry;
@@ -315,9 +316,9 @@ public class HttpConsoleCommands implements CommandProvider {
 		final ApplicationManager manager;
 		final ApplicationProviderRegistry registry;
 		try {
-			manager = HttpAppManagerApplication.getInstance().getApplicationManager();
-			registry = HttpAppManagerApplication.getInstance().getProviderRegistry();
-		} catch (final IllegalStateException e) {
+			manager = (ApplicationManager) HttpActivator.getInstance().getService(IApplicationManager.class);
+			registry = HttpActivator.getInstance().getProviderRegistry();
+		} catch (final Exception e) {
 			ci.println("ERROR: Required services not available! " + e.getMessage());
 			return;
 		}

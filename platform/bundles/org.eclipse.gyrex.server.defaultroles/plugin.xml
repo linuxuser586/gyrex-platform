@@ -27,11 +27,6 @@
             startLevel="50"
             trigger="onCloudConnect">
       </defaultStart>
-      <defaultStart
-            mode="any"
-            roleId="org.eclipse.gyrex.http.appmanager"
-            trigger="onCloudConnect">
-      </defaultStart>
    </extension>
 
    <extension

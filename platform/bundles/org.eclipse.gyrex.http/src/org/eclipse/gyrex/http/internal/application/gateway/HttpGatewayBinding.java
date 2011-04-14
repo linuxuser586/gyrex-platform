@@ -16,7 +16,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.eclipse.gyrex.http.internal.HttpAppManagerApplication;
 import org.eclipse.gyrex.http.internal.HttpDebug;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
@@ -149,13 +148,16 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 		}
 	};
 
+	final ApplicationManager applicationManager;
+
 	/**
 	 * Creates a new instance.
 	 * 
 	 * @param context
 	 */
-	public HttpGatewayBinding(final BundleContext context) {
+	public HttpGatewayBinding(final BundleContext context, final ApplicationManager applicationManager) {
 		super(context, IHttpGateway.class, null);
+		this.applicationManager = applicationManager;
 	}
 
 	@Override
@@ -219,7 +221,7 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	public ApplicationRegistration getApplicationRegistration(final String applicationId) {
 		ApplicationRegistration applicationRegistration = applicationsById.get(applicationId);
 		if (null == applicationRegistration) {
-			applicationsById.putIfAbsent(applicationId, HttpAppManagerApplication.getInstance().getApplicationManager().getApplicationRegistration(applicationId));
+			applicationsById.putIfAbsent(applicationId, applicationManager.getApplicationRegistration(applicationId));
 			applicationRegistration = applicationsById.get(applicationId);
 		}
 		return applicationRegistration;

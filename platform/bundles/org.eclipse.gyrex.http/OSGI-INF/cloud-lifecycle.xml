@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.gyrex.http.lifecycle.component">
+   <implementation class="org.eclipse.gyrex.http.internal.HttpLifecycleComponent"/>
+   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="service.description" type="String" value="Event Handler for activating the web application components when the cloud is connected."/>
+   <property name="event.topics" type="String" value="org/eclipse/gyrex/cloud/node/*"/>
+   <service>
+      <provide interface="org.osgi.service.event.EventHandler"/>
+   </service>
+</scr:component>

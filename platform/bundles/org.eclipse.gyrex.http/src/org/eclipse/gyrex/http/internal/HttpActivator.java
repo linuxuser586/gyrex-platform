@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.http.internal;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistry;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -58,6 +59,8 @@ public class HttpActivator extends BaseBundleActivator {
 		}
 	}
 
+	private volatile ApplicationProviderRegistry providerRegistry;
+
 	/**
 	 * Creates a new instance.
 	 * <p>
@@ -72,12 +75,21 @@ public class HttpActivator extends BaseBundleActivator {
 	@Override
 	protected synchronized void doStart(final BundleContext context) throws Exception {
 		sharedInstance = this;
+
+		// track the available providers
+		providerRegistry = new ApplicationProviderRegistry(context);
+		providerRegistry.open();
+
 	}
 
 	@Override
 	protected synchronized void doStop(final BundleContext context) throws Exception {
 		// unset instance
 		sharedInstance = null;
+
+		// stop provider tracker
+		providerRegistry.close();
+		providerRegistry = null;
 	}
 
 	/**
@@ -98,6 +110,19 @@ public class HttpActivator extends BaseBundleActivator {
 	@Override
 	protected Class getDebugOptions() {
 		return HttpDebug.class;
+	}
+
+	/**
+	 * Returns the providerRegistry.
+	 * 
+	 * @return the providerRegistry
+	 */
+	public ApplicationProviderRegistry getProviderRegistry() {
+		final ApplicationProviderRegistry registry = providerRegistry;
+		if (null == registry) {
+			throw createBundleInactiveException();
+		}
+		return registry;
 	}
 
 }
