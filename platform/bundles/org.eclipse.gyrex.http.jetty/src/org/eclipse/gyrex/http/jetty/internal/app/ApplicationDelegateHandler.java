@@ -103,7 +103,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 					Log.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 					throw new UnavailableException(e.getMessage(), 5);
 				} else {
-					throw new UnavailableException(e.getMessage(), 60); // TODO make configurable
+					throw new UnavailableException(e.getMessage(), 30); // TODO make configurable
 				}
 			} else {
 				if (Platform.inDebugMode()) {
@@ -120,7 +120,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 				Log.warn("Caught IllegalStateException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 				throw new UnavailableException(e.getMessage(), 5);
 			} else {
-				throw new UnavailableException(e.getMessage(), 60); // TODO make configurable
+				throw new UnavailableException(e.getMessage(), 30); // TODO make configurable
 			}
 		} catch (final RuntimeException e) {
 			if (Platform.inDebugMode()) {
