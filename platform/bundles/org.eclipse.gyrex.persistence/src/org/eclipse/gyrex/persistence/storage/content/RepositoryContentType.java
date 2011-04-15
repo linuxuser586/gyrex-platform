@@ -12,6 +12,10 @@
 package org.eclipse.gyrex.persistence.storage.content;
 
 import java.text.MessageFormat;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
@@ -62,46 +66,59 @@ import org.osgi.framework.Version;
 public final class RepositoryContentType extends PlatformObject {
 
 	private static final String checkMediaTypeSubType(final String mediaTypeSubType) throws IllegalArgumentException {
-		final char[] cs = mediaTypeSubType.toCharArray();
-		for (final char c : cs) {
-			if (isControlChar(c)) {
-				throw new IllegalArgumentException("invalid media type subtype; control characters not allowed, see RFC 2045 section 5.1");
-			} else if (isWhitespace(c)) {
-				throw new IllegalArgumentException("invalid media type subtype; whitespace not allowed, see RFC 2045 section 5.1");
-			} else if (isSpecialChar(c)) {
-				throw new IllegalArgumentException("invalid media type subtype; character '" + c + "' not allowed, see RFC 2045 section 5.1");
-			}
-		}
+		checkToken(mediaTypeSubType, "media type subtype");
 		return mediaTypeSubType;
 	}
 
 	private static final String checkMediaTypeType(final String mediaTypeType) throws IllegalArgumentException {
-		final char[] cs = mediaTypeType.toCharArray();
-		for (final char c : cs) {
-			if (isControlChar(c)) {
-				throw new IllegalArgumentException("invalid media type type; control characters not allowed, see RFC 2045 section 5.1");
-			} else if (isWhitespace(c)) {
-				throw new IllegalArgumentException("invalid media type type; whitespace not allowed, see RFC 2045 section 5.1");
-			} else if (isSpecialChar(c)) {
-				throw new IllegalArgumentException("invalid media type type; character '" + c + "' not allowed, see RFC 2045 section 5.1");
-			}
-		}
+		checkToken(mediaTypeType, "media type type");
 		return mediaTypeType;
 	}
 
+	private static Map<String, String> checkParameters(final Map<String, String> parameters) {
+		for (final String key : parameters.keySet()) {
+			checkToken(key, String.format("parameter key '%s'", key));
+			final String value = parameters.get(key);
+			// note, although not required we limit it to a token
+			checkToken(value, String.format("parameter value '%s'", value));
+		}
+		return parameters;
+	}
+
 	private static final String checkRepositoryTypeId(final String repositoryTypeId) {
+		if (null == repositoryTypeId) {
+			throw new IllegalArgumentException("repository type name must not be null");
+		}
 		if (!IdHelper.isValidId(repositoryTypeId)) {
 			throw new IllegalArgumentException(MessageFormat.format("repository type name \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", repositoryTypeId));
 		}
 		return repositoryTypeId;
 	}
 
+	private static void checkToken(final String token, final String description) {
+		if (null == token) {
+			throw new IllegalArgumentException(String.format("invalid %s; must not be null, see RFC 2045 section 5.1", description));
+		}
+		final char[] cs = token.toCharArray();
+		for (final char c : cs) {
+			if (!isUsAsciiChar(c)) {
+				throw new IllegalArgumentException(String.format("invalid %s; only US-ASCII chars allowed, see RFC 2045 section 5.1", description));
+			} else if (isControlChar(c)) {
+				throw new IllegalArgumentException(String.format("invalid %s; control characters not allowed, see RFC 2045 section 5.1", description));
+			} else if (isWhitespace(c)) {
+				throw new IllegalArgumentException(String.format("invalid %s; whitespace not allowed, see RFC 2045 section 5.1", description));
+			} else if (isSpecialChar(c)) {
+				throw new IllegalArgumentException(String.format("invalid %s; character '%c' not allowed, see RFC 2045 section 5.1", description, c));
+			}
+		}
+	}
+
 	/**
-	 * US-ASCII control characters
+	 * US-ASCII characters
 	 * 
 	 * @param c
 	 *            the char
-	 * @return <code>true</code> if control character, <code>false</code>
+	 * @return <code>true</code> if US-ASCII character, <code>false</code>
 	 *         otherwise
 	 */
 	private static final boolean isControlChar(final char c) {
@@ -141,6 +158,18 @@ public final class RepositoryContentType extends PlatformObject {
 	}
 
 	/**
+	 * US-ASCII control characters
+	 * 
+	 * @param c
+	 *            the char
+	 * @return <code>true</code> if control character, <code>false</code>
+	 *         otherwise
+	 */
+	private static final boolean isUsAsciiChar(final char c) {
+		return (c >= 0) && (c <= 127);
+	}
+
+	/**
 	 * US-ASCII white space.
 	 * 
 	 * @param c
@@ -151,11 +180,14 @@ public final class RepositoryContentType extends PlatformObject {
 		return c == 32;
 	}
 
-	private final String mediaType;
+	private final String mediaTypeType;
+	private final String mediaTypeSubType;
 	private final String repositoryTypeName;
-	private final Version version;
 
+	private final Version version;
 	private int cachedHashCode;
+
+	private final Map<String, String> parameters;
 
 	/**
 	 * Creates a new content type.
@@ -174,24 +206,36 @@ public final class RepositoryContentType extends PlatformObject {
 	 *             if any of the specified parameter is invalid
 	 */
 	public RepositoryContentType(final String mediaTypeType, final String mediaTypeSubType, final String repositoryTypeName, final String version) throws IllegalArgumentException {
-		if (null == repositoryTypeName) {
-			throw new IllegalArgumentException("repository type name must not be null");
-		}
-		if (null == mediaTypeType) {
-			throw new IllegalArgumentException("media type type must not be null");
-		}
-		if (null == mediaTypeSubType) {
-			throw new IllegalArgumentException("media type sub type must not be null");
-		}
-
-		mediaType = checkMediaTypeType(mediaTypeType) + "/" + checkMediaTypeSubType(mediaTypeSubType);
-		this.repositoryTypeName = checkRepositoryTypeId(repositoryTypeName);
-		this.version = Version.parseVersion(version);
+		this(mediaTypeType, mediaTypeSubType, repositoryTypeName, version, null);
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
+	/**
+	 * Creates a new content type.
+	 * 
+	 * @param mediaTypeType
+	 *            the {@link #getMediaType() media type}
+	 *            <em>type</type> (according to RFC 2045)
+	 * @param mediaTypeSubType
+	 *            the {@link #getMediaType() media type} <em>type</type>
+	 *            (according to RFC 2045)
+	 * @param repositoryTypeName
+	 *            the {@link #getRepositoryTypeName() repository type name}
+	 * @param version
+	 *            the {@link #getVersion() version}
+	 * @param parameters
+	 *            additional content type parameters (maybe <code>null</code>,
+	 *            iteration order will be maintained)
+	 * @throws IllegalArgumentException
+	 *             if any of the specified parameter is invalid
 	 */
+	public RepositoryContentType(final String mediaTypeType, final String mediaTypeSubType, final String repositoryTypeName, final String version, final Map<String, String> parameters) throws IllegalArgumentException {
+		this.mediaTypeType = checkMediaTypeType(mediaTypeType);
+		this.mediaTypeSubType = checkMediaTypeSubType(mediaTypeSubType);
+		this.repositoryTypeName = checkRepositoryTypeId(repositoryTypeName);
+		this.version = Version.parseVersion(version);
+		this.parameters = null != parameters ? new LinkedHashMap<String, String>(checkParameters(parameters)) : null;
+	}
+
 	@Override
 	public final boolean equals(final Object obj) {
 		if (this == obj) {
@@ -204,11 +248,19 @@ public final class RepositoryContentType extends PlatformObject {
 			return false;
 		}
 		final RepositoryContentType other = (RepositoryContentType) obj;
-		if (mediaType == null) {
-			if (other.mediaType != null) {
+		// note, media type and subtype matching is ALWAYS case-insensitive (RFC 2045 section 5.1)
+		if (mediaTypeType == null) {
+			if (other.mediaTypeType != null) {
 				return false;
 			}
-		} else if (!mediaType.equals(other.mediaType)) {
+		} else if ((null == other.mediaTypeType) || !mediaTypeType.toLowerCase(Locale.US).equals(other.mediaTypeType.toLowerCase(Locale.US))) {
+			return false;
+		}
+		if (mediaTypeSubType == null) {
+			if (other.mediaTypeSubType != null) {
+				return false;
+			}
+		} else if ((null == other.mediaTypeSubType) || !mediaTypeSubType.toLowerCase(Locale.US).equals(other.mediaTypeSubType.toLowerCase(Locale.US))) {
 			return false;
 		}
 		if (repositoryTypeName == null) {
@@ -225,6 +277,14 @@ public final class RepositoryContentType extends PlatformObject {
 		} else if (!version.equals(other.version)) {
 			return false;
 		}
+		if (parameters == null) {
+			if (other.parameters != null) {
+				return false;
+			}
+		} else if ((null == other.parameters) || !parameters.equals(other.parameters)) {
+			// our implementation is LinkedHashMap so #equals works
+			return false;
+		}
 		return true;
 	}
 
@@ -237,7 +297,44 @@ public final class RepositoryContentType extends PlatformObject {
 	 * @see http://en.wikipedia.org/wiki/Internet_media_type
 	 */
 	public final String getMediaType() {
-		return mediaType;
+		return String.format("%s/%s", mediaTypeType, mediaTypeSubType);
+	}
+
+	/**
+	 * Returns just the subtype part of the <a
+	 * href="http://en.wikipedia.org/wiki/Internet_media_type">Internet media
+	 * type</a>.
+	 * 
+	 * @return the subtype of the media type
+	 * @see http://en.wikipedia.org/wiki/Internet_media_type
+	 */
+	public String getMediaTypeSubType() {
+		return mediaTypeSubType;
+	}
+
+	/**
+	 * Returns just the type part of the <a
+	 * href="http://en.wikipedia.org/wiki/Internet_media_type">Internet media
+	 * type</a>.
+	 * 
+	 * @return the type of the media type
+	 * @see http://en.wikipedia.org/wiki/Internet_media_type
+	 */
+	public String getMediaTypeType() {
+		return mediaTypeType;
+	}
+
+	/**
+	 * Returns an addition parameter value.
+	 * <p>
+	 * Returns <code>null</code> if the content type does not have any
+	 * additional parameter or if the specified parameter is not defined.
+	 * </p>
+	 * 
+	 * @return the parameter value (maybe <code>null</code> if not set)
+	 */
+	public final String getParameter(final String name) {
+		return null != parameters ? parameters.get(name) : null;
 	}
 
 	/**
@@ -301,9 +398,6 @@ public final class RepositoryContentType extends PlatformObject {
 		return version.toString();
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public final int hashCode() {
 		// content type is immutable so use a cached hash code
@@ -313,9 +407,10 @@ public final class RepositoryContentType extends PlatformObject {
 
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((mediaType == null) ? 0 : mediaType.hashCode());
-		result = prime * result + ((repositoryTypeName == null) ? 0 : repositoryTypeName.hashCode());
-		result = prime * result + ((version == null) ? 0 : version.hashCode());
+		result = (prime * result) + ((mediaTypeType == null) ? 0 : mediaTypeType.toLowerCase(Locale.US).hashCode());
+		result = (prime * result) + ((mediaTypeSubType == null) ? 0 : mediaTypeSubType.toLowerCase(Locale.US).hashCode());
+		result = (prime * result) + ((repositoryTypeName == null) ? 0 : repositoryTypeName.hashCode());
+		result = (prime * result) + ((version == null) ? 0 : version.hashCode());
 		return cachedHashCode = result;
 	}
 
@@ -341,6 +436,11 @@ public final class RepositoryContentType extends PlatformObject {
 		contentType.append("\"; version=\"");
 		contentType.append(getVersion());
 		contentType.append('"');
+		if (null != parameters) {
+			for (final Entry<String, String> parameter : parameters.entrySet()) {
+				contentType.append("; ").append(parameter.getKey()).append("=\"").append(parameter.getValue()).append('"');
+			}
+		}
 		return contentType.toString();
 	}
 }
