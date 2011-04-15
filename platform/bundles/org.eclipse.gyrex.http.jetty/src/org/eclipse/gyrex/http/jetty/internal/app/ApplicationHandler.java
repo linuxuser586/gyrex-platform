@@ -44,6 +44,7 @@ import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.resource.Resource;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,6 +120,10 @@ public class ApplicationHandler extends ServletContextHandler {
 	 */
 	public ApplicationHandler(final ApplicationRegistration applicationRegistration) {
 		super();
+
+		if (null == applicationRegistration) {
+			throw new IllegalArgumentException("application registration must not be null");
+		}
 
 		// use "slash" as default context path
 		setContextPath(URIUtil.SLASH);
@@ -462,12 +467,7 @@ public class ApplicationHandler extends ServletContextHandler {
 				LOG.debug("Application {} initialized", application);
 			}
 		} catch (final Exception e) {
-			LOG.error("Error creating application \"{}\". {}", new Object[] { getApplicationId(), e.getMessage(), e });
-			if (Platform.inDebugMode()) {
-				throw new IllegalStateException("Application Not Available: " + e.getMessage());
-			} else {
-				throw new IllegalStateException("Application Not Available");
-			}
+			throw new IllegalStateException(String.format("Error creating application '%s': %s", StringUtils.trimToEmpty(getApplicationId()), StringUtils.trimToEmpty(e.getMessage())), e);
 		}
 
 		// create remaining the handlers

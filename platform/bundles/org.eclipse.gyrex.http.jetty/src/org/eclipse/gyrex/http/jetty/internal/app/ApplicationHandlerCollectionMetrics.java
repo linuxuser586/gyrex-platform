@@ -46,8 +46,8 @@ public class ApplicationHandlerCollectionMetrics extends MetricSet {
 		errorsMetric.setLastError("Error " + status, StringUtils.trimToEmpty(reason));
 	}
 
-	public void error(final String message, final Exception e) {
-		errorsMetric.setLastError(message, ExceptionUtils.getFullStackTrace(e));
+	public void error(final String message, final Throwable t) {
+		errorsMetric.setLastError(message, ExceptionUtils.getFullStackTrace(t));
 	}
 
 	public CapacityMetric getApplicationsMetric() {

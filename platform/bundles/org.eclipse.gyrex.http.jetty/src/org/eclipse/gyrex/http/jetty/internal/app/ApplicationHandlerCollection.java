@@ -17,6 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.ServletException;
+import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -26,9 +27,15 @@ import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.jetty.continuation.ContinuationThrowable;
+import org.eclipse.jetty.http.HttpException;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.PathMap.Entry;
+import org.eclipse.jetty.io.EofException;
+import org.eclipse.jetty.io.RuntimeIOException;
 import org.eclipse.jetty.server.AsyncContinuation;
+import org.eclipse.jetty.server.Dispatcher;
+import org.eclipse.jetty.server.DispatcherType;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
@@ -144,10 +151,11 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 				try {
 					handler.start();
 				} catch (final Exception e) {
-					LOG.warn("Exception starting handler {}. {}", new Object[] { handler, ExceptionUtils.getMessage(e), e });
 					if (Platform.inDebugMode()) {
-						throw new IllegalStateException("Application Not Available: " + ExceptionUtils.getMessage(e), e);
+						LOG.debug("Exception starting handler {}. {}", new Object[] { handler, ExceptionUtils.getRootCauseMessage(e), e });
+						throw new IllegalStateException(String.format("Failed to start registered handler '%s' for mapping '%s'. %s", handler, mapped, ExceptionUtils.getRootCauseMessage(e)), e);
 					} else {
+						LOG.warn("Exception starting handler {}. {}", new Object[] { handler, ExceptionUtils.getRootCauseMessage(e) });
 						throw new IllegalStateException("Application Not Available");
 					}
 				}
@@ -223,14 +231,99 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 			} else {
 				metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
 			}
-		} catch (final IOException e) {
+		} catch (final EofException e) {
 			metrics.getRequestsMetric().requestFailed();
-			metrics.error("handle: " + e.toString(), e);
 			throw e;
-		} catch (final ServletException e) {
+		} catch (final RuntimeIOException e) {
 			metrics.getRequestsMetric().requestFailed();
-			metrics.error("handle: " + e.toString(), e);
 			throw e;
+		} catch (final ContinuationThrowable e) {
+			metrics.getRequestsMetric().requestFailed();
+			throw e;
+		} catch (final Exception e) {
+			metrics.getRequestsMetric().requestFailed();
+
+			final DispatcherType type = baseRequest.getDispatcherType();
+			if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type))) {
+				if (e instanceof IOException) {
+					throw (IOException) e;
+				}
+				if (e instanceof RuntimeException) {
+					throw (RuntimeException) e;
+				}
+				if (e instanceof ServletException) {
+					throw (ServletException) e;
+				}
+			}
+
+			// unwrap specific exceptions
+			ExceptionUtils.getRootCause(e);
+
+			// handle or log exception
+			if (e instanceof HttpException) {
+				throw (HttpException) e;
+			} else if (e instanceof RuntimeIOException) {
+				throw (RuntimeIOException) e;
+			} else if (e instanceof EofException) {
+				throw (EofException) e;
+			} else if (Platform.inDebugMode()) {
+				LOG.warn("Exception processing request: {}", request.getRequestURI(), e);
+				LOG.debug(request.toString());
+			} else if ((e instanceof IOException) || (e instanceof UnavailableException)) {
+				if (JettyDebug.debug) {
+					LOG.debug("Exception processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e));
+				}
+			} else {
+				LOG.warn("Exception processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e));
+			}
+
+			// send error response if possible
+			if (!response.isCommitted()) {
+				request.setAttribute(Dispatcher.ERROR_EXCEPTION_TYPE, e.getClass());
+				request.setAttribute(Dispatcher.ERROR_EXCEPTION, e);
+				if (e instanceof UnavailableException) {
+					final UnavailableException ue = (UnavailableException) e;
+					if (ue.isPermanent()) {
+						response.sendError(HttpServletResponse.SC_NOT_FOUND, e.getMessage());
+					} else {
+						response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, e.getMessage());
+					}
+				} else if (e instanceof IllegalStateException) {
+					response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, e.getMessage());
+				} else {
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+				}
+			} else {
+				// give up
+				if (JettyDebug.debug) {
+					LOG.debug("Response already committed for handling {}", ExceptionUtils.getMessage(e));
+				}
+			}
+		} catch (final Error e) {
+			metrics.getRequestsMetric().requestFailed();
+
+			final DispatcherType type = baseRequest.getDispatcherType();
+			if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type))) {
+				throw e;
+			}
+
+			if (JettyDebug.debug) {
+				LOG.warn("Error processing request {}: {}", request.getRequestURI(), e);
+				LOG.debug(request.toString());
+			} else {
+				LOG.warn("Error processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e));
+			}
+
+			// TODO httpResponse.getHttpConnection().forceClose();
+			if (!response.isCommitted()) {
+				request.setAttribute(Dispatcher.ERROR_EXCEPTION_TYPE, e.getClass());
+				request.setAttribute(Dispatcher.ERROR_EXCEPTION, e);
+				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+			} else {
+				if (JettyDebug.debug) {
+					LOG.debug("Response already committed for handling {}", ExceptionUtils.getMessage(e));
+				}
+			}
 		}
 	}
 
