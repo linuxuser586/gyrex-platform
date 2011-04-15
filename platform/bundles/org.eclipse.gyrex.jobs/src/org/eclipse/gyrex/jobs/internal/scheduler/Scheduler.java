@@ -87,19 +87,27 @@ public class Scheduler extends Job implements INodeChangeListener {
 	private IStatus doRun(final IProgressMonitor monitor) {
 		IExclusiveLock schedulerEngineLock = null;
 		try {
-			// get schedule lock first
-			// this ensures that there is at most one schedule
-			// engine active in the whole cloud
+			// get scheduler lock first
+			// this ensures that there is at most one scheduler
+			// engine is active in the whole cloud
 			if (JobsDebug.schedulerEngine) {
 				LOG.debug("Waiting for global scheduler engine lock.");
 			}
 			final ILockService lockService = JobsActivator.getInstance().getService(ILockService.class);
-			try {
-				schedulerEngineLock = lockService.acquireExclusiveLock(SCHEDULER_LOCK, null, 0L);
-			} catch (final TimeoutException e) {
-				// timeout waiting for lock
-				// in theory, this should not happen because
-				// we wait forever
+			while (schedulerEngineLock == null) {
+				// check for cancellation
+				if (monitor.isCanceled()) {
+					throw new OperationCanceledException();
+				}
+
+				// try to acquire lock
+				try {
+					schedulerEngineLock = lockService.acquireExclusiveLock(SCHEDULER_LOCK, null, 250L);
+				} catch (final TimeoutException e) {
+					// timeout waiting for lock
+					// we simply keep on going as lock as we aren't canceled
+					Thread.yield();
+				}
 			}
 
 			// check for cancellation
