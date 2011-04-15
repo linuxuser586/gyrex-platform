@@ -101,6 +101,7 @@ public class Scheduler extends Job implements INodeChangeListener {
 				}
 
 				// try to acquire lock
+				// (note, we cannot wait forever because we must check for cancelation regulary)
 				try {
 					schedulerEngineLock = lockService.acquireExclusiveLock(SCHEDULER_LOCK, null, 250L);
 				} catch (final TimeoutException e) {
