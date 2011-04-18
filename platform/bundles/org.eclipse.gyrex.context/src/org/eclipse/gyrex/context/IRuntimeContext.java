@@ -63,6 +63,20 @@ import org.eclipse.core.runtime.Path;
 public interface IRuntimeContext extends IAdaptable {
 
 	/**
+	 * Indicates if a context is equal to another context.
+	 * <p>
+	 * Contexts are considered equal if they represent the same context path,
+	 * i.e. this method returns <code>true</code> if the specified object is an
+	 * instance of {@link IRuntimeContext} and the {@link #getContextPath()
+	 * context paths} are equal.
+	 * </p>
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj);
+
+	/**
 	 * Returns a context object associated with the given type.
 	 * <p>
 	 * Returns <code>null</code> if no context object could be determined, or if
@@ -133,6 +147,15 @@ public interface IRuntimeContext extends IAdaptable {
 	 *         the context
 	 */
 	IRuntimeContextPreferences getPreferences();
+
+	/**
+	 * Returns a hash code computed based on the {@link #getContextPath()
+	 * context path}.
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode();
 
 	/**
 	 * Returns a human readable string representation of the context.
