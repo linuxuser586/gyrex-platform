@@ -30,14 +30,14 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	/**
 	 * service tracker
 	 */
-	private final class RuntimeContextObjectProviderTracker extends ServiceTracker {
+	private final class RuntimeContextObjectProviderTracker extends ServiceTracker<RuntimeContextObjectProvider, RuntimeContextObjectProvider> {
 		private RuntimeContextObjectProviderTracker(final BundleContext context) {
-			super(context, RuntimeContextObjectProvider.class.getName(), null);
+			super(context, RuntimeContextObjectProvider.class, null);
 		}
 
 		@Override
-		public Object addingService(final ServiceReference reference) {
-			final RuntimeContextObjectProvider provider = (RuntimeContextObjectProvider) super.addingService(reference); // get service
+		public RuntimeContextObjectProvider addingService(final ServiceReference<RuntimeContextObjectProvider> reference) {
+			final RuntimeContextObjectProvider provider = super.addingService(reference); // get service
 			if (null != provider) {
 				registerProvider(provider, reference);
 			}
@@ -45,16 +45,16 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 		}
 
 		@Override
-		public void modifiedService(final ServiceReference reference, final Object service) {
-			final RuntimeContextObjectProvider provider = (RuntimeContextObjectProvider) service;
+		public void modifiedService(final ServiceReference<RuntimeContextObjectProvider> reference, final RuntimeContextObjectProvider service) {
+			final RuntimeContextObjectProvider provider = service;
 			if (null != provider) {
 				flushProperties(provider, reference);
 			}
 		}
 
 		@Override
-		public void removedService(final ServiceReference reference, final Object service) {
-			final RuntimeContextObjectProvider provider = (RuntimeContextObjectProvider) service;
+		public void removedService(final ServiceReference<RuntimeContextObjectProvider> reference, final RuntimeContextObjectProvider service) {
+			final RuntimeContextObjectProvider provider = service;
 			if (null != provider) {
 				unregisterProvider(provider, reference);
 			}

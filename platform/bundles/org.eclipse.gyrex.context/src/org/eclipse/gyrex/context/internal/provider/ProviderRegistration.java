@@ -138,7 +138,7 @@ public class ProviderRegistration {
 	 * 
 	 * @return the properties.
 	 */
-	public Dictionary getProperties() {
+	public Dictionary<String, Object> getProperties() {
 		Dictionary<String, Object> properties = cachedPropertiesRef.get();
 		if (null != properties) {
 			return properties;
@@ -200,9 +200,9 @@ public class ProviderRegistration {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((serviceReference == null) ? 0 : serviceReference.hashCode());
-		result = prime * result + ((type == null) ? 0 : type.hashCode());
-		result = prime * result + ((provider == null) ? 0 : provider.hashCode());
+		result = (prime * result) + ((serviceReference == null) ? 0 : serviceReference.hashCode());
+		result = (prime * result) + ((type == null) ? 0 : type.hashCode());
+		result = (prime * result) + ((provider == null) ? 0 : provider.hashCode());
 		return result;
 	}
 
