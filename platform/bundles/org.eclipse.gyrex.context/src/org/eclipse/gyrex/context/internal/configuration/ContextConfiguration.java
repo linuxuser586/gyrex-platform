@@ -52,22 +52,19 @@ public final class ContextConfiguration {
 	 * @return the filter (maybe <code>null</code> if none is explicitly defined
 	 *         for the context
 	 */
-	public static Filter findFilter(final IRuntimeContext context, final String typeName) {
-		// the context path
-		IPath contextPath = context.getContextPath();
-
+	public static Filter findFilter(IPath contextPath, final String typeName) {
 		// get preferences root node
 		final IEclipsePreferences rootNode = getRootNodeForContextPreferences();
 
 		// lookup filter in this context
-		Filter filter = readFilterFromPreferences(context, rootNode, contextPath, typeName);
+		Filter filter = readFilterFromPreferences(rootNode, contextPath, typeName);
 		if (null != filter) {
 			return filter;
 		}
 
 		// search parent contexts
 		while ((null == filter) && !contextPath.isRoot()) {
-			filter = readFilterFromPreferences(context, rootNode, contextPath = contextPath.removeLastSegments(1), typeName);
+			filter = readFilterFromPreferences(rootNode, contextPath = contextPath.removeLastSegments(1), typeName);
 		}
 
 		// return what we have (may be nothing)
@@ -95,7 +92,7 @@ public final class ContextConfiguration {
 	 *            the type name
 	 * @return
 	 */
-	private static Filter readFilterFromPreferences(final IRuntimeContext context, final IEclipsePreferences root, final IPath contextPath, final String typeName) {
+	private static Filter readFilterFromPreferences(final IEclipsePreferences root, final IPath contextPath, final String typeName) {
 		// get the preferences
 		final String preferencesPath = getPreferencesPathForContextObjectFilterSetting(contextPath);
 		try {

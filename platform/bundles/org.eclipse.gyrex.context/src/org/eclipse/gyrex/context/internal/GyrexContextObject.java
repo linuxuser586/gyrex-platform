@@ -157,7 +157,7 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 			}
 
 			// find the filter
-			final Filter filter = ContextConfiguration.findFilter(context, typeName);
+			final Filter filter = ContextConfiguration.findFilter(context.getContextPath(), typeName);
 
 			// get all matching provider
 			final ProviderRegistration[] providers = typeRegistration.getMatchingProviders(filter);

@@ -11,9 +11,6 @@
  */
 package org.eclipse.gyrex.context.internal;
 
-import java.lang.ref.WeakReference;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
@@ -33,7 +30,6 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 
 	private final IPath contextPath;
 	private final ContextRegistryImpl contextRegistry;
-	private final AtomicReference<WeakReference<GyrexContextImpl>> realContext = new AtomicReference<WeakReference<GyrexContextImpl>>();
 
 	/**
 	 * Creates a new instance.
@@ -71,19 +67,13 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	public GyrexContextImpl get() {
-		GyrexContextImpl gyrexContextImpl;
-		final WeakReference<GyrexContextImpl> weakReference = realContext.get();
-		if (null != weakReference) {
-			gyrexContextImpl = weakReference.get();
-			if ((null == gyrexContextImpl) || gyrexContextImpl.isDisposed()) {
-				gyrexContextImpl = contextRegistry.getRealContext(getContextPath());
-				realContext.set(new WeakReference<GyrexContextImpl>(gyrexContextImpl));
-			}
-		} else {
-			gyrexContextImpl = contextRegistry.getRealContext(getContextPath());
-			realContext.set(new WeakReference<GyrexContextImpl>(gyrexContextImpl));
-		}
-		return gyrexContextImpl;
+		// returns the real context
+		// we use this indirection in order to allow client code to hold
+		// reference to runtime contexts for a longer period of time;
+		// under the cover, a context may be disposed and updated an any point
+		// in between without the client code noticing; the next time they
+		// call any API they will just get a fresh _real_ context
+		return contextRegistry.getRealContext(contextPath);
 	}
 
 	@Override

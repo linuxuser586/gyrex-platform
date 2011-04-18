@@ -24,7 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
@@ -105,7 +106,7 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 	private final Map<IPath, GyrexContextImpl> contexts;
 	private final ConcurrentMap<IPath, GyrexContextHandle> handles;
 	private final AtomicBoolean closed = new AtomicBoolean();
-	private final Lock contextRegistryModifyLock = new ReentrantLock();
+	private final ReadWriteLock contextRegistryLock = new ReentrantReadWriteLock();
 
 	private final ObjectProviderRegistry objectProviderRegistry;
 
@@ -127,12 +128,13 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 		// dispose active contexts
 		IRuntimeContext[] activeContexts;
-		contextRegistryModifyLock.lock();
+		final Lock lock = contextRegistryLock.writeLock();
+		lock.lock();
 		try {
 			activeContexts = contexts.values().toArray(new IRuntimeContext[contexts.size()]);
 			contexts.clear();
 		} finally {
-			contextRegistryModifyLock.unlock();
+			lock.unlock();
 		}
 
 		// dispose all the active contexts
@@ -159,7 +161,8 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 		// remove all entries within that path
 		final List<GyrexContextImpl> removedContexts = new ArrayList<GyrexContextImpl>();
-		contextRegistryModifyLock.lock();
+		final Lock lock = contextRegistryLock.writeLock();
+		lock.lock();
 		try {
 			checkClosed();
 			final Entry[] entrySet = contexts.entrySet().toArray(new Entry[0]);
@@ -173,7 +176,7 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 				}
 			}
 		} finally {
-			contextRegistryModifyLock.unlock();
+			lock.unlock();
 		}
 
 		// dispose all removed contexts (outside of lock)
@@ -267,13 +270,21 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		contextPath = sanitize(contextPath);
 
 		// get existing context
-		GyrexContextImpl context = contexts.get(contextPath);
-		if (null != context) {
-			return context;
+		GyrexContextImpl context = null;
+		final Lock readLock = contextRegistryLock.readLock();
+		readLock.lock();
+		try {
+			context = contexts.get(contextPath);
+			if (null != context) {
+				return context;
+			}
+		} finally {
+			readLock.unlock();
 		}
 
 		// create & store new context if necessary
-		contextRegistryModifyLock.lock();
+		final Lock lock = contextRegistryLock.writeLock();
+		lock.lock();
 		try {
 			checkClosed();
 
@@ -291,7 +302,7 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 			contexts.put(contextPath, context);
 
 		} finally {
-			contextRegistryModifyLock.unlock();
+			lock.unlock();
 		}
 
 		return context;

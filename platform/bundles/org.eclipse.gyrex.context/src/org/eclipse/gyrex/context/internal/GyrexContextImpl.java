@@ -43,7 +43,7 @@ import org.eclipse.e4.core.di.IDisposable;
  * </p>
  */
 @SuppressWarnings("restriction")
-public class GyrexContextImpl extends PlatformObject implements IRuntimeContext, IDisposable {
+public class GyrexContextImpl extends PlatformObject implements IDisposable {
 
 	/** key for looking up a GyrexContextImpl from an IEclipseContext */
 	static final String ECLIPSE_CONTEXT_KEY = GyrexContextImpl.class.getName();
@@ -82,7 +82,7 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		this.contextPath = contextPath;
 		this.contextRegistry = contextRegistry;
 		injector = new GyrexContextInjectorImpl(this);
-		preferences = new GyrexContextPreferencesImpl(this);
+		preferences = new GyrexContextPreferencesImpl(contextRegistry.getHandle(contextPath));
 	}
 
 	public void addDisposable(final IDisposable disposable) {
@@ -120,7 +120,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		disposables.clear();
 	}
 
-	@Override
+	/**
+	 * @see IRuntimeContext#get(Class)
+	 */
 	public <T> T get(final Class<T> type) throws IllegalArgumentException {
 		checkDisposed();
 		trackAccess();
@@ -135,7 +137,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return safeCast(contextObject.compute());
 	}
 
-	@Override
+	/**
+	 * @see IRuntimeContext#getContextPath()
+	 */
 	public IPath getContextPath() {
 		trackAccess();
 		return contextPath;
@@ -161,10 +165,11 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return contextRegistry.getHandle(contextPath);
 	}
 
-	@Override
+	/**
+	 * @see IRuntimeContext#getInjector()
+	 */
 	public IRuntimeContextInjector getInjector() {
 		checkDisposed();
-
 		return injector;
 	}
 
@@ -177,7 +182,9 @@ public class GyrexContextImpl extends PlatformObject implements IRuntimeContext,
 		return lastAccessTime.get();
 	}
 
-	@Override
+	/**
+	 * @see IRuntimeContext#getPreferences()
+	 */
 	public IRuntimeContextPreferences getPreferences() {
 		return preferences;
 	}
