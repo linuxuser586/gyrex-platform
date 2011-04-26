@@ -57,6 +57,10 @@ import org.osgi.framework.Version;
  * directory as a sub-type of <code>application</code> using binary. But it's
  * not limited to this media type.
  * </p>
+ * <p>
+ * Every content type must be made available to the system using
+ * {@link IRepositoryContentTypeProvider}.
+ * </p>
  * 
  * @see #getMediaType()
  * @see #getVersion()

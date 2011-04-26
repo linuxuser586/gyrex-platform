@@ -35,6 +35,14 @@ public class BasicRepositoryContentTypeSupport extends RepositoryContentTypeSupp
 		this.repository = repository;
 	}
 
+//	@Override
+//	public ProvisioningStatus getProvisioningStatus(final RepositoryContentType contentType, final IProgressMonitor progressMonitor) throws IllegalArgumentException, RepositoryException {
+//		if (!isSupported(contentType)) {
+//			throw new IllegalArgumentException(String.format("content type '%s' not supported by repository '%s'", contentType.getMediaType(), repository.getRepositoryId()));
+//		}
+//		return new ProvisioningStatus(IStatus.INFO, PersistenceActivator.SYMBOLIC_NAME, IStatus.OK, null, String.format("basic content type support impliead no pending provisioning operations for content type '%s' in repository '%s'", contentType.getMediaType(), repository.getRepositoryId()), null);
+//	}
+
 	@Override
 	public Repository getRepository() {
 		return repository;
@@ -45,5 +53,4 @@ public class BasicRepositoryContentTypeSupport extends RepositoryContentTypeSupp
 		// check that the repository type is compatible to the content type
 		return repository.getRepositoryProvider().getRepositoryTypeName().equals(contentType.getRepositoryTypeName());
 	}
-
 }

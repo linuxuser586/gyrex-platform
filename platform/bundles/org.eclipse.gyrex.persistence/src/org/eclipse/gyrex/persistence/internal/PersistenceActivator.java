@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.persistence.internal;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.persistence.internal.storage.ContentTypeTracker;
 import org.eclipse.gyrex.persistence.internal.storage.RepositoryProviderRegistry;
 import org.eclipse.gyrex.persistence.internal.storage.RepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
@@ -47,10 +48,13 @@ public class PersistenceActivator extends BaseBundleActivator {
 	}
 
 	/** the repository type registry */
-	private RepositoryProviderRegistry repositoryProviderRegistry;
+	private volatile RepositoryProviderRegistry repositoryProviderRegistry;
 
 	/** the repositories manager */
-	private RepositoryRegistry repositoryRegistry;
+	private volatile RepositoryRegistry repositoryRegistry;
+
+	/** tracker for content type */
+	private volatile ContentTypeTracker contentTypeTracker;
 
 	/**
 	 * Creates a new instance.
@@ -61,38 +65,51 @@ public class PersistenceActivator extends BaseBundleActivator {
 		super(SYMBOLIC_NAME);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		sharedInstance = this;
 
+		// track content type
+		contentTypeTracker = new ContentTypeTracker(context);
+		contentTypeTracker.open();
+
 		// register the type registry
-		startRepositoryTypeRegistry(context);
+		repositoryProviderRegistry = new RepositoryProviderRegistry();
+		repositoryProviderRegistry.start(context);
 
 		// start the repository registry
-		startRepositoryRegistry();
-
-		// TODO: initialize default prefs (using DefaultPeferencesInitializer)
+		repositoryRegistry = new RepositoryRegistry();
+		getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "Gyrex Repository Registry", null, null);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		sharedInstance = null;
 
 		// stop the manager
-		stopRepositoryRegistry();
+		repositoryProviderRegistry.close();
+		repositoryProviderRegistry = null;
 
 		// stop the type registry
-		stopRepositoryTypeRegistry();
+		repositoryProviderRegistry.close();
+		repositoryProviderRegistry = null;
+
+		// un-track content types
+		contentTypeTracker.close();
+		contentTypeTracker = null;
+	}
+
+	/**
+	 * Returns the contentTypeTracker.
+	 * 
+	 * @return the contentTypeTracker
+	 */
+	public ContentTypeTracker getContentTypeTracker() {
+		final ContentTypeTracker tracker = contentTypeTracker;
+		if (null == tracker) {
+			throw createBundleInactiveException();
+		}
+		return tracker;
 	}
 
 	/**
@@ -101,7 +118,12 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 * @return the repositories manager
 	 */
 	public RepositoryRegistry getRepositoriesManager() {
-		return repositoryRegistry;
+		final RepositoryRegistry registry = repositoryRegistry;
+		if (null == registry) {
+			throw createBundleInactiveException();
+		}
+
+		return registry;
 	}
 
 	/**
@@ -112,42 +134,10 @@ public class PersistenceActivator extends BaseBundleActivator {
 	public RepositoryProviderRegistry getRepositoryProviderRegistry() {
 		final RepositoryProviderRegistry registry = repositoryProviderRegistry;
 		if (null == registry) {
-			throw new IllegalStateException("inactive");
+			throw createBundleInactiveException();
 		}
 
 		return registry;
 	}
 
-	private synchronized void startRepositoryRegistry() {
-		if (null != repositoryRegistry) {
-			return;
-		}
-
-		repositoryRegistry = new RepositoryRegistry();
-
-		// register service
-		getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "Gyrex Repository Registry", null, null);
-	}
-
-	private synchronized void startRepositoryTypeRegistry(final BundleContext context) {
-		if (null == repositoryProviderRegistry) {
-			repositoryProviderRegistry = new RepositoryProviderRegistry();
-		}
-		repositoryProviderRegistry.start(context);
-	}
-
-	private synchronized void stopRepositoryRegistry() {
-		if (null == repositoryRegistry) {
-			return;
-		}
-
-		repositoryRegistry = null;
-	}
-
-	private synchronized void stopRepositoryTypeRegistry() {
-		if (null != repositoryProviderRegistry) {
-			repositoryProviderRegistry.close();
-			repositoryProviderRegistry = null;
-		}
-	}
 }

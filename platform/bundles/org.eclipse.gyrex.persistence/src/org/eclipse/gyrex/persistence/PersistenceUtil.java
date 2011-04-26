@@ -12,10 +12,10 @@
 package org.eclipse.gyrex.persistence;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.persistence.internal.storage.DefaultRepositoryLookupStrategy;
-import org.eclipse.gyrex.persistence.internal.storage.IRepositoryLookupStrategy;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
+import org.eclipse.gyrex.persistence.storage.lookup.DefaultRepositoryLookupStrategy;
+import org.eclipse.gyrex.persistence.storage.lookup.IRepositoryLookupStrategy;
 
 /**
  * This class provides utility methods for working with the persistence API.

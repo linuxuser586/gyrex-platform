@@ -80,54 +80,6 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 		return repositoryProvider.getProviderId() + "." + repositoryId + ".metrics";
 	}
 
-	/**
-	 * Indicates if the specified id is a valid repository API id.
-	 * <p>
-	 * By definition, a all identifiers used within the repository API must not
-	 * be <code>null</code> or the empty string and may only contain the
-	 * following printable ASCII characters.
-	 * <ul>
-	 * <li>lower- and uppercase letters <code>a..z</code> and <code>A..Z</code></li>
-	 * <li>numbers <code>0..9</code></li>
-	 * <li><code>'.'</code></li>
-	 * <li><code>'-'</code></li>
-	 * <li><code>'_'</code></li>
-	 * </ul>
-	 * </p>
-	 * <p>
-	 * This method is used to validate repository identifiers, repository
-	 * provider identifiers and repository type names.
-	 * </p>
-	 * 
-	 * @param id
-	 *            the id
-	 * @return <code>true</code> if the id is valid, <code>false</code>
-	 *         otherwise
-	 * @deprecated replaced by {@link IdHelper#isValidId(String)}
-	 */
-	@Deprecated
-	public static boolean isValidId(final String id) {
-		if (null == id) {
-			return false;
-		}
-
-		if (id.equals("")) {
-			return false;
-		}
-
-		// verify chars
-		for (int i = 0; i < id.length(); i++) {
-			final char c = id.charAt(i);
-			if (((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || ((c >= '0') && (c <= '9')) || (c == '.') || (c == '_') || (c == '-')) {
-				continue;
-			} else {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 	/** the repository id */
 	private final String repositoryId;
 
@@ -179,7 +131,7 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 			throw new IllegalArgumentException("metrics must not be null");
 		}
 
-		if (!Repository.isValidId(repositoryId)) {
+		if (!IdHelper.isValidId(repositoryId)) {
 			throw new IllegalArgumentException(MessageFormat.format("repository id \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", repositoryId));
 		}
 
@@ -386,7 +338,8 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 
 	/**
 	 * Returns a string containing a concise, human-readable description of the
-	 * repository.
+	 * repository including information about the repository implementation and
+	 * the repository id.
 	 * 
 	 * @return a string representation of the repository
 	 */

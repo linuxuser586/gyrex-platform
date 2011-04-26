@@ -33,9 +33,12 @@ import org.eclipse.core.runtime.PlatformObject;
  * used, however, to create concrete repository instances.
  * </p>
  * <p>
- * This class must be subclassed by clients that want to contribute a repository
- * provider to Gyrex. However, it is typically not referenced directly outside
- * Gyrex.
+ * This class must be subclassed by clients that contribute a repository
+ * implementation to Gyrex. As such it is considered part of a service provider
+ * API which may evolve faster than the general API. Please get in touch with
+ * the development team through the prefered channels listed on <a
+ * href="http://www.eclipse.org/gyrex">the Gyrex website</a> to stay up-to-date
+ * of possible changes.
  * </p>
  */
 public abstract class RepositoryProvider extends PlatformObject {
