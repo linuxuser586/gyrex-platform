@@ -133,16 +133,16 @@ public class SolrActivator extends BaseBundleActivator {
 		if (!solrBase.isDirectory()) {
 			// initialize dir
 			solrBase.mkdirs();
-			FileUtils.copyDirectory(configTemplate, solrBase);
 		}
 
 		// get multicore config file
 		final File configFile = new File(solrBase, "solr.xml");
-		//		if (null == configFile) {
-		//			throw new IllegalStateException("no file system support available");
-		//		}
 		if (!configFile.isFile()) {
-			throw new IllegalStateException("config file '" + configFile.getPath() + "' is missing");
+			// deploy base configuration
+			FileUtils.copyDirectory(configTemplate, solrBase);
+			if (!configFile.isFile()) {
+				throw new IllegalStateException("config file '" + configFile.getPath() + "' is missing");
+			}
 		}
 
 		// create core container
