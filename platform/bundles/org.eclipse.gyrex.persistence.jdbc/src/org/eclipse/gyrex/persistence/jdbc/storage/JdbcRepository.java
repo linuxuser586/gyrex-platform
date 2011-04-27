@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2009 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -29,8 +29,12 @@ import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
  * additional features such as connection pooling and schema management.
  * </p>
  * <p>
- * This class may be subclassed by clients that contribute a JDBC repository
- * type to Gyrex.
+ * This class must be subclassed by clients that contribute a JDBC repository
+ * implementation to Gyrex. As such it is considered part of a service provider
+ * API which may evolve faster than the general API. Please get in touch with
+ * the development team through the prefered channels listed on <a
+ * href="http://www.eclipse.org/gyrex">the Gyrex website</a> to stay up-to-date
+ * of possible changes.
  * </p>
  */
 public abstract class JdbcRepository extends Repository {
