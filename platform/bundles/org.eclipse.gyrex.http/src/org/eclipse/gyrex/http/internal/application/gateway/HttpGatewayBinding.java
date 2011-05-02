@@ -205,6 +205,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 			for (final String appId : childrenNames) {
 				((IEclipsePreferences) applicationsNode.node(appId)).removePreferenceChangeListener(applicationActiveListener);
 			}
+		} catch (final IllegalStateException e) {
+			// all good, already removed
 		} catch (final BackingStoreException e) {
 			LOG.warn("Error removing change listeners. Memory may be leaked. {}", ExceptionUtils.getRootCauseMessage(e));
 		}
