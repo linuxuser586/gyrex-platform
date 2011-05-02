@@ -40,7 +40,7 @@ public class HttpServiceApp extends Application {
 	@Override
 	protected void doInit() throws CoreException {
 		try {
-			getApplicationServiceSupport().registerServlet("/", new HttpServiceServlet(), null);
+			getApplicationContext().registerServlet("/", new HttpServiceServlet(), null);
 		} catch (final ServletException e) {
 			throw new CoreException(new Status(IStatus.ERROR, HttpServiceActivator.SYMBOLIC_NAME, "Error while registering the HttpService servlet. " + e.getMessage(), e));
 		}

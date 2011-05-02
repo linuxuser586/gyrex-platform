@@ -385,7 +385,7 @@ public class ApplicationRegistryManager {
 			if (HttpRegistryDebug.applicationLifecycle) {
 				LOG.debug("Registering resource {} with application {}.", new Object[] { contribution.alias, contribution.applicationId });
 			}
-			registryApplication.getApplicationServiceSupport().registerResources(contribution.alias, contribution.path, contribution.resourceProvider);
+			registryApplication.getApplicationContext().registerResources(contribution.alias, contribution.path, contribution.resourceProvider);
 		} catch (final NamespaceException e) {
 			LOG.warn("Could not register resource {} with application {}. {}", new Object[] { contribution.alias, contribution.applicationId, e.getMessage() });
 		} catch (final IllegalStateException e) {
@@ -398,7 +398,7 @@ public class ApplicationRegistryManager {
 			if (HttpRegistryDebug.applicationLifecycle) {
 				LOG.debug("Registering servlet {} with application {}.", new Object[] { contribution.alias, contribution.applicationId });
 			}
-			registryApplication.getApplicationServiceSupport().registerServlet(contribution.alias, contribution.servlet, contribution.initparams);
+			registryApplication.getApplicationContext().registerServlet(contribution.alias, contribution.servlet, contribution.initparams);
 		} catch (final NamespaceException e) {
 			LOG.warn("Could not register servlet {} with application {}. {}", new Object[] { contribution.alias, contribution.applicationId, e.getMessage() });
 		} catch (final ServletException e) {
@@ -459,7 +459,7 @@ public class ApplicationRegistryManager {
 			if (HttpRegistryDebug.applicationLifecycle) {
 				LOG.debug("Removing registration {} from application {}", new Object[] { alias, application.getId() });
 			}
-			application.getApplicationServiceSupport().unregister(alias);
+			application.getApplicationContext().unregister(alias);
 		} catch (final IllegalArgumentException e) {
 			LOG.warn("Could not unregister {} from application {}. {}", new Object[] { alias, application.getId(), e.getMessage() });
 		} catch (final IllegalStateException e) {

@@ -60,8 +60,8 @@ public class RegistryApplication extends Application {
 	}
 
 	@Override
-	protected IApplicationContext getApplicationServiceSupport() {
-		return super.getApplicationServiceSupport();
+	protected IApplicationContext getApplicationContext() {
+		return super.getApplicationContext();
 	}
 
 	/**

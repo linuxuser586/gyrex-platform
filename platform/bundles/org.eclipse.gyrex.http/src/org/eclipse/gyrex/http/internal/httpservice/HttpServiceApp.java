@@ -54,7 +54,7 @@ public class HttpServiceApp extends Application implements ServiceFactory<HttpSe
 
 	@Override
 	public HttpService getService(final Bundle bundle, final ServiceRegistration<HttpService> registration) {
-		return new HttpServiceImpl(getApplicationServiceSupport(), bundle);
+		return new HttpServiceImpl(getApplicationContext(), bundle);
 	}
 
 	@Override

@@ -206,7 +206,7 @@ public abstract class Application extends PlatformObject {
 	 * @return the application context (maybe <code>null</code> if not supported
 	 *         by the application or the application has been destroyed)
 	 */
-	protected IApplicationContext getApplicationServiceSupport() {
+	protected IApplicationContext getApplicationContext() {
 		return applicationContext.get();
 	}
 
@@ -302,7 +302,7 @@ public abstract class Application extends PlatformObject {
 		}
 
 		// get the context
-		final IApplicationContext context = getApplicationServiceSupport();
+		final IApplicationContext context = getApplicationContext();
 		if (null == context) {
 			// if there is no context this method should not be overridden
 			response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED);
