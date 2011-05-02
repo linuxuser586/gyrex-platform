@@ -28,11 +28,17 @@ public class ApplicationResourceServlet extends DefaultServlet {
 
 	static ServletHolder newHolder(final ApplicationHandler applicationHandler) {
 		final ServletHolder defaultServlet = new ServletHolder(new ApplicationResourceServlet(applicationHandler));
-		defaultServlet.setInitParameter("dirAllowed", String.valueOf(Platform.inDevelopmentMode()));
-		defaultServlet.setInitParameter("maxCacheSize", "2000000");
-		defaultServlet.setInitParameter("maxCachedFileSize", "254000");
-		defaultServlet.setInitParameter("maxCachedFiles", "1000");
-		defaultServlet.setInitParameter("useFileMappedBuffer", "true");
+		if (Platform.inDevelopmentMode()) {
+			defaultServlet.setInitParameter("dirAllowed", "true");
+			defaultServlet.setInitParameter("useFileMappedBuffer", "false");
+			defaultServlet.setInitParameter("maxCachedFiles", "0");
+		} else {
+			defaultServlet.setInitParameter("dirAllowed", "false");
+			defaultServlet.setInitParameter("maxCacheSize", "2000000");
+			defaultServlet.setInitParameter("maxCachedFileSize", "254000");
+			defaultServlet.setInitParameter("maxCachedFiles", "1000");
+			defaultServlet.setInitParameter("useFileMappedBuffer", "true");
+		}
 		return defaultServlet;
 	}
 
