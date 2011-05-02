@@ -27,6 +27,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.HttpActivator;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
@@ -34,6 +35,8 @@ import org.eclipse.core.runtime.PlatformObject;
 import org.eclipse.core.runtime.Status;
 
 import org.osgi.service.http.HttpContext;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
  * A Gyrex HTTP application instance.
@@ -193,8 +196,14 @@ public abstract class Application extends PlatformObject {
 	 * <p>
 	 * The default implementation does nothing. Subclasses may override.
 	 * </p>
+	 * 
+	 * @throws IllegalStateException
+	 *             in case the initialization can not be completed currently but
+	 *             may be repeated at a later time
+	 * @throws Exception
+	 *             in case of unrecoverable initialization failures
 	 */
-	protected void doInit() throws CoreException {
+	protected void doInit() throws IllegalStateException, Exception {
 		// empty
 
 	}
@@ -416,9 +425,13 @@ public abstract class Application extends PlatformObject {
 		try {
 			doInit();
 			initTimestamp.set(System.currentTimeMillis());
+		} catch (final CoreException e) {
+			throw e;
 		} catch (final IllegalStateException e) {
 			// deferred initialization
 			initTimestamp.set(0);
+		} catch (final Exception e) {
+			throw new CoreException(new Status(IStatus.ERROR, HttpActivator.SYMBOLIC_NAME, String.format("Error while initializing applicaion %s. %s", id, ExceptionUtils.getRootCauseMessage(e)), e));
 		}
 	}
 
