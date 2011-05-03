@@ -426,14 +426,17 @@ public class ApplicationContext implements IApplicationContext {
 			// find servlets to remove
 			final ServletHolder[] servlets = servletHandler.getServlets();
 			final List<ServletHolder> servletsToRemove = new ArrayList<ServletHolder>(servlets.length);
+			final List<ServletHolder> newServlets = new ArrayList<ServletHolder>(servlets.length);
 			for (final ServletHolder servlet : servlets) {
-				if (!mappedServlets.contains(servlet)) {
+				if (!mappedServlets.contains(servlet.getName())) {
 					servletsToRemove.add(servlet);
+				} else {
+					newServlets.add(servlet);
 				}
 			}
 
 			// update mappings and servlets
-			servletHandler.setServlets(mappedServlets.toArray(new ServletHolder[mappedServlets.size()]));
+			servletHandler.setServlets(newServlets.toArray(new ServletHolder[newServlets.size()]));
 			servletHandler.setServletMappings(newMappings.toArray(new ServletMapping[newMappings.size()]));
 
 			// stop removed servlets
