@@ -88,7 +88,15 @@ public class ApplicationProviderRegistration {
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
-		builder.append("ApplicationProviderRegistration [provider=").append(provider.get()).append(", contributedBy=").append(contributorInfo).append(", activeApplications=").append(activeApplications.size()).append("]");
+		builder.append("ApplicationProviderRegistration [");
+		final ApplicationProvider provider = this.provider.get();
+		if (null != provider) {
+			builder.append(provider.getId());
+			builder.append(", provider=").append(provider);
+		} else {
+			builder.append("provider=(destroyed)");
+		}
+		builder.append(", contributedBy=").append(contributorInfo).append(", activeApplications=").append(activeApplications.size()).append("]");
 		return builder.toString();
 	}
 }

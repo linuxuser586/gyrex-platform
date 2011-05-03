@@ -227,7 +227,7 @@ public class HttpConsoleCommands implements CommandProvider {
 					return;
 				}
 
-				manager.mount(appId, url);
+				manager.mount(url, appId);
 				ci.println(String.format("mounted url %s", url));
 			}
 		});

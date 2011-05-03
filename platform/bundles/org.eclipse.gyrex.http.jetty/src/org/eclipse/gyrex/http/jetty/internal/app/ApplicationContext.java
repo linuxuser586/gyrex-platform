@@ -285,9 +285,27 @@ public class ApplicationContext implements IApplicationContext {
 			// register servlet
 			applicationHandler.getServletHandler().addServletWithMapping(holder, pathSpec);
 
+			// start if already started
+			if (applicationHandler.getServletHandler().isStarted() || applicationHandler.getServletHandler().isStarting()) {
+				try {
+					holder.start();
+				} catch (final Exception e) {
+					// attempt a clean unregister
+					try {
+						unregister(alias);
+					} catch (final Exception e2) {
+						if (JettyDebug.debug) {
+							LOG.debug("Exception during cleanup of failed registration.", e2);
+						}
+					}
+					// fail
+					throw new ServletException(String.format("Error starting servlet. %s", e.getMessage()), e);
+				}
+			}
 		} finally {
 			registryModificationLock.unlock();
 		}
+
 	}
 
 	private void removeBundleResourceMonitor(final String alias) {
@@ -423,7 +441,7 @@ public class ApplicationContext implements IApplicationContext {
 				try {
 					servlet.doStop();
 				} catch (final Exception e) {
-					Log.ignore(e);
+					// ignore
 				}
 			}
 		} finally {

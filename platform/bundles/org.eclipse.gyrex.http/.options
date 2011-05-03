@@ -6,3 +6,6 @@ org.eclipse.gyrex.http/gatewayBinding=true
 
 # the HttpService implementation
 org.eclipse.gyrex.http/httpService=true
+
+# the Application lifecycle
+org.eclipse.gyrex.http/applicationLifecycle=true

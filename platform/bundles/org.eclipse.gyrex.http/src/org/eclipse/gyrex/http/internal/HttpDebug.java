@@ -18,5 +18,6 @@ public class HttpDebug extends BundleDebugOptions {
 	public static boolean debug;
 	public static boolean gatewayBinding;
 	public static boolean httpService;
+	public static boolean applicationLifecycle;
 
 }

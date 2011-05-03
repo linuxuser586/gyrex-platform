@@ -44,13 +44,13 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationDelegateHandler.class);
 
-	private final Application application;
+	private final ApplicationHandler applicationHandler;
 
 	/**
 	 * Creates a new instance.
 	 */
-	public ApplicationDelegateHandler(final Application application) {
-		this.application = application;
+	public ApplicationDelegateHandler(final ApplicationHandler applicationHandler) {
+		this.applicationHandler = applicationHandler;
 	}
 
 	/* (non-Javadoc)
@@ -86,6 +86,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 		// delegated to the application
 		// the application may delegate back to us via ApplicationContext
 		try {
+			final Application application = applicationHandler.getApplication();
 			if (JettyDebug.handlers) {
 				LOG.debug("routing request to application {}", application);
 			}
@@ -157,7 +158,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			// calculate target based on current path info
 			final String target = baseRequest.getPathInfo();
 			if (JettyDebug.handlers) {
-				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target '{}')", application, target);
+				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target '{}')", applicationHandler.getApplication(), target);
 			}
 			// also make sure the path absolute is absolute (required by ServletHandler down the road)
 			if ((null == target) || !target.startsWith(URIUtil.SLASH)) {
@@ -177,7 +178,11 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 		final StringBuilder string = new StringBuilder();
 		string.append(getClass().getSimpleName());
 		string.append("[");
-		string.append(application.getId());
+		try {
+			string.append(applicationHandler.getApplication().getId());
+		} catch (final Exception e) {
+			string.append(e.toString());
+		}
 		string.append("]");
 		return string.toString();
 	}

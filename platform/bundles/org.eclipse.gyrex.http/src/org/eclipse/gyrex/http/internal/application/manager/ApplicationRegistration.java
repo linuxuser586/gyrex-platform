@@ -20,9 +20,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
-import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.internal.HttpActivator;
+import org.eclipse.gyrex.http.internal.HttpDebug;
 
 import org.eclipse.core.runtime.CoreException;
 
@@ -79,11 +79,46 @@ public class ApplicationRegistration {
 	}
 
 	/**
+	 * Destroy an existing application instance for the specified application
+	 * context if one exists.
+	 * <p>
+	 * This method ensures that any created instance for the specified context
+	 * is properly destroyed.
+	 * </p>
+	 * 
+	 * @param applicationContext
+	 *            the application context
+	 */
+	public void destroyApplication(final IApplicationContext applicationContext) {
+		// remove the instance
+		// do this inside the lock to prevent parallel creation
+		ApplicationInstance instance;
+		final Lock lock = applicationCreationLock;
+		lock.lock();
+		try {
+			instance = activeApplications.remove(applicationContext);
+		} finally {
+			lock.unlock();
+		}
+
+		// destroy
+		if (null != instance) {
+			instance.destroy();
+		}
+	}
+
+	/**
 	 * Gets an existing or creates a new application instance for the specified
 	 * application context.
 	 * <p>
 	 * This method ensures that at most one application instance is created for
 	 * the specified context.
+	 * </p>
+	 * <p>
+	 * Note, the application will not be initialized. The caller is responsible
+	 * for initializing the application (calling
+	 * {@link ApplicationInstance#initialize()}) when appropriate. This allows
+	 * to implement a more flexible lifecycle.
 	 * </p>
 	 * 
 	 * @param applicationContext
@@ -97,6 +132,10 @@ public class ApplicationRegistration {
 			return instance;
 		}
 
+		if (HttpDebug.applicationLifecycle) {
+			LOG.debug("Creating new application of type {} for context {}", providerId, applicationContext);
+		}
+
 		// TODO: should support multiple provider versions somehow
 		// (maybe through the context which defines which version to use?)
 		// (another alternative would be version ranges at registration times)
@@ -106,7 +145,7 @@ public class ApplicationRegistration {
 		}
 
 		// we must ensure that only *one* application instance is
-		// created per application handler servlet
+		// created per application context
 		final Lock lock = applicationCreationLock;
 		lock.lock();
 		try {
@@ -120,15 +159,6 @@ public class ApplicationRegistration {
 			if (null == application) {
 				// provider might be destroyed meanwhile
 				return null;
-			}
-
-			// initialize the application
-			try {
-				application.initialize(applicationContext);
-			} catch (final Exception e) {
-				// error while initializing application
-				LOG.error("Error while initliazing application '" + applicationId + "': " + e.getMessage(), application.getContext());
-				throw new ApplicationException(500, "Initialization Error", e);
 			}
 
 			// remember the instance

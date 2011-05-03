@@ -14,15 +14,24 @@ package org.eclipse.gyrex.http.internal.application.manager;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.http.application.Application;
+import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
+import org.eclipse.gyrex.http.internal.HttpDebug;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A concrete application instance.
  */
 public class ApplicationInstance {
 
+	private static final Logger LOG = LoggerFactory.getLogger(ApplicationInstance.class);
+
 	private final AtomicReference<Application> applicationRef;
 	private final AtomicReference<IApplicationContext> applicationContextRef;
+	private final String applicationId;
 
 	/**
 	 * Creates a new instance.
@@ -33,6 +42,7 @@ public class ApplicationInstance {
 	public ApplicationInstance(final Application application, final IApplicationContext applicationContext) {
 		applicationRef = new AtomicReference<Application>(application);
 		applicationContextRef = new AtomicReference<IApplicationContext>(applicationContext);
+		applicationId = application.getId();
 	}
 
 	/**
@@ -41,11 +51,14 @@ public class ApplicationInstance {
 	void destroy() {
 		final Application application = getApplication();
 		if (applicationRef.compareAndSet(application, null)) {
-			applicationContextRef.set(null);
 			try {
 				application.destroy();
 			} catch (final Exception e) {
-				// TODO consider logging this
+				if (HttpDebug.applicationLifecycle) {
+					LOG.debug("Error destorying application '{}'.", applicationId, e);
+				}
+			} finally {
+				applicationContextRef.set(null);
 			}
 		}
 	}
@@ -68,4 +81,23 @@ public class ApplicationInstance {
 		return applicationContextRef.get();
 	}
 
+	/**
+	 * Convenience method for initializing an application.
+	 */
+	public void initialize() {
+		final Application application = getApplication();
+		final IApplicationContext applicationContext = applicationContextRef.get();
+		if ((null == application) || (null == applicationContext)) {
+			throw new IllegalStateException(String.format("Application '%s' already destroyed.", applicationId));
+		}
+
+		// initialize the application
+		try {
+			application.initialize(applicationContext);
+		} catch (final Exception e) {
+			// error while initializing application
+			LOG.error("Error initializing application '{}'. {}", new Object[] { applicationId, ExceptionUtils.getRootCauseMessage(e), e });
+			throw new ApplicationException(500, "Initialization Error", e);
+		}
+	}
 }

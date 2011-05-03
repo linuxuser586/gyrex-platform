@@ -109,7 +109,7 @@ public class ApplicationHandler extends ServletContextHandler {
 	private final boolean showDebugInfo = Platform.inDebugMode() || Platform.inDevelopmentMode();
 
 	private ApplicationContext applicationContext;
-	private Application application;
+	private volatile ApplicationInstance applicationInstance;
 	private ApplicationDelegateHandler applicationDelegateHandler;
 	private SessionHandler sessionHandler;
 
@@ -272,6 +272,24 @@ public class ApplicationHandler extends ServletContextHandler {
 	}
 
 	@Override
+	protected void doStop() throws Exception {
+		try {
+			// stop all the Jetty stuff
+			super.doStop();
+		} finally {
+			// destroy the application instance
+			final ApplicationContext context = applicationContext;
+			if (null != context) {
+				applicationContext = null;
+				applicationInstance = null;
+				applicationDelegateHandler = null;
+				applicationRegistration.destroyApplication(context);
+			}
+			sessionHandler = null;
+		}
+	}
+
+	@Override
 	public void dump(final Appendable out, final String indent) throws IOException {
 		super.dump(out, indent);
 		out.append(indent).append(" |").append('\n');
@@ -287,7 +305,8 @@ public class ApplicationHandler extends ServletContextHandler {
 	 * @return the application
 	 */
 	public Application getApplication() {
-		final Application app = application;
+		final ApplicationInstance instance = applicationInstance;
+		final Application app = instance != null ? instance.getApplication() : null;
 		if (app == null) {
 			throw new IllegalStateException("inactive");
 		}
@@ -453,32 +472,36 @@ public class ApplicationHandler extends ServletContextHandler {
 		// create servlet handler early
 		_servletHandler = new ApplicationServletHandler(this);
 
-		// initialize the application instance now (after servlet handler is available)
+		// create remaining the handlers
+		applicationDelegateHandler = new ApplicationDelegateHandler(this);
+		sessionHandler = new SessionHandler(new HashSessionManager());
+
+		// setup the handler chain before super initialization
+		// session -> application -> registered servlets/resources
+		setHandler(sessionHandler);
+		sessionHandler.setHandler(applicationDelegateHandler);
+		applicationDelegateHandler.setHandler(_servletHandler);
+
+		// get the application instance now but initialize it later!
+		// this is tricky, we need to defer this till the handlers have all
+		// been initialized, initializing the application will trigger servlet registrations
+		// this requires the ServletHandler to be setup properly; thus, we likely should
+		// setup the handler chain first, start all the handlers and _then_ initialize
+		// the application
 		try {
-			final ApplicationInstance applicationInstance = applicationRegistration.getApplication(applicationContext);
+			applicationInstance = applicationRegistration.getApplication(applicationContext);
 			if (applicationInstance == null) {
 				throw new IllegalStateException("no application instance for " + applicationRegistration);
-			}
-			application = applicationInstance.getApplication();
-			if (application == null) {
-				throw new IllegalStateException("no application object returned from instance for " + applicationRegistration);
-			}
-			if (JettyDebug.handlers) {
-				LOG.debug("Application {} initialized", application);
 			}
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Error creating application '%s': %s", StringUtils.trimToEmpty(getApplicationId()), StringUtils.trimToEmpty(e.getMessage())), e);
 		}
 
-		// create remaining the handlers
-		applicationDelegateHandler = new ApplicationDelegateHandler(application);
-		sessionHandler = new SessionHandler(new HashSessionManager());
-
-		// setup the handler chain after super initialization
-		// session -> application -> registered servlets/resources
-		setHandler(sessionHandler);
-		sessionHandler.setHandler(applicationDelegateHandler);
-		applicationDelegateHandler.setHandler(_servletHandler);
+		// get application
+		final Application application = applicationInstance.getApplication();
+		if (application == null) {
+			throw new IllegalStateException("no application object returned from instance for " + applicationRegistration);
+		}
 
 		// set important attributes
 		setAttribute(IApplicationContext.SERVLET_CONTEXT_ATTRIBUTE_APPLICATION, application);
@@ -489,6 +512,12 @@ public class ApplicationHandler extends ServletContextHandler {
 
 		// support welcome files
 		setWelcomeFiles(new String[] { "index.jsp", "index.html", "index.htm" });
+
+		// initialize the application
+		applicationInstance.initialize();
+		if (JettyDebug.handlers) {
+			LOG.debug("Application {} initialized", application);
+		}
 	}
 
 	@Override
