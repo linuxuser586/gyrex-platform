@@ -53,7 +53,7 @@ public abstract class BaseCommandProvider implements CommandProvider {
 	 * @param ci
 	 *            the Equinox console command interpreter
 	 */
-	protected void execute(final CommandInterpreter ci) {
+	protected final void execute(final CommandInterpreter ci) {
 		final List<String> args = new ArrayList<String>();
 		final String command = ci.nextArgument();
 		if (StringUtils.isBlank(command)) {
@@ -139,5 +139,26 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			}
 		}
 		return help.toString();
+	}
+
+	/**
+	 * Registers a command
+	 * 
+	 * @param name
+	 *            the command name
+	 * @param commandClass
+	 *            the command implementation class
+	 */
+	protected final void registerCommand(final String name, final Class<? extends Command> commandClass) {
+		commands.put(name, commandClass);
+	}
+
+	/**
+	 * Unregisters a command
+	 * 
+	 * @param name
+	 */
+	protected final void unregisterCommand(final String name) {
+		commands.remove(name);
 	}
 }
