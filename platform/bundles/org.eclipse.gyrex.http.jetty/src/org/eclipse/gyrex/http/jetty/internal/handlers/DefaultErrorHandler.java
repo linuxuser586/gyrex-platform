@@ -194,7 +194,11 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 		// decode message
 		if (internalMessage != null) {
-			internalMessage = URLDecoder.decode(internalMessage, "UTF-8");
+			try {
+				internalMessage = URLDecoder.decode(internalMessage, "UTF-8");
+			} catch (final IllegalArgumentException e) {
+				// treat as already decoded
+			}
 		}
 
 		// we do not want to hand out internal details in production mode
