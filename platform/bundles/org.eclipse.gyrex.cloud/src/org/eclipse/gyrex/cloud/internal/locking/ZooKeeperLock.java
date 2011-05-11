@@ -666,8 +666,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		// detect if released regularly
 		final boolean released = reason == KillReason.REGULAR_RELEASE;
 
-		// log info message
-		LOG.info(released ? "Successfully released lock {}!" : "Lost lock {}!", getId());
+		// log info message (but don't spam logs if acquire failed)
+		if (reason != KillReason.ACQUIRE_FAILED) {
+			LOG.info(released ? "Successfully released lock {}!" : "Lost lock {}!", getId());
+		}
 
 		if (lockMonitor != null) {
 			if (released) {
