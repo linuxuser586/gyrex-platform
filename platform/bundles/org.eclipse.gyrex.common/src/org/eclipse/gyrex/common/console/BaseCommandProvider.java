@@ -21,6 +21,7 @@ import org.eclipse.osgi.framework.console.CommandInterpreter;
 import org.eclipse.osgi.framework.console.CommandProvider;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.kohsuke.args4j.CmdLineException;
@@ -54,7 +55,6 @@ public abstract class BaseCommandProvider implements CommandProvider {
 	 *            the Equinox console command interpreter
 	 */
 	protected final void execute(final CommandInterpreter ci) {
-		final List<String> args = new ArrayList<String>();
 		final String command = ci.nextArgument();
 		if (StringUtils.isBlank(command)) {
 			ci.println("ERROR: Missing command name!");
@@ -77,19 +77,27 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			return;
 		}
 
+		boolean printHelp = false;
+		final List<String> args = new ArrayList<String>();
 		for (String arg = ci.nextArgument(); arg != null; arg = ci.nextArgument()) {
+			if (StringUtils.equals("-h", arg) || StringUtils.equals("--help", arg)) {
+				printHelp = true;
+				break;
+			}
 			args.add(arg);
 		}
 
 		final CmdLineParser parser = new CmdLineParser(cmd);
+		if (printHelp) {
+			printCommandHelp(ci, command, parser);
+			return;
+		}
+
 		try {
 			parser.parseArgument(args.toArray(new String[args.size()]));
 		} catch (final CmdLineException e) {
 			ci.println("ERROR: " + e.getMessage());
-			final StringWriter stringWriter = new StringWriter();
-			parser.printUsage(stringWriter, null);
-			stringWriter.flush();
-			ci.println(stringWriter.toString());
+			printCommandHelp(ci, command, parser);
 			return;
 		}
 
@@ -139,6 +147,16 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			}
 		}
 		return help.toString();
+	}
+
+	private void printCommandHelp(final CommandInterpreter ci, final String command, final CmdLineParser parser) {
+		final StringWriter stringWriter = new StringWriter();
+		stringWriter.append(String.format("%s %s", getCommandName(), command));
+		parser.printSingleLineUsage(stringWriter, null);
+		stringWriter.append(SystemUtils.LINE_SEPARATOR);
+		parser.printUsage(stringWriter, null);
+		stringWriter.flush();
+		ci.println(stringWriter.toString());
 	}
 
 	/**
