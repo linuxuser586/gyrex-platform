@@ -60,6 +60,9 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			ci.println("ERROR: Missing command name!");
 			ci.println(getHelp());
 			return;
+		} else if (isHelpOption(command)) {
+			ci.println(getHelp());
+			return;
 		}
 
 		final Class<? extends Command> cmdClass = commands.get(command);
@@ -80,7 +83,7 @@ public abstract class BaseCommandProvider implements CommandProvider {
 		boolean printHelp = false;
 		final List<String> args = new ArrayList<String>();
 		for (String arg = ci.nextArgument(); arg != null; arg = ci.nextArgument()) {
-			if (StringUtils.equals("-h", arg) || StringUtils.equals("--help", arg)) {
+			if (isHelpOption(arg)) {
 				printHelp = true;
 				break;
 			}
@@ -147,6 +150,10 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			}
 		}
 		return help.toString();
+	}
+
+	private boolean isHelpOption(final String arg) {
+		return StringUtils.equals("-h", arg) || StringUtils.equals("--help", arg);
 	}
 
 	private void printCommandHelp(final CommandInterpreter ci, final String command, final CmdLineParser parser) {
