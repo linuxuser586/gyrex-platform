@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.worker;
 
@@ -21,11 +22,15 @@ import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.cloud.services.queue.IQueue;
 import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+import org.eclipse.gyrex.jobs.IJobContext;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
+import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
+import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.provider.JobProvider;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -39,8 +44,6 @@ import org.slf4j.LoggerFactory;
  * The worker engine pulls jobs from queues and executes them.
  */
 public class WorkerEngine extends Job {
-
-	public static final String DEFAULT_QUEUE = "gyrex.jobs.scheduled";
 
 	private static final long INITIAL_SLEEP_TIME = TimeUnit.SECONDS.toMillis(30);
 	private static final long MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
@@ -58,17 +61,31 @@ public class WorkerEngine extends Job {
 		setPriority(LONG);
 	}
 
-	private Job createJob(final JobInfo info) throws CoreException {
-		final JobProvider provider = JobsActivator.getInstance().getJobProviderRegistry().getProvider(info.getJobId());
-		if (null == provider) {
-			throw new IllegalStateException(String.format("Job provider %s not available!", info.getJobId()));
+	private JobContext createContext(final JobInfo info) {
+		final IRuntimeContextRegistry contextRegistry = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class);
+		final IRuntimeContext context = contextRegistry.get(info.getContextPath());
+		if (null == context) {
+			throw new IllegalStateException(String.format("Context %s not available!", info.getContextPath().toString()));
 		}
-		return provider.newJob(info.getJobId(), info.getJobProperties());
+		return new JobContext(context, info);
+	}
+
+	private Job createJob(final JobInfo info, final IJobContext jobContext) throws Exception {
+		final JobProvider provider = JobsActivator.getInstance().getJobProviderRegistry().getProvider(info.getJobTypeId());
+		if (null == provider) {
+			throw new IllegalStateException(String.format("Job type %s not available!", info.getJobTypeId()));
+		}
+
+		final Job job = provider.createJob(info.getJobTypeId(), jobContext);
+		if (null == job) {
+			throw new IllegalStateException(String.format("Provider %s did not create job of type %s!", provider.toString(), info.getJobTypeId()));
+		}
+		return job;
 	}
 
 	private IStatus doRun(final IProgressMonitor monitor) {
 		try {
-			final IQueue queue = getQueue();
+			final IQueue queue = getDefaultQueue(); // TODO how to get messages from other queues?
 			if (queue == null) {
 				LOG.warn("No queue available for reading scheduled jobs to execute. Please check engine configuration.");
 				return Status.CANCEL_STATUS;
@@ -85,26 +102,48 @@ public class WorkerEngine extends Job {
 			}
 			final IMessage message = messages.get(0);
 
+			// read job info
+			final JobInfo info;
 			try {
-				// read job info
-				final JobInfo info = JobInfo.parse(message);
-
-				// create job
-				final Job job = createJob(info);
-
-				// delete from queue
-				if (queue.deleteMessage(message)) {
-					job.schedule();
-				}
-
+				info = JobInfo.parse(message);
 			} catch (final IOException e) {
+				// log warning
 				LOG.warn("Invalid job info in message {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
-				moveToErrorQueue(queue, message);
+				// discard message
+				queue.deleteMessage(message);
 				return Status.CANCEL_STATUS;
-			} catch (final CoreException e) {
+			}
+
+			// create context
+			final JobContext jobContext = createContext(info);
+
+			// create job
+			Job job;
+			try {
+				job = createJob(info, jobContext);
+			} catch (final Exception e) {
+				// log warning
 				LOG.warn("Error creating job {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
-				moveToErrorQueue(queue, message);
+
+				// discard message
+				queue.deleteMessage(message);
+
+				// set job status
+				try {
+					final JobManagerImpl jobManager = (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
+					jobManager.setResult(info.getJobId(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis());
+				} catch (final Exception jobManagerException) {
+					LOG.warn("Error updating job result for job {}: {}", info.getJobId(), ExceptionUtils.getRootCauseMessage(jobManagerException));
+				}
 				return Status.CANCEL_STATUS;
+			}
+
+			// add state synchronizer
+			job.addJobChangeListener(new JobStateSynchronizer(job, jobContext));
+
+			// delete from queue
+			if (queue.deleteMessage(message)) {
+				job.schedule();
 			}
 
 		} catch (final IllegalStateException e) {
@@ -120,19 +159,15 @@ public class WorkerEngine extends Job {
 	 * 
 	 * @return
 	 */
-	protected IQueue getQueue() {
+	protected IQueue getDefaultQueue() {
 		final IQueueService queueService = JobsActivator.getInstance().getQueueService();
-		return queueService.getQueue(DEFAULT_QUEUE, null);
-	}
 
-	/**
-	 * Returns the queue with scheduled jobs.
-	 * 
-	 * @return
-	 */
-	protected IQueue getQueueForFailedJobs() {
-		final IQueueService queueService = JobsActivator.getInstance().getQueueService();
-		return queueService.getQueue("gyrex.jobs.failed", null);
+		final IQueue queue = queueService.getQueue(IJobManager.DEFAULT_QUEUE, null);
+		if (null == queue) {
+			queueService.createQueue(IJobManager.DEFAULT_QUEUE, null);
+		}
+
+		return queueService.getQueue(IJobManager.DEFAULT_QUEUE, null);
 	}
 
 	/**
@@ -146,21 +181,6 @@ public class WorkerEngine extends Job {
 	 */
 	protected long getReceiveTimeout() {
 		return TimeUnit.MINUTES.toMillis(1);
-	}
-
-	private void moveToErrorQueue(final IQueue queue, final IMessage message) {
-		// move message to the failure queue
-		if (queue.deleteMessage(message)) {
-			IQueue queueForFailedJobs = null;
-			try {
-				queueForFailedJobs = getQueueForFailedJobs();
-				queueForFailedJobs.sendMessage(message.getBody());
-			} catch (final Exception e2) {
-				LOG.error("Failed moving job message {} to failure queue {}. Job is lost. {}", new Object[] { message, queueForFailedJobs, ExceptionUtils.getRootCauseMessage(e2) });
-			}
-		} else {
-			LOG.error("Unable to delete job message. {}", message);
-		}
 	}
 
 	@Override
@@ -185,5 +205,4 @@ public class WorkerEngine extends Job {
 			}
 		}
 	}
-
 }

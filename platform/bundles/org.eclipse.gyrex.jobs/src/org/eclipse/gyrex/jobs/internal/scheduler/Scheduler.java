@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -21,7 +21,7 @@ import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
 import org.eclipse.gyrex.cloud.services.locking.ILockService;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
-import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
+import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -69,7 +69,7 @@ public class Scheduler extends Job implements INodeChangeListener {
 		try {
 			addSchedule(event.getChild());
 		} catch (final Exception e) {
-			LOG.error("Unable to start schedule {}. {}", event.getChild().name(), ExceptionUtils.getRootCauseMessage(e));
+			LOG.error("Unable to start schedule {}. {}", new Object[] { event.getChild().name(), ExceptionUtils.getRootCauseMessage(e), e });
 		}
 	}
 
@@ -117,7 +117,7 @@ public class Scheduler extends Job implements INodeChangeListener {
 			}
 
 			// setup the schedule listeners
-			final IEclipsePreferences schedulesNode = ScheduleManagerImpl.getSchedulesNode();
+			final IEclipsePreferences schedulesNode = ScheduleStore.getSchedulesNode();
 			schedulesNode.addNodeChangeListener(this);
 
 			// hook with all existing schedules
@@ -151,7 +151,7 @@ public class Scheduler extends Job implements INodeChangeListener {
 			try {
 				// remove listener
 				try {
-					ScheduleManagerImpl.getSchedulesNode().removeNodeChangeListener(this);
+					ScheduleStore.getSchedulesNode().removeNodeChangeListener(this);
 				} catch (final Exception e) {
 					// might already be going down
 				}

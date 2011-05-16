@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.TimeZone;
 
 import org.eclipse.gyrex.cloud.services.queue.IQueue;
+import org.eclipse.gyrex.jobs.schedules.manager.IScheduleManager;
+import org.eclipse.gyrex.jobs.service.IJobService;
 
 /**
  * A schedule for executing a set of jobs based on triggers.
@@ -27,7 +29,8 @@ import org.eclipse.gyrex.cloud.services.queue.IQueue;
  * <p>
  * However, a schedule does executes jobs directly. Instead they are pushed in a
  * {@link IQueue queue}. A worker engine, which might be running on a different
- * node, is responsible for monitoring a queue and executing scheduled jobs.
+ * node, is responsible for monitoring a queue and executing scheduled jobs. The
+ * {@link IJobService} will be used for those tasks.
  * </p>
  * <p>
  * Schedules can be created and/or updated using the {@link IScheduleManager}.

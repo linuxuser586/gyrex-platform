@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,7 +7,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.worker;
 
@@ -21,6 +22,9 @@ import java.util.Properties;
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
+
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
 /**
@@ -28,8 +32,11 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
  */
 public class JobInfo {
 
-	private static final String JOB_ID_KEY = "gyrex.jobinfo.jobid"; //$NON-NLS-1$
-	private static final String VERSION_KEY = "gyrex.jobinfo.version"; //$NON-NLS-1$
+	private static final String PREFIX = "gyrex.jobinfo."; //$NON-NLS-1$
+	private static final String ID = PREFIX + "jobid"; //$NON-NLS-1$
+	private static final String TYPE_ID = PREFIX + "jobtype"; //$NON-NLS-1$
+	private static final String CONTEXT_PATH = PREFIX + "jobcontext"; //$NON-NLS-1$
+	private static final String VERSION = PREFIX + "version"; //$NON-NLS-1$
 	private static final String VERSION_VALUE = "1"; //$NON-NLS-1$
 
 	public static byte[] asMessage(final JobInfo info) throws IOException {
@@ -43,10 +50,16 @@ public class JobInfo {
 		}
 
 		// put version
-		properties.put(VERSION_KEY, VERSION_VALUE);
+		properties.put(VERSION, VERSION_VALUE);
 
 		// put id
-		properties.put(JOB_ID_KEY, info.getJobId());
+		properties.put(ID, info.getJobId());
+
+		// put type
+		properties.put(TYPE_ID, info.getJobTypeId());
+
+		// put type
+		properties.put(CONTEXT_PATH, info.getContextPath().toString());
 
 		// create bytes
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -59,30 +72,46 @@ public class JobInfo {
 		properties.load(new ByteArrayInputStream(message.getBody()));
 
 		// check version (remove key from properties)
-		final Object versionValue = properties.remove(VERSION_KEY);
+		final Object versionValue = properties.remove(VERSION);
 		if (!VERSION_VALUE.equals(versionValue)) {
 			throw new IOException(String.format("invalid record data: version mismatch (expected %d, found %s)", 1, String.valueOf(versionValue)));
 		}
 
-		// check id (remove key from properties as well)
-		final Object jobIdValue = properties.remove(JOB_ID_KEY);
+		// get id (remove key from properties as well)
+		final Object jobIdValue = properties.remove(ID);
 		if ((null == jobIdValue) || !(jobIdValue instanceof String) || !IdHelper.isValidId(((String) jobIdValue))) {
 			throw new IOException(String.format("invalid record data: missing/invalid job id %s", String.valueOf(jobIdValue)));
+		}
+
+		// get type (remove key from properties as well)
+		final Object jobTypeValue = properties.remove(TYPE_ID);
+		if ((null == jobTypeValue) || !(jobTypeValue instanceof String) || !IdHelper.isValidId(((String) jobTypeValue))) {
+			throw new IOException(String.format("invalid record data: missing/invalid job id %s", String.valueOf(jobTypeValue)));
+		}
+
+		// get path (remove key from properties as well)
+		final Object contextPathValue = properties.remove(CONTEXT_PATH);
+		if ((null == contextPathValue) || !(contextPathValue instanceof String) || !Path.EMPTY.isValidPath(((String) contextPathValue))) {
+			throw new IOException(String.format("invalid record data: missing/invalid context path %s", String.valueOf(contextPathValue)));
 		}
 
 		// collect properties
 		final Map<String, String> jobProperties = new HashMap<String, String>();
 		for (final Iterator stream = properties.keySet().iterator(); stream.hasNext();) {
 			final String key = (String) stream.next();
-			jobProperties.put(key, properties.getProperty(key));
+			if (!key.startsWith(PREFIX)) {
+				jobProperties.put(key, properties.getProperty(key));
+			}
 		}
 
 		// create job info
-		return new JobInfo((String) jobIdValue, jobProperties);
+		return new JobInfo((String) jobTypeValue, (String) jobIdValue, new Path((String) contextPathValue), jobProperties);
 	}
 
 	private final String jobId;
+	private final String jobTypeId;
 	private final Map<String, String> jobProperties;
+	private final IPath contextPath;
 
 	/**
 	 * Creates a new instance.
@@ -90,9 +119,20 @@ public class JobInfo {
 	 * @param jobId
 	 * @param jobProperties
 	 */
-	public JobInfo(final String jobId, final Map<String, String> jobProperties) {
+	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties) {
 		this.jobId = jobId;
+		this.jobTypeId = jobTypeId;
+		this.contextPath = contextPath;
 		this.jobProperties = jobProperties;
+	}
+
+	/**
+	 * Returns the contextPath.
+	 * 
+	 * @return the contextPath
+	 */
+	public IPath getContextPath() {
+		return contextPath;
 	}
 
 	/**
@@ -111,6 +151,13 @@ public class JobInfo {
 	 */
 	public Map<String, String> getJobProperties() {
 		return jobProperties;
+	}
+
+	/**
+	 * @return
+	 */
+	public String getJobTypeId() {
+		return jobTypeId;
 	}
 
 }

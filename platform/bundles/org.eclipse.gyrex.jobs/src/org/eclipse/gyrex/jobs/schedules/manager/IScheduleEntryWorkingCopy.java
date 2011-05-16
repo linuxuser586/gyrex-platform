@@ -9,42 +9,31 @@
  * Contributors:
  *     <enter-developer-name-here> - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.jobs.schedules;
+package org.eclipse.gyrex.jobs.schedules.manager;
 
 import java.util.Map;
+
+import org.eclipse.gyrex.jobs.schedules.ISchedule;
+import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 
 /**
  * An entry in a {@link ISchedule} with run information for jobs.
  */
-public interface IScheduleEntry {
+public interface IScheduleEntryWorkingCopy extends IScheduleEntry {
 
 	/**
-	 * The <a href="http://en.wikipedia.org/wiki/Cron">cron expression</a> which
-	 * defines when the job should be queued for execution.
-	 * 
-	 * @return a chron expression
-	 * @see http://en.wikipedia.org/wiki/Cron
+	 * @param cronExpression
 	 */
-	String getCronExpression();
+	void setCronExpression(String cronExpression) throws IllegalArgumentException;
 
 	/**
-	 * @return
+	 * @param parameter
 	 */
-	String getId();
+	void setJobParameter(Map<String, String> jobParameterMap);
 
 	/**
-	 * @return jobTypeId + '.' + scheduleEntryId
+	 * @param jobProviderId
 	 */
-	String getJobId();
-
-	/**
-	 * @return
-	 */
-	Map<String, String> getJobParameter();
-
-	/**
-	 * @return
-	 */
-	String getJobTypeId();
+	void setJobTypeId(String jobProviderId);
 
 }

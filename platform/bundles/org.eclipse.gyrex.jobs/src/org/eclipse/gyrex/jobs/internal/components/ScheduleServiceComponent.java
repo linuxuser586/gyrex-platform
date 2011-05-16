@@ -9,28 +9,20 @@
  * Contributors:
  *     <enter-developer-name-here> - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.jobs.schedules;
+package org.eclipse.gyrex.jobs.internal.components;
 
-import java.util.Map;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.jobs.schedules.manager.IScheduleManager;
+import org.eclipse.gyrex.jobs.schedules.service.IScheduleService;
 
 /**
- * An entry in a {@link ISchedule} with run information for jobs.
+ *
  */
-public interface IScheduleEntryWorkingCopy extends IScheduleEntry {
+public class ScheduleServiceComponent implements IScheduleService {
 
-	/**
-	 * @param cronExpression
-	 */
-	void setCronExpression(String cronExpression);
-
-	/**
-	 * @param parameter
-	 */
-	void setJobParameter(Map<String, String> jobParameterMap);
-
-	/**
-	 * @param jobProviderId
-	 */
-	void setJobProviderId(String jobProviderId);
+	@Override
+	public IScheduleManager getScheduleManager(final IRuntimeContext context) {
+		return context.get(IScheduleManager.class);
+	}
 
 }

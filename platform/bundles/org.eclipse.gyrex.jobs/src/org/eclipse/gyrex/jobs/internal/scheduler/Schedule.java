@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,7 +7,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.scheduler;
 
@@ -16,6 +17,7 @@ import java.util.Collection;
 
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleImpl;
+import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
@@ -37,7 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * A quarz schedule
  */
 public class Schedule implements IPreferenceChangeListener {
 
@@ -60,7 +62,11 @@ public class Schedule implements IPreferenceChangeListener {
 	 * @throws BackingStoreException
 	 */
 	public Schedule(final Preferences scheduleNode, final Scheduler scheduler) throws Exception {
-		scheduleData = new ScheduleImpl(scheduleNode);
+		try {
+			scheduleData = new ScheduleImpl(ScheduleManagerImpl.getExternalId(scheduleNode.name()), scheduleNode);
+		} catch (final Exception e) {
+			throw new IllegalStateException(String.format("Unable to load schedule '%s'. %s", scheduleNode.name(), e.getMessage()), e);
+		}
 	}
 
 	void activateEngine() {
@@ -175,8 +181,10 @@ public class Schedule implements IPreferenceChangeListener {
 			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
 			// put all parameter
 			detail.getJobDataMap().putAll(entry.getJobParameter());
-			// put provider id
-			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_PROVIDER_ID, entry.getJobProviderId());
+			// put type id
+			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_TYPE_ID, entry.getJobTypeId());
+			// put job id
+			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_ID, entry.getJobId());
 
 			final String cronExpression = entry.getCronExpression();
 			final CronTrigger trigger = new CronTrigger(entry.getId());

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,7 +7,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.schedules;
 
@@ -22,8 +23,8 @@ import java.util.TimeZone;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
-import org.eclipse.gyrex.jobs.schedules.IScheduleEntryWorkingCopy;
-import org.eclipse.gyrex.jobs.schedules.IScheduleWorkingCopy;
+import org.eclipse.gyrex.jobs.schedules.manager.IScheduleEntryWorkingCopy;
+import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
@@ -55,12 +56,13 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	/**
 	 * Creates a new instance.
 	 * 
+	 * @param id
 	 * @param node
 	 * @throws BackingStoreException
 	 */
-	public ScheduleImpl(final Preferences node) throws BackingStoreException {
+	public ScheduleImpl(final String id, final Preferences node) throws BackingStoreException {
+		this.id = id;
 		this.node = (IEclipsePreferences) node;
-		id = node.name();
 		load();
 	}
 
@@ -171,12 +173,12 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 			node.remove(TIME_ZONE);
 		}
 
+		final Preferences jobs = getEntriesNode();
 		// update entries
 		for (final ScheduleEntryImpl entry : entriesById.values()) {
 			entry.saveWithoutFlush();
 		}
 		// remove obsolete entries
-		final Preferences jobs = getEntriesNode();
 		for (final String jobName : jobs.childrenNames()) {
 			if (!entriesById.containsKey(jobName) && jobs.nodeExists(jobName)) {
 				jobs.node(jobName).removeNode();

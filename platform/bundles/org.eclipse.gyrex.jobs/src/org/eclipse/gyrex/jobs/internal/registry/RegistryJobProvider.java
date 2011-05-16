@@ -8,15 +8,27 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
+ *******************************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2011 AGETO Service GmbH and others.
+ * All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html.
+ *
+ * Contributors:
+ *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.registry;
 
 import java.util.Collections;
-import java.util.Map;
 
+import org.eclipse.gyrex.jobs.IJobContext;
 import org.eclipse.gyrex.jobs.provider.JobProvider;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.jobs.Job;
 
@@ -41,11 +53,15 @@ public class RegistryJobProvider extends JobProvider {
 	}
 
 	@Override
-	public Job newJob(final String id, final Map<String, String> jobParameter) throws CoreException {
-		if (!this.id.equals(id)) {
+	public Job createJob(final String typeId, final IJobContext context) throws Exception {
+		if (!id.equals(typeId)) {
 			return null;
 		}
 
-		return (Job) element.createExecutableExtension("class");
+		final Job job = (Job) element.createExecutableExtension("class");
+
+		// TODO: inject
+		//context.getContext().getInjector().inject(job);
+		return job;
 	}
 }

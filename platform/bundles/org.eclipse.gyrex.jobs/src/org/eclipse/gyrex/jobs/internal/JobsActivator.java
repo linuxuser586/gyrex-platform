@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  */
 package org.eclipse.gyrex.jobs.internal;
 
@@ -16,11 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
-import org.eclipse.gyrex.jobs.internal.jobs.JobsJobProvider;
 import org.eclipse.gyrex.jobs.internal.registry.JobProviderRegistry;
-import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
-import org.eclipse.gyrex.jobs.provider.JobProvider;
-import org.eclipse.gyrex.jobs.schedules.IScheduleManager;
 
 import org.osgi.framework.BundleContext;
 
@@ -31,6 +28,7 @@ public class JobsActivator extends BaseBundleActivator {
 
 	/** SYMBOLIC_NAME */
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.jobs";
+
 	private static final AtomicReference<JobsActivator> instanceRef = new AtomicReference<JobsActivator>();
 
 	/**
@@ -47,7 +45,6 @@ public class JobsActivator extends BaseBundleActivator {
 	}
 
 	private volatile IServiceProxy<IQueueService> queueServiceProxy;
-	private volatile ScheduleManagerImpl scheduleManager;
 	private volatile JobProviderRegistry jobProviderRegistry;
 
 	/**
@@ -61,14 +58,8 @@ public class JobsActivator extends BaseBundleActivator {
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
 		queueServiceProxy = getServiceHelper().trackService(IQueueService.class);
-
 		jobProviderRegistry = new JobProviderRegistry(context);
 		jobProviderRegistry.open();
-
-		scheduleManager = new ScheduleManagerImpl();
-		getServiceHelper().registerService(IScheduleManager.class, scheduleManager, "Eclipse Gyrex", "Gyrex Schedule Manager", null, null);
-
-		getServiceHelper().registerService(JobProvider.class, new JobsJobProvider(), "Eclipse Gyrex", "Gyrex System Jobs Provider", null, null);
 	}
 
 	@Override
@@ -76,8 +67,6 @@ public class JobsActivator extends BaseBundleActivator {
 		instanceRef.set(null);
 
 		queueServiceProxy = null;
-
-		scheduleManager = null;
 
 		jobProviderRegistry.close();
 		jobProviderRegistry = null;
@@ -114,16 +103,4 @@ public class JobsActivator extends BaseBundleActivator {
 		return proxy.getService();
 	}
 
-	/**
-	 * Returns the scheduleManager.
-	 * 
-	 * @return the scheduleManager
-	 */
-	public ScheduleManagerImpl getScheduleManager() {
-		final ScheduleManagerImpl manager = scheduleManager;
-		if (null == manager) {
-			throw createBundleInactiveException();
-		}
-		return manager;
-	}
 }

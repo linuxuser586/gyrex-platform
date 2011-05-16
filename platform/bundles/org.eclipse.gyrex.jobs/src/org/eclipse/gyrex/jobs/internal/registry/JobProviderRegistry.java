@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.registry;
 
@@ -57,7 +58,7 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 		if (JobsDebug.providerRegistry) {
 			LOG.debug("Adding job provider: {}", provider);
 		}
-		final String[] ids = provider.getProviderIds();
+		final Collection<String> ids = provider.getProvidedTypeIds();
 		for (final String id : ids) {
 			final JobProvider existing = providerById.putIfAbsent(id, provider);
 			if (existing != null) {
@@ -103,7 +104,7 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 		if (JobsDebug.providerRegistry) {
 			LOG.debug("Removing jobs provider: {}", provider);
 		}
-		final String[] ids = provider.getProviderIds();
+		final Collection<String> ids = provider.getProvidedTypeIds();
 		for (final String id : ids) {
 			providerById.remove(id, provider);
 		}

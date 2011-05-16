@@ -9,27 +9,20 @@
  * Contributors:
  *     <enter-developer-name-here> - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.jobs.schedules;
+package org.eclipse.gyrex.jobs.internal.components;
 
-import java.util.TimeZone;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.jobs.manager.IJobManager;
+import org.eclipse.gyrex.jobs.service.IJobService;
 
 /**
- * A modifiable {@link ISchedule schedule}.
+ *
  */
-public interface IScheduleWorkingCopy extends ISchedule {
+public class JobServiceComponent implements IJobService {
 
-	IScheduleEntryWorkingCopy createEntry(String entryId);
-
-	IScheduleEntryWorkingCopy getEntry(String entryId);
-
-	/**
-	 * @param b
-	 */
-	void setEnabled(boolean enabled);
-
-	/**
-	 * @param timeZone
-	 */
-	void setTimeZone(TimeZone timeZone);
+	@Override
+	public IJobManager getJobManager(final IRuntimeContext context) {
+		return context.get(IJobManager.class);
+	}
 
 }

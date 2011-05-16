@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,10 +7,12 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.schedules;
 
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +20,7 @@ import java.util.Map;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.internal.scheduler.Schedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
-import org.eclipse.gyrex.jobs.schedules.IScheduleEntryWorkingCopy;
+import org.eclipse.gyrex.jobs.schedules.manager.IScheduleEntryWorkingCopy;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
@@ -33,14 +35,15 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	private static final String PARAMETER = "parameter";
 
-	private static final String JOB_PROVIDER_ID = "jobProviderId";
+	private static final String JOB_TYPE_ID = "jobTypeId";
+	private static final String JOB_ID = "jobId";
 	private static final String CRON_EXPRESSION = "cronExpression";
 	private final Preferences node;
 
 	private final String id;
 	private String cronExpression;
 
-	private String jobProviderId;
+	private String jobTypeId;
 	private Map<String, String> jobParamater;
 
 	/**
@@ -66,6 +69,11 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	}
 
 	@Override
+	public String getJobId() {
+		return jobTypeId.concat(".").concat(id);
+	}
+
+	@Override
 	public Map<String, String> getJobParameter() {
 		if (null != jobParamater) {
 			return Collections.unmodifiableMap(jobParamater);
@@ -74,26 +82,31 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	}
 
 	@Override
-	public String getJobProviderId() {
-		return jobProviderId;
+	public String getJobTypeId() {
+		return jobTypeId;
 	}
 
 	void load() throws BackingStoreException {
-		cronExpression = node.get(CRON_EXPRESSION, null);
-		jobProviderId = node.get(JOB_PROVIDER_ID, null);
-		if (node.nodeExists(PARAMETER)) {
-			final Preferences paramNode = node.node(PARAMETER);
-			final String[] keys = paramNode.keys();
-			jobParamater = new HashMap<String, String>(keys.length);
-			for (final String key : keys) {
-				jobParamater.put(key, paramNode.get(key, null));
+		try {
+			setCronExpression(node.get(CRON_EXPRESSION, null));
+			setJobTypeId(node.get(JOB_TYPE_ID, null));
+			if (node.nodeExists(PARAMETER)) {
+				final Preferences paramNode = node.node(PARAMETER);
+				final String[] keys = paramNode.keys();
+				jobParamater = new HashMap<String, String>(keys.length);
+				for (final String key : keys) {
+					jobParamater.put(key, paramNode.get(key, null));
+				}
 			}
+		} catch (final IllegalArgumentException e) {
+			throw new BackingStoreException(String.format("Unable to load entry '%s'. %s", id, e.getMessage(), e));
 		}
 	}
 
 	void saveWithoutFlush() throws BackingStoreException {
 		node.put(CRON_EXPRESSION, cronExpression);
-		node.put(JOB_PROVIDER_ID, jobProviderId);
+		node.put(JOB_TYPE_ID, jobTypeId);
+		node.put(JOB_ID, getJobId());
 
 		if ((null != jobParamater) && !jobParamater.isEmpty()) {
 			final Preferences paramNode = node.node(PARAMETER);
@@ -118,7 +131,13 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	@Override
 	public void setCronExpression(final String cronExpression) {
 		if (!CronExpression.isValidExpression(Schedule.asQuartzCronExpression(cronExpression))) {
-			throw new IllegalArgumentException("invalid cron expression; see http://en.wikipedia.org/wiki/Cron#CRON_expression");
+			try {
+				new CronExpression(Schedule.asQuartzCronExpression(cronExpression));
+				// no exception but still invalid
+				throw new IllegalArgumentException("invalid cron expression");
+			} catch (final ParseException e) {
+				throw new IllegalArgumentException("error parsing cron expression: " + e.getMessage(), e);
+			}
 		}
 
 		this.cronExpression = cronExpression;
@@ -130,17 +149,17 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	}
 
 	@Override
-	public void setJobProviderId(final String jobProviderId) {
-		if (!IdHelper.isValidId(jobProviderId)) {
-			throw new IllegalArgumentException("invalid provider id");
+	public void setJobTypeId(final String jobTypeId) {
+		if (!IdHelper.isValidId(jobTypeId)) {
+			throw new IllegalArgumentException("invalid type id");
 		}
-		this.jobProviderId = jobProviderId;
+		this.jobTypeId = jobTypeId;
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
-		builder.append("ScheduleEntryImpl [id=").append(id).append(", cronExpression=").append(cronExpression).append(", jobProviderId=").append(jobProviderId).append(", jobParamater=").append(jobParamater).append("]");
+		builder.append("ScheduleEntryImpl [id=").append(id).append(", cronExpression=").append(cronExpression).append(", jobProviderId=").append(jobTypeId).append(", jobParamater=").append(jobParamater).append("]");
 		return builder.toString();
 	}
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -9,20 +9,27 @@
  * Contributors:
  *     <enter-developer-name-here> - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.jobs.schedules;
+package org.eclipse.gyrex.jobs.schedules.manager;
 
 import java.util.Collection;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.jobs.IJob;
+import org.eclipse.gyrex.jobs.schedules.ISchedule;
+import org.eclipse.gyrex.jobs.schedules.service.IScheduleService;
 
 /**
- * A manager for modifying schedules.
+ * A manager for scheduling {@link IJob jobs} at recuring intervals.
  * <p>
- * This interface is made available as an OSGi service.
+ * A schedule manager can be obtained for a specific {@link IRuntimeContext
+ * context} either from the context (via {@link IRuntimeContext#get(Class)}
+ * using {@code IScheduleManager}) or from the {@link IScheduleService}.
  * </p>
  * 
  * @noextend This interface is not intended to be extended by clients.
  * @noimplement This interface is not intended to be implemented by clients.
+ * @see IScheduleService
  */
 public interface IScheduleManager {
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -7,25 +7,30 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.schedules;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import javax.inject.Inject;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
-import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
-import org.eclipse.gyrex.jobs.schedules.IScheduleManager;
-import org.eclipse.gyrex.jobs.schedules.IScheduleWorkingCopy;
-import org.eclipse.gyrex.preferences.CloudScope;
-
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
+import org.eclipse.gyrex.jobs.schedules.manager.IScheduleManager;
+import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
 
 import org.osgi.service.prefs.BackingStoreException;
-import org.osgi.service.prefs.Preferences;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
@@ -33,8 +38,26 @@ import org.apache.commons.lang.exception.ExceptionUtils;
  */
 public class ScheduleManagerImpl implements IScheduleManager {
 
-	public static IEclipsePreferences getSchedulesNode() {
-		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node("schedules");
+	public static final String SEPARATOR = "_";
+
+	public static String getExternalId(final String internalId) {
+		final int i = internalId.indexOf(SEPARATOR);
+		if (i < 0) {
+			return internalId;
+		}
+		return internalId.substring(i + 1);
+	}
+
+	private final IRuntimeContext context;
+	private final String internalIdPrefix;
+
+	/**
+	 * Creates a new instance.
+	 */
+	@Inject
+	public ScheduleManagerImpl(final IRuntimeContext context) {
+		this.context = context;
+		internalIdPrefix = DigestUtils.shaHex(context.getContextPath().toString()) + SEPARATOR;
 	}
 
 	@Override
@@ -43,14 +66,9 @@ public class ScheduleManagerImpl implements IScheduleManager {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
 
-		final Preferences schedulesNode = getSchedulesNode();
-
+		final String internalId = toInternalId(id);
 		try {
-			if (schedulesNode.nodeExists(id)) {
-				throw new IllegalStateException(String.format("schedule '%s' already exists", id));
-			}
-
-			return new ScheduleImpl(schedulesNode.node(id));
+			return ScheduleStore.create(internalId, id);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
@@ -63,14 +81,9 @@ public class ScheduleManagerImpl implements IScheduleManager {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
 
-		final Preferences schedulesNode = getSchedulesNode();
-
+		final String internalId = toInternalId(id);
 		try {
-			if (!schedulesNode.nodeExists(id)) {
-				throw new IllegalStateException(String.format("schedule '%s' does not exist", id));
-			}
-
-			return new ScheduleImpl(schedulesNode.node(id));
+			return ScheduleStore.load(id, internalId, true);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
@@ -82,14 +95,9 @@ public class ScheduleManagerImpl implements IScheduleManager {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
 
-		final Preferences schedulesNode = getSchedulesNode();
-
+		final String internalId = toInternalId(id);
 		try {
-			if (!schedulesNode.nodeExists(id)) {
-				return null;
-			}
-
-			return new ScheduleImpl(schedulesNode.node(id));
+			return ScheduleStore.load(id, internalId, false);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
@@ -98,7 +106,12 @@ public class ScheduleManagerImpl implements IScheduleManager {
 	@Override
 	public Collection<String> getSchedules() {
 		try {
-			return Arrays.asList(getSchedulesNode().childrenNames());
+			final String[] storageIds = ScheduleStore.getSchedules();
+			final List<String> schedules = new ArrayList<String>(storageIds.length);
+			for (final String internalId : storageIds) {
+				schedules.add(toExternalId(internalId));
+			}
+			return Collections.unmodifiableCollection(schedules);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
@@ -110,18 +123,33 @@ public class ScheduleManagerImpl implements IScheduleManager {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
 
-		final Preferences schedulesNode = getSchedulesNode();
+		final ISchedule schedule = getSchedule(id);
+		if (schedule == null) {
+			throw new IllegalStateException(String.format("schedule '%s' does not exist", id));
+		}
 
-		try {
-			if (!schedulesNode.nodeExists(id)) {
-				throw new IllegalStateException(String.format("schedule '%s' does not exist", id));
+		// remove jobs
+		final IJobManager jobManager = context.get(IJobManager.class);
+		for (final IScheduleEntry entry : schedule.getEntries()) {
+			if (null != jobManager.getJob(entry.getJobId())) {
+				jobManager.removeJob(entry.getJobId());
 			}
+		}
 
-			schedulesNode.node(id).removeNode();
-			schedulesNode.flush();
+		final String internalId = toInternalId(id);
+		try {
+			ScheduleStore.remove(id, internalId);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
+	}
+
+	private String toExternalId(final String internalId) {
+		return StringUtils.removeStart(internalId, internalIdPrefix);
+	}
+
+	private String toInternalId(final String id) {
+		return internalIdPrefix.concat(id);
 	}
 
 	@Override
@@ -130,8 +158,10 @@ public class ScheduleManagerImpl implements IScheduleManager {
 			throw new IllegalArgumentException("invalid working copy, must be obtained from this manager");
 		}
 
+		final ScheduleImpl scheduleImpl = (ScheduleImpl) copy;
+		final String internalId = toInternalId(scheduleImpl.getId());
 		try {
-			((ScheduleImpl) copy).save();
+			ScheduleStore.flush(internalId, scheduleImpl);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
