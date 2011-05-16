@@ -129,11 +129,11 @@ public abstract class BaseCommandProvider implements CommandProvider {
 		for (final String name : commands.keySet()) {
 			try {
 				final Command command = commands.get(name).newInstance();
-				final CmdLineParser parser = new CmdLineParser(command);
+//				final CmdLineParser parser = new CmdLineParser(command);
 				help.append("\t\t").append(name).append(" - ").appendln(command.getDescription());
-				help.append("\t\t\t");
-				parser.printSingleLineUsage(help.asWriter(), null);
-				help.appendNewLine();
+//				help.append("\t\t\t");
+//				parser.printSingleLineUsage(help.asWriter(), null);
+//				help.appendNewLine();
 			} catch (final Exception e) {
 				help.append("\t\t").append(name).append(" - ").appendln(ExceptionUtils.getRootCauseMessage(e));
 			}
