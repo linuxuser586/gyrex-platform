@@ -188,6 +188,8 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 		}
 	});
 
+	private final AtomicBoolean warningPrinted = new AtomicBoolean(false);
+
 	/**
 	 * Creates a new instance.
 	 * 
@@ -230,8 +232,8 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 	public void logged(final LogEntry entry) {
 		if ((null != entry) && !closed.get()) {
 			if (!logBuffer.offer(entry)) {
-				if (EclipseStarter.debug) {
-					System.err.println("[Eclipse Gyrex] Log buffer capacity limit reached. Try lowering the log level or increasing the buffer size (system property 'gyrex.log.forwarder.buffer.size').");
+				if (EclipseStarter.debug && !warningPrinted.get() && warningPrinted.compareAndSet(false, true)) {
+					System.err.println("[Eclipse Gyrex] Log buffer capacity limit reached. Some framework log messages will be discarded. Try lowering the log level or increasing the buffer size (system property 'gyrex.log.forwarder.buffer.size').");
 				}
 			}
 		}
