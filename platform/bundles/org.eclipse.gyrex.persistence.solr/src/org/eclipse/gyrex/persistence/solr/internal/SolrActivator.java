@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
@@ -59,9 +60,6 @@ public class SolrActivator extends BaseBundleActivator {
 		super(PLUGIN_ID);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStart(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instance.set(this);
@@ -73,9 +71,6 @@ public class SolrActivator extends BaseBundleActivator {
 		startEmbeddedSolrServer(context);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.common.runtime.BaseBundleActivator#doStop(org.osgi.framework.BundleContext)
-	 */
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		shutdownEmbeddedSolrServer();
@@ -115,10 +110,10 @@ public class SolrActivator extends BaseBundleActivator {
 	}
 
 	private void startEmbeddedSolrServer(final BundleContext context) throws Exception {
-		//		// only in dev mode
-		//		if (!PlatformConfiguration.isOperatingInDevelopmentMode()) {
-		//			return;
-		//		}
+		// only in dev mode
+		if (!Platform.inDevelopmentMode()) {
+			return;
+		}
 
 		// the configuration template
 		final File configTemplate = new File(FileLocator.toFileURL(context.getBundle().getEntry("conf-embeddedsolr")).getFile());
