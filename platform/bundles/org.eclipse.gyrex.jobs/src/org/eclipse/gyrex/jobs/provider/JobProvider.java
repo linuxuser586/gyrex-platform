@@ -75,7 +75,7 @@ public abstract class JobProvider extends PlatformObject {
 			if (!IdHelper.isValidId(id)) {
 				throw new IllegalArgumentException(String.format("type id \"%s\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
 			} else {
-				providedTypeIds.add(id);
+				this.providedTypeIds.add(id);
 			}
 		}
 	}
