@@ -67,7 +67,7 @@ public class HttpServiceAppComponent {
 				manager.mount("http:/", DEFAULT_APP_ID);
 				manager.mount("https:/", DEFAULT_APP_ID);
 			} catch (final MountConflictException e) {
-				LOG.warn("Unable to register default HttpService application; failed to mount the application: {} ", e.toString());
+				LOG.info("Application {} will not be mounted again. {} ", DEFAULT_APP_ID, e.getMessage());
 				return;
 			} catch (final MalformedURLException e) {
 				// should not happen, URLs are hard-coded at development time
