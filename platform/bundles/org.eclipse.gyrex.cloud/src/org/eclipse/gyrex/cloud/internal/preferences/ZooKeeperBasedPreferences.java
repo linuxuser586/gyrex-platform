@@ -111,7 +111,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 					// assume not connected
 					connected.set(false);
 					// log warning
-					LOG.warn("Error refreshing children of node {}. {}", this, e.getMessage());
+					LOG.warn("Error refreshing children of node {}. {}", ZooKeeperBasedPreferences.this, e.getMessage());
 				}
 			}
 		}
@@ -141,7 +141,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 					// assume not connected
 					connected.set(false);
 					// log warning
-					LOG.warn("Error refreshing node {}. {}", this, e.getMessage());
+					LOG.warn("Error refreshing node {}. {}", ZooKeeperBasedPreferences.this, e.getMessage());
 				}
 			}
 		};
@@ -166,7 +166,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 					// assume not connected
 					connected.set(false);
 					// log warning
-					LOG.warn("Error removing node {}. {}", this, e.getMessage());
+					LOG.warn("Error removing node {}. {}", ZooKeeperBasedPreferences.this, e.getMessage());
 				}
 			}
 		}
@@ -190,7 +190,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 					// assume not connected
 					connected.set(false);
 					// log warning
-					LOG.warn("Error refreshing properties of node {}. {}", this, e.getMessage());
+					LOG.warn("Error refreshing properties of node {}. {}", ZooKeeperBasedPreferences.this, e.getMessage());
 				}
 			}
 		}
