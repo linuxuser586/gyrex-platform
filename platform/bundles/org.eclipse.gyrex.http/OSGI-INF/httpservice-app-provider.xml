@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" enabled="false" name="org.eclipse.gyrex.http.httpservice.application.provider.component">
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" enabled="true" name="org.eclipse.gyrex.http.httpservice.application.provider.component">
    <implementation class="org.eclipse.gyrex.http.internal.httpservice.HttpServiceAppProvider"/>
    <service>
       <provide interface="org.eclipse.gyrex.http.application.provider.ApplicationProvider"/>
