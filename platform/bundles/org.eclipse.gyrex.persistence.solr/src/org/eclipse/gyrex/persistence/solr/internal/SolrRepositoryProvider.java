@@ -30,7 +30,6 @@ import org.apache.solr.core.SolrCore;
 /**
  * A repository provider for Solr repositories.
  */
-@SuppressWarnings("restriction")
 public class SolrRepositoryProvider extends RepositoryProvider {
 
 	/**
