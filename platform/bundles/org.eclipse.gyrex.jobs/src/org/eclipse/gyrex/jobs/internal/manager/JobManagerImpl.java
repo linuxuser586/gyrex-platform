@@ -295,10 +295,12 @@ public class JobManagerImpl implements IJobManager {
 	@Override
 	public Collection<String> getJobs() {
 		try {
-			final String[] childrenNames = getJobsNode().childrenNames();
-			final List<String> jobIds = new ArrayList<String>(childrenNames.length);
-			for (final String name : childrenNames) {
-				jobIds.add(toExternalId(name));
+			final String[] storageIds = getJobsNode().childrenNames();
+			final List<String> jobIds = new ArrayList<String>(storageIds.length);
+			for (final String internalId : storageIds) {
+				if (internalId.startsWith(internalIdPrefix)) {
+					jobIds.add(toExternalId(internalId));
+				}
 			}
 			return Collections.unmodifiableCollection(jobIds);
 		} catch (final BackingStoreException e) {
@@ -320,10 +322,12 @@ public class JobManagerImpl implements IJobManager {
 			}
 
 			// keys == internal job ids
-			final String[] keys = statesNode.node(state.name()).keys();
-			final List<String> jobIds = new ArrayList<String>(keys.length);
-			for (final String key : keys) {
-				jobIds.add(toExternalId(key));
+			final String[] storageIds = statesNode.node(state.name()).keys();
+			final List<String> jobIds = new ArrayList<String>(storageIds.length);
+			for (final String internalId : storageIds) {
+				if (internalId.startsWith(internalIdPrefix)) {
+					jobIds.add(toExternalId(internalId));
+				}
 			}
 			return Collections.unmodifiableCollection(jobIds);
 		} catch (final BackingStoreException e) {
