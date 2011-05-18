@@ -51,6 +51,7 @@ public class CreateScheduleCmd extends Command {
 		final IRuntimeContext context = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class).get(parsedContextPath);
 		if (null == context) {
 			printf("Context '%s' not defined!", parsedContextPath);
+			return;
 		}
 
 		final IScheduleManager manager = context.get(IScheduleManager.class);
