@@ -32,7 +32,6 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.time.DateUtils;
 
 /**
@@ -72,19 +71,13 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
 
-		final Preferences entriesNode = getEntriesNode();
-
-		try {
-			if (entriesById.containsKey(entryId)) {
-				throw new IllegalStateException(String.format("entry '%s' already exists", entryId));
-			}
-
-			final ScheduleEntryImpl entry = new ScheduleEntryImpl(entriesNode.node(entryId));
-			entriesById.put(entryId, entry);
-			return entry;
-		} catch (final BackingStoreException e) {
-			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
+		if (entriesById.containsKey(entryId)) {
+			throw new IllegalStateException(String.format("entry '%s' already exists", entryId));
 		}
+
+		final ScheduleEntryImpl entry = new ScheduleEntryImpl(entryId);
+		entriesById.put(entryId, entry);
+		return entry;
 	}
 
 	@Override
@@ -155,7 +148,9 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		final String[] childrenNames = jobs.childrenNames();
 		entriesById = new HashMap<String, ScheduleEntryImpl>(childrenNames.length);
 		for (final String jobName : childrenNames) {
-			entriesById.put(jobName, new ScheduleEntryImpl(jobs.node(jobName)));
+			final ScheduleEntryImpl entryImpl = new ScheduleEntryImpl(jobName);
+			entryImpl.load(jobs.node(jobName));
+			entriesById.put(jobName, entryImpl);
 		}
 	}
 
@@ -176,7 +171,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		final Preferences jobs = getEntriesNode();
 		// update entries
 		for (final ScheduleEntryImpl entry : entriesById.values()) {
-			entry.saveWithoutFlush();
+			entry.saveWithoutFlush(jobs.node(entry.getId()));
 		}
 		// remove obsolete entries
 		for (final String jobName : jobs.childrenNames()) {

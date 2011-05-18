@@ -38,24 +38,23 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	private static final String JOB_TYPE_ID = "jobTypeId";
 	private static final String JOB_ID = "jobId";
 	private static final String CRON_EXPRESSION = "cronExpression";
-	private final Preferences node;
 
 	private final String id;
-	private String cronExpression;
 
+	private String cronExpression;
 	private String jobTypeId;
 	private Map<String, String> jobParamater;
 
 	/**
 	 * Creates a new instance.
 	 * 
-	 * @param node
-	 * @throws BackingStoreException
+	 * @param id
 	 */
-	public ScheduleEntryImpl(final Preferences node) throws BackingStoreException {
-		this.node = node;
-		id = node.name();
-		load();
+	public ScheduleEntryImpl(final String id) {
+		if (!IdHelper.isValidId(id)) {
+			throw new IllegalArgumentException("invalid entry id");
+		}
+		this.id = id;
 	}
 
 	@Override
@@ -86,7 +85,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		return jobTypeId;
 	}
 
-	void load() throws BackingStoreException {
+	void load(final Preferences node) throws BackingStoreException {
 		try {
 			setCronExpression(node.get(CRON_EXPRESSION, null));
 			setJobTypeId(node.get(JOB_TYPE_ID, null));
@@ -103,7 +102,11 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		}
 	}
 
-	void saveWithoutFlush() throws BackingStoreException {
+	void saveWithoutFlush(final Preferences node) throws BackingStoreException {
+		// ensure required values are set
+		setJobTypeId(jobTypeId);
+		setCronExpression(cronExpression);
+
 		node.put(CRON_EXPRESSION, cronExpression);
 		node.put(JOB_TYPE_ID, jobTypeId);
 		node.put(JOB_ID, getJobId());
