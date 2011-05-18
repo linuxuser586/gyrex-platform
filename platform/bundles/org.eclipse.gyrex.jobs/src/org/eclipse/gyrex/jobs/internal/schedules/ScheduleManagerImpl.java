@@ -109,7 +109,9 @@ public class ScheduleManagerImpl implements IScheduleManager {
 			final String[] storageIds = ScheduleStore.getSchedules();
 			final List<String> schedules = new ArrayList<String>(storageIds.length);
 			for (final String internalId : storageIds) {
-				schedules.add(toExternalId(internalId));
+				if (internalId.startsWith(internalIdPrefix)) {
+					schedules.add(toExternalId(internalId));
+				}
 			}
 			return Collections.unmodifiableCollection(schedules);
 		} catch (final BackingStoreException e) {
