@@ -5,7 +5,7 @@
 <booleanAttribute key="automaticAdd" value="true"/>
 <booleanAttribute key="automaticValidate" value="false"/>
 <stringAttribute key="bootstrap" value=""/>
-<stringAttribute key="checked" value="org.eclipse.gyrex.boot,org.eclipse.gyrex.cloud,org.eclipse.gyrex.context,org.eclipse.gyrex.http,org.eclipse.gyrex.http.jetty,org.eclipse.gyrex.http.registry,org.eclipse.gyrex.preferences"/>
+<stringAttribute key="checked" value="org.eclipse.gyrex.boot,org.eclipse.gyrex.cloud,org.eclipse.gyrex.configuration,org.eclipse.gyrex.configuration.impl,org.eclipse.gyrex.context,org.eclipse.gyrex.http,org.eclipse.gyrex.http.jetty,org.eclipse.gyrex.http.registry,org.eclipse.gyrex.preferences"/>
 <booleanAttribute key="clearConfig" value="true"/>
 <booleanAttribute key="clearws" value="true"/>
 <booleanAttribute key="clearwslog" value="false"/>
@@ -24,6 +24,7 @@
 <listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.junit.CONTAINER" value=""/>
+<stringAttribute key="org.eclipse.jdt.junit.FAILURENAMES" value="D:\Temp\Windows\testFailures5580084831116284939.txt"/>
 <booleanAttribute key="org.eclipse.jdt.junit.KEEPRUNNING_ATTR" value="false"/>
 <stringAttribute key="org.eclipse.jdt.junit.TESTNAME" value=""/>
 <stringAttribute key="org.eclipse.jdt.junit.TEST_KIND" value="org.eclipse.jdt.junit.loader.junit4"/>
@@ -38,7 +39,7 @@
 <booleanAttribute key="run_in_ui_thread" value="false"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="testApplication" value="org.eclipse.gyrex.boot.tests.servertestapp"/>
-<stringAttribute key="timestamp" value="1302705175879"/>
+<stringAttribute key="timestamp" value="1302703460614"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.aspectj.osgi.service.caching.j9/debug" value="false"/>

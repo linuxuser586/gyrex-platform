@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="org.eclipse.pde.ui.RuntimeWorkbench">
+<setAttribute key="additional_plugins"/>
 <booleanAttribute key="append.args" value="true"/>
 <stringAttribute key="application" value="org.eclipse.gyrex.boot.server"/>
 <booleanAttribute key="askclear" value="true"/>
@@ -11,7 +12,9 @@
 <booleanAttribute key="clearws" value="true"/>
 <booleanAttribute key="clearwslog" value="false"/>
 <stringAttribute key="configLocation" value="${workspace_loc}/.metadata/.plugins/org.eclipse.pde.core/Gyrex-Server"/>
-<booleanAttribute key="default" value="true"/>
+<booleanAttribute key="default" value="false"/>
+<stringAttribute key="featureDefaultLocation" value="workspace"/>
+<stringAttribute key="featurePluginResolution" value="workspace"/>
 <booleanAttribute key="generateProfile" value="true"/>
 <booleanAttribute key="includeOptional" value="true"/>
 <stringAttribute key="location" value="${workspace_loc}/../runtime-Gyrex"/>
@@ -22,15 +25,27 @@
 <stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl}&#13;&#10;-console"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-XX:+UseParallelGC -XX:MaxPermSize=128m&#13;&#10;-Dequinox.ds.print=true&#13;&#10;-Declipse.rap.registerWithHttpService=false&#13;&#10;-Dosgi.framework.extensions=org.eclipse.gyrex.log.frameworklogadapter"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-XX:+UseParallelGC -XX:MaxPermSize=128m&#13;&#10;-Dequinox.ds.print=true&#13;&#10;-Declipse.rap.registerWithHttpService=false&#13;&#10;-Dosgi.framework.extensions=org.eclipse.gyrex.log.frameworklogadapter&#13;&#10;-Dlogback.configurationFile=${resource_loc:/org.eclipse.gyrex.server.tests/logback.xml}"/>
 <stringAttribute key="pde.version" value="3.3"/>
 <stringAttribute key="product" value="org.eclipse.cloudfree.examples.fanshop.product"/>
 <booleanAttribute key="restart" value="true"/>
 <stringAttribute key="selectedPlugin" value="org.eclipse.gyrex.context"/>
+<setAttribute key="selected_features">
+<setEntry value="org.eclipse.gyrex.features.admin:default"/>
+<setEntry value="org.eclipse.gyrex.features.dependencies.admin:default"/>
+<setEntry value="org.eclipse.gyrex.features.dependencies.commons:default"/>
+<setEntry value="org.eclipse.gyrex.features.dependencies.processing:default"/>
+<setEntry value="org.eclipse.gyrex.features.dependencies.provisioning:default"/>
+<setEntry value="org.eclipse.gyrex.features.dependencies.web:default"/>
+<setEntry value="org.eclipse.gyrex.features.http:default"/>
+<setEntry value="org.eclipse.gyrex.features.kernel:default"/>
+<setEntry value="org.eclipse.gyrex.features.processing:default"/>
+<setEntry value="org.eclipse.gyrex.features.server:default"/>
+</setAttribute>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
 <stringAttribute key="timestamp" value="1296254680382"/>
-<booleanAttribute key="tracing" value="true"/>
+<booleanAttribute key="tracing" value="false"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.eclipse.cloudfree.boot/debug" value="true"/>
 <mapEntry key="org.eclipse.cloudfree.boot/debugRoles" value="true"/>
@@ -150,7 +165,7 @@
 <mapEntry key="org.eclipse.pde.core/validation" value="false"/>
 <mapEntry key="org.eclipse.update.configurator/debug" value="false"/>
 </mapAttribute>
-<booleanAttribute key="useCustomFeatures" value="false"/>
+<booleanAttribute key="useCustomFeatures" value="true"/>
 <booleanAttribute key="useDefaultConfig" value="true"/>
 <booleanAttribute key="useDefaultConfigArea" value="false"/>
 <booleanAttribute key="useProduct" value="false"/>
