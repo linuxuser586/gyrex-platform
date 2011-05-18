@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -23,13 +23,13 @@ import org.kohsuke.args4j.Argument;
 
 public class UpdateEntryToScheduleCmd extends BaseScheduleStoreCmd {
 
-	@Argument(index = 2, usage = "the entry id", required = true, metaVar = "ID")
+	@Argument(index = 1, usage = "the entry id", required = true, metaVar = "ID")
 	String entryId;
 
-	@Argument(index = 3, usage = "parameter key", required = true, metaVar = "STRING")
+	@Argument(index = 2, usage = "parameter key", required = true, metaVar = "STRING")
 	String jobParamKey;
 
-	@Argument(index = 4, usage = "parameter value", required = false, metaVar = "STRING")
+	@Argument(index = 3, usage = "parameter value", required = false, metaVar = "STRING")
 	String jobParamValue;
 
 	/**

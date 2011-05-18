@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 <enter-company-name-here> and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -21,13 +21,13 @@ import org.kohsuke.args4j.Argument;
 
 public class AddEntryToScheduleCmd extends BaseScheduleStoreCmd {
 
-	@Argument(index = 2, usage = "the id for the entry to add", required = true, metaVar = "ID")
+	@Argument(index = 1, usage = "the id for the entry to add", required = true, metaVar = "ID")
 	String entryId;
 
-	@Argument(index = 3, usage = "a cron expression", required = true, metaVar = "EXPR")
+	@Argument(index = 2, usage = "a cron expression", required = true, metaVar = "EXPR")
 	String cronExpression;
 
-	@Argument(index = 4, usage = "the job type identifier", required = true, metaVar = "JOBTYPE")
+	@Argument(index = 3, usage = "the job type identifier", required = true, metaVar = "JOBTYPE")
 	String jobTypeId;
 
 	/**
