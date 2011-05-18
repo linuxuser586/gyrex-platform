@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.manager;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +45,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -180,7 +182,11 @@ public class JobManagerImpl implements IJobManager {
 	@Inject
 	public JobManagerImpl(final IRuntimeContext context) {
 		this.context = context;
-		internalIdPrefix = DigestUtils.shaHex(context.getContextPath().toString()) + SEPARATOR;
+		try {
+			internalIdPrefix = DigestUtils.shaHex(context.getContextPath().toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
+		}
 	}
 
 	@Override

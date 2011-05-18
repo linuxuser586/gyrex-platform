@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.schedules;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
 import org.osgi.service.prefs.BackingStoreException;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
@@ -57,7 +59,11 @@ public class ScheduleManagerImpl implements IScheduleManager {
 	@Inject
 	public ScheduleManagerImpl(final IRuntimeContext context) {
 		this.context = context;
-		internalIdPrefix = DigestUtils.shaHex(context.getContextPath().toString()) + SEPARATOR;
+		try {
+			internalIdPrefix = DigestUtils.shaHex(context.getContextPath().toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
+		}
 	}
 
 	@Override

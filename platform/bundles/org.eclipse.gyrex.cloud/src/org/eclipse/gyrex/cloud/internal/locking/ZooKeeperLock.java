@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.locking;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.UUID;
@@ -32,6 +33,7 @@ import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.core.runtime.IPath;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.math.NumberUtils;
@@ -485,7 +487,11 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		if (null == nodeInfo) {
 			nodeInfo = new NodeInfo();
 		}
-		lockNodeContent = nodeInfo.getNodeId() + SEPARATOR + nodeInfo.getLocation() + SEPARATOR + DigestUtils.shaHex(UUID.randomUUID().toString());
+		try {
+			lockNodeContent = nodeInfo.getNodeId() + SEPARATOR + nodeInfo.getLocation() + SEPARATOR + DigestUtils.shaHex(UUID.randomUUID().toString().getBytes(CharEncoding.US_ASCII));
+		} catch (final UnsupportedEncodingException e1) {
+			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
+		}
 
 		// check implementation
 		try {
