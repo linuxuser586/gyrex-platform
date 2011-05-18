@@ -11,12 +11,19 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.worker;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
+
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +87,29 @@ public class WorkerEngineApplication implements IApplication {
 		if (!engine.cancel()) {
 			try {
 				LOG.info("Waiting for worker engine to finish remaining work...");
-				engine.join();
+				final CountDownLatch wait = new CountDownLatch(1);
+				final Job job = new Job("Worker Engine Shutdown Job") {
+
+					@Override
+					protected IStatus run(final IProgressMonitor monitor) {
+						try {
+							if (engine.getState() == Job.RUNNING) {
+								engine.join();
+							}
+						} catch (final InterruptedException e) {
+							Thread.currentThread().interrupt();
+						} finally {
+							wait.countDown();
+						}
+						return Status.OK_STATUS;
+					}
+				};
+				job.setSystem(true);
+				job.setPriority(Job.SHORT);
+				job.schedule();
+				if (!wait.await(30, TimeUnit.SECONDS)) {
+					LOG.warn("Time out waiting for worker engine to finish remaining work. A complete restart of the process may be required.");
+				}
 			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}
