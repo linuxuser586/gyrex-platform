@@ -86,12 +86,7 @@ public class HttpServiceAppComponent {
 	 * Deactivates the component.
 	 */
 	public void deactivate() {
-		// unregister the application should remove everything else
-		try {
-			getApplicationManager().unregister(DEFAULT_APP_ID);
-		} catch (final Exception e) {
-			// ignore
-		}
+		// empty
 	}
 
 	/**
