@@ -33,7 +33,6 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences.INodeChangeListe
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.NodeChangeEvent;
 
 import org.osgi.service.prefs.BackingStoreException;
-import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -67,19 +66,19 @@ public class Scheduler extends Job implements INodeChangeListener {
 	@Override
 	public void added(final NodeChangeEvent event) {
 		try {
-			addSchedule(event.getChild());
+			addSchedule(event.getChild().name());
 		} catch (final Exception e) {
 			LOG.error("Unable to start schedule {}. {}", new Object[] { event.getChild().name(), ExceptionUtils.getRootCauseMessage(e), e });
 		}
 	}
 
-	private void addSchedule(final Preferences scheduleNode) throws Exception {
+	private void addSchedule(final String scheduleStoreStorageKey) throws Exception {
 		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Adding schedule {}...", scheduleNode.name());
+			LOG.debug("Adding schedule {}...", scheduleStoreStorageKey);
 		}
 
-		final Schedule schedule = new Schedule(scheduleNode, this);
-		if (null == schedulesById.putIfAbsent(schedule.getId(), schedule)) {
+		final Schedule schedule = new Schedule(scheduleStoreStorageKey, this);
+		if (null == schedulesById.putIfAbsent(scheduleStoreStorageKey, schedule)) {
 			schedule.start();
 		}
 	}
@@ -121,12 +120,11 @@ public class Scheduler extends Job implements INodeChangeListener {
 			schedulesNode.addNodeChangeListener(this);
 
 			// hook with all existing schedules
-			final String[] childrenNames = schedulesNode.childrenNames();
-			for (final String scheduleId : childrenNames) {
+			for (final String scheduleStoreStorageKey : ScheduleStore.getSchedules()) {
 				try {
-					addSchedule(schedulesNode.node(scheduleId));
+					addSchedule(scheduleStoreStorageKey);
 				} catch (final Exception e) {
-					LOG.error("Unable to start schedule {}. {}", scheduleId, ExceptionUtils.getRootCauseMessage(e));
+					LOG.error("Unable to start schedule {}. {}", scheduleStoreStorageKey, ExceptionUtils.getRootCauseMessage(e));
 				}
 			}
 

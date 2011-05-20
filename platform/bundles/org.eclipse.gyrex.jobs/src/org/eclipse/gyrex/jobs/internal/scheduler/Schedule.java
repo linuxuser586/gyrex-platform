@@ -13,18 +13,19 @@
 package org.eclipse.gyrex.jobs.internal.scheduler;
 
 import java.text.ParseException;
-import java.util.Collection;
+import java.util.List;
 
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
+import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 
 import org.osgi.service.prefs.BackingStoreException;
-import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.quartz.CronTrigger;
@@ -51,27 +52,24 @@ public class Schedule implements IPreferenceChangeListener {
 		return "0 " + cronExpression;
 	}
 
-	private final ScheduleImpl scheduleData;
+	private final String scheduleStoreStorageKey;
+	private ScheduleImpl scheduleData;
 	private org.quartz.Scheduler quartzScheduler;
 
 	/**
 	 * Creates a new instance.
 	 * 
-	 * @param scheduleNode
+	 * @param scheduleStoreStorageKey
 	 * @param scheduler
 	 * @throws BackingStoreException
 	 */
-	public Schedule(final Preferences scheduleNode, final Scheduler scheduler) throws Exception {
-		try {
-			scheduleData = new ScheduleImpl(ScheduleManagerImpl.getExternalId(scheduleNode.name()), scheduleNode);
-		} catch (final Exception e) {
-			throw new IllegalStateException(String.format("Unable to load schedule '%s'. %s", scheduleNode.name(), e.getMessage()), e);
-		}
+	public Schedule(final String scheduleStoreStorageKey, final Scheduler scheduler) throws Exception {
+		this.scheduleStoreStorageKey = scheduleStoreStorageKey;
 	}
 
 	void activateEngine() {
 		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Activating schedule {}...", getId());
+			LOG.debug("Activating schedule {}...", getScheduleStoreStorageKey());
 		}
 		if (null != quartzScheduler) {
 			return;
@@ -84,11 +82,11 @@ public class Schedule implements IPreferenceChangeListener {
 			// create scheduler
 			final DirectSchedulerFactory factory = DirectSchedulerFactory.getInstance();
 			final SimpleThreadPool threadPool = new SimpleThreadPool(1, Thread.NORM_PRIORITY);
-			threadPool.setInstanceId(getId());
-			threadPool.setInstanceName(getId());
+			threadPool.setInstanceId(getScheduleStoreStorageKey());
+			threadPool.setInstanceName(getScheduleStoreStorageKey());
 			final JobStore jobStore = new RAMJobStore();
-			factory.createScheduler(getId(), getId(), threadPool, jobStore);
-			quartzScheduler = factory.getScheduler(getId());
+			factory.createScheduler(getScheduleStoreStorageKey(), getScheduleStoreStorageKey(), threadPool, jobStore);
+			quartzScheduler = factory.getScheduler(getScheduleStoreStorageKey());
 
 			// TODO add support for calendars (we likely should support global calendars)
 
@@ -99,7 +97,7 @@ public class Schedule implements IPreferenceChangeListener {
 			quartzScheduler.start();
 
 			// log success message
-			LOG.info("Activated schedule {}.", getId());
+			LOG.info("Activated schedule {}.", getScheduleStoreStorageKey());
 
 		} catch (final SchedulerException e) {
 			LOG.error("Unable to activate Quarz scheduler. {}", ExceptionUtils.getRootCauseMessage(e));
@@ -112,26 +110,42 @@ public class Schedule implements IPreferenceChangeListener {
 
 	void deactivateEngine() {
 		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Deactivating Quartz engine {}...", getId());
+			LOG.debug("Deactivating Quartz engine {}...", getScheduleStoreStorageKey());
 		}
 		quietShutdown();
 	}
 
-	public String getId() {
-		return scheduleData.getId();
+	/**
+	 * Returns the scheduleData.
+	 * 
+	 * @return the scheduleData
+	 */
+	private ScheduleImpl ensureScheduleData() {
+		if (null == scheduleData) {
+			try {
+				return scheduleData = ScheduleStore.load(scheduleStoreStorageKey, ScheduleManagerImpl.getExternalId(scheduleStoreStorageKey), true);
+			} catch (final Exception e) {
+				throw new IllegalStateException(String.format("Unable to load schedule '%s'. %s", scheduleStoreStorageKey, e.getMessage()), e);
+			}
+		}
+
+		return scheduleData;
+	}
+
+	public String getScheduleStoreStorageKey() {
+		return scheduleStoreStorageKey;
 	}
 
 	@Override
 	public void preferenceChange(final PreferenceChangeEvent event) {
 		if (ScheduleImpl.ENABLED.equals(event.getKey())) {
 			try {
-				scheduleData.load();
-				if (scheduleData.isEnabled()) {
+				if (Boolean.TRUE.equals(event.getNewValue())) {
 					activateEngine();
 				} else {
 					deactivateEngine();
 				}
-			} catch (final BackingStoreException e) {
+			} catch (final Exception e) {
 				LOG.error("Unable to update entry {}. {}", event.getNode().name(), ExceptionUtils.getRootCauseMessage(e));
 				quietShutdown();
 			}
@@ -144,14 +158,14 @@ public class Schedule implements IPreferenceChangeListener {
 				quartzScheduler.shutdown();
 
 				// log success message
-				LOG.info("Deactivated schedule {}.", getId());
+				LOG.info("Deactivated schedule {}.", getScheduleStoreStorageKey());
 			} catch (final Exception ignored) {
 				// ignore
 			}
 			try {
-				SchedulerRepository.getInstance().remove(getId());
+				SchedulerRepository.getInstance().remove(getScheduleStoreStorageKey());
 				if (JobsDebug.schedulerEngine) {
-					LOG.debug("Successful removal of Quartz engine {} from scheduler repo.", getId());
+					LOG.debug("Successful removal of Quartz engine {} from scheduler repo.", getScheduleStoreStorageKey());
 				}
 			} catch (final Exception ignored) {
 				// ignore
@@ -168,7 +182,7 @@ public class Schedule implements IPreferenceChangeListener {
 			for (final String groupName : jobGroupNames) {
 				for (final String jobName : quartzScheduler.getJobNames(groupName)) {
 					if (JobsDebug.schedulerEngine) {
-						LOG.debug("Removing job {} from Quartz engine {}...", jobName, getId());
+						LOG.debug("Removing job {} from Quartz engine {}...", jobName, getScheduleStoreStorageKey());
 					}
 					quartzScheduler.deleteJob(jobName, groupName);
 				}
@@ -176,7 +190,7 @@ public class Schedule implements IPreferenceChangeListener {
 		}
 
 		// populate with configured jobs
-		final Collection<IScheduleEntry> entries = scheduleData.getEntries();
+		final List<IScheduleEntry> entries = ensureScheduleData().getEntries();
 		for (final IScheduleEntry entry : entries) {
 			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
 			// put all parameter
@@ -185,10 +199,12 @@ public class Schedule implements IPreferenceChangeListener {
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_TYPE_ID, entry.getJobTypeId());
 			// put job id
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_ID, entry.getJobId());
+			// put context path
+			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_CONTEXT_PATH, ensureScheduleData().getContextPath().toString());
 
 			final String cronExpression = entry.getCronExpression();
 			final CronTrigger trigger = new CronTrigger(entry.getId());
-			trigger.setTimeZone(scheduleData.getTimeZone());
+			trigger.setTimeZone(ensureScheduleData().getTimeZone());
 			try {
 				trigger.setCronExpression(asQuartzCronExpression(cronExpression));
 			} catch (final ParseException e) {
@@ -196,7 +212,7 @@ public class Schedule implements IPreferenceChangeListener {
 			}
 
 			if (JobsDebug.schedulerEngine) {
-				LOG.debug("Adding job {} to Quartz engine {}...", entry, getId());
+				LOG.debug("Adding job {} to Quartz engine {}...", entry, getScheduleStoreStorageKey());
 			}
 			quartzScheduler.scheduleJob(detail, trigger);
 		}
@@ -207,16 +223,32 @@ public class Schedule implements IPreferenceChangeListener {
 	 */
 	public void start() throws Exception {
 		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Starting schedule {}...", getId());
+			LOG.debug("Starting schedule {}...", getScheduleStoreStorageKey());
 		}
 
-		scheduleData.getPreferenceNode().addPreferenceChangeListener(this);
-		scheduleData.load();
-		if (scheduleData.isEnabled()) {
+		if (!ScheduleStore.getSchedulesNode().nodeExists(scheduleStoreStorageKey)) {
+			throw new IllegalStateException(String.format("Schedule '%s' not found", scheduleStoreStorageKey));
+		}
+
+		// get preference node
+		final IEclipsePreferences node = (IEclipsePreferences) ScheduleStore.getSchedulesNode().node(scheduleStoreStorageKey);
+
+		// add listener
+		node.addPreferenceChangeListener(this);
+
+		// check if enabled
+		if (!node.getBoolean(ScheduleImpl.ENABLED, false)) {
+			if (JobsDebug.schedulerEngine) {
+				LOG.debug("Schedule {} is disabled.", getScheduleStoreStorageKey());
+			}
+			return;
+		}
+
+		if (ensureScheduleData().isEnabled()) {
 			activateEngine();
 		} else {
 			if (JobsDebug.schedulerEngine) {
-				LOG.debug("Schedule {} is disabled.", getId());
+				LOG.debug("Schedule {} is disabled.", getScheduleStoreStorageKey());
 			}
 		}
 	}
@@ -226,17 +258,22 @@ public class Schedule implements IPreferenceChangeListener {
 	 */
 	public void stop() {
 		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Stopping schedule {}...", getId());
+			LOG.debug("Stopping schedule {}...", getScheduleStoreStorageKey());
 		}
 
 		// bring down engine
 		deactivateEngine();
 
 		try {
-			scheduleData.getPreferenceNode().removePreferenceChangeListener(this);
+			if (ScheduleStore.getSchedulesNode().nodeExists(scheduleStoreStorageKey)) {
+				// get preference node
+				final IEclipsePreferences node = (IEclipsePreferences) ScheduleStore.getSchedulesNode().node(scheduleStoreStorageKey);
+
+				// remove listener
+				node.removePreferenceChangeListener(this);
+			}
 		} catch (final Exception e) {
 			// might have been removed
 		}
 	}
-
 }

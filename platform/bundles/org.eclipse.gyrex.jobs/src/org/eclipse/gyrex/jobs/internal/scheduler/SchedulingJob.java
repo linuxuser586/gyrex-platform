@@ -40,7 +40,7 @@ public class SchedulingJob implements Job {
 	public static final String PROP_JOB_ID = INTERNAL_PROP_PREFIX + "id";
 
 	public static final String PROP_JOB_TYPE_ID = INTERNAL_PROP_PREFIX + "type";
-	public static final String PROP_JOB_CONTEXT_PATH = INTERNAL_PROP_PREFIX + "context";
+	public static final String PROP_JOB_CONTEXT_PATH = INTERNAL_PROP_PREFIX + "contextPath";
 
 	@Override
 	public void execute(final JobExecutionContext context) throws JobExecutionException {

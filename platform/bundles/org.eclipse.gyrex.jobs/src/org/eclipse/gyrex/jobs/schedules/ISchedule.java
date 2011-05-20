@@ -41,6 +41,11 @@ import org.eclipse.gyrex.jobs.service.IJobService;
  */
 public interface ISchedule {
 
+	/**
+	 * Returns the schedule entries.
+	 * 
+	 * @return an unmodifiable list of entries
+	 */
 	List<IScheduleEntry> getEntries();
 
 	/**

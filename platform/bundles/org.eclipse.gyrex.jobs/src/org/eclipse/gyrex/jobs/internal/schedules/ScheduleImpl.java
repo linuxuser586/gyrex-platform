@@ -23,9 +23,10 @@ import java.util.TimeZone;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
-import org.eclipse.gyrex.jobs.schedules.manager.IScheduleEntryWorkingCopy;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
 
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 import org.osgi.service.prefs.BackingStoreException;
@@ -43,9 +44,11 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	public static final String TIME_ZONE = "timeZone";
 	public static final String ENABLED = "enabled";
 	public static final String QUEUE_ID = "queueId";
+	public static final String CONTEXT_PATH = "contextPath";
 
 	private final IEclipsePreferences node;
 	private final String id;
+	private IPath contextPath;
 
 	private String queueId;
 	private boolean enabled;
@@ -62,22 +65,37 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	public ScheduleImpl(final String id, final Preferences node) throws BackingStoreException {
 		this.id = id;
 		this.node = (IEclipsePreferences) node;
-		load();
 	}
 
 	@Override
-	public IScheduleEntryWorkingCopy createEntry(final String entryId) {
+	public ScheduleEntryImpl createEntry(final String entryId) {
 		if (!IdHelper.isValidId(entryId)) {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
 
-		if (entriesById.containsKey(entryId)) {
+		if (null == entriesById) {
+			entriesById = new HashMap<String, ScheduleEntryImpl>(4);
+		} else if (entriesById.containsKey(entryId)) {
 			throw new IllegalStateException(String.format("entry '%s' already exists", entryId));
 		}
 
 		final ScheduleEntryImpl entry = new ScheduleEntryImpl(entryId);
 		entriesById.put(entryId, entry);
 		return entry;
+	}
+
+	/**
+	 * Returns the contextPath.
+	 * 
+	 * @return the contextPath
+	 */
+	public IPath getContextPath() {
+		final IPath path = contextPath;
+		if (null == path) {
+			throw new IllegalStateException(String.format("Schedule %s is invalid. Its context path is missing! Please delete and re-create schedule.", id));
+		}
+
+		return path;
 	}
 
 	@Override
@@ -97,12 +115,12 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	}
 
 	@Override
-	public IScheduleEntryWorkingCopy getEntry(final String entryId) {
+	public ScheduleEntryImpl getEntry(final String entryId) {
 		if (!IdHelper.isValidId(entryId)) {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
 
-		final ScheduleEntryImpl entry = entriesById.get(entryId);
+		final ScheduleEntryImpl entry = null != entriesById ? entriesById.get(entryId) : null;
 		if (null == entry) {
 			throw new IllegalStateException(String.format("entry '%s' does not exist", entryId));
 		}
@@ -139,9 +157,14 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		return enabled;
 	}
 
-	public void load() throws BackingStoreException {
+	public ScheduleImpl load() throws BackingStoreException {
 		queueId = node.get(QUEUE_ID, null);
 		enabled = node.getBoolean(ENABLED, false);
+		if (null != node.get(CONTEXT_PATH, null)) {
+			contextPath = new Path(node.get(CONTEXT_PATH, null));
+		} else {
+			throw new IllegalStateException(String.format("Schedule %s is invalid. Its context path is missing! Please delete and re-create.", id));
+		}
 		timeZone = TimeZone.getTimeZone(node.get(TIME_ZONE, "GMT"));
 
 		final Preferences jobs = getEntriesNode();
@@ -152,6 +175,8 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 			entryImpl.load(jobs.node(jobName));
 			entriesById.put(jobName, entryImpl);
 		}
+
+		return this;
 	}
 
 	public void save() throws BackingStoreException {
@@ -160,6 +185,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		} else {
 			node.remove(QUEUE_ID);
 		}
+		node.put(CONTEXT_PATH, getContextPath().toString());
 		node.putBoolean(ENABLED, enabled);
 		final String tz = null != timeZone ? timeZone.getID() : null;
 		if ((null != tz) && !DateUtils.UTC_TIME_ZONE.getID().equals(tz)) {
@@ -169,18 +195,35 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		}
 
 		final Preferences jobs = getEntriesNode();
-		// update entries
-		for (final ScheduleEntryImpl entry : entriesById.values()) {
-			entry.saveWithoutFlush(jobs.node(entry.getId()));
-		}
-		// remove obsolete entries
-		for (final String jobName : jobs.childrenNames()) {
-			if (!entriesById.containsKey(jobName) && jobs.nodeExists(jobName)) {
-				jobs.node(jobName).removeNode();
+		if (null != entriesById) {
+			// update entries
+			for (final ScheduleEntryImpl entry : entriesById.values()) {
+				entry.saveWithoutFlush(jobs.node(entry.getId()));
 			}
+			// remove obsolete entries
+			for (final String jobName : jobs.childrenNames()) {
+				if (!entriesById.containsKey(jobName) && jobs.nodeExists(jobName)) {
+					jobs.node(jobName).removeNode();
+				}
+			}
+		} else {
+			jobs.removeNode();
 		}
 
 		node.flush();
+	}
+
+	/**
+	 * Sets the contextPath.
+	 * 
+	 * @param contextPath
+	 *            the contextPath to set
+	 */
+	public void setContextPath(final IPath contextPath) {
+		if (null == contextPath) {
+			throw new IllegalArgumentException("Context path must not be null!");
+		}
+		this.contextPath = contextPath;
 	}
 
 	@Override
@@ -193,9 +236,6 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		this.timeZone = timeZone;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();

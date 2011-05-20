@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.schedules;
 
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.preferences.CloudScope;
 
@@ -25,14 +26,18 @@ import org.osgi.service.prefs.Preferences;
  */
 public class ScheduleStore {
 
-	public static ScheduleImpl create(final String storageId, final String scheduleId) throws BackingStoreException {
+	public static ScheduleImpl create(final String storageId, final String scheduleId, final IRuntimeContext context) throws BackingStoreException {
 		final IEclipsePreferences schedulesNode = ScheduleStore.getSchedulesNode();
 
 		if (schedulesNode.nodeExists(storageId)) {
 			throw new IllegalStateException(String.format("schedule '%s' already exists", scheduleId));
 		}
 
-		return new ScheduleImpl(scheduleId, schedulesNode.node(storageId));
+		final ScheduleImpl scheduleImpl = new ScheduleImpl(scheduleId, schedulesNode.node(storageId));
+		scheduleImpl.setContextPath(context.getContextPath());
+		scheduleImpl.save();
+
+		return scheduleImpl;
 	}
 
 	public static void flush(final String storageId, final ScheduleImpl scheduleImpl) throws BackingStoreException {
@@ -61,7 +66,7 @@ public class ScheduleStore {
 			return null;
 		}
 
-		return new ScheduleImpl(scheduleId, schedulesNode.node(storageId));
+		return new ScheduleImpl(scheduleId, schedulesNode.node(storageId)).load();
 	}
 
 	public static void remove(final String storageId, final String scheduleId) throws BackingStoreException {

@@ -74,7 +74,7 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 		final String internalId = toInternalId(id);
 		try {
-			return ScheduleStore.create(internalId, id);
+			return ScheduleStore.create(internalId, id, context);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
