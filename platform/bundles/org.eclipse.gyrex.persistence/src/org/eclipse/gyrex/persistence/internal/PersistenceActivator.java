@@ -18,6 +18,7 @@ import org.eclipse.gyrex.persistence.internal.storage.RepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 
 /**
  * The persistence plug-in.
@@ -56,6 +57,8 @@ public class PersistenceActivator extends BaseBundleActivator {
 	/** tracker for content type */
 	private volatile ContentTypeTracker contentTypeTracker;
 
+	private ServiceRegistration repositoryRegistryRegistration;
+
 	/**
 	 * Creates a new instance.
 	 * 
@@ -79,16 +82,18 @@ public class PersistenceActivator extends BaseBundleActivator {
 
 		// start the repository registry
 		repositoryRegistry = new RepositoryRegistry();
-		getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "Gyrex Repository Registry", null, null);
+		repositoryRegistryRegistration = getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "Gyrex Repository Registry", null, null);
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		sharedInstance = null;
 
-		// stop the manager
-		repositoryProviderRegistry.close();
-		repositoryProviderRegistry = null;
+		// unregister & stop repository registry
+		repositoryRegistryRegistration.unregister();
+		repositoryRegistryRegistration = null;
+		repositoryRegistry.close();
+		repositoryRegistry = null;
 
 		// stop the type registry
 		repositoryProviderRegistry.close();

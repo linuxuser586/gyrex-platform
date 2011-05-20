@@ -16,8 +16,10 @@ package org.eclipse.gyrex.persistence.internal.storage;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -31,11 +33,16 @@ import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The platform repository manager stores repository information.
  */
 public class RepositoryRegistry implements IRepositoryRegistry {
+
+	private static final Logger LOG = LoggerFactory.getLogger(RepositoryRegistry.class);
 
 	private static void errorCreatingRepository(final RepositoryDefinition repositoryDef, final String detail) {
 		throw new IllegalStateException(MessageFormat.format("Invalid repository definition ''{0}'': {1}", repositoryDef.getRepositoryId(), detail));
@@ -44,6 +51,59 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 	private final AtomicReference<RepositoryDefinitionsStore> repositoryDefinitionsStoreRef = new AtomicReference<RepositoryDefinitionsStore>();
 	private final ConcurrentMap<String, Lock> locksByRepositoryId = new ConcurrentHashMap<String, Lock>(4);
 	private final ConcurrentMap<String, Repository> repositoryCache = new ConcurrentHashMap<String, Repository>(4);
+	private final AtomicBoolean closed = new AtomicBoolean(false);
+
+	/**
+	 *
+	 */
+	public void close() {
+		if (!closed.compareAndSet(false, true)) {
+			return;
+		}
+
+		while (!repositoryCache.isEmpty()) {
+			final Set<String> repoIds = repositoryCache.keySet();
+			for (final String repoId : repoIds) {
+				close(repoId);
+			}
+		}
+	}
+
+	public void close(final String repositoryId) {
+		if (!repositoryCache.containsKey(repositoryId)) {
+			return;
+		}
+
+		// lock
+		final Lock lock = locksByRepositoryId.get(repositoryId);
+		if (lock != null) {
+			lock.lock();
+		}
+		final Repository repository;
+		try {
+
+			// remove cached instance
+			repository = repositoryCache.remove(repositoryId);
+
+			// remove lock
+			locksByRepositoryId.remove(repositoryId);
+
+		} finally {
+			if (lock != null) {
+				lock.unlock();
+			}
+		}
+
+		// close repository outside lock
+		if (null != repository) {
+			try {
+				repository.close();
+			} catch (final Exception e) {
+				LOG.error("Error closing repository {}. {}", new Object[] { repositoryId, ExceptionUtils.getRootCauseMessage(e), e });
+			}
+		}
+
+	}
 
 	/**
 	 * Creates a repository from a definition
@@ -112,6 +172,10 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 	public Repository getRepository(final String repositoryId) throws IllegalStateException {
 		if (null == repositoryId) {
 			throw new IllegalArgumentException("repository id must not be null");
+		}
+
+		if (closed.get()) {
+			throw new IllegalStateException("closed");
 		}
 
 		// lookup a cached instance
