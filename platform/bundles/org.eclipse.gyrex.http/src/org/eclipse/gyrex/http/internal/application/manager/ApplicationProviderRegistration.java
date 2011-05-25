@@ -21,6 +21,7 @@ import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 import org.eclipse.core.runtime.CoreException;
 
 import org.osgi.framework.Bundle;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 
 import org.slf4j.Logger;
@@ -37,6 +38,8 @@ public class ApplicationProviderRegistration {
 	private final List<ApplicationRegistration> activeApplications = new CopyOnWriteArrayList<ApplicationRegistration>();
 
 	private final String contributorInfo;
+	private final ServiceReference<ApplicationProvider> reference;
+	private final String providerId;
 
 	/**
 	 * Creates a new instance.
@@ -45,6 +48,8 @@ public class ApplicationProviderRegistration {
 	 * @param provider
 	 */
 	public ApplicationProviderRegistration(final ServiceReference<ApplicationProvider> reference, final ApplicationProvider provider) {
+		this.reference = reference;
+		providerId = provider.getId();
 		this.provider.set(provider);
 
 		final Bundle bundle = reference.getBundle();
@@ -83,6 +88,33 @@ public class ApplicationProviderRegistration {
 			applicationRegistration.destroy();
 		}
 		activeApplications.clear();
+	}
+
+	/**
+	 * Returns the contributorInfo.
+	 * 
+	 * @return the contributorInfo
+	 */
+	public String getContributorInfo() {
+		return contributorInfo;
+	}
+
+	/**
+	 * Returns the providerId.
+	 * 
+	 * @return the providerId
+	 */
+	public String getProviderId() {
+		return providerId;
+	}
+
+	public String getProviderInfo() {
+		final Object description = reference.getProperty(Constants.SERVICE_DESCRIPTION);
+		if (description instanceof String) {
+			return (String) description;
+		}
+
+		return "<unknown>";
 	}
 
 	@Override

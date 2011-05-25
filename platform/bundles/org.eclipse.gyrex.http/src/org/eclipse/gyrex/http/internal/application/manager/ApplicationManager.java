@@ -76,7 +76,7 @@ public class ApplicationManager implements IApplicationManager {
 			node.node(applicationId).putBoolean(KEY_ACTIVE, true);
 			node.flush();
 		} catch (final BackingStoreException e) {
-			throw new IllegalStateException("Error removing application registration info from the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
+			throw new IllegalStateException("Error activating application. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
 	}
 
@@ -177,6 +177,25 @@ public class ApplicationManager implements IApplicationManager {
 
 	public Collection<String> getRegisteredApplications() throws BackingStoreException {
 		return Arrays.asList(getAppsNode().childrenNames());
+	}
+
+	public boolean isActive(final String applicationId) {
+		if (!IdHelper.isValidId(applicationId)) {
+			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
+		}
+
+		try {
+			// check if there is a registration
+			final Preferences node = getAppsNode();
+			if (!node.nodeExists(applicationId)) {
+				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
+			}
+
+			// return
+			return node.node(applicationId).getBoolean(KEY_ACTIVE, false);
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error activating application. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
 	}
 
 	@Override
