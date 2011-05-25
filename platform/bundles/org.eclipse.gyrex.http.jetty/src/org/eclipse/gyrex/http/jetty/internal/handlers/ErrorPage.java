@@ -42,9 +42,6 @@ public class ErrorPage {
 	/** the generator string */
 	private static final String GENERATOR = "Gyrex Error Handler";
 
-	/** serialVersionUID */
-	private static final long serialVersionUID = 1L;
-
 	public static final void writeEscaped(final Writer writer, final Object object) throws IOException {
 		if (object == null) {
 			return;
@@ -78,9 +75,7 @@ public class ErrorPage {
 	private final boolean showDebugInfo = Platform.inDebugMode() || Platform.inDevelopmentMode();
 
 	private int code;
-
 	private String officialMessage;
-
 	private String internalMessage;
 
 	/**

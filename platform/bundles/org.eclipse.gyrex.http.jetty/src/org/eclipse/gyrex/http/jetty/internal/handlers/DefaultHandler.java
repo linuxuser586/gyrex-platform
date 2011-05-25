@@ -53,6 +53,19 @@ public class DefaultHandler extends AbstractHandler {
 		final ErrorPage errorPage = new ErrorPage() {
 			@Override
 			protected void writeDebugInfo(final HttpServletRequest request, final Writer writer) throws IOException {
+				writer.write("<hr>");
+				writer.write("<h1>Welcome to Gyrex!</h1>");
+				writer.write("<img src=\"" + DefaultErrorHandlerResourcesHandler.URI_GYREX_LOGO + "\" style=\"float:right;padding-left:1em;\">");
+				writer.write("<p>If you see this page you know your server is running. It didn't handle the current request, though. You can start deploying applications or read about the latest buzz at <a href=\"http://planeteclipse.org/\">Planet Eclipse</a>!</p>");
+				writer.write("<p>Useful links:");
+				writer.write("<ul>");
+				writer.write("<li><a href=\"http://wiki.eclipse.org/Gyrex/Administrator_Guide/\">Administrator Guide</a></li>");
+				writer.write("<li><a href=\"http://www.eclipse.org/gyrex/documentation/\">Documentation Hub</a></li>");
+				writer.write("<li><a href=\"http://www.eclipse.org/forums/eclipse.gyrex/\">User Forum</a></li>");
+				writer.write("</ul></p>");
+				writer.write("<div style=\"clear:both;\"></div>");
+				writer.write("<hr>");
+				writer.write(NEWLINE);
 				final Server server = getServer();
 				final Handler[] handlers = server == null ? null : server.getChildHandlersByClass(ApplicationHandler.class);
 				if (handlers.length > 0) {
@@ -85,7 +98,7 @@ public class DefaultHandler extends AbstractHandler {
 					writer.write("</ul></p>");
 					writer.write(NEWLINE);
 				} else {
-					writer.write("No applications known to this server!");
+					writer.write("<p>No applications known to this server!</p>");
 					writer.write(NEWLINE);
 				}
 				if (JettyDebug.handlers) {

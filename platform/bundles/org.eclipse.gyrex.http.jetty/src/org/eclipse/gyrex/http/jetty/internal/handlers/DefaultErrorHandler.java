@@ -48,10 +48,6 @@ import org.eclipse.jetty.util.log.Log;
 public class DefaultErrorHandler extends ErrorHandler {
 
 	private static final String NEWLINE = "\n";
-
-	/** serialVersionUID */
-	private static final long serialVersionUID = 1L;
-
 	private static final boolean debugMode = Platform.inDebugMode();
 
 	/** handled methods */

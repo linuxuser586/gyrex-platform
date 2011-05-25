@@ -34,17 +34,20 @@ public class DefaultErrorHandlerResourcesHandler extends AbstractHandler {
 	static final String URI_WARNING_IMAGE = "/_error/warning.gif";
 	static final String URI_INFORMATION_IMAGE = "/_error/information.gif";
 	static final String URI_ERROR_CSS = "/_error/error.css";
+	static final String URI_GYREX_LOGO = "/_error/gyrex-logo.png";
 
 	static final String MIME_TYPE_ERROR_IMAGE = "image/gif";
 	static final String MIME_TYPE_WARNING_IMAGE = "image/gif";
 	static final String MIME_TYPE_INFORMATION_IMAGE = "image/gif";
-	static final String MIME_TYPE_ERROR_CSS = " text/css;charset=UTF-8";
+	static final String MIME_TYPE_ERROR_CSS = "text/css;charset=UTF-8";
+	static final String MIME_TYPE_GYREX_LOGO = "image/png";
 
 	private final long lastModified;
 	private final byte[] errorCss;
 	private final byte[] errorGif;
 	private final byte[] informationGif;
 	private final byte[] warningGif;
+	private final byte[] logoPng;
 
 	/**
 	 * Creates a new instance.
@@ -54,6 +57,7 @@ public class DefaultErrorHandlerResourcesHandler extends AbstractHandler {
 		errorGif = HttpJettyActivator.readBundleResource("/images/error.gif");
 		warningGif = HttpJettyActivator.readBundleResource("/images/warning.gif");
 		informationGif = HttpJettyActivator.readBundleResource("/images/information.gif");
+		logoPng = HttpJettyActivator.readBundleResource("/images/gyrex-logo.png");
 		lastModified = (System.currentTimeMillis() / 1000) * 1000;
 	}
 
@@ -91,6 +95,9 @@ public class DefaultErrorHandlerResourcesHandler extends AbstractHandler {
 		} else if (StringUtil.endsWithIgnoreCase(requestURI, URI_INFORMATION_IMAGE)) {
 			mimeType = MIME_TYPE_INFORMATION_IMAGE;
 			resourceBytes = informationGif;
+		} else if (StringUtil.endsWithIgnoreCase(requestURI, URI_GYREX_LOGO)) {
+			mimeType = MIME_TYPE_GYREX_LOGO;
+			resourceBytes = logoPng;
 		} else {
 			// non-error resource
 			return;
