@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Mike Tschierschke - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=346996
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.manager;
 
@@ -18,6 +19,7 @@ import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.IJob;
 import org.eclipse.gyrex.jobs.JobState;
+import org.eclipse.gyrex.jobs.history.IJobHistory;
 import org.eclipse.gyrex.jobs.service.IJobService;
 
 import org.eclipse.core.runtime.jobs.Job;
@@ -88,6 +90,20 @@ public interface IJobManager {
 	 * @see IdHelper#isValidId(String)
 	 */
 	IJob createJob(String jobTypeId, String jobId, Map<String, String> parameter) throws IllegalStateException, IllegalArgumentException;
+
+	/**
+	 * Returns the history for the specified job.
+	 * 
+	 * @param jobId
+	 *            the id of the job
+	 * @return the job history
+	 * @throws IllegalArgumentException
+	 *             if any of the arguments is invalid
+	 * @throws IllegalStateException
+	 *             if the job history cannot be read (either the job does not
+	 *             exists or any system service is missing)
+	 */
+	IJobHistory getHistory(String jobId) throws IllegalArgumentException, IllegalStateException;
 
 	/**
 	 * Returns the specified job.

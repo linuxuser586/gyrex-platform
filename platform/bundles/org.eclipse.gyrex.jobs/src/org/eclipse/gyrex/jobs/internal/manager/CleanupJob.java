@@ -7,7 +7,7 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht, Mike Tschierschke - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.manager;
 
@@ -72,7 +72,7 @@ final class CleanupJob extends Job {
 
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
-		final IEclipsePreferences jobsNode = JobManagerImpl.getJobsNode();
+		final IEclipsePreferences jobsNode = JobHistoryStore.getJobsNode();
 		try {
 			LOG.info("Cleaning up of old job definitions.");
 			final long now = System.currentTimeMillis();

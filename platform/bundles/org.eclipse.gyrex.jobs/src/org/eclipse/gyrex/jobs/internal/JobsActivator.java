@@ -9,6 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=346996
  */
 package org.eclipse.gyrex.jobs.internal;
 
@@ -103,4 +104,6 @@ public class JobsActivator extends BaseBundleActivator {
 		return proxy.getService();
 	}
 
+	public void removeService(final Object service) {
+	}
 }

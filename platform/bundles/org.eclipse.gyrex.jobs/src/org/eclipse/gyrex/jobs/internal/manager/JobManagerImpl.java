@@ -8,6 +8,7 @@
  *
  * Contributors:
  *     Mike Tschierschke - initial API and implementation
+ *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=346996
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.manager;
 
@@ -52,8 +53,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of a {@link IJobManager} that persists the job data in the
- * {@link Preferences}
+ * Implementation of a {@link IJobManager} and {@link IJobHistoryManager} that
+ * persists the job data in the {@link Preferences}
  */
 public class JobManagerImpl implements IJobManager {
 
@@ -95,9 +96,6 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private static final String NODE_JOBS = "jobs";
-	private static final String NODE_STATES = "status";
-
 	private static final String NODE_PARAMETER = "parameter";
 
 	private static final String PROPERTY_TYPE = "type";
@@ -122,10 +120,6 @@ public class JobManagerImpl implements IJobManager {
 			return internalId;
 		}
 		return internalId.substring(i + 1);
-	}
-
-	static IEclipsePreferences getJobsNode() {
-		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_JOBS);
 	}
 
 	static IEclipsePreferences getStatesNode() {
@@ -175,6 +169,8 @@ public class JobManagerImpl implements IJobManager {
 	private final IRuntimeContext context;
 
 	private final String internalIdPrefix;
+
+	static final String NODE_STATES = "status";
 
 	/**
 	 * Creates a new instance.
@@ -247,12 +243,12 @@ public class JobManagerImpl implements IJobManager {
 		IExclusiveLock jobLock = null;
 		try {
 			final String internalId = toInternalId(jobId);
-			if (getJobsNode().nodeExists(internalId)) {
+			if (JobHistoryStore.getJobsNode().nodeExists(internalId)) {
 				throw new IllegalStateException(String.format("Job '%s' is already stored", jobId));
 			}
 
 			// create preference node
-			final Preferences node = getJobsNode().node(internalId);
+			final Preferences node = JobHistoryStore.getJobsNode().node(internalId);
 			node.put(PROPERTY_TYPE, jobTypeId);
 			node.flush();
 
@@ -278,7 +274,17 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	@Override
-	public IJob getJob(final String jobId) {
+	public JobHistoryImpl getHistory(final String jobId) throws IllegalStateException {
+		final JobImpl job = getJob(jobId);
+		if (null == job) {
+			throw new IllegalStateException(String.format("Job '%s' does not exist.", jobId));
+		}
+
+		return new JobHistoryImpl(jobId, context.getContextPath());
+	}
+
+	@Override
+	public JobImpl getJob(final String jobId) {
 		if (!IdHelper.isValidId(jobId)) {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
@@ -287,12 +293,12 @@ public class JobManagerImpl implements IJobManager {
 			final String internalId = toInternalId(jobId);
 
 			// don't create node if it doesn't exist
-			if (!getJobsNode().nodeExists(internalId)) {
+			if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
 				return null;
 			}
 
 			// read job
-			return readJob(jobId, getJobsNode().node(internalId));
+			return readJob(jobId, JobHistoryStore.getJobsNode().node(internalId));
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Error reading job data. %s", e.getMessage()), e);
 		}
@@ -301,7 +307,7 @@ public class JobManagerImpl implements IJobManager {
 	@Override
 	public Collection<String> getJobs() {
 		try {
-			final String[] storageIds = getJobsNode().childrenNames();
+			final String[] storageIds = JobHistoryStore.getJobsNode().childrenNames();
 			final List<String> jobIds = new ArrayList<String>(storageIds.length);
 			for (final String internalId : storageIds) {
 				if (internalId.startsWith(internalIdPrefix)) {
@@ -322,7 +328,7 @@ public class JobManagerImpl implements IJobManager {
 
 		try {
 			// don't create node if it doesn't exists
-			final IEclipsePreferences statesNode = getStatesNode();
+			final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
 			if (!statesNode.nodeExists(state.name())) {
 				return Collections.emptyList();
 			}
@@ -449,14 +455,14 @@ public class JobManagerImpl implements IJobManager {
 
 			// remove from preferences
 			final String internalId = toInternalId(jobId);
-			final IEclipsePreferences jobsNode = getJobsNode();
+			final IEclipsePreferences jobsNode = JobHistoryStore.getJobsNode();
 			if (jobsNode.nodeExists(internalId)) {
 				jobsNode.node(internalId).removeNode();
 				jobsNode.flush();
 			}
 
 			// clean-up states
-			final IEclipsePreferences statesNode = getStatesNode();
+			final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
 			for (final JobState state : JobState.values()) {
 				final Preferences node = statesNode.node(state.name());
 				if (null != node.get(internalId, null)) {
@@ -477,12 +483,12 @@ public class JobManagerImpl implements IJobManager {
 		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
 			// don't update if removed
 			return;
 		}
 
-		final Preferences jobNode = getJobsNode().node(internalId);
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		if ((null != parameter) && !parameter.isEmpty()) {
 			final Preferences paramNode = jobNode.node(NODE_PARAMETER);
 			// remove obsolete keys
@@ -517,20 +523,24 @@ public class JobManagerImpl implements IJobManager {
 		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
 			// don't update if removed
 			return;
 		}
 
 		// update job node
-		final Preferences jobNode = getJobsNode().node(internalId);
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_RESULT, resultTimestamp);
 		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, result.getMessage());
 		jobNode.putInt(PROPERTY_LAST_RESULT_SEVERITY, result.getSeverity());
 		if (result.isOK()) {
 			jobNode.putLong(PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);
 		}
-		jobNode.flush();
+
+		// save history
+		final JobHistoryImpl history = JobHistoryStore.create(internalId, job.getId(), context);
+		history.createEntry(resultTimestamp, result.getMessage(), result.getSeverity());
+		JobHistoryStore.flush(internalId, history);
 	}
 
 	private void setJobStartTime(final IJob job, final long startTimestamp, final IExclusiveLock lock) throws BackingStoreException {
@@ -539,13 +549,13 @@ public class JobManagerImpl implements IJobManager {
 		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
 			// don't update if removed
 			return;
 		}
 
 		// update job node
-		final Preferences jobNode = getJobsNode().node(internalId);
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_START, startTimestamp);
 		jobNode.flush();
 	}
@@ -560,12 +570,12 @@ public class JobManagerImpl implements IJobManager {
 		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
 			// don't update if removed
 			return;
 		}
 
-		final Preferences jobNode = getJobsNode().node(internalId);
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		if (StringUtils.equals(jobNode.get(PROPERTY_STATUS, null), state.name())) {
 			// don't update if not different
 			return;
@@ -576,7 +586,7 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 
 		// update states
-		final IEclipsePreferences statesNode = getStatesNode();
+		final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
 		for (final JobState currentState : JobState.values()) {
 			if (!currentState.equals(state)) {
 				statesNode.node(currentState.name()).remove(internalId);
@@ -644,7 +654,7 @@ public class JobManagerImpl implements IJobManager {
 
 				// add watch
 				if (null != stateWatch) {
-					((IEclipsePreferences) getJobsNode().node(toInternalId(jobId))).addPreferenceChangeListener(new StateWatchListener(jobId, state, stateWatch));
+					((IEclipsePreferences) JobHistoryStore.getJobsNode().node(toInternalId(jobId))).addPreferenceChangeListener(new StateWatchListener(jobId, state, stateWatch));
 				}
 			} catch (final BackingStoreException e) {
 				throw new IllegalStateException(String.format("Error updating state of job %s to %s. %s", jobId, state.name(), e.getMessage()), e);
