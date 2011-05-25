@@ -147,6 +147,10 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		return queueId;
 	}
 
+	public String getStorageKey() {
+		return node.name();
+	}
+
 	@Override
 	public TimeZone getTimeZone() {
 		return timeZone != null ? timeZone : DateUtils.UTC_TIME_ZONE;
