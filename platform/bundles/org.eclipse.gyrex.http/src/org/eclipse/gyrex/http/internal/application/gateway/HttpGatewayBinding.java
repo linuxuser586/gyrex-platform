@@ -104,7 +104,7 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 					LOG.debug("Processing activation change event for application {}", applicationId);
 				}
 
-				final boolean active = Boolean.TRUE.equals(event.getNewValue());
+				final boolean active = Boolean.TRUE.equals(event.getNewValue()) || Boolean.TRUE.toString().equals(event.getNewValue());
 				if (active) {
 					mountApp(applicationId);
 				} else {
