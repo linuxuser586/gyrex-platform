@@ -43,7 +43,7 @@ public class ZooKeeperGateConfig {
 	private final String nodeId;
 
 	private String connectString;
-	private int sessionTimeout;
+	private int sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
 	public ZooKeeperGateConfig(final NodeInfo info) {
 		nodeId = info.getNodeId();
