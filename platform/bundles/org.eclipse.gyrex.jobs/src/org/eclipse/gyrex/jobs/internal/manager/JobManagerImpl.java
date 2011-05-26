@@ -280,7 +280,11 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalStateException(String.format("Job '%s' does not exist.", jobId));
 		}
 
-		return new JobHistoryImpl(jobId, context.getContextPath());
+		try {
+			return JobHistoryStore.create(toInternalId(jobId), jobId, context);
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException("Error reading history", e);
+		}
 	}
 
 	@Override
