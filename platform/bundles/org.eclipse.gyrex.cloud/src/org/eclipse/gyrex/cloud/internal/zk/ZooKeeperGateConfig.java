@@ -15,10 +15,19 @@ import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
 import org.eclipse.gyrex.server.Platform;
 
+import org.apache.commons.lang.math.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * ZooKeeper Gate configuration.
  */
 public class ZooKeeperGateConfig {
+
+	/** default session timeout (in ms) */
+	private static final int DEFAULT_SESSION_TIMEOUT = 30000;
+
+	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGateConfig.class);
 
 	public static final String PREF_NODE_ZOOKEEPER = "zookeeper";
 	public static final String PREF_KEY_CLIENT_CONNECT_STRING = "clientConnectString";
@@ -59,6 +68,20 @@ public class ZooKeeperGateConfig {
 		return CloudActivator.getInstance().getPreferenceService().getString(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_CONNECT_STRING, getDefaultConnectString(), null);
 	}
 
+	private int getDefaultSessionTimeout() {
+		final String sessionTimeoutValue = System.getProperty("gyrex.zookeeper.sessionTimeout");
+		final int sessionTimeout = NumberUtils.toInt(sessionTimeoutValue, DEFAULT_SESSION_TIMEOUT);
+		if (sessionTimeout > 5000) {
+			return sessionTimeout;
+		}
+		if (null != sessionTimeoutValue) {
+			LOG.warn("ZooKeeper session timeout of {}ms (parsed from '{}') is too low.", sessionTimeout, sessionTimeoutValue);
+		} else {
+			LOG.warn("ZooKeeper session timeout of {}ms is too low.", sessionTimeout);
+		}
+		return DEFAULT_SESSION_TIMEOUT;
+	}
+
 	/**
 	 * Returns the sessionTimeout.
 	 * 
@@ -75,7 +98,7 @@ public class ZooKeeperGateConfig {
 	 */
 	private int getSessionTimeoutFromPreferences() {
 		// check for node specific string
-		return CloudActivator.getInstance().getPreferenceService().getInt(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_TIMEOUT, 10000, null);
+		return CloudActivator.getInstance().getPreferenceService().getInt(CloudActivator.SYMBOLIC_NAME, PREF_NODE_ZOOKEEPER + "/" + PREF_KEY_CLIENT_TIMEOUT, getDefaultSessionTimeout(), null);
 	}
 
 	public void readFromPreferences() {
