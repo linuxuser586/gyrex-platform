@@ -45,7 +45,7 @@ public class JobHistoryStore {
 		if (!jobsNode.nodeExists(jobStorageKey)) {
 			throw new BackingStoreException(String.format("Job node '%s' not found!", jobStorageKey));
 		}
-		return (IEclipsePreferences) jobsNode.node(NODE_HISTORY);
+		return (IEclipsePreferences) jobsNode.node(jobStorageKey).node(NODE_HISTORY);
 	}
 
 	static IEclipsePreferences getJobsNode() {

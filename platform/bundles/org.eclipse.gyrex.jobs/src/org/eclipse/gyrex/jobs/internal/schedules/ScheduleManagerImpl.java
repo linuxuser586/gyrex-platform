@@ -89,7 +89,7 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 		final String internalId = toInternalId(id);
 		try {
-			return ScheduleStore.load(id, internalId, true);
+			return ScheduleStore.load(internalId, id, true);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
@@ -103,7 +103,7 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 		final String internalId = toInternalId(id);
 		try {
-			return ScheduleStore.load(id, internalId, false);
+			return ScheduleStore.load(internalId, id, false);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
