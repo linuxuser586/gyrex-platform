@@ -11,9 +11,10 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.derby.internal;
 
-import java.io.File;
-
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
+import org.eclipse.gyrex.server.Platform;
+
+import org.eclipse.core.runtime.IPath;
 
 import org.osgi.framework.BundleContext;
 
@@ -33,12 +34,12 @@ public class DerbyActivator extends BaseBundleActivator {
 
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
-		// set the derby system home to the persistent bundle location
-		final File systemBase = context.getDataFile("derbysystembase");
+		// set the derby system home to the workspace location
+		final IPath systemBase = Platform.getInstanceLocation().append("derby");
 		if (null == systemBase) {
 			throw new IllegalStateException("The framework must have file system support to use the Derby persistence type.");
 		}
-		System.setProperty("derby.system.home", systemBase.getPath());
+		System.setProperty("derby.system.home", systemBase.toOSString());
 
 		// initialize database
 		try {
