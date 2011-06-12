@@ -13,22 +13,20 @@
 package org.eclipse.gyrex.persistence.solr.internal;
 
 import java.io.File;
-import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.FileLocator;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.osgi.service.datalocation.Location;
+import org.eclipse.core.runtime.IPath;
 
 import org.osgi.framework.BundleContext;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.solr.core.CoreContainer;
+import org.apache.solr.core.CoreDescriptor;
 
 public class SolrActivator extends BaseBundleActivator {
 
@@ -49,7 +47,6 @@ public class SolrActivator extends BaseBundleActivator {
 	}
 
 	private final AtomicReference<CoreContainer> coreContainerRef = new AtomicReference<CoreContainer>();
-	private final AtomicReference<IServiceProxy<Location>> instanceLocationRef = new AtomicReference<IServiceProxy<Location>>();
 
 	private volatile File solrBase;
 
@@ -63,9 +60,6 @@ public class SolrActivator extends BaseBundleActivator {
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instance.set(this);
-
-		// get instance location
-		instanceLocationRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
 
 		// start server
 		startEmbeddedSolrServer(context);
@@ -92,15 +86,6 @@ public class SolrActivator extends BaseBundleActivator {
 		return new File(solrBase, coreName);
 	}
 
-	public Location getInstanceLocation() {
-		final IServiceProxy<Location> serviceProxy = instanceLocationRef.get();
-		if (null == serviceProxy) {
-			throw createBundleInactiveException();
-		}
-
-		return serviceProxy.getService();
-	}
-
 	private void shutdownEmbeddedSolrServer() {
 		final CoreContainer coreContainer = coreContainerRef.getAndSet(null);
 		if (null != coreContainer) {
@@ -119,12 +104,9 @@ public class SolrActivator extends BaseBundleActivator {
 		final File configTemplate = new File(FileLocator.toFileURL(context.getBundle().getEntry("conf-embeddedsolr")).getFile());
 
 		// get embedded Solr home directory
-		final URL instanceLocation = getInstanceLocation().getURL();
-		if (null == instanceLocation) {
-			throw new IllegalStateException("no instance location available");
-		}
+		final IPath instanceLocation = Platform.getInstanceLocation();
 
-		solrBase = new Path(instanceLocation.getFile()).append("solr").toFile();
+		solrBase = instanceLocation.append("solr").toFile();
 		if (!solrBase.isDirectory()) {
 			// initialize dir
 			solrBase.mkdirs();
@@ -141,13 +123,19 @@ public class SolrActivator extends BaseBundleActivator {
 		}
 
 		// create core container
-		if (!coreContainerRef.compareAndSet(null, new CoreContainer())) {
+		final CoreContainer coreContainer = new CoreContainer();
+		if (!coreContainerRef.compareAndSet(null, coreContainer)) {
 			// already initialized
 			return;
 		}
 
-		final CoreContainer coreContainer = coreContainerRef.get();
+		// load configuration
 		coreContainer.load(solrBase.getAbsolutePath(), configFile);
+
+		// ensure that there is an admin core
+		if (!coreContainer.getCoreNames().contains("admin")) {
+			coreContainer.create(new CoreDescriptor(coreContainer, "admin", "admin"));
+		}
 
 		// register the embedded repository type
 		getServiceHelper().registerService(RepositoryProvider.class.getName(), new SolrRepositoryProvider(coreContainer), "Eclipse Gyrex", "Apache Solr Repository provider implementation.", null, null);
