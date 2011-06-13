@@ -44,7 +44,10 @@ import ch.qos.logback.core.util.StatusPrinter;
 public class LogbackConfigurator {
 
 	public static void configureDefaultContext(final String[] arguments) throws Exception {
-		// don't perform any configuration if a config file is specified
+		// reset JUL (this should disable the default JUL console output)
+		LogManager.getLogManager().reset();
+
+		// don't perform any further configuration if a config file is specified
 		if (StringUtils.isNotBlank(System.getProperty("logback.configurationFile"))) {
 			return;
 		}
@@ -52,9 +55,6 @@ public class LogbackConfigurator {
 		// reset LoggerContext
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 		lc.reset();
-
-		// reset JUL
-		LogManager.getLogManager().reset();
 
 		// configure
 		final StatusManager sm = lc.getStatusManager();
