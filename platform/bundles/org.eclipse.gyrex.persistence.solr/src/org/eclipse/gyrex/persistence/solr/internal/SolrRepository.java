@@ -29,7 +29,7 @@ public class SolrRepository extends SolrServerRepository {
 
 	private final SolrServer[] solrServers;
 
-	SolrRepository(final String repositoryId, final SolrRepositoryProvider repositoryType, final SolrServer[] solrServers) throws IllegalArgumentException {
+	public SolrRepository(final String repositoryId, final SolrRepositoryProvider repositoryType, final SolrServer[] solrServers) throws IllegalArgumentException {
 		super(repositoryId, repositoryType, new SolrRepositoryMetrics(createMetricsId(repositoryType, repositoryId), repositoryId, "open", "repository created"));
 
 		final SolrRepositoryMetrics metrics = getSolrRepositoryMetrics();
