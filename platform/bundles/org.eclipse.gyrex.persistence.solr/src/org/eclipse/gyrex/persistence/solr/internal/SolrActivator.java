@@ -25,8 +25,11 @@ import org.eclipse.core.runtime.IPath;
 import org.osgi.framework.BundleContext;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
+import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.CoreDescriptor;
+import org.apache.solr.core.SolrCore;
 
 public class SolrActivator extends BaseBundleActivator {
 
@@ -55,6 +58,26 @@ public class SolrActivator extends BaseBundleActivator {
 	 */
 	public SolrActivator() {
 		super(PLUGIN_ID);
+	}
+
+	public void createEmbeddedCore(final String coreName) throws Exception {
+		final CoreContainer coreContainer = getEmbeddedCoreContainer();
+		if (null == coreContainer) {
+			throw new IllegalStateException("no coreContainer");
+		}
+		final SolrCore core = coreContainer.getCore(coreName);
+		try {
+			if (null != core) {
+				throw new IllegalStateException(String.format("core '%s' already exists", coreName));
+			}
+
+			final EmbeddedSolrServer adminServer = new EmbeddedSolrServer(coreContainer, "admin");
+			CoreAdminRequest.createCore(coreName, coreName, adminServer);
+		} finally {
+			if (null != core) {
+				core.close();
+			}
+		}
 	}
 
 	@Override
@@ -139,5 +162,23 @@ public class SolrActivator extends BaseBundleActivator {
 
 		// register the embedded repository type
 		getServiceHelper().registerService(RepositoryProvider.class.getName(), new SolrRepositoryProvider(coreContainer), "Eclipse Gyrex", "Apache Solr Repository provider implementation.", null, null);
+	}
+
+	public void unloadEmbeddedCore(final String coreName) throws Exception {
+		final CoreContainer coreContainer = getEmbeddedCoreContainer();
+		if (null == coreContainer) {
+			throw new IllegalStateException("no coreContainer");
+		}
+		final SolrCore core = coreContainer.getCore(coreName);
+		try {
+			if (null != core) {
+				final EmbeddedSolrServer adminServer = new EmbeddedSolrServer(coreContainer, "admin");
+				CoreAdminRequest.unloadCore(coreName, adminServer);
+			}
+		} finally {
+			if (null != core) {
+				core.close();
+			}
+		}
 	}
 }
