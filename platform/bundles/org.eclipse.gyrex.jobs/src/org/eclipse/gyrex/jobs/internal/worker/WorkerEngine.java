@@ -45,12 +45,15 @@ import org.slf4j.LoggerFactory;
  */
 public class WorkerEngine extends Job {
 
-	private static final long INITIAL_SLEEP_TIME = TimeUnit.SECONDS.toMillis(30);
+	private static final long IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(20);
+	private static final long NON_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(3);
 	private static final long MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
 
 	private static final Logger LOG = LoggerFactory.getLogger(WorkerEngine.class);
 
-	private long engineSleepTime = INITIAL_SLEEP_TIME;
+	private final long idleSleepTime;
+	private final long nonIdleSleepTime;
+	private long engineSleepTime = IDLE_SLEEP_TIME;
 
 	/**
 	 * Creates a new instance.
@@ -59,6 +62,8 @@ public class WorkerEngine extends Job {
 		super("Gyrex Worker Engine Job");
 		setSystem(true);
 		setPriority(LONG);
+		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", IDLE_SLEEP_TIME);
+		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", NON_IDLE_SLEEP_TIME);
 	}
 
 	private JobContext createContext(final JobInfo info) {
@@ -105,64 +110,6 @@ public class WorkerEngine extends Job {
 		return job;
 	}
 
-	private IStatus doRun(final IProgressMonitor monitor) {
-		try {
-			final IQueue queue = getDefaultQueue(); // TODO how to get messages from other queues?
-			if (queue == null) {
-				LOG.warn("No queue available for reading scheduled jobs to execute. Please check engine configuration.");
-				return Status.CANCEL_STATUS;
-			}
-
-			// set receive timeout
-			final Map<String, Object> requestProperties = new HashMap<String, Object>(1);
-			requestProperties.put(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT, getReceiveTimeout());
-
-			// process as long as we have messages in the queue
-			while (true) {
-
-				// receive message
-				final List<IMessage> messages = queue.receiveMessages(1, requestProperties);
-				if (messages.isEmpty()) {
-					// no more messages, abort
-					return Status.OK_STATUS;
-				}
-				final IMessage message = messages.get(0);
-
-				// read job info
-				final JobInfo info = parseJobInfo(queue, message);
-				if (null == info) {
-					// continue with next message
-					continue;
-				}
-
-				// create context
-				final JobContext jobContext = createContext(info);
-
-				// create job
-				final Job job = createJob(queue, message, info, jobContext);
-				if (null == job) {
-					// continue with next message
-					continue;
-				}
-
-				// add state synchronizer
-				job.addJobChangeListener(new JobStateSynchronizer(job, jobContext));
-
-				// delete from queue and schedule if successful
-				if (queue.deleteMessage(message)) {
-					job.schedule();
-				} else {
-					// someone else might already processed it
-					// just continue with next available message
-				}
-			}
-
-		} catch (final IllegalStateException e) {
-			LOG.warn("Unable to check queue for new jobs. System does not seem to be ready. {}", ExceptionUtils.getRootCauseMessage(e));
-			return Status.CANCEL_STATUS;
-		}
-	}
-
 	/**
 	 * Returns the queue with scheduled jobs.
 	 * 
@@ -204,18 +151,86 @@ public class WorkerEngine extends Job {
 		return null;
 	}
 
+	/**
+	 * Fetches the next job from a queue and schedules it for execution.
+	 * 
+	 * @return <code>true</code> if additional jobs might be available in the
+	 *         queue, <code>false</code> if the queue is empty
+	 */
+	private boolean processNextJobFromQueue() {
+		final IQueue queue = getDefaultQueue(); // TODO how to get messages from other queues?
+		if (queue == null) {
+			throw new IllegalStateException("No queue available for reading scheduled jobs to execute. Please check engine configuration.");
+		}
+
+		// set receive timeout
+		final Map<String, Object> requestProperties = new HashMap<String, Object>(1);
+		requestProperties.put(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT, getReceiveTimeout());
+
+		// receive message
+		final List<IMessage> messages = queue.receiveMessages(1, requestProperties);
+		if (messages.isEmpty()) {
+			// no more messages, abort
+			return false;
+		}
+		final IMessage message = messages.get(0);
+
+		// read job info
+		final JobInfo info = parseJobInfo(queue, message);
+		if (null == info) {
+			// continue with next message
+			return true;
+		}
+
+		// create context
+		final JobContext jobContext = createContext(info);
+
+		// create job
+		final Job job = createJob(queue, message, info, jobContext);
+		if (null == job) {
+			// continue with next message
+			return true;
+		}
+
+		// add state synchronizer
+		job.addJobChangeListener(new JobStateSynchronizer(job, jobContext));
+
+		// delete from queue and schedule if successful
+		if (queue.deleteMessage(message)) {
+			job.schedule();
+		} else {
+			// someone else might already processed it
+			// just continue with next available message
+			return true;
+		}
+
+		// done, but return "true" to indicate that the queue might still contain jobs
+		return true;
+	}
+
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
 		try {
-			final IStatus status = doRun(monitor);
-			if (!status.isOK()) {
-				// implement a back-off sleeping time (max 5 min)
-				engineSleepTime = Math.min(engineSleepTime * 2, MAX_SLEEP_TIME);
-			} else {
-				// reset sleep time
-				engineSleepTime = INITIAL_SLEEP_TIME;
-			}
-			return status;
+			// process next job from queue
+			final boolean moreJobsAvailable = processNextJobFromQueue();
+
+			// reset sleep time
+			// even if there are still jobs in the queue we don't just go on processing them
+			// instead we wait a few seconds to let other worker engines pick up jobs from the queue
+			// otherwise this node might just over-schedule itself
+			// TODO: there is room for improving the distribution of jobs among worker engines with a better algorithm
+			engineSleepTime = moreJobsAvailable ? nonIdleSleepTime : idleSleepTime;
+
+			// done
+			return Status.OK_STATUS;
+		} catch (final Exception e) {
+			LOG.warn("Unable to check queue for new jobs. System does not seem to be ready. {}", ExceptionUtils.getRootCauseMessage(e), e);
+
+			// implement a back-off sleeping time (max 5 min)
+			engineSleepTime = Math.min(engineSleepTime * 2, MAX_SLEEP_TIME);
+
+			// indicate error through cancel status
+			return Status.CANCEL_STATUS;
 		} finally {
 			// reschedule if not canceled
 			if (!monitor.isCanceled()) {
