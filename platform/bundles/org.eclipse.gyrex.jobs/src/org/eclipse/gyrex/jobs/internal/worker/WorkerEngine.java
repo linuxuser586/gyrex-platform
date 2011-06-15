@@ -70,7 +70,29 @@ public class WorkerEngine extends Job {
 		return new JobContext(context, info);
 	}
 
-	private Job createJob(final JobInfo info, final IJobContext jobContext) throws Exception {
+	private Job createJob(final IQueue queue, final IMessage message, final JobInfo info, final JobContext jobContext) {
+		try {
+			return createJobInstance(info, jobContext);
+		} catch (final Exception e) {
+			// log warning
+			LOG.warn("Error creating job {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
+
+			// discard message
+			queue.deleteMessage(message);
+
+			// set job status
+			try {
+				final JobManagerImpl jobManager = (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
+				jobManager.setResult(info.getJobId(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis());
+			} catch (final Exception jobManagerException) {
+				LOG.warn("Error updating job result for job {}: {}", info.getJobId(), ExceptionUtils.getRootCauseMessage(jobManagerException));
+			}
+
+			return null;
+		}
+	}
+
+	private Job createJobInstance(final JobInfo info, final IJobContext jobContext) throws Exception {
 		final JobProvider provider = JobsActivator.getInstance().getJobProviderRegistry().getProvider(info.getJobTypeId());
 		if (null == provider) {
 			throw new IllegalStateException(String.format("Job type %s not available!", info.getJobTypeId()));
@@ -95,63 +117,50 @@ public class WorkerEngine extends Job {
 			final Map<String, Object> requestProperties = new HashMap<String, Object>(1);
 			requestProperties.put(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT, getReceiveTimeout());
 
-			// receive message
-			final List<IMessage> messages = queue.receiveMessages(1, requestProperties);
-			if (messages.isEmpty()) {
-				return Status.OK_STATUS;
-			}
-			final IMessage message = messages.get(0);
+			// process as long as we have messages in the queue
+			while (true) {
 
-			// read job info
-			final JobInfo info;
-			try {
-				info = JobInfo.parse(message);
-			} catch (final IOException e) {
-				// log warning
-				LOG.warn("Invalid job info in message {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
-				// discard message
-				queue.deleteMessage(message);
-				return Status.CANCEL_STATUS;
-			}
-
-			// create context
-			final JobContext jobContext = createContext(info);
-
-			// create job
-			Job job;
-			try {
-				job = createJob(info, jobContext);
-			} catch (final Exception e) {
-				// log warning
-				LOG.warn("Error creating job {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
-
-				// discard message
-				queue.deleteMessage(message);
-
-				// set job status
-				try {
-					final JobManagerImpl jobManager = (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
-					jobManager.setResult(info.getJobId(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis());
-				} catch (final Exception jobManagerException) {
-					LOG.warn("Error updating job result for job {}: {}", info.getJobId(), ExceptionUtils.getRootCauseMessage(jobManagerException));
+				// receive message
+				final List<IMessage> messages = queue.receiveMessages(1, requestProperties);
+				if (messages.isEmpty()) {
+					// no more messages, abort
+					return Status.OK_STATUS;
 				}
-				return Status.CANCEL_STATUS;
-			}
+				final IMessage message = messages.get(0);
 
-			// add state synchronizer
-			job.addJobChangeListener(new JobStateSynchronizer(job, jobContext));
+				// read job info
+				final JobInfo info = parseJobInfo(queue, message);
+				if (null == info) {
+					// continue with next message
+					continue;
+				}
 
-			// delete from queue
-			if (queue.deleteMessage(message)) {
-				job.schedule();
+				// create context
+				final JobContext jobContext = createContext(info);
+
+				// create job
+				final Job job = createJob(queue, message, info, jobContext);
+				if (null == job) {
+					// continue with next message
+					continue;
+				}
+
+				// add state synchronizer
+				job.addJobChangeListener(new JobStateSynchronizer(job, jobContext));
+
+				// delete from queue and schedule if successful
+				if (queue.deleteMessage(message)) {
+					job.schedule();
+				} else {
+					// someone else might already processed it
+					// just continue with next available message
+				}
 			}
 
 		} catch (final IllegalStateException e) {
 			LOG.warn("Unable to check queue for new jobs. System does not seem to be ready. {}", ExceptionUtils.getRootCauseMessage(e));
 			return Status.CANCEL_STATUS;
 		}
-
-		return Status.OK_STATUS;
 	}
 
 	/**
@@ -181,6 +190,18 @@ public class WorkerEngine extends Job {
 	 */
 	protected long getReceiveTimeout() {
 		return TimeUnit.MINUTES.toMillis(1);
+	}
+
+	private JobInfo parseJobInfo(final IQueue queue, final IMessage message) {
+		try {
+			return JobInfo.parse(message);
+		} catch (final IOException e) {
+			// log warning
+			LOG.warn("Invalid job info in message {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
+			// discard message
+			queue.deleteMessage(message);
+		}
+		return null;
 	}
 
 	@Override
