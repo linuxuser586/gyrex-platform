@@ -19,6 +19,8 @@ import org.eclipse.gyrex.cloud.services.queue.IQueue;
 import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+import org.eclipse.gyrex.jobs.IJob;
+import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 
@@ -29,11 +31,15 @@ import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class SchedulingJob implements Job {
+
+	private static final Logger LOG = LoggerFactory.getLogger(SchedulingJob.class);
 
 	static final String INTERNAL_PROP_PREFIX = "gyrex.job.";
 
@@ -72,17 +78,25 @@ public class SchedulingJob implements Job {
 			final IJobManager jobManager = runtimeContext.get(IJobManager.class);
 
 			// create job if necessary
-			if (jobManager.getJob(jobId) == null) {
-				jobManager.createJob(jobTypeId, jobId, parameter);
+			IJob job = jobManager.getJob(jobId);
+			if (job == null) {
+				job = jobManager.createJob(jobTypeId, jobId, parameter);
 			}
 
+			// check that job state is NONE
+			if (job.getState() != JobState.NONE) {
+				LOG.info("Job {} cannot be queue because it is already active in the system (current state {}).", job, job.getState());
+				return;
+			}
+
+			// check that queue exists
 			final IQueueService queueService = JobsActivator.getInstance().getQueueService();
-
-			final IQueue queue = queueService.getQueue(IJobManager.DEFAULT_QUEUE, null);
+			IQueue queue = queueService.getQueue(IJobManager.DEFAULT_QUEUE, null);
 			if (queue == null) {
-				queueService.createQueue(IJobManager.DEFAULT_QUEUE, null);
+				queue = queueService.createQueue(IJobManager.DEFAULT_QUEUE, null);
 			}
 
+			// queue job
 			jobManager.queueJob(jobId, IJobManager.DEFAULT_QUEUE);
 		} catch (final Exception e) {
 			throw new JobExecutionException(String.format("Error queuing job '%s'. %s", jobId, e.getMessage()), e);
