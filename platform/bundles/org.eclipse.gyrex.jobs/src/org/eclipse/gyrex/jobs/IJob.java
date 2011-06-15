@@ -95,7 +95,6 @@ public interface IJob {
 	 * <li>{@link JobState#RUNNING} - if the job is currently running.</li>
 	 * <li>{@link JobState#WAITING} - if the job is waiting to be run.</li>
 	 * <li>{@link JobState#ABORTING} - if the job is aborting.</li>
-	 * <li>{@link JobState#FAILED} - if the job failed.</li>
 	 * <li>{@link JobState#NONE} - in all other cases.</li>
 	 * </ul>
 	 * <p>
