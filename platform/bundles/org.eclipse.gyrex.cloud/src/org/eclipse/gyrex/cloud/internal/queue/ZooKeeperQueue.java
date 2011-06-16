@@ -230,7 +230,7 @@ public class ZooKeeperQueue implements IQueue {
 		 * gone by the time we check. If that happens we just continue with
 		 * the next node.
 		 */
-		if (maxNumberOfMessages < 0) {
+		if (maxNumberOfMessages <= 0) {
 			throw new IllegalArgumentException("maxNumberOfMessages must be greate than zero");
 		}
 		final List<IMessage> messages = new ArrayList<IMessage>(maxNumberOfMessages);
@@ -253,7 +253,14 @@ public class ZooKeeperQueue implements IQueue {
 					if (!message.receive(receiveMessageTimeout, false)) {
 						continue;
 					}
+
+					// message received
 					messages.add(message);
+
+					// stop if enough
+					if (messages.size() >= maxNumberOfMessages) {
+						return messages;
+					}
 				}
 			}
 		} catch (final Exception e) {

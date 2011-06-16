@@ -123,7 +123,8 @@ public interface IQueue {
 	 * </p>
 	 * 
 	 * @param maxNumberOfMessages
-	 *            the maximum number of messages to receive
+	 *            the maximum number of messages to receive (positive integer
+	 *            greater than zero)
 	 * @param properties
 	 *            additional properties for the queue service request
 	 * @return list of received messages
