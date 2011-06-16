@@ -95,7 +95,11 @@ public class JobImpl implements IJob {
 	 * @return the jobParameter
 	 */
 	public Map<String, String> getParameter() {
-		return Collections.unmodifiableMap(parameter);
+		final Map<String, String> map = parameter;
+		if (null == map) {
+			return Collections.emptyMap();
+		}
+		return Collections.unmodifiableMap(map);
 	}
 
 	/**
@@ -104,9 +108,9 @@ public class JobImpl implements IJob {
 	 * @return the jobStatus
 	 */
 	public JobState getState() {
-
-		if (null == state) {
-			throw new IllegalStateException("status must not be null");
+		final JobState jobState = state;
+		if (null == jobState) {
+			return JobState.NONE;
 		}
 
 		return state;
