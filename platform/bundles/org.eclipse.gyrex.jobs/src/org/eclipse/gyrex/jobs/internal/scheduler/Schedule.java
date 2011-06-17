@@ -27,6 +27,7 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChange
 
 import org.osgi.service.prefs.BackingStoreException;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.quartz.CronTrigger;
 import org.quartz.JobDetail;
@@ -120,8 +121,8 @@ public class Schedule implements IPreferenceChangeListener {
 	 * 
 	 * @return the scheduleData
 	 */
-	private ScheduleImpl ensureScheduleData() {
-		if (null == scheduleData) {
+	private ScheduleImpl ensureScheduleData(final boolean forceReload) {
+		if ((null == scheduleData) || forceReload) {
 			try {
 				return scheduleData = ScheduleStore.load(scheduleStoreStorageKey, ScheduleManagerImpl.getExternalId(scheduleStoreStorageKey), true);
 			} catch (final Exception e) {
@@ -140,7 +141,7 @@ public class Schedule implements IPreferenceChangeListener {
 	public void preferenceChange(final PreferenceChangeEvent event) {
 		if (ScheduleImpl.ENABLED.equals(event.getKey())) {
 			try {
-				if (Boolean.TRUE.equals(event.getNewValue())) {
+				if (StringUtils.equals(Boolean.toString(Boolean.TRUE), (String) event.getNewValue())) {
 					activateEngine();
 				} else {
 					deactivateEngine();
@@ -190,7 +191,7 @@ public class Schedule implements IPreferenceChangeListener {
 		}
 
 		// populate with configured jobs
-		final List<IScheduleEntry> entries = ensureScheduleData().getEntries();
+		final List<IScheduleEntry> entries = ensureScheduleData(Boolean.TRUE).getEntries();
 		for (final IScheduleEntry entry : entries) {
 			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
 			// put all parameter
@@ -200,11 +201,11 @@ public class Schedule implements IPreferenceChangeListener {
 			// put job id
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_ID, entry.getJobId());
 			// put context path
-			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_CONTEXT_PATH, ensureScheduleData().getContextPath().toString());
+			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_CONTEXT_PATH, ensureScheduleData(Boolean.FALSE).getContextPath().toString());
 
 			final String cronExpression = entry.getCronExpression();
 			final CronTrigger trigger = new CronTrigger(entry.getId());
-			trigger.setTimeZone(ensureScheduleData().getTimeZone());
+			trigger.setTimeZone(ensureScheduleData(Boolean.FALSE).getTimeZone());
 			try {
 				trigger.setCronExpression(asQuartzCronExpression(cronExpression));
 			} catch (final ParseException e) {
@@ -217,7 +218,6 @@ public class Schedule implements IPreferenceChangeListener {
 			quartzScheduler.scheduleJob(detail, trigger);
 		}
 	}
-
 	/**
 	 * Starts the schedule
 	 */
@@ -244,7 +244,7 @@ public class Schedule implements IPreferenceChangeListener {
 			return;
 		}
 
-		if (ensureScheduleData().isEnabled()) {
+		if (ensureScheduleData(Boolean.TRUE).isEnabled()) {
 			activateEngine();
 		} else {
 			if (JobsDebug.schedulerEngine) {
