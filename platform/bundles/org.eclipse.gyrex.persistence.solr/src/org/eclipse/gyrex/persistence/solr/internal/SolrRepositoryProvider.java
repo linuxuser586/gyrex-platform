@@ -45,8 +45,6 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 	 */
 	public static final String PREF_KEY_SERVER_URL = "serverUrl";
 
-	private final CoreContainer coreContainer;
-
 	/**
 	 * Creates a new instance.
 	 * 
@@ -54,9 +52,8 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 	 * @param adminCore
 	 * @param repositoryTypeId
 	 */
-	public SolrRepositoryProvider(final CoreContainer coreContainer) {
+	public SolrRepositoryProvider() {
 		super(ISolrRepositoryConstants.PROVIDER_ID, SolrServerRepository.class);
-		this.coreContainer = coreContainer;
 	}
 
 	private SolrServer createReadServer(final String urlString) throws MalformedURLException {
@@ -102,6 +99,7 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 		// compute the core name
 		final String coreName = SolrActivator.getEmbeddedSolrCoreName(repositoryId);
 		// check core
+		final CoreContainer coreContainer = SolrActivator.getInstance().getEmbeddedCoreContainer();
 		final SolrCore core = coreContainer.getCore(coreName);
 		if (null == core) {
 			throw new IllegalStateException("Solr core '" + coreName + "' not found");

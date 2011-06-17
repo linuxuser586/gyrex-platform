@@ -16,7 +16,6 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.FileLocator;
@@ -159,9 +158,6 @@ public class SolrActivator extends BaseBundleActivator {
 		if (!coreContainer.getCoreNames().contains("admin")) {
 			coreContainer.create(new CoreDescriptor(coreContainer, "admin", "admin"));
 		}
-
-		// register the embedded repository type
-		getServiceHelper().registerService(RepositoryProvider.class.getName(), new SolrRepositoryProvider(coreContainer), "Eclipse Gyrex", "Apache Solr Repository provider implementation.", null, null);
 	}
 
 	public void unloadEmbeddedCore(final String coreName) throws Exception {
