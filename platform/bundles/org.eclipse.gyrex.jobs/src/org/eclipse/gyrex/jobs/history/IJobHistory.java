@@ -11,7 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.history;
 
-import java.util.List;
+import java.util.Collection;
 
 import org.eclipse.gyrex.jobs.IJob;
 
@@ -22,9 +22,13 @@ public interface IJobHistory {
 
 	/**
 	 * Returns the history entries.
+	 * <p>
+	 * The list will be ordered by the natural order of {@link IJobHistoryEntry}
+	 * .
+	 * </p>
 	 * 
-	 * @return an unmodifiable list of history entries
+	 * @return an unmodifiable, ordered collection of history entries
 	 */
-	List<IJobHistoryEntry> getEntries();
+	Collection<IJobHistoryEntry> getEntries();
 
 }
