@@ -92,6 +92,14 @@ public class SolrActivator extends BaseBundleActivator {
 		return EmbeddedSolrServerApplication.solrBase;
 	}
 
+	public File getEmbeddedSolrCoreBase(final String coreName) {
+		final File solrBase = EmbeddedSolrServerApplication.solrBase;
+		if (null == solrBase) {
+			throw new IllegalStateException("no Solr base directory");
+		}
+		return new File(solrBase, coreName);
+	}
+
 	public void unloadEmbeddedCore(final String coreName) throws Exception {
 		final CoreContainer coreContainer = getEmbeddedCoreContainer();
 		if (null == coreContainer) {
@@ -109,5 +117,4 @@ public class SolrActivator extends BaseBundleActivator {
 			}
 		}
 	}
-
 }
