@@ -16,18 +16,12 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
-import org.eclipse.gyrex.server.Platform;
-
-import org.eclipse.core.runtime.FileLocator;
-import org.eclipse.core.runtime.IPath;
 
 import org.osgi.framework.BundleContext;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.core.CoreContainer;
-import org.apache.solr.core.CoreDescriptor;
 import org.apache.solr.core.SolrCore;
 
 public class SolrActivator extends BaseBundleActivator {
@@ -47,10 +41,6 @@ public class SolrActivator extends BaseBundleActivator {
 	public static SolrActivator getInstance() {
 		return instance.get();
 	}
-
-	private final AtomicReference<CoreContainer> coreContainerRef = new AtomicReference<CoreContainer>();
-
-	private volatile File solrBase;
 
 	/**
 	 * Creates a new instance.
@@ -82,82 +72,24 @@ public class SolrActivator extends BaseBundleActivator {
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		instance.set(this);
-
-		// start server
-		startEmbeddedSolrServer(context);
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
-		shutdownEmbeddedSolrServer();
 		instance.set(null);
 	}
 
+	@Override
+	protected Class getDebugOptions() {
+		return SolrDebug.class;
+	}
+
 	public CoreContainer getEmbeddedCoreContainer() {
-		return coreContainerRef.get();
+		return EmbeddedSolrServerApplication.coreContainerRef.get();
 	}
 
 	public File getEmbeddedSolrBase() {
-		return solrBase;
-	}
-
-	public File getEmbeddedSolrCoreBase(final String coreName) {
-		if (null == solrBase) {
-			throw new IllegalStateException("no Solr base directory");
-		}
-		return new File(solrBase, coreName);
-	}
-
-	private void shutdownEmbeddedSolrServer() {
-		final CoreContainer coreContainer = coreContainerRef.getAndSet(null);
-		if (null != coreContainer) {
-			coreContainer.persist();
-			coreContainer.shutdown();
-		}
-	}
-
-	private void startEmbeddedSolrServer(final BundleContext context) throws Exception {
-		// only in dev mode
-		if (!Platform.inDevelopmentMode()) {
-			return;
-		}
-
-		// the configuration template
-		final File configTemplate = new File(FileLocator.toFileURL(context.getBundle().getEntry("conf-embeddedsolr")).getFile());
-
-		// get embedded Solr home directory
-		final IPath instanceLocation = Platform.getInstanceLocation();
-
-		solrBase = instanceLocation.append("solr").toFile();
-		if (!solrBase.isDirectory()) {
-			// initialize dir
-			solrBase.mkdirs();
-		}
-
-		// get multicore config file
-		final File configFile = new File(solrBase, "solr.xml");
-		if (!configFile.isFile()) {
-			// deploy base configuration
-			FileUtils.copyDirectory(configTemplate, solrBase);
-			if (!configFile.isFile()) {
-				throw new IllegalStateException("config file '" + configFile.getPath() + "' is missing");
-			}
-		}
-
-		// create core container
-		final CoreContainer coreContainer = new CoreContainer();
-		if (!coreContainerRef.compareAndSet(null, coreContainer)) {
-			// already initialized
-			return;
-		}
-
-		// load configuration
-		coreContainer.load(solrBase.getAbsolutePath(), configFile);
-
-		// ensure that there is an admin core
-		if (!coreContainer.getCoreNames().contains("admin")) {
-			coreContainer.create(new CoreDescriptor(coreContainer, "admin", "admin"));
-		}
+		return EmbeddedSolrServerApplication.solrBase;
 	}
 
 	public void unloadEmbeddedCore(final String coreName) throws Exception {
@@ -177,4 +109,5 @@ public class SolrActivator extends BaseBundleActivator {
 			}
 		}
 	}
+
 }

@@ -1,0 +1,6 @@
+# global debug option
+org.eclipse.gyrex.persistence.solr/debug=true
+
+# embedded Solr server
+org.eclipse.gyrex.persistence.solr/embeddedSolrServer=true
+
