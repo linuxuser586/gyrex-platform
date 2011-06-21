@@ -257,9 +257,24 @@ public class ZooKeeperGate {
 
 				case Expired:
 				case Disconnected:
-					// we rely on Expired event for real DOWN detection
+					// Expired || Disconnected ==> connection is down
 					LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost.");
 					connected.set(false);
+
+					// TODO: there is room for improvement here
+					// should we try to silently re-establish a session?
+					// if that fails we can still bring down the node completely
+
+					// another issue are "Disconnected" events
+					// they means connection issues, but a session including its
+					// ephemeral nodes might still be valid on the server;
+					// plus, ZK automatically tries to re-connect
+					// however, any watches might have gone away
+					// a delayed notify might be interesting, because technically we
+					// don't need to bring the whole gate down on "Disconnected", it doesn't
+					// rely on watches but other code down the road might (eg. locks)
+
+					// TODO: we need to clarify and better document our decision here
 
 					// trigger clean shutdown (and notify listeners)
 					shutdown(true);
