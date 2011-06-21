@@ -55,6 +55,7 @@ public class NodeConfigurer implements INodeConfigurer {
 		try {
 			if (connectString != null) {
 				// try connect
+				// TODO: not sure if this makes sense when configuring a remote system
 				zk = new ZooKeeper(connectString, 5000, null);
 
 				// wait at most 5 seconds for a connection
