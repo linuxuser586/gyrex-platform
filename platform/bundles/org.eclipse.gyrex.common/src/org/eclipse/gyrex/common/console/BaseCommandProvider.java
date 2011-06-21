@@ -139,9 +139,14 @@ public abstract class BaseCommandProvider implements CommandProvider {
 		help.append("\t").append(getCommandName()).appendln(" <cmd> [args]");
 		for (final String name : commands.keySet()) {
 			try {
+				help.append("\t\t").append(name);
 				final Command command = commands.get(name).newInstance();
 //				final CmdLineParser parser = new CmdLineParser(command);
-				help.append("\t\t").append(name).append(" - ").appendln(command.getDescription());
+				final String description = command.getDescription();
+				if (!StringUtils.startsWith(description, " - ")) {
+					help.append(" - ");
+				}
+				help.appendln(description);
 //				help.append("\t\t\t");
 //				parser.printSingleLineUsage(help.asWriter(), null);
 //				help.appendNewLine();
