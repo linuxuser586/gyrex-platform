@@ -124,6 +124,8 @@ public class CloudManagerImpl implements ICloudManager {
 				return Collections.emptyList();
 			}
 			return names;
+		} catch (final NoNodeException e) {
+			return Collections.emptyList();
 		} catch (final Exception e) {
 			throw new RuntimeException("Error reading list of nodes. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
