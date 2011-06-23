@@ -48,16 +48,16 @@ import org.slf4j.LoggerFactory;
  */
 public class WorkerEngine extends Job {
 
-	private static final long IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(20);
-	private static final long NON_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(3);
-	private static final long MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
+	private static final long DEFAULT_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(20);
+	private static final long DEFAULT_NON_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(3);
+	private static final long DEFAULT_MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
 
 	private static final Logger LOG = LoggerFactory.getLogger(WorkerEngine.class);
 
 	private final int maxConcurrentJobs;
 	private final long idleSleepTime;
 	private final long nonIdleSleepTime;
-	private long engineSleepTime = IDLE_SLEEP_TIME;
+	private long engineSleepTime = DEFAULT_IDLE_SLEEP_TIME;
 	private volatile int scheduledJobsCount;
 
 	private final IJobChangeListener jobFinishedListener = new JobChangeAdapter() {
@@ -79,8 +79,8 @@ public class WorkerEngine extends Job {
 		super("Gyrex Worker Engine Job");
 		setSystem(true);
 		setPriority(LONG);
-		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", IDLE_SLEEP_TIME);
-		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", NON_IDLE_SLEEP_TIME);
+		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", DEFAULT_IDLE_SLEEP_TIME);
+		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", DEFAULT_NON_IDLE_SLEEP_TIME);
 		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", Runtime.getRuntime().availableProcessors() * 6);
 	}
 
@@ -257,7 +257,7 @@ public class WorkerEngine extends Job {
 			LOG.warn("Unable to check queue for new jobs. System does not seem to be ready. {}", ExceptionUtils.getRootCauseMessage(e), e);
 
 			// implement a back-off sleeping time (max 5 min)
-			engineSleepTime = Math.min(engineSleepTime * 2, MAX_SLEEP_TIME);
+			engineSleepTime = Math.min(engineSleepTime * 2, DEFAULT_MAX_SLEEP_TIME);
 
 			// indicate error through cancel status
 			return Status.CANCEL_STATUS;
