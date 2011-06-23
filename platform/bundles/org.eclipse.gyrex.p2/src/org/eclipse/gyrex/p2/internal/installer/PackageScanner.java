@@ -68,8 +68,8 @@ public class PackageScanner extends Job {
 
 	private static final Logger LOG = LoggerFactory.getLogger(PackageScanner.class);
 
-	static final long INITIAL_SLEEP_TIME = TimeUnit.MINUTES.toMillis(3);
-	static final long MAX_SLEEP_TIME = TimeUnit.HOURS.toMillis(2);
+	private static final long DEFAULT_INITIAL_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
+	private static final long DEFAULT_MAX_SLEEP_TIME = TimeUnit.HOURS.toMillis(2);
 	private static final AtomicReference<PackageScanner> instanceRef = new AtomicReference<PackageScanner>();
 
 	/**
@@ -86,13 +86,17 @@ public class PackageScanner extends Job {
 		return instanceRef.get();
 	}
 
-	private long sleepTime = INITIAL_SLEEP_TIME;
+	private final long initialSleepTime;
+	private final long maxSleepTime;
+	private long sleepTime = DEFAULT_INITIAL_SLEEP_TIME;
 
 	/**
 	 * Creates a new instance.
 	 */
 	PackageScanner() {
 		super("Software Package Scanner");
+		initialSleepTime = Math.max(Long.getLong("gyrex.p2.packageScanner.initialSleepTime", DEFAULT_INITIAL_SLEEP_TIME), TimeUnit.SECONDS.toMillis(15));
+		maxSleepTime = Math.min(Long.getLong("gyrex.p2.packageScanner.maxSleepTime", DEFAULT_MAX_SLEEP_TIME), TimeUnit.HOURS.toMillis(48));
 		setSystem(true);
 		setPriority(LONG);
 		setRule(new MutexRule(PackageScanner.class));
@@ -204,10 +208,10 @@ public class PackageScanner extends Job {
 			final IStatus status = doRun(monitor);
 			if (!status.isOK()) {
 				// implement a back-off sleeping time
-				sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
+				sleepTime = Math.min(sleepTime * 2, maxSleepTime);
 			} else {
 				// reset sleep time
-				sleepTime = INITIAL_SLEEP_TIME;
+				sleepTime = initialSleepTime;
 			}
 			return status;
 		} finally {
