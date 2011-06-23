@@ -91,68 +91,68 @@ public class NodeMetricsReporter extends Job implements IShutdownParticipant {
 
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
-		if (!monitor.isCanceled()) {
-			try {
-				final Properties metrics = new Properties() {
-					private static final long serialVersionUID = 1L;
+		if (monitor.isCanceled()) {
+			return Status.CANCEL_STATUS;
+		}
 
-					@Override
-					public synchronized Enumeration<Object> keys() {
-						return Collections.enumeration(keySet());
-					}
+		try {
+			final Properties metrics = new Properties() {
+				private static final long serialVersionUID = 1L;
 
-					@Override
-					public Set<Object> keySet() {
-						return new TreeSet<Object>(super.keySet());
-					}
-				};
-				final OperatingSystemMXBean operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
-				metrics.setProperty("os.availableProcessors", String.valueOf(operatingSystemMXBean.getAvailableProcessors()));
-				metrics.setProperty("os.systemLoadAverage", String.valueOf(operatingSystemMXBean.getSystemLoadAverage()));
-				metrics.setProperty("os.committedVirtualMemorySize", getUsingReflection(operatingSystemMXBean, "getCommittedVirtualMemorySize"));
-				metrics.setProperty("os.totalSwapSpaceSize", getUsingReflection(operatingSystemMXBean, "getTotalSwapSpaceSize"));
-				metrics.setProperty("os.freeSwapSpaceSize", getUsingReflection(operatingSystemMXBean, "getFreeSwapSpaceSize"));
-				metrics.setProperty("os.processCpuTime", getUsingReflection(operatingSystemMXBean, "getProcessCpuTime"));
-				metrics.setProperty("os.freePhysicalMemorySize", getUsingReflection(operatingSystemMXBean, "getFreePhysicalMemorySize"));
-				metrics.setProperty("os.totalPhysicalMemorySize", getUsingReflection(operatingSystemMXBean, "getTotalPhysicalMemorySize"));
-				metrics.setProperty("os.openFileDescriptorCount", getUsingReflection(operatingSystemMXBean, "getOpenFileDescriptorCount"));
-				metrics.setProperty("os.maxFileDescriptorCount", getUsingReflection(operatingSystemMXBean, "getMaxFileDescriptorCount"));
-
-				final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-				final MemoryUsage heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
-				metrics.setProperty("heap.used", String.valueOf(heapMemoryUsage.getUsed()));
-				metrics.setProperty("heap.committed", String.valueOf(heapMemoryUsage.getCommitted()));
-				metrics.setProperty("heap.max", String.valueOf(heapMemoryUsage.getMax()));
-				metrics.setProperty("heap.init", String.valueOf(heapMemoryUsage.getInit()));
-				final MemoryUsage nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage();
-				metrics.setProperty("nonHeap.used", String.valueOf(nonHeapMemoryUsage.getUsed()));
-				metrics.setProperty("nonHeap.committed", String.valueOf(nonHeapMemoryUsage.getCommitted()));
-				metrics.setProperty("nonHeap.max", String.valueOf(nonHeapMemoryUsage.getMax()));
-				metrics.setProperty("nonHeap.init", String.valueOf(nonHeapMemoryUsage.getInit()));
-
-				final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-				metrics.setProperty("thread.count", String.valueOf(threadMXBean.getThreadCount()));
-				metrics.setProperty("thread.peak", String.valueOf(threadMXBean.getPeakThreadCount()));
-				metrics.setProperty("thread.totalStarted", String.valueOf(threadMXBean.getTotalStartedThreadCount()));
-
-				final RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-				metrics.setProperty("uptime", String.valueOf(runtimeMXBean.getUptime()));
-
-				final ByteArrayOutputStream out = new ByteArrayOutputStream();
-				final NodeInfo nodeInfo = CloudState.getNodeInfo();
-				metrics.store(out, String.valueOf(nodeInfo));
-				ZooKeeperGate.get().writeRecord(IZooKeeperLayout.PATH_NODES_METRICS.append(getName()), CreateMode.PERSISTENT, out.toByteArray());
-				if (CloudDebug.nodeMetrics) {
-					LOG.debug("Node metrics reported successfully.{}{}", SystemUtils.LINE_SEPARATOR, new String(out.toByteArray(), CharEncoding.ISO_8859_1));
+				@Override
+				public synchronized Enumeration<Object> keys() {
+					return Collections.enumeration(keySet());
 				}
-			} catch (final RuntimeException e) {
-				LOG.warn("Failed to update node metrics. {}", e.getMessage());
-			} catch (final Exception e) {
-				LOG.warn("Failed to update node metrics. {}", e.getMessage());
-			} finally {
-				// reschedule
-				schedule(DELAY);
+
+				@Override
+				public Set<Object> keySet() {
+					return new TreeSet<Object>(super.keySet());
+				}
+			};
+			final OperatingSystemMXBean operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
+			metrics.setProperty("os.availableProcessors", String.valueOf(operatingSystemMXBean.getAvailableProcessors()));
+			metrics.setProperty("os.systemLoadAverage", String.valueOf(operatingSystemMXBean.getSystemLoadAverage()));
+			metrics.setProperty("os.committedVirtualMemorySize", getUsingReflection(operatingSystemMXBean, "getCommittedVirtualMemorySize"));
+			metrics.setProperty("os.totalSwapSpaceSize", getUsingReflection(operatingSystemMXBean, "getTotalSwapSpaceSize"));
+			metrics.setProperty("os.freeSwapSpaceSize", getUsingReflection(operatingSystemMXBean, "getFreeSwapSpaceSize"));
+			metrics.setProperty("os.processCpuTime", getUsingReflection(operatingSystemMXBean, "getProcessCpuTime"));
+			metrics.setProperty("os.freePhysicalMemorySize", getUsingReflection(operatingSystemMXBean, "getFreePhysicalMemorySize"));
+			metrics.setProperty("os.totalPhysicalMemorySize", getUsingReflection(operatingSystemMXBean, "getTotalPhysicalMemorySize"));
+			metrics.setProperty("os.openFileDescriptorCount", getUsingReflection(operatingSystemMXBean, "getOpenFileDescriptorCount"));
+			metrics.setProperty("os.maxFileDescriptorCount", getUsingReflection(operatingSystemMXBean, "getMaxFileDescriptorCount"));
+
+			final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+			final MemoryUsage heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
+			metrics.setProperty("heap.used", String.valueOf(heapMemoryUsage.getUsed()));
+			metrics.setProperty("heap.committed", String.valueOf(heapMemoryUsage.getCommitted()));
+			metrics.setProperty("heap.max", String.valueOf(heapMemoryUsage.getMax()));
+			metrics.setProperty("heap.init", String.valueOf(heapMemoryUsage.getInit()));
+			final MemoryUsage nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage();
+			metrics.setProperty("nonHeap.used", String.valueOf(nonHeapMemoryUsage.getUsed()));
+			metrics.setProperty("nonHeap.committed", String.valueOf(nonHeapMemoryUsage.getCommitted()));
+			metrics.setProperty("nonHeap.max", String.valueOf(nonHeapMemoryUsage.getMax()));
+			metrics.setProperty("nonHeap.init", String.valueOf(nonHeapMemoryUsage.getInit()));
+
+			final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+			metrics.setProperty("thread.count", String.valueOf(threadMXBean.getThreadCount()));
+			metrics.setProperty("thread.peak", String.valueOf(threadMXBean.getPeakThreadCount()));
+			metrics.setProperty("thread.totalStarted", String.valueOf(threadMXBean.getTotalStartedThreadCount()));
+
+			final RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+			metrics.setProperty("uptime", String.valueOf(runtimeMXBean.getUptime()));
+
+			final ByteArrayOutputStream out = new ByteArrayOutputStream();
+			final NodeInfo nodeInfo = CloudState.getNodeInfo();
+			metrics.store(out, String.valueOf(nodeInfo));
+			ZooKeeperGate.get().writeRecord(IZooKeeperLayout.PATH_NODES_METRICS.append(nodeInfo.getNodeId()), CreateMode.PERSISTENT, out.toByteArray());
+			if (CloudDebug.nodeMetrics) {
+				LOG.debug("Node metrics reported successfully.{}{}", SystemUtils.LINE_SEPARATOR, new String(out.toByteArray(), CharEncoding.ISO_8859_1));
 			}
+		} catch (final Exception e) {
+			LOG.warn("Failed to update node metrics. {}", e.getMessage());
+		} finally {
+			// reschedule
+			schedule(DELAY);
 		}
 
 		return Status.OK_STATUS;
