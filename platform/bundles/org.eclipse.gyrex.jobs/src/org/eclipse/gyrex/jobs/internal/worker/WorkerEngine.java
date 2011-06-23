@@ -34,7 +34,10 @@ import org.eclipse.gyrex.jobs.provider.JobProvider;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
+import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -48,12 +51,27 @@ public class WorkerEngine extends Job {
 	private static final long IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(20);
 	private static final long NON_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(3);
 	private static final long MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
+	private static final int MAX_CONCURRENCY = 25;
 
 	private static final Logger LOG = LoggerFactory.getLogger(WorkerEngine.class);
 
+	private final int maxConcurrentJobs;
 	private final long idleSleepTime;
 	private final long nonIdleSleepTime;
 	private long engineSleepTime = IDLE_SLEEP_TIME;
+	private volatile int scheduledJobsCount;
+
+	private final IJobChangeListener jobFinishedListener = new JobChangeAdapter() {
+		@Override
+		public void done(final IJobChangeEvent event) {
+			// decrease scheduled jobs count
+			scheduledJobsCount--;
+			// make sure the values make sense
+			if (scheduledJobsCount < 0) {
+				scheduledJobsCount = 0;
+			}
+		}
+	};
 
 	/**
 	 * Creates a new instance.
@@ -64,6 +82,7 @@ public class WorkerEngine extends Job {
 		setPriority(LONG);
 		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", IDLE_SLEEP_TIME);
 		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", NON_IDLE_SLEEP_TIME);
+		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", MAX_CONCURRENCY);
 	}
 
 	private JobContext createContext(final JobInfo info) {
@@ -163,6 +182,12 @@ public class WorkerEngine extends Job {
 			throw new IllegalStateException("No queue available for reading scheduled jobs to execute. Please check engine configuration.");
 		}
 
+		// don't process any jobs if we are over the limit
+		if (scheduledJobsCount > maxConcurrentJobs) {
+			// we return false here in order to allow this node to breath a bit
+			return false;
+		}
+
 		// set receive timeout
 		final Map<String, Object> requestProperties = new HashMap<String, Object>(1);
 		requestProperties.put(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT, getReceiveTimeout());
@@ -192,12 +217,18 @@ public class WorkerEngine extends Job {
 			return true;
 		}
 
-		// add state synchronizer
+		// add state synchronizer and finish listener
 		job.addJobChangeListener(new JobStateSynchronizer(job, jobContext));
+		job.addJobChangeListener(jobFinishedListener);
 
 		// delete from queue and schedule if successful
 		if (queue.deleteMessage(message)) {
+
+			// schedule
 			job.schedule();
+
+			// increment count
+			scheduledJobsCount++;
 		} else {
 			// someone else might already processed it
 			// just continue with next available message
