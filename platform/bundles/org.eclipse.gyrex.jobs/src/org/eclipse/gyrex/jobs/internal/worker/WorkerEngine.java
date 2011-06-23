@@ -51,7 +51,6 @@ public class WorkerEngine extends Job {
 	private static final long IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(20);
 	private static final long NON_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(3);
 	private static final long MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
-	private static final int MAX_CONCURRENCY = 25;
 
 	private static final Logger LOG = LoggerFactory.getLogger(WorkerEngine.class);
 
@@ -82,7 +81,7 @@ public class WorkerEngine extends Job {
 		setPriority(LONG);
 		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", IDLE_SLEEP_TIME);
 		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", NON_IDLE_SLEEP_TIME);
-		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", MAX_CONCURRENCY);
+		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", Runtime.getRuntime().availableProcessors() * 6);
 	}
 
 	private JobContext createContext(final JobInfo info) {
