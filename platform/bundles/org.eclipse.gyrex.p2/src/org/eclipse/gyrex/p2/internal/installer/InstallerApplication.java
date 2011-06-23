@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.p2.internal.installer;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.app.IApplication;
@@ -41,9 +40,9 @@ public class InstallerApplication implements IApplication {
 
 		// schedule job
 		if (P2Debug.nodeInstallation) {
-			LOG.debug("Scheduling package scanner to check in {} minutes.", TimeUnit.MILLISECONDS.toMinutes(PackageScanner.INITIAL_SLEEP_TIME));
+			LOG.debug("Scheduling package scanner to check for new packages now.");
 		}
-		job.schedule(PackageScanner.INITIAL_SLEEP_TIME);
+		job.schedule();
 
 		// signal running
 		context.applicationRunning();
