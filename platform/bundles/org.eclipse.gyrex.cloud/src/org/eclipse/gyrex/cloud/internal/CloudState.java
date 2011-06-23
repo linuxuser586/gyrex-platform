@@ -662,7 +662,8 @@ public class CloudState implements IConnectionMonitor {
 		}
 
 		// start node metrics publisher (cpu load, memory resources)
-		NodeMetricsReporter.start();
+		// (disabled for now, we better have to understand the use cases and ZooKeeper impacts)
+		//NodeMetricsReporter.start();
 
 		// start cloud services
 		CloudActivator.getInstance().startCloudServices();
