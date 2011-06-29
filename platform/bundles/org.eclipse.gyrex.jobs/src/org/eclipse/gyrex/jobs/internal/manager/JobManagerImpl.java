@@ -540,6 +540,7 @@ public class JobManagerImpl implements IJobManager {
 		if (result.isOK()) {
 			jobNode.putLong(PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);
 		}
+		jobNode.flush();
 
 		// save history
 		final JobHistoryImpl history = JobHistoryStore.create(internalId, job.getId(), context);
