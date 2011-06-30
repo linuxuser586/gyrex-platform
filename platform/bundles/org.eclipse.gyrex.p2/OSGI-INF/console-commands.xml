@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.gyrex.p2.console.commands.component">
-   <implementation class="org.eclipse.gyrex.p2.internal.SoftwareConsoleCommands"/>
-   <property name="vendor" type="String" value="Eclipse Gyrex"/>
-   <property name="description" type="String" value="Software Cloud Provisioning Console Commands"/>
-   <service>
-      <provide interface="org.eclipse.osgi.framework.console.CommandProvider"/>
-   </service>
-</scr:component>
