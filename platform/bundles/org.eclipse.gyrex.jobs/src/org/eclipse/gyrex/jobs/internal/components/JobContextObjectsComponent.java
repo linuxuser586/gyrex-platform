@@ -7,7 +7,7 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     <enter-developer-name-here> - initial API and implementation
+ *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.components;
 
