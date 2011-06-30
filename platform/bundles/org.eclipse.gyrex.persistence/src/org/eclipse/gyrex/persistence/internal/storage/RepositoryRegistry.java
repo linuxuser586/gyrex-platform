@@ -32,6 +32,9 @@ import org.eclipse.gyrex.persistence.storage.registry.IRepositoryDefinition;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryRegistry;
 import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.INodeChangeListener;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.NodeChangeEvent;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -48,26 +51,26 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 		throw new IllegalStateException(MessageFormat.format("Invalid repository definition ''{0}'': {1}", repositoryDef.getRepositoryId(), detail));
 	}
 
+	private final INodeChangeListener repositoryModifcationListener = new INodeChangeListener() {
+
+		@Override
+		public void added(final NodeChangeEvent event) {
+			// not handled
+		}
+
+		@Override
+		public void removed(final NodeChangeEvent event) {
+			// repository has been removed
+			final String repositoryId = event.getChild().name();
+			// close removed repo
+			close(repositoryId);
+		}
+	};
+
 	private final AtomicReference<RepositoryDefinitionsStore> repositoryDefinitionsStoreRef = new AtomicReference<RepositoryDefinitionsStore>();
 	private final ConcurrentMap<String, Lock> locksByRepositoryId = new ConcurrentHashMap<String, Lock>(4);
 	private final ConcurrentMap<String, Repository> repositoryCache = new ConcurrentHashMap<String, Repository>(4);
 	private final AtomicBoolean closed = new AtomicBoolean(false);
-
-	/**
-	 *
-	 */
-	public void close() {
-		if (!closed.compareAndSet(false, true)) {
-			return;
-		}
-
-		while (!repositoryCache.isEmpty()) {
-			final Set<String> repoIds = repositoryCache.keySet();
-			for (final String repoId : repoIds) {
-				close(repoId);
-			}
-		}
-	}
 
 	public void close(final String repositoryId) {
 		if (!repositoryCache.containsKey(repositoryId)) {
@@ -234,13 +237,35 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 		if (store != null) {
 			return store;
 		}
-		repositoryDefinitionsStoreRef.compareAndSet(null, new RepositoryDefinitionsStore());
+		if (repositoryDefinitionsStoreRef.compareAndSet(null, new RepositoryDefinitionsStore())) {
+			RepositoryDefinitionsStore.getRepositoriesNode().addNodeChangeListener(repositoryModifcationListener);
+		}
 		return repositoryDefinitionsStoreRef.get();
 	}
 
 	@Override
 	public void removeRepository(final String repositoryId) throws IllegalArgumentException {
 		getStore().remove(repositoryId);
+	}
+
+	/**
+	 * Stops the registry
+	 */
+	public void stop() {
+		if (!closed.compareAndSet(false, true)) {
+			return;
+		}
+
+		// remove listener
+		RepositoryDefinitionsStore.getRepositoriesNode().removeNodeChangeListener(repositoryModifcationListener);
+
+		// close any open repository
+		while (!repositoryCache.isEmpty()) {
+			final Set<String> repoIds = repositoryCache.keySet();
+			for (final String repoId : repoIds) {
+				close(repoId);
+			}
+		}
 	}
 
 }

@@ -92,7 +92,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 		// unregister & stop repository registry
 		repositoryRegistryRegistration.unregister();
 		repositoryRegistryRegistration = null;
-		repositoryRegistry.close();
+		repositoryRegistry.stop();
 		repositoryRegistry = null;
 
 		// stop the type registry

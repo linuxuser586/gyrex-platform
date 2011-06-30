@@ -34,13 +34,8 @@ class RepositoryDefinitionsStore {
 	private static final String NODE_REPOSITORIES = "repositories";
 	private static final Logger LOG = LoggerFactory.getLogger(RepositoryDefinitionsStore.class);
 
-	private final IEclipsePreferences storage;
-
-	/**
-	 * Creates a new instance.
-	 */
-	public RepositoryDefinitionsStore() {
-		storage = (IEclipsePreferences) CloudScope.INSTANCE.getNode(PersistenceActivator.SYMBOLIC_NAME).node(NODE_REPOSITORIES);
+	static IEclipsePreferences getRepositoriesNode() {
+		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(PersistenceActivator.SYMBOLIC_NAME).node(NODE_REPOSITORIES);
 	}
 
 	/**
@@ -51,7 +46,7 @@ class RepositoryDefinitionsStore {
 	 * @return
 	 */
 	public RepositoryDefinition create(final String repositoryId, final String repositoryProviderId) {
-		final RepositoryDefinition repositoryDefinition = new RepositoryDefinition(repositoryId, (IEclipsePreferences) storage.node(repositoryId));
+		final RepositoryDefinition repositoryDefinition = new RepositoryDefinition(repositoryId, (IEclipsePreferences) getRepositoriesNode().node(repositoryId));
 		repositoryDefinition.setProviderId(repositoryProviderId);
 		return repositoryDefinition;
 	}
@@ -67,8 +62,9 @@ class RepositoryDefinitionsStore {
 			throw new IllegalArgumentException("repository id must not be null");
 		}
 
+		final IEclipsePreferences node = getRepositoriesNode();
 		try {
-			if (!storage.nodeExists(repositoryId)) {
+			if (!node.nodeExists(repositoryId)) {
 				return null;
 			}
 		} catch (final BackingStoreException e) {
@@ -76,15 +72,12 @@ class RepositoryDefinitionsStore {
 			return null;
 		}
 
-		return new RepositoryDefinition(repositoryId, (IEclipsePreferences) storage.node(repositoryId));
+		return new RepositoryDefinition(repositoryId, (IEclipsePreferences) node.node(repositoryId));
 	}
 
 	public Collection<String> findRepositoryIds() {
-		if (null == storage) {
-			throw new IllegalStateException("not loaded");
-		}
 		try {
-			return Arrays.asList(storage.childrenNames());
+			return Arrays.asList(getRepositoriesNode().childrenNames());
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(NLS.bind("Error reading repositories: {1}", e.getMessage()), e);
 		}
@@ -96,14 +89,11 @@ class RepositoryDefinitionsStore {
 	 * @param repositoryId
 	 */
 	public void remove(final String repositoryId) {
-		if (null == storage) {
-			throw new IllegalStateException("not loaded");
-		}
-
 		try {
-			if (storage.nodeExists(repositoryId)) {
-				storage.node(repositoryId).removeNode();
-				storage.flush();
+			final IEclipsePreferences node = getRepositoriesNode();
+			if (node.nodeExists(repositoryId)) {
+				node.node(repositoryId).removeNode();
+				node.flush();
 			}
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(NLS.bind("Error removing repository ''{0}'': {1}", repositoryId, e.getMessage()), e);
