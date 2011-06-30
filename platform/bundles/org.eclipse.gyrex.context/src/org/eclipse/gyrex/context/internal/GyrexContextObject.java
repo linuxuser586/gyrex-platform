@@ -28,6 +28,7 @@ import org.eclipse.e4.core.di.IDisposable;
 
 import org.osgi.framework.Filter;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,11 +127,11 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 		// lock to ensure that at most one object per context is created
 		try {
 			if (!objectCreationLock.tryLock(2, TimeUnit.SECONDS)) {
-				throw new IllegalStateException("timeout");
+				throw new IllegalStateException(String.format("Timout waiting for computation lock (%s) in context %s for type %s", objectCreationLock, context.getContextPath(), type.getName()));
 			}
 		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new IllegalStateException("timeout");
+			throw new IllegalStateException(String.format("Interrupted while waiting for computation lock (%s) in context %s for type %s", objectCreationLock, context.getContextPath(), type.getName()));
 		}
 		final List<Throwable> errors = new ArrayList<Throwable>(3);
 		try {
@@ -170,13 +171,13 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 				provider = providers[i];
 				try {
 					object = provider.getProvider().getObject(type, context.getHandle());
-				} catch (final Throwable t) {
-					if (ContextDebug.objectLifecycle) {
-						LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider.toString(), t.toString(), t });
-					} else {
-						LOG.warn("Error during object computation in context {} with in provider {}: {}: {}", new Object[] { context.getContextPath(), provider.toString(), t.getClass().getSimpleName(), t.getMessage() });
-					}
-					errors.add(t);
+				} catch (final LinkageError e) {
+					LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider, ExceptionUtils.getRootCauseMessage(e), e });
+					errors.add(e);
+					object = null;
+				} catch (final Exception e) {
+					LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider, ExceptionUtils.getRootCauseMessage(e), e });
+					errors.add(e);
 					object = null;
 				}
 			}
@@ -219,22 +220,8 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 				final StringBuilder errorMessage = new StringBuilder();
 				errorMessage.append("Could not compute context object ").append(type.getName()).append('.');
 				for (final Iterator stream = errors.iterator(); stream.hasNext();) {
-					Throwable t = (Throwable) stream.next();
-					// re-throw VM errors
-					if (t instanceof VirtualMachineError) {
-						throw (VirtualMachineError) t;
-					}
-					// otherwise capture as formatted string
-					while (null != t) {
-						errorMessage.append(' ').append(t.getClass().getSimpleName());
-						if (t.getMessage() != null) {
-							errorMessage.append(": ").append(t.getMessage());
-						}
-						t = t.getCause();
-						if (t != null) {
-							errorMessage.append("; caused by");
-						}
-					}
+					final Throwable t = (Throwable) stream.next();
+					errorMessage.append(' ').append(ExceptionUtils.getRootCauseMessage(t));
 				}
 				throw new IllegalStateException(errorMessage.toString());
 			}
