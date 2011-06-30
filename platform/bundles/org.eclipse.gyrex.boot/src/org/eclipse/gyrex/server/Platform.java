@@ -11,7 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.server;
 
-import org.eclipse.gyrex.boot.internal.app.AppActivator;
+import org.eclipse.gyrex.boot.internal.BootActivator;
 import org.eclipse.gyrex.boot.internal.app.ServerApplication;
 
 import org.eclipse.core.runtime.IPath;
@@ -54,7 +54,7 @@ public final class Platform {
 	 *             instance location
 	 */
 	public static IPath getInstanceLocation() throws IllegalStateException {
-		return AppActivator.getInstance().getInstanceLocationPath();
+		return BootActivator.getInstance().getInstanceLocationPath();
 	}
 
 	/**
@@ -87,7 +87,7 @@ public final class Platform {
 	 *             instance location
 	 */
 	public static IPath getStateLocation(final Bundle bundle) throws IllegalStateException {
-		return AppActivator.getInstance().getStateLocation(bundle);
+		return BootActivator.getInstance().getStateLocation(bundle);
 	}
 
 	/**
@@ -108,7 +108,7 @@ public final class Platform {
 	 *         <code>false</code> otherwise
 	 */
 	public static boolean inDebugMode() {
-		return AppActivator.isDebugMode();
+		return BootActivator.isDebugMode();
 	}
 
 	/**
@@ -134,7 +134,7 @@ public final class Platform {
 	 *         <code>false</code> otherwise
 	 */
 	public static boolean inDevelopmentMode() {
-		return AppActivator.isDevMode();
+		return BootActivator.isDevMode();
 	}
 
 	/**

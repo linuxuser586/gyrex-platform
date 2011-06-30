@@ -17,7 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.gyrex.boot.internal.app.AppActivator;
+import org.eclipse.gyrex.boot.internal.BootActivator;
 import org.eclipse.gyrex.server.Platform;
 
 import org.apache.commons.io.FileUtils;
@@ -36,7 +36,7 @@ public class OpsMode {
 	 * @return the instance node id file
 	 */
 	private static File getInstanceStateFile() {
-		return Platform.getStateLocation(AppActivator.getInstance().getBundle()).append(STATE_FILE_NAME).toFile();
+		return Platform.getStateLocation(BootActivator.getInstance().getBundle()).append(STATE_FILE_NAME).toFile();
 	}
 
 	/**
@@ -85,7 +85,7 @@ public class OpsMode {
 
 		// fallback to config.ini property
 		if (null == mode) {
-			mode = AppActivator.getInstance().getContext().getProperty(PROPERTY_KEY_OPS_MODE);
+			mode = BootActivator.getInstance().getContext().getProperty(PROPERTY_KEY_OPS_MODE);
 
 			// persist state
 			if (null != mode) {

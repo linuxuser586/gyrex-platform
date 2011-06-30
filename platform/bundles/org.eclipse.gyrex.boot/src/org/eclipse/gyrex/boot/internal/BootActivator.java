@@ -9,9 +9,10 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.boot.internal.app;
+package org.eclipse.gyrex.boot.internal;
 
 import java.net.URL;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,18 +38,23 @@ import org.osgi.service.application.ApplicationDescriptor;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * The activator class controls the plug-in life cycle
  */
-public class AppActivator extends BaseBundleActivator {
+@SuppressWarnings("deprecation")
+public class BootActivator extends BaseBundleActivator {
 
 	private static final String BUNDLE_STATE_LOCATION = ".metadata/.plugins";
+	private static final Logger LOG = LoggerFactory.getLogger(BootActivator.class);
 
 	// The plug-in ID
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.boot";
 
 	// The shared instance
-	private static AppActivator sharedInstance;
+	private static BootActivator sharedInstance;
 
 	private static final AtomicReference<OpsMode> opsModeRef = new AtomicReference<OpsMode>();
 	private static final AtomicBoolean debugModeRef = new AtomicBoolean();
@@ -58,7 +64,7 @@ public class AppActivator extends BaseBundleActivator {
 	 * 
 	 * @return the shared instance
 	 */
-	public static AppActivator getInstance() {
+	public static BootActivator getInstance() {
 		return sharedInstance;
 	}
 
@@ -86,7 +92,7 @@ public class AppActivator extends BaseBundleActivator {
 	/**
 	 * The constructor
 	 */
-	public AppActivator() {
+	public BootActivator() {
 		super(SYMBOLIC_NAME);
 	}
 
@@ -107,6 +113,19 @@ public class AppActivator extends BaseBundleActivator {
 
 		// configure debug mode
 		debugModeRef.set((context.getProperty("osgi.debug") != null) || (getOpsMode().getMode() == OperationMode.DEVELOPMENT));
+
+		// allow switching debugging at runtime
+		try {
+			final Object consoleCommands = context.getBundle().loadClass("org.eclipse.gyrex.boot.internal.console.DebugConsoleCommands").newInstance();
+			getServiceHelper().registerService("org.eclipse.osgi.framework.console.CommandProvider", consoleCommands, "Eclipse Gyrex", "Console commands for configuring debug options at runtime", null, null);
+		} catch (final ClassNotFoundException e) {
+			// ignore
+		} catch (final LinkageError e) {
+			// ignore
+		} catch (final Exception e) {
+			// error (but do not fail)
+			LOG.warn("Error while registering debug options command provider. ", e);
+		}
 	}
 
 	@Override
@@ -171,22 +190,23 @@ public class AppActivator extends BaseBundleActivator {
 	 */
 	public ApplicationDescriptor getEclipseApplication(final String applicationId) throws IllegalStateException {
 		final String filterString = NLS.bind("(&(objectClass={0})(service.pid={1})(application.container=org.eclipse.equinox.app)(eclipse.application.type=any.thread))", ApplicationDescriptor.class.getName(), applicationId);
-		ServiceReference[] serviceReferences;
+		Collection<ServiceReference<ApplicationDescriptor>> serviceReferences;
 		try {
-			serviceReferences = context.getServiceReferences(ApplicationDescriptor.class.getName(), filterString);
+			serviceReferences = context.getServiceReferences(ApplicationDescriptor.class, filterString);
 		} catch (final InvalidSyntaxException e) {
 			throw new IllegalStateException(NLS.bind("Internal error while looking for application {0} using filer {1}. {2}", new Object[] { applicationId, filterString, e.getMessage() }));
 		}
-		if ((serviceReferences == null) || (serviceReferences.length == 0)) {
+		if ((serviceReferences == null) || (serviceReferences.isEmpty())) {
 			throw new IllegalStateException(NLS.bind("Application {0} not found!", applicationId));
-		} else if (serviceReferences.length > 1) {
+		} else if (serviceReferences.size() > 1) {
 			throw new IllegalStateException(NLS.bind("Multiple applications with id {0} found! Just one expected!", applicationId));
 		}
+		final ServiceReference<ApplicationDescriptor> serviceReference = serviceReferences.iterator().next();
 		try {
-			return (ApplicationDescriptor) context.getService(serviceReferences[0]);
+			return context.getService(serviceReference);
 		} finally {
 			// immediately unget the service to let the application go away
-			context.ungetService(serviceReferences[0]);
+			context.ungetService(serviceReference);
 		}
 	}
 

@@ -15,6 +15,7 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.util.logging.LogManager;
 
+import org.eclipse.gyrex.boot.internal.BootActivator;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IPath;
@@ -171,12 +172,12 @@ public class LogbackConfigurator {
 	}
 
 	private static File getLogConfigurationFile() {
-		final Location instanceLocation = AppActivator.getInstance().getInstanceLocation();
+		final Location instanceLocation = BootActivator.getInstance().getInstanceLocation();
 		return new Path(instanceLocation.getURL().getPath()).append("etc/logback.xml").toFile();
 	}
 
 	private static IPath getLogfileDir() {
-		final Location instanceLocation = AppActivator.getInstance().getInstanceLocation();
+		final Location instanceLocation = BootActivator.getInstance().getInstanceLocation();
 		return new Path(instanceLocation.getURL().getPath()).append("logs");
 	}
 

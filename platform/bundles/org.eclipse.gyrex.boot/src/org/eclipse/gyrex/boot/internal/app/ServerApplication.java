@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.boot.internal.BootActivator;
+import org.eclipse.gyrex.boot.internal.BootDebug;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRoleDefaultStartOption;
@@ -161,7 +163,7 @@ public class ServerApplication extends BaseApplication {
 		}
 
 		// make sure that the declarative services are initialized (if available)
-		final Bundle dsImplBundle = AppActivator.getInstance().getBundle("org.eclipse.equinox.ds");
+		final Bundle dsImplBundle = BootActivator.getInstance().getBundle("org.eclipse.equinox.ds");
 		if (null != dsImplBundle) {
 			dsImplBundle.start(Bundle.START_TRANSIENT);
 		} else {
@@ -235,7 +237,7 @@ public class ServerApplication extends BaseApplication {
 
 		// get instance location
 		try {
-			instanceLocation = AppActivator.getInstance().getInstanceLocation();
+			instanceLocation = BootActivator.getInstance().getInstanceLocation();
 		} catch (final Exception e) {
 			printError("An error occurred reading the instance location (aka. 'workspace'). Please verify that the installation is correct and all required components are available.", e);
 			throw new StartAbortedException();
@@ -396,7 +398,7 @@ public class ServerApplication extends BaseApplication {
 		} catch (final ClassNotFoundException e) {
 			// logback not available
 			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
-		} catch (final NoClassDefFoundError e) {
+		} catch (final LinkageError e) {
 			// logback not available
 			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
 		} catch (final Exception e) {
@@ -406,7 +408,7 @@ public class ServerApplication extends BaseApplication {
 
 		// hook FrameworkLog with SLF4J forwarder
 		// (note, we use strings here in order to not import those classes)
-		frameworkLogServiceRegistration = AppActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.equinox.logger"), "Eclipse Gyrex", "SLF4J Equinox Framework Logger", "org.slf4j.Logger-org.eclipse.equinox.logger", null);
+		frameworkLogServiceRegistration = BootActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.equinox.logger"), "Eclipse Gyrex", "SLF4J Equinox Framework Logger", "org.slf4j.Logger-org.eclipse.equinox.logger", null);
 	}
 
 }

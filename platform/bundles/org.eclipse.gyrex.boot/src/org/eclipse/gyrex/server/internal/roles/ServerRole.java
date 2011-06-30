@@ -17,8 +17,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.gyrex.boot.internal.app.AppActivator;
-import org.eclipse.gyrex.boot.internal.app.BootDebug;
+import org.eclipse.gyrex.boot.internal.BootActivator;
+import org.eclipse.gyrex.boot.internal.BootDebug;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -135,7 +135,7 @@ public class ServerRole {
 		if (BootDebug.roles) {
 			LOG.debug("Starting application {}", applicationId);
 		}
-		final ApplicationDescriptor applicationDescriptor = AppActivator.getInstance().getEclipseApplication(applicationId);
+		final ApplicationDescriptor applicationDescriptor = BootActivator.getInstance().getEclipseApplication(applicationId);
 		if (applicationDescriptor == null) {
 			throw new IllegalStateException(NLS.bind("Application {0} not found!", applicationId));
 		}
@@ -177,7 +177,7 @@ public class ServerRole {
 		if (BootDebug.roles) {
 			LOG.debug("Starting bundle {}", symbolicName);
 		}
-		final Bundle bundle = AppActivator.getInstance().getBundle(symbolicName);
+		final Bundle bundle = BootActivator.getInstance().getBundle(symbolicName);
 		if (bundle == null) {
 			LOG.warn("Bundle {} not avaiable. Server role {} might by dysfunctional!", symbolicName, getId());
 			return;

@@ -18,7 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.gyrex.boot.internal.app.BootDebug;
+import org.eclipse.gyrex.boot.internal.BootDebug;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
