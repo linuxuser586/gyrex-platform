@@ -145,6 +145,8 @@ public abstract class BaseCommandProvider implements CommandProvider {
 				final String description = command.getDescription();
 				if (!StringUtils.contains(description, " - ")) {
 					help.append(" - ");
+				} else if (!StringUtils.startsWith(description, " ")) {
+					help.append(' ');
 				}
 				help.appendln(description);
 //				help.append("\t\t\t");
