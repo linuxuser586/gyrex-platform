@@ -33,6 +33,7 @@ import org.eclipse.jetty.util.log.Log;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * This handler delegates all requests to the application and handles requests
@@ -41,6 +42,9 @@ import org.slf4j.LoggerFactory;
  * .
  */
 public class ApplicationDelegateHandler extends ScopedHandler {
+
+	private static final String MDC_KEY_CONTEXT_PATH = "gyrex.contextPath";
+	private static final String MDC_KEY_APPLICATION_ID = "gyrex.applicationId";
 
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationDelegateHandler.class);
 
@@ -87,6 +91,12 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 		// the application may delegate back to us via ApplicationContext
 		try {
 			final Application application = applicationHandler.getApplication();
+
+			// setup MDC
+			MDC.put(MDC_KEY_APPLICATION_ID, application.getId());
+			MDC.put(MDC_KEY_CONTEXT_PATH, application.getContext().getContextPath().toString());
+
+			// route to application
 			if (JettyDebug.handlers) {
 				LOG.debug("routing request to application {}", application);
 			}
@@ -128,6 +138,9 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 				Log.warn("Caught RuntimeException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 			}
 			throw e;
+		} finally {
+			// clear the whole MDC (the assumption is that we are the last relevant SLF4J code)
+			MDC.clear();
 		}
 
 		// mark the request handled (if this point is reached)
