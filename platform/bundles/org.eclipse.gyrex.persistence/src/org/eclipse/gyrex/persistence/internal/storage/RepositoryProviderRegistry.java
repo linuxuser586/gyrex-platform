@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2011 Gunnar Wagenknecht and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -15,11 +15,13 @@ import java.text.MessageFormat;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
+import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
-import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -35,7 +37,7 @@ public final class RepositoryProviderRegistry {
 
 	/** the map with registered repository types by their id */
 	private final ConcurrentMap<String, RepositoryProvider> registeredRepositoryTypesById = new ConcurrentHashMap<String, RepositoryProvider>(5);
-	private ServiceTracker serviceTracker;
+	private ServiceTracker<RepositoryProvider, RepositoryProvider> serviceTracker;
 
 	public void close() {
 		serviceTracker.close();
@@ -84,11 +86,11 @@ public final class RepositoryProviderRegistry {
 	}
 
 	public void start(final BundleContext context) {
-		serviceTracker = new ServiceTracker(context, RepositoryProvider.class.getName(), null) {
+		serviceTracker = new ServiceTracker<RepositoryProvider, RepositoryProvider>(context, RepositoryProvider.class, null) {
 
 			@Override
-			public Object addingService(final ServiceReference reference) {
-				final RepositoryProvider repositoryType = (RepositoryProvider) super.addingService(reference);
+			public RepositoryProvider addingService(final ServiceReference<RepositoryProvider> reference) {
+				final RepositoryProvider repositoryType = super.addingService(reference);
 				if (null != repositoryType) {
 					try {
 						registerRepositoryProvider(repositoryType.getProviderId(), repositoryType);
@@ -101,11 +103,8 @@ public final class RepositoryProviderRegistry {
 			}
 
 			@Override
-			public void removedService(final ServiceReference reference, final Object service) {
-				final RepositoryProvider repositoryType = (RepositoryProvider) service;
-				if (null != repositoryType) {
-					unregisterRepositoryProvider(repositoryType.getProviderId());
-				}
+			public void removedService(final ServiceReference<RepositoryProvider> reference, final RepositoryProvider service) {
+				unregisterRepositoryProvider(service.getProviderId());
 				super.removedService(reference, service);
 			}
 		};
