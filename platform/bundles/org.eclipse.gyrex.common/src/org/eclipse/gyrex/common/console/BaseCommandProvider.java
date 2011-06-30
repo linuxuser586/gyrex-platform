@@ -143,7 +143,7 @@ public abstract class BaseCommandProvider implements CommandProvider {
 				final Command command = commands.get(name).newInstance();
 //				final CmdLineParser parser = new CmdLineParser(command);
 				final String description = command.getDescription();
-				if (!StringUtils.startsWith(description, " - ")) {
+				if (!StringUtils.contains(description, " - ")) {
 					help.append(" - ");
 				}
 				help.appendln(description);
