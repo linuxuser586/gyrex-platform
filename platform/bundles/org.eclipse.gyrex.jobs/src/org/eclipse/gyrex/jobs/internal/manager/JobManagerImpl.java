@@ -49,6 +49,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.text.StrBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,6 +121,37 @@ public class JobManagerImpl implements IJobManager {
 			return internalId;
 		}
 		return internalId.substring(i + 1);
+	}
+
+	static String getFormattedMessage(final IStatus status, final int ident) {
+		final StrBuilder builder = new StrBuilder();
+		builder.appendPadding(ident, ' ');
+		switch (status.getSeverity()) {
+			case IStatus.CANCEL:
+				builder.append("(ABORT) ");
+				break;
+			case IStatus.ERROR:
+				builder.append("(ERROR) ");
+				break;
+			case IStatus.WARNING:
+				builder.append("(WARNING) ");
+				break;
+			case IStatus.INFO:
+				builder.append("(INFO) ");
+				break;
+		}
+		builder.append(status.getMessage());
+		if (status.getCode() != 0) {
+			builder.append(" [error code ").append(status.getCode()).append("]");
+		}
+		if (status.isMultiStatus()) {
+			final IStatus[] children = status.getChildren();
+			for (final IStatus child : children) {
+				builder.appendNewLine();
+				builder.append(getFormattedMessage(child, ident + 2));
+			}
+		}
+		return builder.toString();
 	}
 
 	static IEclipsePreferences getStatesNode() {
@@ -357,27 +389,9 @@ public class JobManagerImpl implements IJobManager {
 			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
 		}
 		try {
-			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, 2000);
+			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, 2000L);
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Unable to get job lock. %s", e.getMessage()), e);
-		}
-	}
-
-	/**
-	 * @param result
-	 * @return
-	 */
-	private String messageToPlainString(final IStatus result) {
-
-		if (result.isMultiStatus()) {
-			final StringBuilder builder = new StringBuilder(String.format("MultiStatus '' (", result.getMessage()));
-			for (final IStatus child : result.getChildren()) {
-				builder.append(String.format("(%s '%s')", Integer.toString(child.getSeverity()), child.getMessage()));
-			}
-			builder.append(")");
-			return builder.toString();
-		} else {
-			return result.getMessage();
 		}
 	}
 
@@ -553,7 +567,7 @@ public class JobManagerImpl implements IJobManager {
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_RESULT, resultTimestamp);
-		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, messageToPlainString(result));
+		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, getFormattedMessage(result, 0));
 		jobNode.putInt(PROPERTY_LAST_RESULT_SEVERITY, result.getSeverity());
 		if (result.isOK()) {
 			jobNode.putLong(PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);
