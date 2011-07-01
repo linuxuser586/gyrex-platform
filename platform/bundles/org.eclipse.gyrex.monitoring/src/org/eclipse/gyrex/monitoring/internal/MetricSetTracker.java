@@ -84,7 +84,6 @@ public class MetricSetTracker extends ServiceTracker<MetricSet, MetricSetJmxRegi
 		// common properties first
 		properties.put("type", "MetricSet");
 		properties.put("name", StringUtils.removeStart(metricSet.getId(), symbolicName + "."));
-		properties.put("provider", symbolicName);
 
 		// we also remember the service id in order to allow multiple metrics instances with same id
 		properties.put("service.id", String.valueOf(reference.getProperty(Constants.SERVICE_ID)));
