@@ -363,24 +363,6 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	/**
-	 * @param result
-	 * @return
-	 */
-	private String messageToPlainString(final IStatus result) {
-
-		if (result.isMultiStatus()) {
-			final StringBuilder builder = new StringBuilder(String.format("MultiStatus '' (", result.getMessage()));
-			for (final IStatus child : result.getChildren()) {
-				builder.append(String.format("(%s '%s')", Integer.toString(child.getSeverity()), child.getMessage()));
-			}
-			builder.append(")");
-			return builder.toString();
-		} else {
-			return result.getMessage();
-		}
-	}
-
 	@Override
 	public void queueJob(final String jobId, final String queueId) {
 		if (!IdHelper.isValidId(jobId)) {
@@ -553,7 +535,7 @@ public class JobManagerImpl implements IJobManager {
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_RESULT, resultTimestamp);
-		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, messageToPlainString(result));
+		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, result.getMessage());
 		jobNode.putInt(PROPERTY_LAST_RESULT_SEVERITY, result.getSeverity());
 		if (result.isOK()) {
 			jobNode.putLong(PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);

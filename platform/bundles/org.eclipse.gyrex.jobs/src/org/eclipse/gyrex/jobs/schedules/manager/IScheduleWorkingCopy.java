@@ -24,8 +24,6 @@ public interface IScheduleWorkingCopy extends ISchedule {
 
 	IScheduleEntryWorkingCopy getEntry(String entryId);
 
-	void removeEntry(String entryId);
-
 	/**
 	 * @param b
 	 */
