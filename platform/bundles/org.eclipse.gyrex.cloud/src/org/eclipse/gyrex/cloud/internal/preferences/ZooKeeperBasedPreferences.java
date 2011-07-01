@@ -17,10 +17,13 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -55,6 +58,20 @@ import org.slf4j.LoggerFactory;
  * ZooKeeper based preferences.
  */
 public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService implements IEclipsePreferences {
+
+	private static final class SortedProperties extends Properties {
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public synchronized Enumeration<Object> keys() {
+			return Collections.enumeration(keySet());
+		}
+
+		@Override
+		public Set<Object> keySet() {
+			return new TreeSet<Object>(super.keySet());
+		}
+	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperBasedPreferences.class);
 
@@ -1094,7 +1111,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 			}
 
 			// collect properties to save
-			final Properties toSave = new Properties();
+			final Properties toSave = new SortedProperties();
 			final Set<Object> keys = properties.keySet();
 			for (final Object key : keys) {
 				final Object value = properties.get(key);
