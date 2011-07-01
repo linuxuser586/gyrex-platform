@@ -14,6 +14,8 @@ package org.eclipse.gyrex.jobs.internal.scheduler;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -51,6 +53,7 @@ public class Scheduler extends Job implements INodeChangeListener {
 
 	private long engineSleepTime = INITIAL_SLEEP_TIME;
 	private final ConcurrentMap<String, Schedule> schedulesById = new ConcurrentHashMap<String, Schedule>();
+	private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
 	/**
 	 * Creates a new instance.
@@ -100,9 +103,10 @@ public class Scheduler extends Job implements INodeChangeListener {
 				}
 
 				// try to acquire lock
-				// (note, we cannot wait forever because we must check for cancelation regulary)
+				// (note, we cannot wait forever because we must check for cancelation regularly)
+				// (however, checking very often is too expensive; we need to make a tradeoff here)
 				try {
-					schedulerEngineLock = lockService.acquireExclusiveLock(SCHEDULER_LOCK, null, 250L);
+					schedulerEngineLock = lockService.acquireExclusiveLock(SCHEDULER_LOCK, null, 2000L);
 				} catch (final TimeoutException e) {
 					// timeout waiting for lock
 					// we simply keep on going as lock as we aren't canceled
