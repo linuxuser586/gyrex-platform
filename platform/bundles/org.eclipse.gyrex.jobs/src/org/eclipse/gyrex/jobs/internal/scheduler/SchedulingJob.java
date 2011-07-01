@@ -85,7 +85,7 @@ public class SchedulingJob implements Job {
 
 			// check that job state is NONE
 			if (job.getState() != JobState.NONE) {
-				LOG.info("Job {} cannot be queue because it is already active in the system (current state {}).", job, job.getState());
+				LOG.info("Job {} (type {}) cannot be queued because it is already active in the system (current state {}).", new Object[] { job.getId(), job.getTypeId(), job.getState() });
 				return;
 			}
 
