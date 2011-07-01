@@ -682,7 +682,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 				LOG.debug("Reading properties for node {} (version {}) from ZooKeeper {}", new Object[] { this, propertiesVersion, zkPath });
 			}
 
-			// read record data
+			// read record data (and set new watcher)
 			final Stat stat = new Stat();
 			final byte[] bytes = ZooKeeperGate.get().readRecord(zkPath, monitor, stat);
 
@@ -713,6 +713,12 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 			final Set<String> propertyNames = new HashSet<String>();
 			propertyNames.addAll(loadedProps.stringPropertyNames());
 			propertyNames.addAll(properties.stringPropertyNames());
+
+			// note, the policy here is very simple: we completely
+			// replace the local properties with the loaded properties;
+			// this keeps the implementation simple and also delegates
+			// the coordination of concurrent updates in a distributed
+			// system a layer higher to the clients of preferences api
 
 			// discover new, updated and removed properties
 			for (final String key : propertyNames) {
