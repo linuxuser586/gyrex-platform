@@ -174,20 +174,34 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 				// 4. The client calls exists( ) with the watch flag set on the path in the lock directory with the next lowest sequence number.
 				// 5. if exists( ) returns false, go to step 2. Otherwise, wait for a notification for the pathname from the previous step before going to step 2.
-				final WaitForDeletionMonitor waitForDeletionMonitor = new WaitForDeletionMonitor();
-				if (zk.exists(lockNodePath.append(precedingNodeName), waitForDeletionMonitor)) {
-					if (CloudDebug.zooKeeperLockService) {
-						LOG.debug("Waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
-					}
-					if (!waitForDeletionMonitor.await(timeout)) {
+				final IPath pathToPreceedingNode = lockNodePath.append(precedingNodeName);
+				if (zk.exists(pathToPreceedingNode)) {
+					try {
+						final WaitForDeletionMonitor waitForDeletionMonitor = new WaitForDeletionMonitor();
+
+						// an "exists" will leave a watch in ZooKeeper if the node does not exists
+						// however, we are only interested in "delete" events (but not "created")
+						// thus, instead of an "exists" call we do a "getData" which throws a NoNodeException
+						// the NoNodeException will not install the waitForDeletionMonitor
+						// (https://bugs.eclipse.org/bugs/show_bug.cgi?id=350927)
+						//
+						zk.readRecord(pathToPreceedingNode, waitForDeletionMonitor, null);
+
 						if (CloudDebug.zooKeeperLockService) {
-							LOG.debug("Timeout waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
+							LOG.debug("Waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
 						}
-						// node has not been deleted
-						throw new TimeoutException(String.format("Unable to acquire lock %s within the given timeout.", getId()));
-					}
-					if (CloudDebug.zooKeeperLockService) {
-						LOG.debug("Preceeing lock {} released lock {}", precedingNodeName, lockNodePath);
+						if (!waitForDeletionMonitor.await(timeout)) {
+							if (CloudDebug.zooKeeperLockService) {
+								LOG.debug("Timeout waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
+							}
+							// node has not been deleted
+							throw new TimeoutException(String.format("Unable to acquire lock %s within the given timeout.", getId()));
+						}
+						if (CloudDebug.zooKeeperLockService) {
+							LOG.debug("Preceeing lock {} released lock {}", precedingNodeName, lockNodePath);
+						}
+					} catch (final NoNodeException e) {
+						// good
 					}
 				}
 
