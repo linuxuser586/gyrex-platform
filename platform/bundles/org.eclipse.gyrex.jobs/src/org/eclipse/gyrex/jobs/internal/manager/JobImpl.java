@@ -21,6 +21,8 @@ import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
+import org.apache.commons.lang.time.DateFormatUtils;
+
 /**
  * Simple implementation of a {@link IJob} without any business logic.
  */
@@ -192,6 +194,28 @@ public class JobImpl implements IJob {
 	 */
 	public void setTypeId(final String typeId) {
 		this.typeId = typeId;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("Job [").append(id).append(" (type ").append(typeId).append(")");
+
+		final JobState state = getState();
+		if (state != JobState.NONE) {
+			builder.append(", ").append(state);
+		}
+		final long start = lastStart;
+		if (start > 0) {
+			builder.append(", last started ").append(DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(start));
+		}
+
+		final IStatus result = lastResult;
+		if (result != null) {
+			builder.append(", last result ").append(result);
+		}
+
+		return builder.append("]").toString();
 	}
 
 }
