@@ -69,6 +69,11 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 
 	@Override
 	public ScheduleEntryImpl createEntry(final String entryId) {
+
+		if (isEnabled()) {
+			throw new IllegalStateException("schedule must not be enabled");
+		}
+
 		if (!IdHelper.isValidId(entryId)) {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
@@ -181,6 +186,24 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		}
 
 		return this;
+	}
+
+	@Override
+	public void removeEntry(final String entryId) {
+
+		if (isEnabled()) {
+			throw new IllegalStateException("schedule must not be enabled");
+		}
+
+		if (null == entriesById) {
+			throw new IllegalStateException("schedule isn't initialized properly");
+		}
+
+		if (!entriesById.containsKey(entryId)) {
+			throw new IllegalArgumentException(String.format("schedule dosn't contain entry '%s'", entryId));
+		}
+
+		entriesById.remove(entryId);
 	}
 
 	public void save() throws BackingStoreException {
