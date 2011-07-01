@@ -25,6 +25,7 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 
+import org.apache.commons.lang.SystemUtils;
 import org.apache.commons.lang.text.StrBuilder;
 
 /**
@@ -32,35 +33,19 @@ import org.apache.commons.lang.text.StrBuilder;
  */
 public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 
-	static String getFormattedMessage(final IStatus status, final int ident) {
+	static String getFormattedMessage(final IStatus[] children, final int ident) {
 		final StrBuilder builder = new StrBuilder();
-		builder.appendPadding(ident, ' ');
-		switch (status.getSeverity()) {
-			case IStatus.CANCEL:
-				builder.append("(ABORT) ");
-				break;
-			case IStatus.ERROR:
-				builder.append("(ERROR) ");
-				break;
-			case IStatus.WARNING:
-				builder.append("(WARNING) ");
-				break;
-			case IStatus.INFO:
-				builder.append("(INFO) ");
-				break;
-			case IStatus.OK:
-				builder.append("(OK) ");
-				break;
-		}
-		builder.append(status.getMessage());
-		if (status.getCode() != 0) {
-			builder.append(" [error code ").append(status.getCode()).append("]");
-		}
-		if (status.isMultiStatus()) {
-			final IStatus[] children = status.getChildren();
-			for (final IStatus child : children) {
+		for (final IStatus child : children) {
+			builder.appendSeparator(SystemUtils.LINE_SEPARATOR);
+			builder.appendPadding(ident, ' ');
+			builder.append(getSeverityText(child.getSeverity())).append(": ");
+			builder.append(child.getMessage());
+			if (child.getCode() != 0) {
+				builder.append(" (code ").append(child.getCode()).append(")");
+			}
+			if (child.isMultiStatus()) {
 				builder.appendNewLine();
-				builder.append(getFormattedMessage(child, ident + 2));
+				builder.append(getFormattedMessage(child.getChildren(), ident + 2));
 			}
 		}
 		return builder.toString();
@@ -79,7 +64,7 @@ public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 			case IStatus.CANCEL:
 				return "CANCEL";
 			default:
-				return "unknown";
+				return "UNKNOWN";
 		}
 	}
 
@@ -161,7 +146,7 @@ public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 			systemStatus.add(status);
 		}
 
-		diagnosticsStatusMetrics.setStatus(getSeverityText(systemStatus.getSeverity()), getFormattedMessage(systemStatus, 0));
+		diagnosticsStatusMetrics.setStatus(getSeverityText(systemStatus.getSeverity()), getFormattedMessage(systemStatus.getChildren(), 0));
 	}
 
 }
