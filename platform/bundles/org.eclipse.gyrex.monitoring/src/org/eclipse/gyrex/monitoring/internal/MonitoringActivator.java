@@ -18,26 +18,35 @@ import org.osgi.framework.BundleContext;
 public class MonitoringActivator extends BaseBundleActivator {
 
 	/** plug-in id */
-	public static final String PLUGIN_ID = "org.eclipse.gyrex.monitoring";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.monitoring";
 
-	private volatile MetricSetTracker metricSetTracker;
+	private MetricSetTracker metricSetTracker;
+	private StatusTracker statusTracker;
 
 	/**
 	 * Creates a new instance.
 	 */
 	public MonitoringActivator() {
-		super(PLUGIN_ID);
+		super(SYMBOLIC_NAME);
 	}
 
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
+		// track metrics
 		metricSetTracker = new MetricSetTracker(context);
 		metricSetTracker.open();
+
+		// track status
+		statusTracker = new StatusTracker(context);
+		statusTracker.open();
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
 		metricSetTracker.close();
 		metricSetTracker = null;
+
+		statusTracker.close();
+		statusTracker = null;
 	}
 }

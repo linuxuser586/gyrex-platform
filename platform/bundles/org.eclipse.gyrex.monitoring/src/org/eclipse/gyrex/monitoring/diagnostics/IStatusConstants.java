@@ -20,9 +20,11 @@ import org.osgi.framework.Constants;
  * <p>
  * An essential element in Gyrex is self-monitoring. This interface defines
  * constants which allow any client to report status information to Gyrex. In
- * order to report a system status clients should make the {@link IStatus} is
- * available as an OSGi service which can be tracked using {@link #SERVICE_NAME
- * this class name}. It's important that
+ * order to report a system status clients should make the {@link IStatus}
+ * instance available as an OSGi service which can be tracked using
+ * {@link #SERVICE_NAME this class name}. It's important that the status is
+ * associated with a {@link #STATUS_PID} in order to allow followers detected
+ * changes of a status.
  * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
