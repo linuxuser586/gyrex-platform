@@ -161,6 +161,9 @@ public class ZooKeeperGateApplication extends BaseApplication {
 		if (CloudActivator.getInstance().getNodeEnvironment().inStandaloneMode()) {
 			ZooKeeperServerApplication.connectedGateApplication = this;
 		}
+
+		// schedule our ping monitor
+		executor.scheduleWithFixedDelay(new ZooKeeperPinger(), 1, 5, TimeUnit.MINUTES);
 	}
 
 	@Override
