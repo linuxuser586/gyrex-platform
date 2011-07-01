@@ -11,13 +11,16 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.scheduler;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import org.eclipse.equinox.app.IApplication;
-import org.eclipse.equinox.app.IApplicationContext;
-
+import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
+import org.eclipse.gyrex.jobs.internal.util.WaitForJobToFinishJob;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
+
+import org.eclipse.core.runtime.jobs.Job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,72 +28,72 @@ import org.slf4j.LoggerFactory;
 /**
  * Scheduler engine application of scheduling {@link ISchedule schedules}.
  */
-public class SchedulerApplication implements IApplication {
-
-	/** Exit object indicating error termination */
-	private static final Integer EXIT_ERROR = Integer.valueOf(1);
+public class SchedulerApplication extends BaseApplication {
 
 	private static final Logger LOG = LoggerFactory.getLogger(SchedulerApplication.class);
-	private static final AtomicReference<Scheduler> schedulerRef = new AtomicReference<Scheduler>(null);
-	private IApplicationContext runningContext;
+	private Scheduler scheduler;
 
 	@Override
-	public Object start(final IApplicationContext context) throws Exception {
-		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Starting scheduler engine application.");
-		}
-
-		// set stop signal
-		final Scheduler scheduler = new Scheduler();
-		if (!schedulerRef.compareAndSet(null, scheduler)) {
-			throw new IllegalStateException("Scheduler engine already running!");
-		}
-
-		try {
-			// start scheduler engine
-			scheduler.schedule();
-
-			// signal running
-			context.applicationRunning();
-
-			// finish async
-			runningContext = context;
-			return IApplicationContext.EXIT_ASYNC_RESULT;
-		} catch (final Exception e) {
-			LOG.error("Unable to start scheduler engine. Please check the log files.", e);
-			return EXIT_ERROR;
+	protected void doCleanup() {
+		final Scheduler scheduler = this.scheduler;
+		if (null != scheduler) {
+			this.scheduler = null;
+			scheduler.cancel();
 		}
 	}
 
 	@Override
-	public void stop() {
-		final IApplicationContext context = runningContext;
-		if (context == null) {
-			throw new IllegalStateException("not started");
+	protected void doStart(final Map arguments) throws Exception {
+		if (JobsDebug.schedulerEngine) {
+			LOG.debug("Starting scheduler engine application.");
 		}
 
-		final Scheduler scheduler = schedulerRef.getAndSet(null);
-		if (scheduler == null) {
-			return;
+		// create & start scheduler engine
+		scheduler = new Scheduler();
+		scheduler.schedule();
+	}
+
+	@Override
+	protected Object doStop() {
+		final Scheduler scheduler = this.scheduler;
+		if (null == scheduler) {
+			return EXIT_OK;
 		}
 
 		if (JobsDebug.schedulerEngine) {
 			LOG.debug("Stopping scheduler engine application...");
 		}
 
+		// unset
+		this.scheduler = null;
+
+		// cancel
 		if (!scheduler.cancel()) {
 			try {
-				LOG.info("Waiting for scheduler engine to shutdown...");
-				scheduler.join();
+				final int timeoutInSeconds = 30;
+				LOG.info("Waiting {}s for scheduler engine to finish...", timeoutInSeconds);
+				final CountDownLatch wait = new CountDownLatch(1);
+				final Job job = new WaitForJobToFinishJob("Scheduler Engine Shutdown Job", scheduler, wait);
+				job.schedule();
+				if (!wait.await(timeoutInSeconds, TimeUnit.SECONDS)) {
+					LOG.warn("Time out waiting for scheduler engine to shutdown. A complete restart (or shutdown) of the current process is recommended.");
+					return EXIT_ERROR;
+				}
 			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}
 		}
 
 		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Starting scheduler engine stopped.");
+			LOG.debug("Scheduler engine application engine stopped.");
 		}
-		context.setResult(EXIT_OK, this);
+
+		return EXIT_OK;
+	}
+
+	@Override
+	protected Logger getLogger() {
+		return LOG;
 	}
 
 }
