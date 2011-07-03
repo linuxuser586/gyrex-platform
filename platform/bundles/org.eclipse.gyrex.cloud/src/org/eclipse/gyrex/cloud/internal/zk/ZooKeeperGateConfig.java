@@ -34,6 +34,10 @@ public class ZooKeeperGateConfig {
 	public static final String PREF_KEY_CLIENT_TIMEOUT = "clientTimeout";
 
 	private static String getDefaultConnectString() {
+		final String connectString = System.getProperty("gyrex.zookeeper.connectString");
+		if (null != connectString) {
+			return connectString;
+		}
 		if (Platform.inDevelopmentMode()) {
 			return "localhost:2181";
 		}
