@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.monitoring.internal.mbeans;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +78,38 @@ public class MetricSetMBean implements DynamicMBean {
 		initialize();
 	}
 
+	private OpenType detectType(final Class type) {
+		if ((Long.class == type) || (Long.TYPE == type)) {
+			return SimpleType.LONG;
+		} else if ((Integer.class == type) || (Integer.TYPE == type)) {
+			return SimpleType.INTEGER;
+		} else if ((Double.class == type) || (Double.TYPE == type)) {
+			return SimpleType.DOUBLE;
+		} else if ((Float.class == type) || (Float.TYPE == type)) {
+			return SimpleType.FLOAT;
+		} else if ((Byte.class == type) || (Byte.TYPE == type)) {
+			return SimpleType.BYTE;
+		} else if ((Short.class == type) || (Short.TYPE == type)) {
+			return SimpleType.SHORT;
+		} else if ((Boolean.class == type) || (Boolean.TYPE == type)) {
+			return SimpleType.BOOLEAN;
+		} else if (BigDecimal.class == type) {
+			return SimpleType.BIGDECIMAL;
+		} else if (BigInteger.class == type) {
+			return SimpleType.BIGINTEGER;
+		} else if ((Character.class == type) || (Character.TYPE == type)) {
+			return SimpleType.CHARACTER;
+		}
+
+		// last fallback to strings
+		if (isConvertibleToString(type)) {
+			return SimpleType.STRING;
+		}
+
+		// give up
+		return null;
+	}
+
 	@Override
 	public Object getAttribute(final String attributeName) throws AttributeNotFoundException, MBeanException, ReflectionException {
 		if (ID.equals(attributeName)) {
@@ -92,7 +126,15 @@ public class MetricSetMBean implements DynamicMBean {
 				final String[] metricAttributeNames = type.keySet().toArray(new String[0]);
 				final Object[] metricValues = new Object[metricAttributeNames.length];
 				for (int i = 0; i < metricValues.length; i++) {
-					metricValues[i] = String.valueOf(rawValues.get(metricAttributeNames[i]));
+					Object rawValue = rawValues.get(metricAttributeNames[i]);
+					// convert if necessary
+					if (null != rawValue) {
+						final OpenType detectedTyp = detectType(rawValue.getClass());
+						if ((SimpleType.STRING == detectedTyp) && !(rawValue instanceof String)) {
+							rawValue = String.valueOf(rawValue);
+						}
+					}
+					metricValues[i] = rawValue;
 				}
 				try {
 					return new CompositeDataSupport(type, metricAttributeNames, metricValues);
@@ -142,12 +184,11 @@ public class MetricSetMBean implements DynamicMBean {
 		final List<String> descriptions = new ArrayList<String>(attributes.size());
 		final List<OpenType> types = new ArrayList<OpenType>(attributes.size());
 		for (final MetricAttribute attribute : attributes) {
-			// at this type we only support types that can be converted to strings
-			final Class type = attribute.getType();
-			if (isConvertibleToString(type)) {
+			final OpenType openType = detectType(attribute.getType());
+			if (null != openType) {
 				names.add(attribute.getName());
 				descriptions.add(attribute.getDescription());
-				types.add(SimpleType.STRING);
+				types.add(openType);
 			}
 		}
 
