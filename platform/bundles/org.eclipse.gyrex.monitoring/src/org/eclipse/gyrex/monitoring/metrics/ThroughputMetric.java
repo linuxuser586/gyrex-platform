@@ -424,9 +424,10 @@ public class ThroughputMetric extends BaseMetric {
 
 	private void updateHitRate() {
 		final long totalRequestProcessed = requestsStatsProcessed + requestsStatsFailed;
-		final long durationSeconds = getStatsSinceTS() / 1000;
-		final long durationMinutes = getStatsSinceTS() / 60000;
-		final long durationHours = getStatsSinceTS() / 3600000;
+		final long duration = System.currentTimeMillis() - getStatsSinceTS();
+		final long durationSeconds = duration / 1000;
+		final long durationMinutes = duration / 60000;
+		final long durationHours = duration / 3600000;
 		requestsStatsHitRatePerSecond = ((durationSeconds == 0) || (totalRequestProcessed == 0)) ? 0 : (totalRequestProcessed / durationSeconds);
 		requestsStatsHitRatePerMinute = ((durationMinutes == 0) || (totalRequestProcessed == 0)) ? 0 : (totalRequestProcessed / durationMinutes);
 		requestsStatsHitRatePerHour = ((durationHours == 0) || (totalRequestProcessed == 0)) ? 0 : (totalRequestProcessed / durationHours);
