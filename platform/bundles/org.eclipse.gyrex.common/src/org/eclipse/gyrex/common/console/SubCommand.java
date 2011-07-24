@@ -1,23 +1,20 @@
-/**
- * Copyright (c) 2011 Gunnar Wagenknecht and others.
+/*******************************************************************************
+ * Copyright (c) 2011 <enter-company-name-here> and others.
  * All rights reserved.
  *
- * This program and the accompanying materials are made available under the terms of the
- * Eclipse Public License v1.0 which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
  * Contributors:
- *     Gunnar Wagenknecht - initial API and implementation
- */
+ *     <enter-developer-name-here> - initial API and implementation
+ *******************************************************************************/
 package org.eclipse.gyrex.common.console;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
-import org.eclipse.osgi.framework.console.CommandInterpreter;
-import org.eclipse.osgi.framework.console.CommandProvider;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -26,33 +23,32 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 /**
- * Base class for command providers executing {@link Command commands}.
+ * Base class for commands which contain other commands.
  */
-public abstract class BaseCommandProvider implements CommandProvider {
+public abstract class SubCommand extends Command {
 
-	final private Map<String, Class<? extends Command>> commands = new TreeMap<String, Class<? extends Command>>();
+	final Map<String, Class<? extends Command>> commands = new TreeMap<String, Class<? extends Command>>();
 
-	/**
-	 * allows to enable or disable printing of stack traces (default is
-	 * <code>false</code>)
-	 */
-	protected boolean printStackTraces = false;
+	private final String name;
 
 	/**
-	 * Parses the command line to find a command and executes it.
-	 * <p>
-	 * Prints a list of registered commands including their description if an
-	 * invalid or no command was specified.
-	 * </p>
-	 * <p>
-	 * Prints the command usage info if the command fails parsing the command
-	 * line.
-	 * </p>
+	 * Creates a new instance.
 	 * 
-	 * @param ci
-	 *            the Equinox console command interpreter
+	 * @param name
+	 *            the command name, i.e. the name under which the sub command is
+	 *            registered with the provider/parent command and shall be
+	 *            invoked from the console
 	 */
-	protected final void execute(final CommandInterpreter ci) {
+	public SubCommand(final String name) {
+		super("<cmd> [args]");
+		this.name = name;
+		if (StringUtils.isBlank(name)) {
+			throw new IllegalArgumentException("command name must not be null");
+		}
+	}
+
+	@Override
+	protected final void doExecute() throws Exception {
 		final String command = ci.nextArgument();
 		if (StringUtils.isBlank(command)) {
 			ci.println("ERROR: Missing command name!");
@@ -106,19 +102,15 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			cmd.execute(ci);
 		} catch (final Exception e) {
 			ci.println("ERROR: " + ExceptionUtils.getRootCauseMessage(e));
-			if (printStackTraces) {
-				ci.printStackTrace(e);
-			}
 		}
 	}
 
 	/**
-	 * Returns the command name, i.e. the name of the public method that the
-	 * Equinox command interpreter will invoke (without leading '_').
-	 * 
 	 * @return the command name
 	 */
-	protected abstract String getCommandName();
+	protected final String getCommandName() {
+		return name;
+	}
 
 	/**
 	 * Answer a string (may be as many lines as you like) with help texts that
@@ -130,12 +122,29 @@ public abstract class BaseCommandProvider implements CommandProvider {
 	 * 
 	 * @see org.eclipse.osgi.framework.console.CommandProvider#getHelp()
 	 */
-	@Override
 	public String getHelp() {
 		final StrBuilder help = new StrBuilder(512);
 		help.append("---").append(getClass().getSimpleName()).appendln("---");
-		final String commandName = getCommandName();
-		CommandUtil.appendCommandInfo(help, commandName, commands, "\t");
+		help.append("\t").append(getCommandName()).appendln(" <cmd> [args]");
+		for (final String name : commands.keySet()) {
+			try {
+				help.append("\t\t").append(name);
+				final Command command = commands.get(name).newInstance();
+//				final CmdLineParser parser = new CmdLineParser(command);
+				final String description = command.getDescription();
+				if (!StringUtils.contains(description, " - ")) {
+					help.append(" - ");
+				} else if (!StringUtils.startsWith(description, " ")) {
+					help.append(' ');
+				}
+				help.appendln(description);
+//				help.append("\t\t\t");
+//				parser.printSingleLineUsage(help.asWriter(), null);
+//				help.appendNewLine();
+			} catch (final Exception e) {
+				help.append("\t\t").append(name).append(" - ").appendln(ExceptionUtils.getRootCauseMessage(e));
+			}
+		}
 		return help.toString();
 	}
 
@@ -154,7 +163,7 @@ public abstract class BaseCommandProvider implements CommandProvider {
 	}
 
 	/**
-	 * Registers a command
+	 * Registers a sub command
 	 * 
 	 * @param name
 	 *            the command name
@@ -166,11 +175,12 @@ public abstract class BaseCommandProvider implements CommandProvider {
 	}
 
 	/**
-	 * Unregisters a command
+	 * Unregisters a sub command
 	 * 
 	 * @param name
 	 */
 	protected final void unregisterCommand(final String name) {
 		commands.remove(name);
 	}
+
 }
