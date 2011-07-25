@@ -77,9 +77,14 @@ public class SchedulingJob implements Job {
 
 			final IJobManager jobManager = runtimeContext.get(IJobManager.class);
 
-			// create job if necessary
+			// (re-)create job if necessary
 			IJob job = jobManager.getJob(jobId);
 			if (job == null) {
+				job = jobManager.createJob(jobTypeId, jobId, parameter);
+			} else if (!job.getParameter().equals(parameter)) {
+				// parameter don't match, remove and re-create it
+				LOG.info("Re-creating job configuration parameter for job {} because they have been updated in the schedule.", job.getId());
+				jobManager.removeJob(jobId);
 				job = jobManager.createJob(jobTypeId, jobId, parameter);
 			}
 
