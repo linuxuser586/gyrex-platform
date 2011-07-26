@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.worker;
 
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.IJob;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.manager.IJobStateWatch;
@@ -21,10 +22,15 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
 
+import org.slf4j.MDC;
+
 /**
  * Synchronizes Gyrex Job state with Eclipse Jobs state.
  */
 public final class JobStateSynchronizer implements IJobChangeListener, IJobStateWatch {
+
+	private static final String MDC_KEY_CONTEXT_PATH = "gyrex.contextPath";
+	private static final String MDC_KEY_JOB_ID = "gyrex.jobId";
 
 	private final Job realJob;
 	private final JobContext jobContext;
@@ -63,13 +69,14 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void done(final IJobChangeEvent event) {
-		final JobManagerImpl jobManager = getJobManager();
+		// clear the whole MDC (the assumption is that we are the last relevant SLF4J code)
+		MDC.clear();
 
 		// update job state
-		jobManager.setJobState(getJobId(), null, JobState.NONE, null);
+		getJobManager().setJobState(getJobId(), null, JobState.NONE, null);
 
 		// update job with result
-		jobManager.setResult(getJobId(), event.getResult(), System.currentTimeMillis());
+		getJobManager().setResult(getJobId(), event.getResult(), System.currentTimeMillis());
 	}
 
 	private String getJobId() {
@@ -77,7 +84,11 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	}
 
 	JobManagerImpl getJobManager() {
-		return (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
+		return (JobManagerImpl) getRuntimeContext().get(IJobManager.class);
+	}
+
+	private IRuntimeContext getRuntimeContext() {
+		return jobContext.getContext();
 	}
 
 	@Override
@@ -91,10 +102,12 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void running(final IJobChangeEvent event) {
-		final JobManagerImpl jobManager = getJobManager();
-
 		// set job state running
-		jobManager.setJobState(getJobId(), JobState.WAITING, JobState.RUNNING, this);
+		getJobManager().setJobState(getJobId(), JobState.WAITING, JobState.RUNNING, this);
+
+		// setup MDC
+		MDC.put(MDC_KEY_JOB_ID, getJobId());
+		MDC.put(MDC_KEY_CONTEXT_PATH, getRuntimeContext().getContextPath().toString());
 	}
 
 	@Override
