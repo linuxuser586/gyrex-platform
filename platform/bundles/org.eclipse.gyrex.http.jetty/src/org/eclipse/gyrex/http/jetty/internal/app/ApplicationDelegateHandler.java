@@ -46,6 +46,13 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 	private static final String MDC_KEY_CONTEXT_PATH = "gyrex.contextPath";
 	private static final String MDC_KEY_APPLICATION_ID = "gyrex.applicationId";
 
+	private static final String MDC_KEY_REQUEST_REMOTE_HOST = "req.remoteHost"; // same as Logback
+	private static final String MDC_KEY_REQUEST_USER_AGENT_MDC_KEY = "req.userAgent"; // same as Logback
+	private static final String MDC_KEY_REQUEST_REQUEST_URI = "req.requestURI"; // same as Logback
+	private static final String MDC_KEY_REQUEST_REQUEST_URL = "req.requestURL"; // same as Logback
+	private static final String MDC_KEY_REQUEST_QUERY_STRING = "req.queryString"; // same as Logback
+	private static final String MDC_KEY_REQUEST_X_FORWARDED_FOR = "req.xForwardedFor"; // same as Logback
+
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationDelegateHandler.class);
 
 	private final ApplicationHandler applicationHandler;
@@ -57,9 +64,20 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 		this.applicationHandler = applicationHandler;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.jetty.server.handler.ScopedHandler#doHandle(java.lang.String, org.eclipse.jetty.server.Request, javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
-	 */
+	private void clearMdc() {
+		// clear application specific information
+		MDC.remove(MDC_KEY_APPLICATION_ID);
+		MDC.remove(MDC_KEY_CONTEXT_PATH);
+
+		// clear general request information
+		MDC.remove(MDC_KEY_REQUEST_REMOTE_HOST);
+		MDC.remove(MDC_KEY_REQUEST_REQUEST_URI);
+		MDC.remove(MDC_KEY_REQUEST_QUERY_STRING);
+		MDC.remove(MDC_KEY_REQUEST_REQUEST_URL);
+		MDC.remove(MDC_KEY_REQUEST_USER_AGENT_MDC_KEY);
+		MDC.remove(MDC_KEY_REQUEST_X_FORWARDED_FOR);
+	}
+
 	@Override
 	public void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
 		nextHandle(target, baseRequest, request, response);
@@ -93,8 +111,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			final Application application = applicationHandler.getApplication();
 
 			// setup MDC
-			MDC.put(MDC_KEY_APPLICATION_ID, application.getId());
-			MDC.put(MDC_KEY_CONTEXT_PATH, application.getContext().getContextPath().toString());
+			setupMdc(application, request);
 
 			// route to application
 			if (JettyDebug.handlers) {
@@ -139,8 +156,8 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			}
 			throw e;
 		} finally {
-			// clear the whole MDC (the assumption is that we are the last relevant SLF4J code)
-			MDC.clear();
+			// clear the MDC
+			clearMdc();
 		}
 
 		// mark the request handled (if this point is reached)
@@ -184,6 +201,23 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			throw new ApplicationException(e);
 		}
 		return baseRequest.isHandled();
+	}
+
+	private void setupMdc(final Application application, final HttpServletRequest request) {
+		// application specific information
+		MDC.put(MDC_KEY_APPLICATION_ID, application.getId());
+		MDC.put(MDC_KEY_CONTEXT_PATH, application.getContext().getContextPath().toString());
+
+		// general request information
+		MDC.put(MDC_KEY_REQUEST_REMOTE_HOST, request.getRemoteHost());
+		MDC.put(MDC_KEY_REQUEST_REQUEST_URI, request.getRequestURI());
+		final StringBuffer requestURL = request.getRequestURL();
+		if (requestURL != null) {
+			MDC.put(MDC_KEY_REQUEST_REQUEST_URL, requestURL.toString());
+		}
+		MDC.put(MDC_KEY_REQUEST_QUERY_STRING, request.getQueryString());
+		MDC.put(MDC_KEY_REQUEST_USER_AGENT_MDC_KEY, request.getHeader("User-Agent"));
+		MDC.put(MDC_KEY_REQUEST_X_FORWARDED_FOR, request.getHeader("X-Forwarded-For"));
 	}
 
 	@Override
