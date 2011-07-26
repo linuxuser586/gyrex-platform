@@ -69,8 +69,9 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void done(final IJobChangeEvent event) {
-		// clear the whole MDC (the assumption is that we are the last relevant SLF4J code)
-		MDC.clear();
+		// clear the MDC
+		MDC.remove(MDC_KEY_JOB_ID);
+		MDC.remove(MDC_KEY_CONTEXT_PATH);
 
 		// update job state
 		getJobManager().setJobState(getJobId(), null, JobState.NONE, null);
