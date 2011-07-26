@@ -67,11 +67,15 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		}
 	}
 
+	private void clearMdc() {
+		MDC.remove(MDC_KEY_JOB_ID);
+		MDC.remove(MDC_KEY_CONTEXT_PATH);
+	}
+
 	@Override
 	public void done(final IJobChangeEvent event) {
 		// clear the MDC
-		MDC.remove(MDC_KEY_JOB_ID);
-		MDC.remove(MDC_KEY_CONTEXT_PATH);
+		clearMdc();
 
 		// update job state
 		getJobManager().setJobState(getJobId(), null, JobState.NONE, null);
@@ -107,13 +111,17 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		getJobManager().setJobState(getJobId(), JobState.WAITING, JobState.RUNNING, this);
 
 		// setup MDC
-		MDC.put(MDC_KEY_JOB_ID, getJobId());
-		MDC.put(MDC_KEY_CONTEXT_PATH, getRuntimeContext().getContextPath().toString());
+		setupMdc();
 	}
 
 	@Override
 	public void scheduled(final IJobChangeEvent event) {
 		// we're not interested at the moment - job state is waiting
+	}
+
+	private void setupMdc() {
+		MDC.put(MDC_KEY_JOB_ID, getJobId());
+		MDC.put(MDC_KEY_CONTEXT_PATH, getRuntimeContext().getContextPath().toString());
 	}
 
 	@Override
