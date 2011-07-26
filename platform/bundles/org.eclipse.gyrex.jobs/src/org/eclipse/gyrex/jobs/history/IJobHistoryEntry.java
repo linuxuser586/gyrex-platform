@@ -24,8 +24,8 @@ import org.eclipse.core.runtime.IStatus;
  * </p>
  * <p>
  * Job history entries implement the {@link Comparable} interface based on
- * {@link #getTimeStamp()} in reverse order, i.e. the latest entry appears
- * first.
+ * {@link #getTimeStamp()} in reverse order, i.e. a more recent (aka. "later")
+ * entry is less then an earlier (aka. "older") entry.
  * </p>
  * 
  * @see IStatus

@@ -37,12 +37,12 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 	public int compareTo(final IJobHistoryEntry o) {
 		final long otherTimeStamp = o.getTimeStamp();
 		if (otherTimeStamp > timestamp) {
-			// other timestamp is greater --> we are less
-			return -1;
+			// other timestamp is greater --> we are are older and greater
+			return 1;
 		}
 		if (otherTimeStamp < timestamp) {
-			// other timestamp is less --> we are greater
-			return 1;
+			// other timestamp is less --> we are newer and less
+			return -1;
 		}
 		// timestamp are equals
 
@@ -51,7 +51,8 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 			return result.compareTo(o.getResult());
 		} else {
 			// severity is different
-			return getSeverity() > o.getSeverity() ? 1 : -1;
+			// a higher severity also makes this item less so that it appears earlier then others
+			return getSeverity() > o.getSeverity() ? -1 : 1;
 		}
 	}
 
