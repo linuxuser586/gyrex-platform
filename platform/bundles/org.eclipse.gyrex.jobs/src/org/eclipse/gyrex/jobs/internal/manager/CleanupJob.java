@@ -55,8 +55,7 @@ final class CleanupJob extends Job {
 	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(CleanupJob.class);
-
-	private static final long MAX_JOB_AGE = TimeUnit.DAYS.toMillis(2);
+	private final long maxAge;
 
 	/**
 	 * Creates a new instance.
@@ -68,6 +67,14 @@ final class CleanupJob extends Job {
 		setSystem(true);
 		setPriority(LONG);
 		setRule(new MutexRule(CleanupJob.class));
+
+		// initialize max age
+		final int maxDaysSinceLastRun = Integer.getInteger("gyrex.jobs.cleanup.maxDaysSinceLastRun", 30);
+		if (maxDaysSinceLastRun > 0) {
+			maxAge = TimeUnit.DAYS.toMillis(maxDaysSinceLastRun);
+		} else {
+			maxAge = Long.MAX_VALUE;
+		}
 	}
 
 	@Override
@@ -80,7 +87,7 @@ final class CleanupJob extends Job {
 			for (final String internalId : childrenNames) {
 				final String externalId = JobManagerImpl.getExternalId(internalId);
 				final JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
-				if ((job.getState() != JobState.NONE) || ((now - job.getLastResultTimestamp()) < MAX_JOB_AGE)) {
+				if ((job.getState() != JobState.NONE) || ((now - job.getLastResultTimestamp()) < maxAge)) {
 					continue;
 				}
 
