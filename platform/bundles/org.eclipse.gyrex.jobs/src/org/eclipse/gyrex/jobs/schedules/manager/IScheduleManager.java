@@ -77,10 +77,7 @@ public interface IScheduleManager {
 	 * applied.
 	 * 
 	 * @param copy
-	 * @throws IllegalStateException
-	 *             when the given schedule is {@link ISchedule#isEnabled()
-	 *             enabled}
 	 */
-	void updateSchedule(IScheduleWorkingCopy copy) throws IllegalStateException;
+	void updateSchedule(IScheduleWorkingCopy copy);
 
 }
