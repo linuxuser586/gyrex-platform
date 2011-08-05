@@ -166,6 +166,10 @@ public class ScheduleManagerImpl implements IScheduleManager {
 			throw new IllegalArgumentException("invalid working copy, must be obtained from this manager");
 		}
 
+		if (copy.isEnabled()) {
+			throw new IllegalStateException("schedule must not be enabled");
+		}
+
 		final ScheduleImpl scheduleImpl = (ScheduleImpl) copy;
 		final String internalId = toInternalId(scheduleImpl.getId());
 		try {
