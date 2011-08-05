@@ -13,11 +13,15 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.internal;
 
+import java.util.Collection;
+
 import org.eclipse.gyrex.persistence.solr.config.ISolrRepositoryConfigurer;
 import org.eclipse.gyrex.persistence.solr.config.SolrServerType;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryDefinition;
 
 import org.osgi.service.prefs.BackingStoreException;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * {@link ISolrRepositoryConfigurer} impl
@@ -47,6 +51,33 @@ public class SolrRepositoryConfigurer implements ISolrRepositoryConfigurer {
 			repositoryDefinition.getRepositoryPreferences().put(SolrRepositoryProvider.PREF_KEY_SERVER_URL, serverUrl, false);
 		} else {
 			repositoryDefinition.getRepositoryPreferences().remove(SolrRepositoryProvider.PREF_KEY_SERVER_URL);
+		}
+	}
+
+	@Override
+	public void setUrls(final String masterUrl, final Collection<String> replicaUrls) throws IllegalArgumentException {
+		if (StringUtils.isBlank(masterUrl)) {
+			throw new IllegalArgumentException("master url must not be null");
+		}
+		if ((null == replicaUrls) || replicaUrls.isEmpty()) {
+			throw new IllegalArgumentException("at least on replica url must be specified");
+		}
+
+		// set server type
+		repositoryDefinition.getRepositoryPreferences().put(SolrRepositoryProvider.PREF_KEY_SERVER_TYPE, SolrServerType.REMOTE.toString(), false);
+
+		// store master url
+		repositoryDefinition.getRepositoryPreferences().put(SolrRepositoryProvider.PREF_KEY_SERVER_URL, masterUrl, false);
+
+		// remove all existing replica urls and set new once
+		int pos = 0;
+		repositoryDefinition.getRepositoryPreferences().remove(SolrRepositoryProvider.PREF_KEY_SERVER_READ_URLS);
+		for (final String replicaUrl : replicaUrls) {
+			if (StringUtils.isBlank(replicaUrl)) {
+				throw new IllegalArgumentException("invalid blank replica url found ");
+			}
+			repositoryDefinition.getRepositoryPreferences().put(SolrRepositoryProvider.PREF_KEY_SERVER_READ_URLS + "//" + pos, replicaUrl, false);
+			pos++;
 		}
 	}
 }

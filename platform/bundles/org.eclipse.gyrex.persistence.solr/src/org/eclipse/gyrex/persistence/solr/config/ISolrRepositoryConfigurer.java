@@ -13,6 +13,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.solr.config;
 
+import java.util.Collection;
+
 import org.eclipse.gyrex.persistence.solr.ISolrRepositoryConstants;
 import org.eclipse.gyrex.persistence.solr.SolrServerRepository;
 import org.eclipse.gyrex.persistence.storage.registry.IRepositoryDefinition;
@@ -52,4 +54,23 @@ public interface ISolrRepositoryConfigurer {
 	 *             if any of the parameters is invalid
 	 */
 	void setProperties(SolrServerType serverType, String serverUrl) throws IllegalArgumentException;
+
+	/**
+	 * Configures a new {@link SolrServerRepository} connecting to remote
+	 * servers and sending writes to the master URL and load-balancing reads
+	 * across the replica URLs.
+	 * <p>
+	 * The server type will be {@link SolrServerType#REMOTE}.
+	 * </p>
+	 * 
+	 * @param masterUrl
+	 *            the master url of the Solr core which should receive all write
+	 *            requests (must not be <code>null</code>)
+	 * @param replicaUrls
+	 *            a list of replicas which should receive read requests (must
+	 *            not be <code>null</code> or empty)
+	 * @throws IllegalArgumentException
+	 *             if any of the parameters is invalid
+	 */
+	void setUrls(String masterUrl, Collection<String> replicaUrls) throws IllegalArgumentException;
 }

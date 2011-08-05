@@ -10,6 +10,7 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Import-Package: org.apache.commons.io;version="[1.4.0,3.0.0)",
  org.apache.commons.lang;version="[2.4.0,3.0.0)",
  org.apache.commons.lang.exception;version="[2.4.0,3.0.0)",
+ org.apache.commons.lang.math;version="[2.4.0,3.0.0)",
  org.apache.commons.lang.text;version="[2.4.0,3.0.0)",
  org.apache.solr.client.solrj;version="1.4.0",
  org.apache.solr.client.solrj.embedded;version="1.4.0",
