@@ -99,7 +99,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 	private final Lock childrenModifyLock = new ReentrantLock();
 
 	/** prevent concurrent modifications of properties */
-	private final Lock propertiesLoadOrSaveLock = new ReentrantLock();
+	private final Lock propertiesModificationLock = new ReentrantLock();
 
 	private final ZooKeeperMonitor monitor = new ZooKeeperMonitor() {
 
@@ -689,7 +689,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 		final List<PreferenceChangeEvent> events = new ArrayList<PreferenceChangeEvent>();
 
 		// prevent concurrent property modification (eg. remote _and_ local flush)
-		propertiesLoadOrSaveLock.lock();
+		propertiesModificationLock.lock();
 		try {
 			if (removed) {
 				return;
@@ -771,7 +771,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 				LOG.debug("Loaded properties for node {} (now at version {})", this, propertiesVersion);
 			}
 		} finally {
-			propertiesLoadOrSaveLock.unlock();
+			propertiesModificationLock.unlock();
 		}
 
 		// fire events outside of lock
@@ -910,8 +910,22 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 			LOG.debug("[PUT] {} - {}: {}", new Object[] { this, key, value });
 		}
 
-		properties.setProperty(key, value);
-		propertiesDirty = true;
+		// prevent concurrent property modification (eg. remote _and_ local flush)
+		propertiesModificationLock.lock();
+		try {
+			if (value.equals(properties.setProperty(key, value))) {
+				// had been update concurrently to the same value
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("[PUT] Aborted due to concurrent modification to the same value. {} - {}", new Object[] { this, key });
+				}
+				return;
+			}
+			propertiesDirty = true;
+		} finally {
+			propertiesModificationLock.unlock();
+		}
+
+		// fire change event outside of lock
 		firePreferenceEvent(new PreferenceChangeEvent(this, key, oldValue, value));
 	}
 
@@ -979,8 +993,22 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 			LOG.debug("[REMOVE] {} - {}", new Object[] { this, key });
 		}
 
-		properties.remove(key);
-		propertiesDirty = true;
+		// prevent concurrent property modification (eg. remote _and_ local flush)
+		propertiesModificationLock.lock();
+		try {
+			if (null == properties.remove(key)) {
+				// had been removed concurrently
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("[REMOVE] Aborted due to concurrent removal. {} - {}", new Object[] { this, key });
+				}
+				return;
+			}
+			propertiesDirty = true;
+		} finally {
+			propertiesModificationLock.unlock();
+		}
+
+		// fire change event outside of lock
 		firePreferenceEvent(new PreferenceChangeEvent(this, key, oldValue, null));
 	}
 
@@ -1104,7 +1132,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 		}
 
 		// prevent concurrent property modification (eg. remote _and_ local flush)
-		propertiesLoadOrSaveLock.lock();
+		propertiesModificationLock.lock();
 		try {
 			if (removed) {
 				return;
@@ -1112,9 +1140,8 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 
 			// collect properties to save
 			final Properties toSave = new SortedProperties();
-			final Set<Object> keys = properties.keySet();
-			for (final Object key : keys) {
-				final Object value = properties.get(key);
+			for (final String key : properties.stringPropertyNames()) {
+				final String value = properties.getProperty(key);
 				if (value != null) {
 					toSave.put(key, value);
 				}
@@ -1137,7 +1164,7 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 			}
 
 		} finally {
-			propertiesLoadOrSaveLock.unlock();
+			propertiesModificationLock.unlock();
 		}
 	}
 
