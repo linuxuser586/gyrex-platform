@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?><!--    Copyright (c) 2010 AGETO Service GmbH and others.    All rights reserved.    This program and the accompanying materials are made available under the    terms of the Eclipse Public License v1.0 which accompanies this distribution,    and is available at http://www.eclipse.org/legal/epl-v10.html.    Contributors:        Gunnar Wagenknecht - initial API and implementation --><scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="false" name="org.eclipse.gyrex.persistence.context.preferences.repository.type">
-   <implementation class="org.eclipse.gyrex.persistence.context.preferences.internal.ContextPreferencesRepositoryType"/>
-   <service>
-      <provide interface="org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider"/>
-   </service>
-   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
-   <property name="service.description" type="String" value="Repository storing objects in context preferences."/>   <reference bind="setContextRegistry" cardinality="1..1" interface="org.eclipse.gyrex.context.registry.IRuntimeContextRegistry" name="IRuntimeContextRegistry" policy="static"/>
-</scr:component>
