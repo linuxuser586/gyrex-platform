@@ -23,6 +23,8 @@ import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 import org.osgi.service.prefs.BackingStoreException;
 
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
@@ -68,7 +70,13 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 	}
 
 	private SolrServer createLoadBalancedReadServer(final String[] readUrls) throws MalformedURLException {
-		final LBHttpSolrServer solrServerForRead = new LBHttpSolrServer(readUrls);
+		// need to set some better defaults (to mimic what's in CommonsHttpSolrServer)
+		final MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
+		connectionManager.getParams().setDefaultMaxConnectionsPerHost(128);
+		connectionManager.getParams().setMaxTotalConnections(128 * readUrls.length);
+
+		// create load balancing server
+		final LBHttpSolrServer solrServerForRead = new LBHttpSolrServer(new HttpClient(connectionManager), readUrls);
 		solrServerForRead.setConnectionTimeout(1000);
 		solrServerForRead.setConnectionManagerTimeout(1000);
 		solrServerForRead.setSoTimeout(5000);
