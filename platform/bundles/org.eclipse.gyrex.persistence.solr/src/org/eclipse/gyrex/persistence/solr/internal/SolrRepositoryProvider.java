@@ -72,8 +72,8 @@ public class SolrRepositoryProvider extends RepositoryProvider {
 	private SolrServer createLoadBalancedReadServer(final String[] readUrls) throws MalformedURLException {
 		// need to set some better defaults (to mimic what's in CommonsHttpSolrServer)
 		final MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
-		connectionManager.getParams().setDefaultMaxConnectionsPerHost(128);
-		connectionManager.getParams().setMaxTotalConnections(128 * readUrls.length);
+		connectionManager.getParams().setDefaultMaxConnectionsPerHost(200);
+		connectionManager.getParams().setMaxTotalConnections(200 * readUrls.length);
 
 		// create load balancing server
 		final LBHttpSolrServer solrServerForRead = new LBHttpSolrServer(new HttpClient(connectionManager), readUrls);
