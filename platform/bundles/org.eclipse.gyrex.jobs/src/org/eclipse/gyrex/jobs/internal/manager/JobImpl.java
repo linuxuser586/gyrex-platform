@@ -55,11 +55,7 @@ public class JobImpl implements IJob {
 		return id;
 	}
 
-	/**
-	 * Returns the lastResult.
-	 * 
-	 * @return the lastResult
-	 */
+	@Override
 	public IStatus getLastResult() {
 		return lastResult;
 	}
