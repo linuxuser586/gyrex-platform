@@ -40,6 +40,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	private static final String CRON_EXPRESSION = "cronExpression";
 
 	private final String id;
+	private final String scheduleId;
 
 	private String cronExpression;
 	private String jobTypeId;
@@ -49,8 +50,10 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	 * Creates a new instance.
 	 * 
 	 * @param id
+	 * @param scheduleId
 	 */
-	public ScheduleEntryImpl(final String id) {
+	public ScheduleEntryImpl(final String id, final String scheduleId) {
+		this.scheduleId = scheduleId;
 		if (!IdHelper.isValidId(id)) {
 			throw new IllegalArgumentException("invalid entry id");
 		}
@@ -69,7 +72,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	@Override
 	public String getJobId() {
-		return jobTypeId.concat(".").concat(id);
+		return scheduleId.concat("__entry__").concat(id);
 	}
 
 	@Override

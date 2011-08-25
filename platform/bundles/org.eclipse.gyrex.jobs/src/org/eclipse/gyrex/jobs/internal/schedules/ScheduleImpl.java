@@ -84,7 +84,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 			throw new IllegalStateException(String.format("entry '%s' already exists", entryId));
 		}
 
-		final ScheduleEntryImpl entry = new ScheduleEntryImpl(entryId);
+		final ScheduleEntryImpl entry = new ScheduleEntryImpl(entryId, id);
 		entriesById.put(entryId, entry);
 		return entry;
 	}
@@ -176,13 +176,13 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		}
 		timeZone = TimeZone.getTimeZone(node.get(TIME_ZONE, "GMT"));
 
-		final Preferences jobs = getEntriesNode();
-		final String[] childrenNames = jobs.childrenNames();
+		final Preferences entries = getEntriesNode();
+		final String[] childrenNames = entries.childrenNames();
 		entriesById = new HashMap<String, ScheduleEntryImpl>(childrenNames.length);
-		for (final String jobName : childrenNames) {
-			final ScheduleEntryImpl entryImpl = new ScheduleEntryImpl(jobName);
-			entryImpl.load(jobs.node(jobName));
-			entriesById.put(jobName, entryImpl);
+		for (final String entryId : childrenNames) {
+			final ScheduleEntryImpl entryImpl = new ScheduleEntryImpl(entryId, id);
+			entryImpl.load(entries.node(entryId));
+			entriesById.put(entryId, entryImpl);
 		}
 
 		return this;

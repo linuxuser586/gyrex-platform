@@ -13,6 +13,9 @@ package org.eclipse.gyrex.jobs.schedules;
 
 import java.util.Map;
 
+import org.eclipse.gyrex.jobs.IJob;
+import org.eclipse.gyrex.jobs.manager.IJobManager;
+
 /**
  * An entry in a {@link ISchedule} with run information for jobs.
  */
@@ -28,22 +31,35 @@ public interface IScheduleEntry {
 	String getCronExpression();
 
 	/**
-	 * @return
+	 * Returns the id of the schedule entry.
+	 * 
+	 * @return the schedule entry id
 	 */
 	String getId();
 
 	/**
-	 * @return jobTypeId + '.' + scheduleEntryId
+	 * Returns the id that will be used when generating the {@link IJob job}.
+	 * <p>
+	 * The generated id will consist of the {@link #getId() entry id} prefixed
+	 * with the {@link ISchedule#getId() schedule id}. This allows to track
+	 * execution of the job through the regular {@link IJobManager} API.
+	 * </p>
+	 * 
+	 * @return the {@link IJob#getId() job id}
 	 */
 	String getJobId();
 
 	/**
-	 * @return
+	 * Returns the parameter for the {@link IJob job}.
+	 * 
+	 * @return the job parameter
 	 */
 	Map<String, String> getJobParameter();
 
 	/**
-	 * @return
+	 * Returns the id of the job type
+	 * 
+	 * @return the job type id
 	 */
 	String getJobTypeId();
 
