@@ -161,7 +161,7 @@ public class ApplicationHandler extends ServletContextHandler {
 		 *
 		 * This method is overridden to customize the path handling.
 		 *
-		 * Normally, a ContextHandler has a context path. However, the ApplicationContextHandler
+		 * Normally, a ContextHandler has a context path. However, the ApplicationHandler
 		 * must inherit the context path from the calling ApplicationHandlerCollection because
 		 * it changes depending on the incoming url.
 		 *
