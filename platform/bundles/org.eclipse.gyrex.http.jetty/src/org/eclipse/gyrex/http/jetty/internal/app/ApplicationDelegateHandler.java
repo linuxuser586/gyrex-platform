@@ -24,6 +24,7 @@ import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ScopedHandler;
@@ -112,6 +113,20 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 
 			// setup MDC
 			setupMdc(application, request);
+
+			// check application status
+			final IStatus status = application.getStatus();
+			if (!status.isOK()) {
+				// abort request processing
+				final String message = StringUtils.defaultIfEmpty(status.getMessage(), "Application not ready.");
+				// we convert it into UnavailableException
+				if (Platform.inDebugMode()) {
+					Log.warn("Application '{}' returned a not-ok status: {}", new Object[] { application.getId(), status });
+					throw new UnavailableException(message, 5);
+				} else {
+					throw new UnavailableException(message, 30); // TODO make configurable
+				}
+			}
 
 			// route to application
 			if (JettyDebug.handlers) {
