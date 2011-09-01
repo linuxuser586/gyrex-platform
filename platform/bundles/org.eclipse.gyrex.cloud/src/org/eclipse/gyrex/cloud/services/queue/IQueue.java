@@ -104,6 +104,13 @@ public interface IQueue {
 	boolean deleteMessage(IMessage message) throws IllegalArgumentException, IllegalStateException, SecurityException, NoSuchElementException;
 
 	/**
+	 * Returns the unique identifier of the queue.
+	 * 
+	 * @return the queue id (never <code>null</code>)
+	 */
+	String getId();
+
+	/**
 	 * Receives one or more available messages from the queue.
 	 * <p>
 	 * Less messages may be returned than requested. If no messages are

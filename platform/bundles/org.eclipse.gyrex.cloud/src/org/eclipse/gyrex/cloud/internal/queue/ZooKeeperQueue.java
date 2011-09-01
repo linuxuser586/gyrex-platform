@@ -131,6 +131,11 @@ public class ZooKeeperQueue implements IQueue {
 		return ((Message) message).delete(true);
 	}
 
+	@Override
+	public String getId() {
+		return id;
+	}
+
 	/**
 	 * Returns the receive message timeout either from the specified properties
 	 * or the queue default
@@ -283,6 +288,13 @@ public class ZooKeeperQueue implements IQueue {
 			}
 			throw new QueueOperationFailedException(id, "SEND_MESSAGES", e);
 		}
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("ZooKeeperQueue [").append(id).append(" @ ").append(queuePath).append("]");
+		return builder.toString();
 	}
 
 }
