@@ -430,6 +430,8 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 					// and save an empty properties
 					propertiesDirty = true;
 
+					// REMINDER: this is duplicated in #syncTree
+
 					// done
 					return;
 				}
@@ -624,44 +626,72 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 
 			// get list of children
 			final Stat stat = new Stat();
-			final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(zkPath, monitor, stat);
+			try {
+				final Collection<String> childrenNames = ZooKeeperGate.get().readChildrenNames(zkPath, monitor, stat);
 
-			// don't load properties if version is in the past
-			if (!forceSyncWithRemoteVersion && (childrenVersion >= stat.getCversion())) {
-				if (CloudDebug.zooKeeperPreferences) {
-					LOG.debug("Not updating children of node {} - local cversion ({}) >= ZooKeeper cversion ({})", new Object[] { this, childrenVersion, stat.getCversion() });
+				// don't load properties if version is in the past
+				if (!forceSyncWithRemoteVersion && (childrenVersion >= stat.getCversion())) {
+					if (CloudDebug.zooKeeperPreferences) {
+						LOG.debug("Not updating children of node {} - local cversion ({}) >= ZooKeeper cversion ({})", new Object[] { this, childrenVersion, stat.getCversion() });
+					}
+					return;
 				}
-				return;
-			}
-			childrenVersion = stat.getCversion();
+				childrenVersion = stat.getCversion();
 
-			// process nodes
-			for (final String name : childrenNames) {
-				// detect added nodes
-				if (!children.containsKey(name)) {
-					// does not exist locally, assume added in ZooKeeper
-					final ZooKeeperBasedPreferences child = newChild(name);
-					children.put(name, child);
-					addedNodes.add(child);
+				// process nodes
+				for (final String name : childrenNames) {
+					// detect added nodes
+					if (!children.containsKey(name)) {
+						// does not exist locally, assume added in ZooKeeper
+						final ZooKeeperBasedPreferences child = newChild(name);
+						children.put(name, child);
+						addedNodes.add(child);
+					}
+
+					// handle delete conflicts
+					if (pendingChildRemovals.contains(name)) {
+						// does exists locally as well as in ZooKeeper *and* is marked for deletion but not flushed
+						// in any case, remote events win, i.e. if a node is deleted locally but not flushed
+						// and then ZooKeeper triggered a children change, the local delete likely is stale
+						// this can happen on concurrent edits,
+						// another example is a local edit followed by a local reload/sync
+						// not sure how we would handle this case more gracefully other then relying on the cversion
+						pendingChildRemovals.remove(name);
+					}
+
+					// TODO: investigate remote delete handling
+					/*
+					 * Currently, remote deletes are discovered via monitor#pathDeleted. This removes the node
+					 * but also adds it to "pendingChildRemovals" list. We might need to rework that so that we
+					 * don't rely on "pathDeleted" ZK events but on "childrenChanged".
+					 */
+				}
+			} catch (final NoNodeException e) {
+				// the node does not exist in ZooKeeper
+				if (!forceSyncWithRemoteVersion) {
+					// no sync forced, thus we'll keep all the existing modifications and abort here
+					if (CloudDebug.zooKeeperPreferences) {
+						LOG.debug("Not updating children of node {} - node does not exist in ZooKeeper ({})", new Object[] { this, childrenVersion, e.getMessage() });
+					}
+					return;
 				}
 
-				// handle delete conflicts
-				if (pendingChildRemovals.contains(name)) {
-					// does exists locally as well as in ZooKeeper *and* is marked for deletion but not flushed
-					// in any case, remote events win, i.e. if a node is deleted locally but not flushed
-					// and then ZooKeeper triggered a children change, the local delete likely is stale
-					// this can happen on concurrent edits,
-					// another example is a local edit followed by a local reload/sync
-					// not sure how we would handle this case more gracefully other then relying on the cversion
-					pendingChildRemovals.remove(name);
+				// set version to -1
+				childrenVersion = -1;
+
+				// remove all the children (do it "the long way" so everyone gets notified)
+				final Collection<ZooKeeperBasedPreferences> childNodes = children.values();
+				for (final ZooKeeperBasedPreferences child : childNodes) {
+					try {
+						child.removeNode();
+					} catch (final Exception ignored) {
+						// ignore since we only get this exception if we have already
+						// been removed. no work to do.
+					}
 				}
 
-				// TODO: investigate remote delete handling
-				/*
-				 * Currently, remote deletes are discovered via monitor#pathDeleted. This removes the node
-				 * but also adds it to "pendingChildRemovals" list. We might need to rework that so that we
-				 * don't rely on "pathDeleted" ZK events but on "childrenChanged".
-				 */
+				// clear list of pending child removals
+				pendingChildRemovals.clear();
 			}
 
 			if (CloudDebug.zooKeeperPreferences) {
@@ -701,16 +731,34 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 
 			// read record data (and set new watcher)
 			final Stat stat = new Stat();
-			final byte[] bytes = ZooKeeperGate.get().readRecord(zkPath, monitor, stat);
+			byte[] bytes;
+			try {
+				bytes = ZooKeeperGate.get().readRecord(zkPath, monitor, stat);
 
-			// don't load properties if version is in the past
-			if (!forceSyncWithRemoteVersion && (propertiesVersion >= stat.getVersion())) {
-				if (CloudDebug.zooKeeperPreferences) {
-					LOG.debug("Not updating properties of node {} - local version ({}) >= ZooKeeper version ({})", new Object[] { this, propertiesVersion, stat.getVersion() });
+				// don't load properties if version is in the past
+				if (!forceSyncWithRemoteVersion && (propertiesVersion >= stat.getVersion())) {
+					if (CloudDebug.zooKeeperPreferences) {
+						LOG.debug("Not updating properties of node {} - local version ({}) >= ZooKeeper version ({})", new Object[] { this, propertiesVersion, stat.getVersion() });
+					}
+					return;
 				}
-				return;
+				propertiesVersion = stat.getVersion();
+			} catch (final NoNodeException e) {
+				// the node does not exist in ZooKeeper
+				if (!forceSyncWithRemoteVersion) {
+					// no sync forced, thus we'll keep all the existing modifications and abort here
+					if (CloudDebug.zooKeeperPreferences) {
+						LOG.debug("Not updating properties of node {} - node does not exist in ZooKeeper ({})", new Object[] { this, propertiesVersion, e.getMessage() });
+					}
+					return;
+				}
+
+				// set version to -1
+				propertiesVersion = -1;
+
+				// set bytes to null (this will trigger a remove all below)
+				bytes = null;
 			}
-			propertiesVersion = stat.getVersion();
 
 			// load remote properties
 			final Properties loadedProps = new Properties();
@@ -764,8 +812,12 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 				}
 			}
 
-			// mark clean
-			propertiesDirty = false;
+			// mark clean (if we actually read and synced bytes)
+			// the the bytes are null we don't mark as clean because
+			// the node does not exist in ZooKeeper BUT a following
+			// flush must create the node
+			// REMINDER: this logic is duplicated in #ensureConnectedAndLoaded
+			propertiesDirty = null != bytes;
 
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Loaded properties for node {} (now at version {})", this, propertiesVersion);
@@ -1180,24 +1232,32 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 	}
 
 	void syncTree() throws BackingStoreException {
-		// load properties & children
-		try {
-			loadProperties(true);
-			loadChildren(true);
-		} catch (final Exception e) {
-			// assume not connected
-			connected.set(false);
-			// throw
-			throw new BackingStoreException(String.format("Error loading node data '%s' from ZooKeeper. %s", this, ExceptionUtils.getMessage(e)), e);
-		}
+		// check removal
+		checkRemoved();
 
-		// sync children
+		// prevent concurrent children modification (eg. remote _and_ local flush)
 		childrenModifyLock.lock();
 		try {
-			if (removed) {
-				return;
+			checkRemoved();
+
+			// prevent concurrent property modification (eg. remote _and_ local flush)
+			propertiesModificationLock.lock();
+			try {
+				checkRemoved();
+
+				// load properties & children
+				loadProperties(true);
+				loadChildren(true);
+			} catch (final Exception e) {
+				// assume not connected
+				connected.set(false);
+				// throw
+				throw new BackingStoreException(String.format("Error loading node data '%s' from ZooKeeper. %s", this, ExceptionUtils.getMessage(e)), e);
+			} finally {
+				propertiesModificationLock.unlock();
 			}
 
+			// sync children
 			for (final ZooKeeperBasedPreferences child : children.values()) {
 				child.syncTree();
 			}
