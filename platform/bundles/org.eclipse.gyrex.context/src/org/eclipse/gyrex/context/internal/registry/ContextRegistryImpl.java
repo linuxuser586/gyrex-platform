@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
+import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
 import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
@@ -38,6 +39,9 @@ import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 import org.eclipse.e4.core.di.IDisposable;
 import org.eclipse.osgi.util.NLS;
 
@@ -46,6 +50,8 @@ import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@link IRuntimeContextRegistry} implementation.
@@ -53,6 +59,8 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 //TODO: this should be a ServiceFactory which knows about the bundle requesting the manager for context access permission checks
 @SuppressWarnings("restriction")
 public class ContextRegistryImpl implements IRuntimeContextRegistry {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ContextRegistryImpl.class);
 
 	private static final Set<String> forbiddenPathSegments;
 	static {
@@ -103,6 +111,24 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		return contextPath.makeAbsolute().addTrailingSeparator();
 	}
 
+	private final IPreferenceChangeListener flushListener = new IPreferenceChangeListener() {
+		@Override
+		public void preferenceChange(final PreferenceChangeEvent event) {
+			// check the path to flush
+			if (!Path.ROOT.isValidPath(event.getKey())) {
+				LOG.warn("Ignored attempt to flush hierarcy for invalid path {}.", event.getKey());
+				return;
+			}
+
+			// flush
+			try {
+				doFlushHierarchy(sanitize(new Path(event.getKey())));
+			} catch (final Exception e) {
+				LOG.error("Error flushing context hierarchy {}: {}", new Object[] { event.getKey(), ExceptionUtils.getRootCauseMessage(e), e });
+			}
+		}
+	};
+
 	private final Map<IPath, GyrexContextImpl> contexts;
 	private final ConcurrentMap<IPath, GyrexContextHandle> handles;
 	private final AtomicBoolean closed = new AtomicBoolean();
@@ -126,6 +152,9 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		// set closed
 		closed.set(true);
 
+		// remove preference listener
+		getContextFlushNode().removePreferenceChangeListener(flushListener);
+
 		// dispose active contexts
 		IRuntimeContext[] activeContexts;
 		final Lock lock = contextRegistryLock.writeLock();
@@ -148,16 +177,11 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		handles.clear();
 	}
 
-	/**
-	 * Flushes a complete context hierarchy.
-	 * 
-	 * @param context
-	 */
-	public void flushContextHierarchy(final IRuntimeContext context) {
-		checkClosed();
-
-		// get context path
-		final IPath contextPath = context.getContextPath();
+	void doFlushHierarchy(final IPath contextPath) {
+		// log debug message
+		if (ContextDebug.debug) {
+			LOG.debug("Flushing context hierarchy {}...", contextPath);
+		}
 
 		// remove all entries within that path
 		final List<GyrexContextImpl> removedContexts = new ArrayList<GyrexContextImpl>();
@@ -181,8 +205,61 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 		// dispose all removed contexts (outside of lock)
 		for (final GyrexContextImpl contextImpl : removedContexts) {
+			if (ContextDebug.debug) {
+				LOG.debug("Disposing context {}...", contextImpl);
+			}
 			contextImpl.dispose();
 		}
+
+		// log info message
+		LOG.info("Flushed context hierarchy {}.", contextPath);
+	}
+
+	/**
+	 * Flushes a complete context hierarchy.
+	 * 
+	 * @param contextPath
+	 *            the path of the hierarchy to flush
+	 * @throws Exception
+	 *             if an error occurred flushing the node
+	 */
+	public void flushContextHierarchy(final IPath contextPath) throws Exception {
+		checkClosed();
+
+		// log debug message
+		if (ContextDebug.debug) {
+			LOG.debug("Sending flush event for context hierarchy {} to all nodes in the cloud...", contextPath);
+		}
+
+		// get node
+		final IEclipsePreferences node = getContextFlushNode();
+
+		// sync
+		node.sync();
+
+		// build the preference key
+		final String key = sanitize(contextPath).toString();
+
+		// trigger an update to the preference value
+		node.putLong(key, node.getLong(key, 0) + 1);
+
+		// flush
+		getContextFlushNode().flush();
+
+		// log info message
+		LOG.debug("Flush event for context hierarchy {} sent to all nodes in the cloud ({} flush events so far).", contextPath, node.getLong(key, 0));
+	}
+
+	/**
+	 * Flushes a complete context hierarchy.
+	 * 
+	 * @param context
+	 * @deprecated just flushes locally
+	 */
+	@Deprecated
+	public void flushContextHierarchy(final IRuntimeContext context) {
+		checkClosed();
+		doFlushHierarchy(context.getContextPath());
 	}
 
 	@Override
@@ -193,6 +270,10 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 	private Preferences getContextDefinitionStore() {
 		return CloudScope.INSTANCE.getNode(ContextActivator.SYMBOLIC_NAME).node("definedContexts");
+	}
+
+	private IEclipsePreferences getContextFlushNode() {
+		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(ContextActivator.SYMBOLIC_NAME).node("contextFlushes");
 	}
 
 	public Collection<ContextDefinition> getDefinedContexts() {
@@ -281,6 +362,9 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		} finally {
 			readLock.unlock();
 		}
+
+		// hook with preferences
+		getContextFlushNode().addPreferenceChangeListener(flushListener);
 
 		// create & store new context if necessary
 		final Lock lock = contextRegistryLock.writeLock();

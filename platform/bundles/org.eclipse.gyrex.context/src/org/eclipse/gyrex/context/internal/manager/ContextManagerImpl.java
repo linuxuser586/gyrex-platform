@@ -19,11 +19,17 @@ import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
 
 import org.osgi.framework.Filter;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * {@link IRuntimeContextManager} implementation.
  */
 // TODO: this should be a ServiceFactory which knows about the bundle requesting the manager for context access permission checks
 public class ContextManagerImpl implements IRuntimeContextManager, IShutdownParticipant {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ContextManagerImpl.class);
 
 	private final ContextRegistryImpl contextRegistry;
 
@@ -42,7 +48,11 @@ public class ContextManagerImpl implements IRuntimeContextManager, IShutdownPart
 
 		// for now, we can only flush the contexts
 		// TODO investigate individual value flushing
-		contextRegistry.flushContextHierarchy(context);
+		try {
+			contextRegistry.flushContextHierarchy(context.getContextPath());
+		} catch (final Exception e) {
+			LOG.warn("Unable to flush context hierarchy {}: {}", new Object[] { context.getContextPath(), ExceptionUtils.getRootCauseMessage(e), e });
+		}
 	}
 
 	@Override
