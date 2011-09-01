@@ -649,8 +649,15 @@ public class JobManagerImpl implements IJobManager {
 	 *            the new state
 	 * @param stateWatch
 	 *            a watch to add
+	 * @return <code>true</code> if and only if the job state was changed to the
+	 *         given state successfully
+	 * @throws IllegalArgumentException
+	 *             if any of the arguments is invalid
+	 * @throws IllegalStateException
+	 *             if the job does not exist or an error occured updating the
+	 *             job
 	 */
-	public void setJobState(final String jobId, final JobState expected, final JobState state, final IJobStateWatch stateWatch) {
+	public boolean setJobState(final String jobId, final JobState expected, final JobState state, final IJobStateWatch stateWatch) throws IllegalArgumentException, IllegalStateException {
 		if (!IdHelper.isValidId(jobId)) {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
@@ -677,7 +684,7 @@ public class JobManagerImpl implements IJobManager {
 			// check job status (inside lock)
 			if ((expected != null) && (job.getState() != expected)) {
 				// no-op
-				return;
+				return false;
 			}
 
 			try {
@@ -693,6 +700,9 @@ public class JobManagerImpl implements IJobManager {
 				if (null != stateWatch) {
 					((IEclipsePreferences) JobHistoryStore.getJobsNode().node(toInternalId(jobId))).addPreferenceChangeListener(new StateWatchListener(jobId, state, stateWatch));
 				}
+
+				// report update success
+				return true;
 			} catch (final BackingStoreException e) {
 				throw new IllegalStateException(String.format("Error updating state of job %s to %s. %s", jobId, state.name(), e.getMessage()), e);
 			}
