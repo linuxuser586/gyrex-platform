@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
@@ -81,7 +82,7 @@ public class WorkerEngine extends Job {
 		setPriority(LONG);
 		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", DEFAULT_IDLE_SLEEP_TIME);
 		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", DEFAULT_NON_IDLE_SLEEP_TIME);
-		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", Runtime.getRuntime().availableProcessors() * 6);
+		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", Runtime.getRuntime().availableProcessors() * 2);
 	}
 
 	private JobContext createContext(final JobInfo info) {
@@ -96,21 +97,11 @@ public class WorkerEngine extends Job {
 	private Job createJob(final IQueue queue, final IMessage message, final JobInfo info, final JobContext jobContext) {
 		try {
 			return createJobInstance(info, jobContext);
+		} catch (final LinkageError e) {
+			handleCreateJobError(queue, message, info, jobContext, e);
+			return null;
 		} catch (final Exception e) {
-			// log warning
-			LOG.warn("Error creating job {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
-
-			// discard message
-			queue.deleteMessage(message);
-
-			// set job status
-			try {
-				final JobManagerImpl jobManager = (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
-				jobManager.setResult(info.getJobId(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis());
-			} catch (final Exception jobManagerException) {
-				LOG.warn("Error updating job result for job {}: {}", info.getJobId(), ExceptionUtils.getRootCauseMessage(jobManagerException));
-			}
-
+			handleCreateJobError(queue, message, info, jobContext, e);
 			return null;
 		}
 	}
@@ -126,6 +117,19 @@ public class WorkerEngine extends Job {
 			throw new IllegalStateException(String.format("Provider %s did not create job of type %s!", provider.toString(), info.getJobTypeId()));
 		}
 		return job;
+	}
+
+	private void discardJobMessage(final IQueue queue, final IMessage message) {
+		try {
+			if (!queue.deleteMessage(message)) {
+				// log warning
+				LOG.warn("Unable to remove job message {}. Job might be processed again.", message);
+			}
+		} catch (final NoSuchElementException ignored) {
+			// not too bad
+		} catch (final Exception e) {
+			LOG.error("Error removing job message {}: {}", new Object[] { message, ExceptionUtils.getRootCauseMessage(e), e });
+		}
 	}
 
 	/**
@@ -157,14 +161,31 @@ public class WorkerEngine extends Job {
 		return TimeUnit.MINUTES.toMillis(1);
 	}
 
+	private void handleCreateJobError(final IQueue queue, final IMessage message, final JobInfo info, final JobContext jobContext, final Throwable e) {
+		// log error
+		LOG.error("Error creating job {}: {}. Job won't be executed.", new Object[] { message, ExceptionUtils.getRootCauseMessage(e), e });
+
+		// discard message
+		discardJobMessage(queue, message);
+
+		// set job status
+		try {
+			final JobManagerImpl jobManager = (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
+			jobManager.setResult(info.getJobId(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis());
+		} catch (final Exception jobManagerException) {
+			LOG.error("Error updating job result for job {}: {}", new Object[] { info.getJobId(), ExceptionUtils.getRootCauseMessage(jobManagerException) });
+		}
+	}
+
 	private JobInfo parseJobInfo(final IQueue queue, final IMessage message) {
 		try {
 			return JobInfo.parse(message);
 		} catch (final IOException e) {
-			// log warning
-			LOG.warn("Invalid job info in message {}: {}", message, ExceptionUtils.getRootCauseMessage(e));
+			// log error
+			LOG.error("Invalid job info in message {}: {}", new Object[] { message, ExceptionUtils.getRootCauseMessage(e), e });
+
 			// discard message
-			queue.deleteMessage(message);
+			discardJobMessage(queue, message);
 		}
 		return null;
 	}
@@ -184,6 +205,9 @@ public class WorkerEngine extends Job {
 		// don't process any jobs if we are over the limit
 		if (scheduledJobsCount > maxConcurrentJobs) {
 			// we return false here in order to allow this node to breath a bit
+			if (JobsDebug.workerEngine) {
+				LOG.debug("There are currently {} jobs scheduled. Won't schedule more at this time.", scheduledJobsCount);
+			}
 			return false;
 		}
 
@@ -221,18 +245,25 @@ public class WorkerEngine extends Job {
 		job.addJobChangeListener(jobFinishedListener);
 
 		// delete from queue and schedule if successful
-		if (queue.deleteMessage(message)) {
-
-			// schedule
-			job.schedule();
-
-			// increment count
-			scheduledJobsCount++;
-		} else {
+		// (note, we intentionally only catch NoSuchElementException here)
+		try {
+			if (!queue.deleteMessage(message)) {
+				// someone else might already processed it
+				// just continue with next available message
+				return true;
+			}
+		} catch (final NoSuchElementException e) {
+			// not too bad
 			// someone else might already processed it
 			// just continue with next available message
 			return true;
 		}
+
+		// schedule
+		job.schedule();
+
+		// increment count
+		scheduledJobsCount++;
 
 		// done, but return "true" to indicate that the queue might still contain jobs
 		return true;
@@ -254,10 +285,11 @@ public class WorkerEngine extends Job {
 			// done
 			return Status.OK_STATUS;
 		} catch (final Exception e) {
-			LOG.warn("Unable to check queue for new jobs. System does not seem to be ready. {}", ExceptionUtils.getRootCauseMessage(e), e);
-
 			// implement a back-off sleeping time (max 5 min)
 			engineSleepTime = Math.min(engineSleepTime * 2, DEFAULT_MAX_SLEEP_TIME);
+
+			// log error
+			LOG.error("Unable to process queued jobs. Please verify the system is setup properly. {}", new Object[] { ExceptionUtils.getRootCauseMessage(e), e });
 
 			// indicate error through cancel status
 			return Status.CANCEL_STATUS;
