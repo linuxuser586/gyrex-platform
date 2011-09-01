@@ -15,6 +15,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.IJob;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.manager.IJobStateWatch;
+import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 
@@ -68,7 +69,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		// cancel Eclipse job
 		if (realJob.cancel()) {
 			// update job if cancellation was successful
-			getJobManager().setJobState(getJobId(), JobState.ABORTING, JobState.NONE, null);
+			updateJobState(JobState.ABORTING, JobState.NONE, null);
 		}
 	}
 
@@ -84,7 +85,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			clearMdc();
 
 			// update job state
-			getJobManager().setJobState(getJobId(), null, JobState.NONE, null);
+			updateJobState(null, JobState.NONE, null);
 
 			// update job with result
 			getJobManager().setResult(getJobId(), event.getResult(), System.currentTimeMillis());
@@ -118,7 +119,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	public void running(final IJobChangeEvent event) {
 		try {
 			// set job state running
-			getJobManager().setJobState(getJobId(), JobState.WAITING, JobState.RUNNING, this);
+			updateJobState(JobState.WAITING, JobState.RUNNING, this);
 
 			// setup MDC
 			setupMdc();
@@ -140,5 +141,20 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	@Override
 	public void sleeping(final IJobChangeEvent event) {
 		// we're not interested at the moment - job state is running
+	}
+
+	private void updateJobState(final JobState expected, final JobState state, final IJobStateWatch jobStateWatch) {
+		try {
+			if (!getJobManager().setJobState(getJobId(), expected, state, jobStateWatch)) {
+				final JobImpl job = getJobManager().getJob(getJobId());
+				if (null != job) {
+					if (job.getState() != state) {
+						LOG.error("Unable to update job {} from {} to {}. The jobs current state is {}.", new Object[] { getJobId(), null != expected ? "state " + expected : "any state", state, job.getState() });
+					}
+				}
+			}
+		} catch (final Exception e) {
+			LOG.error("Error updating job {} from {} to {}: {}", new Object[] { getJobId(), null != expected ? "state " + expected : "any state", state, ExceptionUtils.getRootCauseMessage(e), e });
+		}
 	}
 }
