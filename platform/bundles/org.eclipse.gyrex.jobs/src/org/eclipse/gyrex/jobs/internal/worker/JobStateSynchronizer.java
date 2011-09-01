@@ -22,12 +22,17 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
  * Synchronizes Gyrex Job state with Eclipse Jobs state.
  */
 public final class JobStateSynchronizer implements IJobChangeListener, IJobStateWatch {
+
+	private static final Logger LOG = LoggerFactory.getLogger(JobStateSynchronizer.class);
 
 	private static final String MDC_KEY_CONTEXT_PATH = "gyrex.contextPath";
 	private static final String MDC_KEY_JOB_ID = "gyrex.jobId";
@@ -74,14 +79,18 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void done(final IJobChangeEvent event) {
-		// clear the MDC
-		clearMdc();
+		try {
+			// clear the MDC
+			clearMdc();
 
-		// update job state
-		getJobManager().setJobState(getJobId(), null, JobState.NONE, null);
+			// update job state
+			getJobManager().setJobState(getJobId(), null, JobState.NONE, null);
 
-		// update job with result
-		getJobManager().setResult(getJobId(), event.getResult(), System.currentTimeMillis());
+			// update job with result
+			getJobManager().setResult(getJobId(), event.getResult(), System.currentTimeMillis());
+		} catch (final Exception e) {
+			LOG.error("Error updating job {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
+		}
 	}
 
 	private String getJobId() {
@@ -107,11 +116,15 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void running(final IJobChangeEvent event) {
-		// set job state running
-		getJobManager().setJobState(getJobId(), JobState.WAITING, JobState.RUNNING, this);
+		try {
+			// set job state running
+			getJobManager().setJobState(getJobId(), JobState.WAITING, JobState.RUNNING, this);
 
-		// setup MDC
-		setupMdc();
+			// setup MDC
+			setupMdc();
+		} catch (final Exception e) {
+			LOG.error("Error updating job state {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
+		}
 	}
 
 	@Override
