@@ -23,6 +23,9 @@ import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
  */
 public final class EclipseLinkRepositoryProvider extends RepositoryProvider {
 
+	/** provider id */
+	public static final String ID = "org.eclipse.gyrex.persistence.eclipselink";
+
 	/**
 	 * Creates a new instance.
 	 * 
@@ -30,12 +33,11 @@ public final class EclipseLinkRepositoryProvider extends RepositoryProvider {
 	 *              clients.
 	 */
 	public EclipseLinkRepositoryProvider() {
-		super("org.eclipse.gyrex.persistence.eclipselink", EclipseLinkRepository.class);
+		super(ID, EclipseLinkRepository.class);
 	}
 
 	@Override
 	public Repository createRepositoryInstance(final String repositoryId, final IRepositoryPreferences repositoryPreferences) {
-		// TODO Auto-generated method stub
-		return null;
+		return new EclipseLinkRepositoryImpl(repositoryId, this, repositoryPreferences);
 	}
 }

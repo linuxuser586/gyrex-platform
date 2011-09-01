@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.persistence.eclipselink;
 
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
-import org.eclipse.gyrex.persistence.jdbc.storage.JdbcRepository;
+import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 
 /**
@@ -20,7 +20,7 @@ import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
  * 
  * @noextend This class is not intended to be subclassed by clients.
  */
-public abstract class EclipseLinkRepository extends JdbcRepository {
+public abstract class EclipseLinkRepository extends Repository {
 
 	/**
 	 * Creates a new instance.
