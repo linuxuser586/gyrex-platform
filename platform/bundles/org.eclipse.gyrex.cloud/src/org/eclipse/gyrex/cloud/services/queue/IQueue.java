@@ -78,8 +78,9 @@ public interface IQueue {
 	 * consumers otherwise a message will not be removed from the queue. This
 	 * method will return <code>true</code> only upon successful deletion of the
 	 * message from the queue. If <code>false</code> is returned it usually
-	 * means that the message was not invisible anymore. It's then visible again
-	 * to other consumers.
+	 * means that the message still exists but was not invisible anymore. It's
+	 * then visible again to other consumers. Callers may abort processing the
+	 * message in such a case.
 	 * </p>
 	 * <p>
 	 * If the message has already been deleted a {@link NoSuchElementException}
