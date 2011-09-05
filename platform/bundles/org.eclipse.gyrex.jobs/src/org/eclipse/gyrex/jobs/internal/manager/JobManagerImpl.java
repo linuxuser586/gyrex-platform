@@ -569,7 +569,8 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.putLong(PROPERTY_LAST_RESULT, resultTimestamp);
 		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, getFormattedMessage(result, 0));
 		jobNode.putInt(PROPERTY_LAST_RESULT_SEVERITY, result.getSeverity());
-		if (result.isOK()) {
+		if (!result.matches(IStatus.CANCEL | IStatus.ERROR)) {
+			// every run that does not result in ERROR or CANCEL is considered successful
 			jobNode.putLong(PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);
 		}
 		jobNode.flush();
