@@ -128,21 +128,21 @@ public class JobManagerImpl implements IJobManager {
 		builder.appendPadding(ident, ' ');
 		switch (status.getSeverity()) {
 			case IStatus.CANCEL:
-				builder.append("(ABORT) ");
+				builder.append("ABORT: ");
 				break;
 			case IStatus.ERROR:
-				builder.append("(ERROR) ");
+				builder.append("ERROR: ");
 				break;
 			case IStatus.WARNING:
-				builder.append("(WARNING) ");
+				builder.append("WARNING: ");
 				break;
 			case IStatus.INFO:
-				builder.append("(INFO) ");
+				builder.append("INFO: ");
 				break;
 		}
 		builder.append(status.getMessage());
 		if (status.getCode() != 0) {
-			builder.append(" [error code ").append(status.getCode()).append("]");
+			builder.append(" [code ").append(status.getCode()).append("]");
 		}
 		if (status.isMultiStatus()) {
 			final IStatus[] children = status.getChildren();
