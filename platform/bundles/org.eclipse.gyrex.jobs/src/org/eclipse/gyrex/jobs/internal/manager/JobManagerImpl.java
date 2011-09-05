@@ -577,7 +577,7 @@ public class JobManagerImpl implements IJobManager {
 
 		// save history
 		final JobHistoryImpl history = JobHistoryStore.create(internalId, job.getId(), context);
-		history.createEntry(resultTimestamp, result.getMessage(), result.getSeverity());
+		history.createEntry(resultTimestamp, getFormattedMessage(result, 0), result.getSeverity());
 		JobHistoryStore.flush(internalId, history);
 	}
 
