@@ -56,16 +56,20 @@ public final class ZooKeeperPinger implements Runnable {
 		final ExecutorService executor = Executors.newSingleThreadExecutor();
 		try {
 			if (CloudDebug.zooKeeperGateLifecycle) {
-				LOG.debug("Executing ZooKeeper Connection Ping Check");
+				LOG.debug("Checking ZooKeeper connection...");
 			}
 
 			// execute in separate thread with timeout
 			executor.submit(checkConnection).get(30, TimeUnit.SECONDS);
 
+			if (CloudDebug.zooKeeperGateLifecycle) {
+				LOG.debug("ZooKeeper connection OK");
+			}
+
 			// ok
 			setStatus(null);
 		} catch (final Exception e) {
-			LOG.warn("The ZooKeeper connection is in trouble. {}", ExceptionUtils.getRootCauseMessage(e));
+			LOG.error("The ZooKeeper connection is in trouble. {}", ExceptionUtils.getRootCauseMessage(e), e);
 			setStatus(new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, String.format("Unable to ping ZooKeeper. %s", ExceptionUtils.getRootCauseMessage(e))));
 		} finally {
 			executor.shutdownNow();
