@@ -70,7 +70,7 @@ public final class ZooKeeperPinger implements Runnable {
 			setStatus(null);
 		} catch (final Exception e) {
 			LOG.error("The ZooKeeper connection is in trouble. {}", ExceptionUtils.getRootCauseMessage(e), e);
-			setStatus(new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, String.format("Unable to ping ZooKeeper. %s", ExceptionUtils.getRootCauseMessage(e))));
+			setStatus(new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, String.format("Unable to ping ZooKeeper. %s", ExceptionUtils.getRootCauseMessage(e)), e));
 		} finally {
 			executor.shutdownNow();
 		}
