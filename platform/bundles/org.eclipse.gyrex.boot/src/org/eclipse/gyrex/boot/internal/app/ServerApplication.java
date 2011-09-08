@@ -387,7 +387,10 @@ public class ServerApplication extends BaseApplication {
 			// logback not available
 		} catch (final Exception e) {
 			// error (but do not fail)
-			LOG.warn("Error while de-configuring logback. Please re-configure logging manually. ({})", e.getMessage());
+			LOG.warn("Error while de-configuring logback. Please re-configure logging manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
+			// however, at this point it might not be possible to use a logger, Logback might be in a broken state
+			// thus, we also print as much information to the console as possible
+			System.err.printf("Error while de-configuring logback. Please re-configure logging manually. %s", ExceptionUtils.getFullStackTrace(e));
 		}
 	}
 
@@ -403,7 +406,10 @@ public class ServerApplication extends BaseApplication {
 			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
 		} catch (final Exception e) {
 			// error (but do not fail)
-			LOG.warn("Error while configuring logback. Please configure logging manually. ({})", e);
+			LOG.warn("Error while configuring logback. Please configure logging manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
+			// however, at this point it might not be possible to use a logger, Logback might be in a broken state
+			// thus, we also print as much information to the console as possible
+			System.err.printf("Error while configuring logback. Please configure logging manually. %s", ExceptionUtils.getFullStackTrace(e));
 		}
 
 		// hook FrameworkLog with SLF4J forwarder
