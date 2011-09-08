@@ -33,12 +33,14 @@ import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.jul.LevelChangePropagator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.BasicStatusManager;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.joran.spi.Interpreter;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.status.InfoStatus;
+import ch.qos.logback.core.status.OnConsoleStatusListener;
 import ch.qos.logback.core.status.StatusManager;
 import ch.qos.logback.core.util.StatusPrinter;
 
@@ -57,11 +59,22 @@ public class LogbackConfigurator {
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 		lc.reset();
 
-		// configure
-		final StatusManager sm = lc.getStatusManager();
-		if (sm != null) {
-			sm.add(new InfoStatus("Setting up Gyrex log configuration.", lc));
+		// configure status manager
+		if (lc.getStatusManager() == null) {
+			lc.setStatusManager(new BasicStatusManager());
 		}
+		final StatusManager sm = lc.getStatusManager();
+
+		// always good to have a console status listener
+		if (Platform.inDebugMode() || Platform.inDevelopmentMode()) {
+			final OnConsoleStatusListener onConsoleStatusListener = new OnConsoleStatusListener();
+			onConsoleStatusListener.setContext(lc);
+			sm.add(onConsoleStatusListener);
+			onConsoleStatusListener.start();
+		}
+
+		// signal Gyrex configuration
+		sm.add(new InfoStatus("Setting up Gyrex log configuration.", lc));
 
 		// ensure log directory exists
 		final IPath instanceLogfileDirectory = getLogfileDir();
