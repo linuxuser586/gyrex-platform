@@ -96,6 +96,10 @@ public class WorkerEngine extends Job {
 
 	private Job createJob(final IQueue queue, final IMessage message, final JobInfo info, final JobContext jobContext) {
 		try {
+			// prepare MDC (bug 357183)
+			JobLogHelper.setupMdc(jobContext);
+
+			// create job instance
 			return createJobInstance(info, jobContext);
 		} catch (final LinkageError e) {
 			handleCreateJobError(queue, message, info, jobContext, e);
@@ -103,6 +107,9 @@ public class WorkerEngine extends Job {
 		} catch (final Exception e) {
 			handleCreateJobError(queue, message, info, jobContext, e);
 			return null;
+		} finally {
+			// clean MDC (will be prepared again once the job runs)
+			JobLogHelper.clearMdc();
 		}
 	}
 

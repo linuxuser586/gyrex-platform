@@ -26,7 +26,6 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 /**
  * Synchronizes Gyrex Job state with Eclipse Jobs state.
@@ -34,9 +33,6 @@ import org.slf4j.MDC;
 public final class JobStateSynchronizer implements IJobChangeListener, IJobStateWatch {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobStateSynchronizer.class);
-
-	private static final String MDC_KEY_CONTEXT_PATH = "gyrex.contextPath";
-	private static final String MDC_KEY_JOB_ID = "gyrex.jobId";
 
 	private final Job realJob;
 	private final JobContext jobContext;
@@ -73,17 +69,9 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		}
 	}
 
-	private void clearMdc() {
-		MDC.remove(MDC_KEY_JOB_ID);
-		MDC.remove(MDC_KEY_CONTEXT_PATH);
-	}
-
 	@Override
 	public void done(final IJobChangeEvent event) {
 		try {
-			// clear the MDC
-			clearMdc();
-
 			// update job state
 			updateJobState(null, JobState.NONE, null);
 
@@ -91,6 +79,9 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			getJobManager().setResult(getJobId(), event.getResult(), System.currentTimeMillis());
 		} catch (final Exception e) {
 			LOG.error("Error updating job {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
+		} finally {
+			// clear the MDC (as the last thing to do)
+			JobLogHelper.clearMdc();
 		}
 	}
 
@@ -118,11 +109,11 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	@Override
 	public void running(final IJobChangeEvent event) {
 		try {
+			// setup MDC first (in order to have proper MDC in case of exceptions)
+			JobLogHelper.setupMdc(jobContext);
+
 			// set job state running
 			updateJobState(JobState.WAITING, JobState.RUNNING, this);
-
-			// setup MDC
-			setupMdc();
 		} catch (final Exception e) {
 			LOG.error("Error updating job state {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
 		}
@@ -131,11 +122,6 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	@Override
 	public void scheduled(final IJobChangeEvent event) {
 		// we're not interested at the moment - job state is waiting
-	}
-
-	private void setupMdc() {
-		MDC.put(MDC_KEY_JOB_ID, getJobId());
-		MDC.put(MDC_KEY_CONTEXT_PATH, getRuntimeContext().getContextPath().toString());
 	}
 
 	@Override
