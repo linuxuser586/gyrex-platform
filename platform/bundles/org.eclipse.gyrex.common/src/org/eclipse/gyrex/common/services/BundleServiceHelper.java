@@ -42,7 +42,7 @@ import org.osgi.util.tracker.ServiceTracker;
  * maintained internally and destroyed when {@link #stop()} is called.
  * </p>
  * <p>
- * Services may be imported using one of the <code>consume..</code> methods. The
+ * Services may be imported using one of the <code>track..</code> methods. The
  * imported services will be tracked internally. The handed out service objects
  * are proxies which delegate to an available service. If no service is
  * available, the proxies may fail, or discard a call depending on the desired
