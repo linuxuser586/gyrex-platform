@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -60,7 +60,7 @@ public class PreferencesActivator extends BaseBundleActivator {
 		// deactivate instance
 		instanceRef.set(null);
 
-		preferenceServiceProxy.dispose();
+		// unset proxy (will be disposed in super class)
 		preferenceServiceProxy = null;
 	}
 

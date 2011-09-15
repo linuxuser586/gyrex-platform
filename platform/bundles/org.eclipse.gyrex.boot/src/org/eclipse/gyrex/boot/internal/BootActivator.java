@@ -132,8 +132,6 @@ public class BootActivator extends BaseBundleActivator {
 	protected void doStop(final BundleContext context) throws Exception {
 		sharedInstance = null;
 		this.context = null;
-
-		instanceLocationProxy.dispose();
 		instanceLocationProxy = null;
 	}
 
