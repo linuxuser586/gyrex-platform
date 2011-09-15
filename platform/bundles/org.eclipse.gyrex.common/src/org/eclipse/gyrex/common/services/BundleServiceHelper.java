@@ -303,6 +303,12 @@ public final class BundleServiceHelper {
 	 * is not stopped.
 	 * </p>
 	 * <p>
+	 * The filter allows to filter available services. However, the filter is
+	 * required to contain an objectClass condition for the service interface
+	 * name in the form '
+	 * <code>..&amp;(objectClass=&lt;serviceInterfaceName&gt;)..</code>'.
+	 * </p>
+	 * <p>
 	 * The service tracker is made available to the caller through a service
 	 * proxy. The service proxy ensures access to the service object in a
 	 * convenient way.
@@ -312,11 +318,21 @@ public final class BundleServiceHelper {
 	 *            the service interface
 	 * @param serviceInterface
 	 *            the service interface class
+	 * @param filter
+	 *            the filter for tracking the service (must contain an
+	 *            {@value Constants#OBJECTCLASS} condition for the service
+	 *            interface)
 	 * @return the service proxy object
 	 */
 	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface, final Filter filter) {
-		if (!filter.toString().contains(serviceInterface.getName())) {
-			throw new IllegalArgumentException("Filter '" + filter.toString() + "' does not match the service class' " + serviceInterface.getName() + "'!");
+		if (null == filter) {
+			return trackService(serviceInterface);
+		}
+
+		// check for the condition
+		final String requiredObjectClassCondition = String.format("&(objectClass=%s)", serviceInterface.getName());
+		if (!filter.toString().contains(requiredObjectClassCondition)) {
+			throw new IllegalArgumentException(String.format("Filter '%s' does not match the service class condition '%s'!", filter.toString(), requiredObjectClassCondition));
 		}
 
 		final BundleContext bundleContext = contextRef.get();
