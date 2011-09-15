@@ -26,4 +26,5 @@ Import-Package: org.apache.commons.lang;version="[2.4.0,3.0.0)",
  org.osgi.framework;version="[1.6.0,2.0.0)",
  org.osgi.util.tracker;version="[1.5.0,2.0.0)",
  org.slf4j;version="[1.6.0,2.0.0)"
-Require-Bundle: org.eclipse.equinox.common;bundle-version="[3.6.0,4.0.0)";visibility:=reexport
+Require-Bundle: org.eclipse.equinox.common;bundle-version="[3.6.0,4.0.0)";visibility:=reexport,
+ org.eclipse.core.jobs;bundle-version="[3.5.100,4.0.0)";resolution:=optional

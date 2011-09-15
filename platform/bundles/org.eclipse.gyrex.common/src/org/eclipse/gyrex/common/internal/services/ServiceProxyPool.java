@@ -24,6 +24,23 @@ import org.osgi.framework.Filter;
  * and re-creates them when necessary,
  */
 public class ServiceProxyPool {
+
+	/** removes a key from the pool when its proxy got disposed */
+	private final class RemoveOnDisposalListener implements IServiceProxyDisposalListener {
+		private final String key;
+
+		private RemoveOnDisposalListener(final String key) {
+			this.key = key;
+		}
+
+		@Override
+		public void disposed(final IServiceProxy<?> proxy) {
+			synchronized (trackedServices) {
+				trackedServices.remove(key);
+			}
+		}
+	}
+
 	private final ConcurrentHashMap<String, ServiceProxy<?>> trackedServices = new ConcurrentHashMap<String, ServiceProxy<?>>();
 	private final AtomicReference<BundleContext> bundleContextRef = new AtomicReference<BundleContext>();
 
@@ -44,6 +61,19 @@ public class ServiceProxyPool {
 		trackedServices.clear();
 	}
 
+	/**
+	 * Returns the {@link BundleContext} tracked by the proxy pool.
+	 * 
+	 * @return the {@link BundleContext}
+	 */
+	public BundleContext getBundleContext() {
+		final BundleContext context = bundleContextRef.get();
+		if (null == context) {
+			throw new IllegalStateException("disposed");
+		}
+		return context;
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T> IServiceProxy<T> getOrCreate(final Class<T> serviceInterface) {
 		final BundleContext bundleContext = bundleContextRef.get();
@@ -51,14 +81,18 @@ public class ServiceProxyPool {
 			throw new IllegalStateException("inactive");
 		}
 		final String key = serviceInterface.getName().intern();
-		if (!trackedServices.contains(key)) {
+		ServiceProxy<?> proxy = trackedServices.get(key);
+		if (null == proxy) {
 			synchronized (trackedServices) {
-				if (!trackedServices.contains(key)) {
-					trackedServices.put(key, new ServiceProxy<T>(bundleContext, serviceInterface));
+				proxy = trackedServices.get(key);
+				if (null == proxy) {
+					proxy = new ServiceProxy<T>(getBundleContext(), serviceInterface);
+					proxy.addDisposalListener(new RemoveOnDisposalListener(key));
+					trackedServices.put(key, proxy);
 				}
 			}
 		}
-		return (IServiceProxy<T>) trackedServices.get(key);
+		return (IServiceProxy<T>) proxy;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -68,13 +102,17 @@ public class ServiceProxyPool {
 			throw new IllegalStateException("inactive");
 		}
 		final String key = serviceInterface.getName().intern().concat(filter.toString().intern());
-		if (!trackedServices.contains(key)) {
+		ServiceProxy<?> proxy = trackedServices.get(key);
+		if (null == proxy) {
 			synchronized (trackedServices) {
-				if (!trackedServices.contains(key)) {
-					trackedServices.put(key, new ServiceProxy<T>(bundleContext, serviceInterface, filter));
+				proxy = trackedServices.get(key);
+				if (null == proxy) {
+					proxy = new ServiceProxy<T>(bundleContext, serviceInterface, filter);
+					proxy.addDisposalListener(new RemoveOnDisposalListener(key));
+					trackedServices.put(key, proxy);
 				}
 			}
 		}
-		return (IServiceProxy<T>) trackedServices.get(key);
+		return (IServiceProxy<T>) proxy;
 	}
 }
