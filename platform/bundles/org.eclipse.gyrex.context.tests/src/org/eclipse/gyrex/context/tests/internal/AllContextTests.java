@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.tests.internal;
 
+import org.eclipse.gyrex.context.tests.internal.injection.ContextInjectionTests;
+
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
