@@ -21,6 +21,7 @@ import org.eclipse.gyrex.common.internal.services.ServiceProxy;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.common.services.ServiceNotAvailableException;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
 import org.eclipse.gyrex.context.internal.IContextDisposalListener;
 
@@ -41,6 +42,49 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("restriction")
 public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
+
+	/** executes re-injection on service proxy disposal */
+	private static final class ReinjectOnDisposal implements IServiceProxyDisposalListener {
+		private final IRequestor requestor;
+
+		private ReinjectOnDisposal(final IRequestor requestor) {
+			this.requestor = requestor;
+		}
+
+		@Override
+		public void disposed(final IServiceProxy<?> proxy) {
+			if (!requestor.isValid()) {
+				return; // ignore
+			}
+			if (ContextDebug.injection) {
+				LOG.debug("Service proxy ({}) disposed, re-injecting ({})", proxy, requestor);
+			}
+			requestor.resolveArguments(false);
+			requestor.execute();
+		}
+	}
+
+	/** executes re-injection on service changes */
+	private static final class ReinjectOnUpdate implements IServiceProxyChangeListener {
+		private final IRequestor requestor;
+
+		private ReinjectOnUpdate(final IRequestor requestor) {
+			this.requestor = requestor;
+		}
+
+		@Override
+		public boolean serviceChanged(final IServiceProxy<?> proxy) {
+			if (!requestor.isValid()) {
+				return false; // remove this listener
+			}
+			if (ContextDebug.injection) {
+				LOG.debug("Service proxy ({}) changed, re-injecting ({})", proxy, requestor);
+			}
+			requestor.resolveArguments(false);
+			requestor.execute();
+			return true;
+		}
+	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextObjectSupplier.class);
 
@@ -90,30 +134,18 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 									actualValues[i] = proxy.getService();
 
 									// dynamic injection was successful
+									if (ContextDebug.injection) {
+										LOG.debug("Injected real service instance ({}).", proxy);
+									}
+
 									// add a listener that updates the injection whenever the service changes
-									((ServiceProxy<?>) proxy).addChangeListener(new IServiceProxyChangeListener() {
-										@Override
-										public boolean serviceChanged(final IServiceProxy<?> proxy) {
-											if (!requestor.isValid()) {
-												return false; // remove this listener
-											}
-											requestor.resolveArguments(false);
-											requestor.execute();
-											return true;
-										}
-									});
+									((ServiceProxy<?>) proxy).addChangeListener(new ReinjectOnUpdate(requestor));
 									// add a listener that updates the injection whenever the proxy goes
-									((ServiceProxy<?>) proxy).addDisposalListener(new IServiceProxyDisposalListener() {
-										@Override
-										public void disposed(final IServiceProxy<?> proxy) {
-											if (!requestor.isValid()) {
-												return; // ignore
-											}
-											requestor.resolveArguments(false);
-											requestor.execute();
-										}
-									});
+									((ServiceProxy<?>) proxy).addDisposalListener(new ReinjectOnDisposal(requestor));
 								} catch (final ServiceNotAvailableException e) {
+									if (ContextDebug.injection) {
+										LOG.debug("Service not available ({}), falling back to proxy.", proxy);
+									}
 									// fallback to proxy
 									actualValues[i] = proxy.getProxy();
 								}

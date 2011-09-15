@@ -14,7 +14,7 @@ package org.eclipse.gyrex.context.internal;
 import org.eclipse.gyrex.common.debug.BundleDebugOptions;
 
 /**
- *The debug options
+ * The debug options
  */
 public class ContextDebug extends BundleDebugOptions {
 
@@ -24,5 +24,6 @@ public class ContextDebug extends BundleDebugOptions {
 	public static boolean preferencesModify;
 
 	public static boolean objectLifecycle;
+	public static boolean injection;
 
 }

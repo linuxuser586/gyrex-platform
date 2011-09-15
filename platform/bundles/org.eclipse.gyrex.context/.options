@@ -9,3 +9,6 @@ org.eclipse.gyrex.context/preferencesModify=true
 
 # debug lifecycle of context objects
 org.eclipse.gyrex.context/objectLifecycle = true
+
+# debug injections
+org.eclipse.gyrex.context/injection = true
