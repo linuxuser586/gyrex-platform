@@ -18,13 +18,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.configuration.ContextConfiguration;
 import org.eclipse.gyrex.context.internal.provider.ProviderRegistration;
 import org.eclipse.gyrex.context.internal.provider.ProviderRegistration.ProviderRegistrationReference;
 import org.eclipse.gyrex.context.internal.provider.TypeRegistration;
 import org.eclipse.gyrex.context.internal.provider.TypeRegistration.TypeRegistrationReference;
-
-import org.eclipse.e4.core.di.IDisposable;
 
 import org.osgi.framework.Filter;
 
@@ -41,8 +40,7 @@ import org.slf4j.LoggerFactory;
  * valid. Thus, it computes a value only once and never re-computes it.
  * </p>
  */
-@SuppressWarnings("restriction")
-final class GyrexContextObject implements IDisposable, ProviderRegistrationReference, TypeRegistrationReference {
+final class GyrexContextObject implements IContextDisposalListener, ProviderRegistrationReference, TypeRegistrationReference {
 
 	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextObject.class);
 
@@ -229,14 +227,14 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 	}
 
 	@Override
-	public void dispose() {
+	public void contextDisposed(final IRuntimeContext runtimeContext) {
 		if (ContextDebug.objectLifecycle) {
-			LOG.debug("Disposing {}", this);
+			LOG.debug("Context {} disposed, disposing {}", runtimeContext, this);
 		}
 
 		clearComputedObject();
 
-		// dispose
+		// unset (also means disposed)
 		context = null;
 	}
 
@@ -254,7 +252,7 @@ final class GyrexContextObject implements IDisposable, ProviderRegistrationRefer
 	public String toString() {
 		final GyrexContextImpl context = this.context;
 		if (null == context) {
-			return "GyrexContextObject [disposed]";
+			return "GyrexContextObject [DISPOSED]";
 		}
 
 		final StringBuilder builder = new StringBuilder();

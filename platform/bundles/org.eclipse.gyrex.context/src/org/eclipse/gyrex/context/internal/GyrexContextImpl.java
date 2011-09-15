@@ -23,11 +23,19 @@ import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.di.GyrexContextInjectorImpl;
 import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
-import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
+import org.eclipse.gyrex.context.internal.services.GyrexContextServiceLocatorImpl;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.PlatformObject;
-import org.eclipse.e4.core.di.IDisposable;
+
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
+import org.osgi.framework.BundleListener;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Internal context implementation.
@@ -42,8 +50,10 @@ import org.eclipse.e4.core.di.IDisposable;
  * which glue the pieces together.
  * </p>
  */
-@SuppressWarnings("restriction")
-public class GyrexContextImpl extends PlatformObject implements IDisposable {
+// note, this class does intentionally not implement IRuntimeContext directly
+public class GyrexContextImpl extends PlatformObject implements BundleListener {
+
+	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextImpl.class);
 
 	/** key for looking up a GyrexContextImpl from an IEclipseContext */
 	static final String ECLIPSE_CONTEXT_KEY = GyrexContextImpl.class.getName();
@@ -61,11 +71,12 @@ public class GyrexContextImpl extends PlatformObject implements IDisposable {
 	private final IPath contextPath;
 	private final AtomicBoolean disposed = new AtomicBoolean();
 	private final ContextRegistryImpl contextRegistry;
-	private final Set<IDisposable> disposables = new CopyOnWriteArraySet<IDisposable>();
+	private final Set<IContextDisposalListener> disposables = new CopyOnWriteArraySet<IContextDisposalListener>();
 	private final GyrexContextInjectorImpl injector;
 	private final GyrexContextPreferencesImpl preferences;
 	private final AtomicLong lastAccessTime = new AtomicLong();
 	private final ConcurrentMap<Class<?>, GyrexContextObject> computedObjects = new ConcurrentHashMap<Class<?>, GyrexContextObject>();
+	private final ConcurrentMap<Bundle, GyrexContextServiceLocatorImpl> serviceLocators = new ConcurrentHashMap<Bundle, GyrexContextServiceLocatorImpl>();
 
 	/**
 	 * Creates a new instance.
@@ -85,11 +96,28 @@ public class GyrexContextImpl extends PlatformObject implements IDisposable {
 		preferences = new GyrexContextPreferencesImpl(contextRegistry.getHandle(contextPath));
 	}
 
-	public void addDisposable(final IDisposable disposable) {
+	public void addDisposable(final IContextDisposalListener disposable) {
 		checkDisposed();
 		if (!disposables.contains(disposable)) {
 			disposables.add(disposable);
 		}
+	}
+
+	@Override
+	public void bundleChanged(final BundleEvent event) {
+		if (event.getType() == BundleEvent.STOPPED) {
+			// dispose service locator (if available)
+			final GyrexContextServiceLocatorImpl serviceLocator = serviceLocators.remove(event.getBundle());
+			if (null != serviceLocator) {
+				// dispose
+				serviceLocator.dispose();
+				// log debug message
+				if (ContextDebug.debug) {
+					LOG.debug("Bundle {} has been stopped. Its service locator has been removed from {}.", event.getBundle(), this);
+				}
+			}
+		}
+
 	}
 
 	private void checkDisposed() throws IllegalStateException {
@@ -98,26 +126,38 @@ public class GyrexContextImpl extends PlatformObject implements IDisposable {
 		}
 	}
 
-	@Override
+	/**
+	 * Disposes the context.
+	 */
 	public void dispose() {
 		// don't do anything if already disposed; if not mark disposed
 		if (disposed.getAndSet(true)) {
 			return;
 		}
 
-		// dispose injector
-		if (injector instanceof IDisposable) {
-			((IDisposable) injector).dispose();
-		}
+		// notify disposables
+		try {
+			for (final IContextDisposalListener disposable : disposables) {
+				disposable.contextDisposed(getHandle());
+			}
+		} finally {
+			disposables.clear();
 
-		// dispose preferences
-		preferences.dispose();
+			// dispose injector
+			injector.dispose();
 
-		// dispose disposables
-		for (final IDisposable disposable : disposables) {
-			disposable.dispose();
+			// dispose service locators
+			try {
+				for (final GyrexContextServiceLocatorImpl serviceLocator : serviceLocators.values()) {
+					serviceLocator.dispose();
+				}
+			} finally {
+				serviceLocators.clear();
+			}
+
+			// dispose preferences
+			preferences.dispose();
 		}
-		disposables.clear();
 	}
 
 	/**
@@ -170,6 +210,9 @@ public class GyrexContextImpl extends PlatformObject implements IDisposable {
 	 */
 	public IRuntimeContextInjector getInjector() {
 		checkDisposed();
+		trackAccess();
+
+		// return injector
 		return injector;
 	}
 
@@ -185,8 +228,32 @@ public class GyrexContextImpl extends PlatformObject implements IDisposable {
 	/**
 	 * @see IRuntimeContext#getPreferences()
 	 */
-	public IRuntimeContextPreferences getPreferences() {
+	public GyrexContextPreferencesImpl getPreferences() {
+		checkDisposed();
+		trackAccess();
+
+		// return preferences
 		return preferences;
+	}
+
+	/**
+	 * @see IRuntimeContext#getServiceLocator(BundleContext)
+	 */
+	public GyrexContextServiceLocatorImpl getServiceLocator(final BundleContext bundleContext) {
+		checkDisposed();
+		trackAccess();
+
+		GyrexContextServiceLocatorImpl serviceLocator = serviceLocators.get(bundleContext.getBundle());
+		if (null == serviceLocator) {
+			serviceLocators.putIfAbsent(bundleContext.getBundle(), new GyrexContextServiceLocatorImpl(this, bundleContext));
+			serviceLocator = serviceLocators.get(bundleContext.getBundle());
+
+			// TODO revisit later, there might be a race condition here (bundle being stopped while this method is called)
+			if (null == serviceLocator) {
+				throw new IllegalStateException("unable to create service locator; is the bundle stopped concurrently?");
+			}
+		}
+		return serviceLocator;
 	}
 
 	/**
@@ -198,7 +265,7 @@ public class GyrexContextImpl extends PlatformObject implements IDisposable {
 		return disposed.get();
 	}
 
-	void removeDisposable(final IDisposable disposable) {
+	void removeDisposable(final IContextDisposalListener disposable) {
 		// ignore after disposal
 		if (!disposed.get()) {
 			disposables.remove(disposable);
@@ -207,8 +274,20 @@ public class GyrexContextImpl extends PlatformObject implements IDisposable {
 
 	@Override
 	public String toString() {
+		if (isDisposed()) {
+			return String.format("Gyrex Context [DISPOSED (%s)]", contextPath);
+		}
+
+		// look for a context name
+		String name;
+		try {
+			name = preferences.get(ContextActivator.SYMBOLIC_NAME, "contextName", null);
+		} catch (final Exception e) {
+			name = ExceptionUtils.getRootCauseMessage(e);
+		}
+
 		// TODO: should not leak context path here, we may need a story for this
-		return "Gyrex Context [" + contextPath.toString() + "]";
+		return String.format("Gyrex Context [%s (%s)]", name, contextPath);
 	}
 
 	private void trackAccess() {

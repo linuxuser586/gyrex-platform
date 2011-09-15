@@ -42,7 +42,6 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-import org.eclipse.e4.core.di.IDisposable;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.service.prefs.BackingStoreException;
@@ -57,7 +56,6 @@ import org.slf4j.LoggerFactory;
  * The {@link IRuntimeContextRegistry} implementation.
  */
 //TODO: this should be a ServiceFactory which knows about the bundle requesting the manager for context access permission checks
-@SuppressWarnings("restriction")
 public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ContextRegistryImpl.class);
@@ -156,21 +154,19 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		getContextFlushNode().removePreferenceChangeListener(flushListener);
 
 		// dispose active contexts
-		IRuntimeContext[] activeContexts;
+		GyrexContextImpl[] activeContexts;
 		final Lock lock = contextRegistryLock.writeLock();
 		lock.lock();
 		try {
-			activeContexts = contexts.values().toArray(new IRuntimeContext[contexts.size()]);
+			activeContexts = contexts.values().toArray(new GyrexContextImpl[contexts.size()]);
 			contexts.clear();
 		} finally {
 			lock.unlock();
 		}
 
 		// dispose all the active contexts
-		for (final IRuntimeContext context : activeContexts) {
-			if (context instanceof IDisposable) {
-				((IDisposable) context).dispose();
-			}
+		for (final GyrexContextImpl context : activeContexts) {
+			context.dispose();
 		}
 
 		// clear handles

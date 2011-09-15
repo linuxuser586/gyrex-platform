@@ -146,7 +146,6 @@ public class ContextualRuntimeBlackBoxTests {
 		contextRegistry = null;
 
 		contextManager = null;
-		contextManagerProxy.dispose();
 		contextManagerProxy = null;
 	}
 

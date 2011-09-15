@@ -14,10 +14,13 @@ package org.eclipse.gyrex.context;
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+import org.eclipse.gyrex.context.services.IRuntimeContextServiceLocator;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
+
+import org.osgi.framework.BundleContext;
 
 /**
  * The context for defining the runtime environment.
@@ -134,8 +137,8 @@ public interface IRuntimeContext extends IAdaptable {
 	/**
 	 * Returns the {@link IRuntimeContextPreferences preferences} of a context.
 	 * <p>
-	 * The preferences can be used to inject a context content into custom
-	 * objects.
+	 * The preferences can be used to retrieve and manage context specific
+	 * settings.
 	 * </p>
 	 * <p>
 	 * Note, clients must be aware that they run in a dynamic system. Therefore
@@ -145,8 +148,32 @@ public interface IRuntimeContext extends IAdaptable {
 	 * 
 	 * @return the {@link IRuntimeContextPreferences preferences} instance of
 	 *         the context
+	 * @see IRuntimeContextPreferences
 	 */
 	IRuntimeContextPreferences getPreferences();
+
+	/**
+	 * Returns the {@link IRuntimeContextServiceLocator service locator} of a
+	 * context.
+	 * <p>
+	 * The locator can be used to retrieve OSGi services. All lookups are
+	 * performed on behalf of a {@link BundleContext}. This ensures that OSGi
+	 * permissions can be applied.
+	 * </p>
+	 * <p>
+	 * Note, clients must be aware that they run in a dynamic system. Therefore
+	 * they must not hold on the object returned for a longer time but obtain a
+	 * fresh object from the context.
+	 * </p>
+	 * 
+	 * @param bundleContext
+	 *            the bundle context the locator shall use for lookups (must not
+	 *            be <code>null</code>)
+	 * @return the {@link IRuntimeContextServiceLocator service locator}
+	 *         instance of the context
+	 * @see IRuntimeContextServiceLocator
+	 */
+	IRuntimeContextServiceLocator getServiceLocator(BundleContext bundleContext);
 
 	/**
 	 * Returns a hash code computed based on the {@link #getContextPath()

@@ -37,6 +37,13 @@ public class GyrexContextInjectorImpl implements IRuntimeContextInjector {
 		objectSupplier = new GyrexContextObjectSupplier(context);
 	}
 
+	/**
+	 * Disposes the injector implementation.
+	 */
+	public void dispose() {
+		// no-op
+	}
+
 	@Override
 	public void inject(final Object object) throws InjectionException {
 		injector.inject(object, objectSupplier);

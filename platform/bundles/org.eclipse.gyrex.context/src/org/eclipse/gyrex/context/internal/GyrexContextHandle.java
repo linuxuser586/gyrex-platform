@@ -15,9 +15,12 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
+import org.eclipse.gyrex.context.services.IRuntimeContextServiceLocator;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.PlatformObject;
+
+import org.osgi.framework.BundleContext;
 
 /**
  * Handle to a Gyrex context.
@@ -97,6 +100,11 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 	}
 
 	@Override
+	public IRuntimeContextServiceLocator getServiceLocator(final BundleContext bundleContext) {
+		return get().getServiceLocator(bundleContext);
+	}
+
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -107,6 +115,6 @@ public class GyrexContextHandle extends PlatformObject implements IRuntimeContex
 	@Override
 	public String toString() {
 		// TODO: should not leak context path here, we may need a story for this
-		return "Gyrex Context Handle [" + contextPath.toString() + "]";
+		return contextPath.toString();
 	}
 }

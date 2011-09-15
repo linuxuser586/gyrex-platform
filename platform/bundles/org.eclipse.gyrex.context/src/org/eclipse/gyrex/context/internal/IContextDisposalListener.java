@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2011 AGETO Service GmbH and others.
+ * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -9,16 +9,15 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.context.tests.internal;
+package org.eclipse.gyrex.context.internal;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.eclipse.gyrex.context.IRuntimeContext;
 
 /**
- * Context Test Suite.
+ * Listener that will be informed about context disposals.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ ContextRegistryTests.class, ContextualRuntimeBlackBoxTests.class, PreferencesBlackBoxTests.class, ContextInjectionTests.class })
-public class AllContextTests {
+public interface IContextDisposalListener {
+
+	void contextDisposed(IRuntimeContext runtimeContext);
 
 }
