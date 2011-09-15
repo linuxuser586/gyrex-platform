@@ -62,8 +62,15 @@ public final class BundleServiceHelper {
 
 	/**
 	 * Creates a new instance.
+	 * <p>
+	 * Note, this method is typically called by the framework during bundle
+	 * start. Clients must not call it directly.
+	 * </p>
 	 * 
 	 * @param context
+	 *            the bundle context
+	 * @noreference This constructor is not intended to be referenced by
+	 *              clients.
 	 */
 	public BundleServiceHelper(final BundleContext context) {
 		contextRef.set(context);
@@ -72,8 +79,11 @@ public final class BundleServiceHelper {
 	}
 
 	/**
-	 * Called by {@link BaseBundleActivator#stop(BundleContext)} when the bundle
-	 * is stopped.
+	 * Disposes the service helper and release all tracked services.
+	 * <p>
+	 * This is typically called by a bundle activator when the bundle is
+	 * stopped.
+	 * </p>
 	 * <p>
 	 * When this method is called the context reference will be cleared so that
 	 * no new service can be registered or consumed. Additionally, all resources
