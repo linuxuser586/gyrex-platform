@@ -320,8 +320,7 @@ public final class BundleServiceHelper {
 	 *            the service interface class
 	 * @param filter
 	 *            the filter for tracking the service (must contain an
-	 *            {@value Constants#OBJECTCLASS} condition for the service
-	 *            interface)
+	 *            <code>objectClass</code> condition for the service interface)
 	 * @return the service proxy object
 	 */
 	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface, final Filter filter) {
