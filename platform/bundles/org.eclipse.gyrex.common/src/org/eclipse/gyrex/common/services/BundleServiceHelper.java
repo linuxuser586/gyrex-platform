@@ -11,7 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.common.services;
 
-import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicReference;
@@ -90,11 +89,14 @@ public final class BundleServiceHelper {
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	public void dispose() {
+		// unset the context
 		contextRef.set(null);
+		// dispose the proxy pool
+		serviceProxyPool.dispose();
 	}
 
 	private IllegalStateException newInactiveException() {
-		return new IllegalStateException(MessageFormat.format("Bundle ''{0}'' is inactive.", symbolicName));
+		return new IllegalStateException(String.format("Bundle '%s' is inactive.", symbolicName));
 	}
 
 	/**
