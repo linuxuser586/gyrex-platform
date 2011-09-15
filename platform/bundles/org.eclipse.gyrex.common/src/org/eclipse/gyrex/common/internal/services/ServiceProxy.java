@@ -58,7 +58,9 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 					if (monitor.isCanceled()) {
 						return Status.CANCEL_STATUS;
 					}
-					changeListener.serviceChanged(ServiceProxy.this);
+					if (!changeListener.serviceChanged(ServiceProxy.this)) {
+						changeListeners.remove(changeListener);
+					}
 				}
 
 				return Status.OK_STATUS;

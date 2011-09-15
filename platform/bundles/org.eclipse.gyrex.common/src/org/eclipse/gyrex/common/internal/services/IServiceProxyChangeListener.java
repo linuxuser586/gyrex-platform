@@ -25,6 +25,6 @@ import org.osgi.util.tracker.ServiceTracker;
  */
 public interface IServiceProxyChangeListener {
 
-	void serviceChanged(IServiceProxy<?> proxy);
+	boolean serviceChanged(IServiceProxy<?> proxy);
 
 }
