@@ -37,13 +37,14 @@ import org.osgi.util.tracker.ServiceTracker;
 public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, ServiceListener {
 
 	private final Class<T> serviceInterface;
+
 	private final AtomicReference<ServiceTracker<T, T>> serviceTrackerRef = new AtomicReference<ServiceTracker<T, T>>();
 	private final AtomicReference<BundleContext> bundleContextRef = new AtomicReference<BundleContext>();
 	private final CopyOnWriteArraySet<IServiceProxyDisposalListener> disposalListeners = new CopyOnWriteArraySet<IServiceProxyDisposalListener>();
 	private final CopyOnWriteArraySet<IServiceProxyChangeListener> changeListeners = new CopyOnWriteArraySet<IServiceProxyChangeListener>();
 	private volatile T dynamicProxy;
-
 	private final Job notifyChangeListenersJob;
+
 	{
 		notifyChangeListenersJob = new Job("Notify service proxy change listeners") {
 			@Override
@@ -194,5 +195,15 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 		// note, we add a delay in order to protect from an event storm
 		// as well as to process the events asynchronously
 		notifyChangeListenersJob.schedule(500L);
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("ServiceProxy [").append(serviceInterface.getName()).append("]");
+		if (null == bundleContextRef.get()) {
+			builder.append(" DISPOSED");
+		}
+		return builder.toString();
 	}
 }
