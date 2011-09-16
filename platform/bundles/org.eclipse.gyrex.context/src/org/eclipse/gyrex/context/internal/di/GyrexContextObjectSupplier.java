@@ -94,8 +94,10 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 	 */
 	public static boolean dynamicInjectionEnabled = Boolean.getBoolean("gyrex.context.dynamicInjection");
 
+	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextObjectSupplier.class);
 
+	/** associated context */
 	private final GyrexContextImpl context;
 
 	/**
@@ -190,12 +192,14 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 
 		// hook dispose listener (we just support disposals at the moment)
 		// TODO: investigate support for individual value changes
+		// FIXME: this may also be subjected to memory issues (too many listeners)
 		if (track) {
 			context.addDisposable(new IContextDisposalListener() {
-
 				@Override
 				public void contextDisposed(final IRuntimeContext handle) {
-					requestor.disposed(GyrexContextObjectSupplier.this);
+					if (requestor.isValid()) {
+						requestor.disposed(GyrexContextObjectSupplier.this);
+					}
 				}
 			});
 		}
