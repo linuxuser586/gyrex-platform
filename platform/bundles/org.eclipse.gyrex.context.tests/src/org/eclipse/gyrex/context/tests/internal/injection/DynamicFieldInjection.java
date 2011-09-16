@@ -13,6 +13,8 @@ package org.eclipse.gyrex.context.tests.internal.injection;
 
 import static junit.framework.Assert.assertNotNull;
 
+import java.util.Collection;
+
 import javax.inject.Inject;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
@@ -23,14 +25,17 @@ public class DynamicFieldInjection {
 	ISampleService service;
 	@Inject
 	IRuntimeContext context;
-
-	@Override
-	public String toString() {
-		return "DynamicFieldInjection{ " + context + ", " + service + " }";
-	}
+	@Inject
+	Collection<ISampleService> services;
 
 	public void assertInjected() {
 		assertNotNull("no context", context);
 		assertNotNull("no osgi service", service);
+		assertNotNull("no osgi service collection", services);
+	}
+
+	@Override
+	public String toString() {
+		return "DynamicFieldInjection{ " + context + ", " + service + " }";
 	}
 }

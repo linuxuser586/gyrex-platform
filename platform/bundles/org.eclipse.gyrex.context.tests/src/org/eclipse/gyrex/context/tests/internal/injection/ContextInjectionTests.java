@@ -14,6 +14,7 @@ package org.eclipse.gyrex.context.tests.internal.injection;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNotSame;
 import static junit.framework.Assert.assertSame;
+import static junit.framework.Assert.assertTrue;
 
 import org.eclipse.gyrex.context.tests.internal.Activator;
 import org.eclipse.gyrex.context.tests.internal.BaseContextTest;
@@ -77,15 +78,30 @@ public class ContextInjectionTests extends BaseContextTest {
 		assertSame("real service expected instead of proxy for dynamic injection", service, object.service);
 
 		// register second service instance (with higher ranking)
-		serviceRegistration = Activator.getActivator().getServiceHelper().registerService(ISampleService.class, new SampleServiceImpl(STRING_2), null, null, null, Integer.MAX_VALUE);
+		final ServiceRegistration<ISampleService> sr2 = Activator.getActivator().getServiceHelper().registerService(ISampleService.class, new SampleServiceImpl(STRING_2), null, null, null, Integer.MAX_VALUE);
 
 		// wait a bit for injector to catch up
 		// (events are processed asynchronously and collected for batch processing)
 		Thread.sleep(750L);
 
-		// assert that service changed
+		// assert that two services are available
+		assertTrue("collection should have two services now", object.services.size() == 2);
+
+		// assert that "primary" service changed (because of higher ranking!)
 		assertSame("wrong service response; service should have changed", STRING_2, object.service.getString());
 
+		// unregister service again
+		sr2.unregister();
+
+		// wait a bit for injector to catch up
+		// (events are processed asynchronously and collected for batch processing)
+		Thread.sleep(750L);
+
+		// assert that service is gone
+		assertTrue("collection should be down to one services now", object.services.size() == 1);
+
+		// assert that "primary" service also changed
+		assertSame("wrong service response; service should have changed", STRING_1, object.service.getString());
 	}
 
 	@After
