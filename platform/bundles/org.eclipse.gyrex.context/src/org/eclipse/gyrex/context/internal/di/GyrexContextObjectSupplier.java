@@ -88,6 +88,12 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 		}
 	}
 
+	/**
+	 * allows to enable dynamic injection (not recommended at this point, see
+	 * http://dev.eclipse.org/mhonarc/lists/e4-dev/msg05749.html)
+	 */
+	public static boolean dynamicInjectionEnabled = Boolean.getBoolean("gyrex.context.dynamicInjection");
+
 	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextObjectSupplier.class);
 
 	private final GyrexContextImpl context;
@@ -150,7 +156,7 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 									LOG.debug("Injected service collection ({}).", proxy);
 								}
 							} else {
-								if (track) {
+								if (track && dynamicInjectionEnabled) {
 									// try to inject actual service object because we can update dynamically
 									try {
 										actualValues[i] = proxy.getService();

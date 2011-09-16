@@ -16,6 +16,7 @@ import static junit.framework.Assert.assertNotSame;
 import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
 
+import org.eclipse.gyrex.context.internal.di.GyrexContextObjectSupplier;
 import org.eclipse.gyrex.context.tests.internal.Activator;
 import org.eclipse.gyrex.context.tests.internal.BaseContextTest;
 
@@ -73,9 +74,13 @@ public class ContextInjectionTests extends BaseContextTest {
 		assertNotNull("no object created", object);
 		object.assertInjected();
 
-		// assert that the injected service is a real service but not a proxy
+		// verify response
 		assertSame("wrong service response", STRING_1, object.service.getString());
-		assertSame("real service expected instead of proxy for dynamic injection", service, object.service);
+
+		// assert that the injected service is a real service but not a proxy
+		if (GyrexContextObjectSupplier.dynamicInjectionEnabled) {
+			assertSame("real service expected instead of proxy for dynamic injection", service, object.service);
+		}
 
 		// register second service instance (with higher ranking)
 		final ServiceRegistration<ISampleService> sr2 = Activator.getActivator().getServiceHelper().registerService(ISampleService.class, new SampleServiceImpl(STRING_2), null, null, null, Integer.MAX_VALUE);
@@ -102,11 +107,19 @@ public class ContextInjectionTests extends BaseContextTest {
 
 		// assert that "primary" service also changed
 		assertSame("wrong service response; service should have changed", STRING_1, object.service.getString());
+
+		// no let's really mess up
+		serviceRegistration.unregister();
+
 	}
 
 	@After
 	public void unregisterService() {
-		serviceRegistration.unregister();
+		try {
+			serviceRegistration.unregister();
+		} catch (final IllegalStateException e) {
+			// ignore
+		}
 		serviceRegistration = null;
 		service = null;
 	}

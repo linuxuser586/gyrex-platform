@@ -23,8 +23,10 @@ public class DynamicFieldInjection {
 
 	@Inject
 	ISampleService service;
+
 	@Inject
 	IRuntimeContext context;
+
 	@Inject
 	Collection<ISampleService> services;
 
