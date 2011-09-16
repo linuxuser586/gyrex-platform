@@ -15,6 +15,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.common.internal.services.ServiceProxy;
 import org.eclipse.gyrex.common.internal.services.ServiceProxyPool;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 
@@ -329,10 +330,7 @@ public final class BundleServiceHelper {
 		}
 
 		// check for the condition
-		final String requiredObjectClassCondition = String.format("&(objectClass=%s)", serviceInterface.getName());
-		if (!filter.toString().contains(requiredObjectClassCondition)) {
-			throw new IllegalArgumentException(String.format("Filter '%s' does not match the service class condition '%s'!", filter.toString(), requiredObjectClassCondition));
-		}
+		ServiceProxy.verifyFilterContainsServiceInterfaceCondition(serviceInterface, filter);
 
 		final BundleContext bundleContext = contextRef.get();
 		if (null == bundleContext) {

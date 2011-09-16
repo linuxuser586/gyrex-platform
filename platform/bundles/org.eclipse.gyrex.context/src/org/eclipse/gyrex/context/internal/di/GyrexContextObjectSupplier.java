@@ -13,7 +13,9 @@ package org.eclipse.gyrex.context.internal.di;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Collection;
 
 import org.eclipse.gyrex.common.internal.services.IServiceProxyChangeListener;
 import org.eclipse.gyrex.common.internal.services.IServiceProxyDisposalListener;
@@ -124,34 +126,55 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 					// thus, get the bundle context of the requestor
 					final BundleContext bundleContext = getBundleContext(requestor);
 					if (null != bundleContext) {
+						// check if we have a collection
+						final Class<?> serviceInterface;
+						final boolean collectionOfServices;
+						if (Collection.class.isAssignableFrom(key)) {
+							serviceInterface = getCollectionElementType(descriptors[i]);
+							collectionOfServices = true;
+						} else {
+							collectionOfServices = false;
+							serviceInterface = key;
+						}
+
 						// check if it's possible to get a service
-						if (null != bundleContext.getServiceReference(key)) {
+						if (null != bundleContext.getServiceReference(serviceInterface)) {
 							// track service
-							final IServiceProxy<?> proxy = context.getServiceLocator(bundleContext).trackService(key);
-							if (track) {
-								// try to inject actual service object because we can update dynamically
-								try {
-									actualValues[i] = proxy.getService();
+							final IServiceProxy<?> proxy = context.getServiceLocator(bundleContext).trackService(serviceInterface);
+							if (collectionOfServices) {
+								// inject read-only collection which contains service references
+								actualValues[i] = proxy.getServices();
 
-									// dynamic injection was successful
-									if (ContextDebug.injection) {
-										LOG.debug("Injected real service instance ({}).", proxy);
-									}
-
-									// add a listener that updates the injection whenever the service changes
-									((ServiceProxy<?>) proxy).addChangeListener(new ReinjectOnUpdate(requestor));
-									// add a listener that updates the injection whenever the proxy goes
-									((ServiceProxy<?>) proxy).addDisposalListener(new ReinjectOnDisposal(requestor));
-								} catch (final ServiceNotAvailableException e) {
-									if (ContextDebug.injection) {
-										LOG.debug("Service not available ({}), falling back to proxy.", proxy);
-									}
-									// fallback to proxy
-									actualValues[i] = proxy.getProxy();
+								// log message
+								if (ContextDebug.injection) {
+									LOG.debug("Injected service collection ({}).", proxy);
 								}
 							} else {
-								// inject proxy because services may come and go at any time
-								actualValues[i] = proxy.getProxy();
+								if (track) {
+									// try to inject actual service object because we can update dynamically
+									try {
+										actualValues[i] = proxy.getService();
+
+										// dynamic injection was successful
+										if (ContextDebug.injection) {
+											LOG.debug("Injected real service instance ({}).", proxy);
+										}
+
+										// add a listener that updates the injection whenever the service changes
+										((ServiceProxy<?>) proxy).addChangeListener(new ReinjectOnUpdate(requestor));
+										// add a listener that updates the injection whenever the proxy goes
+										((ServiceProxy<?>) proxy).addDisposalListener(new ReinjectOnDisposal(requestor));
+									} catch (final ServiceNotAvailableException e) {
+										if (ContextDebug.injection) {
+											LOG.debug("Service not available ({}), falling back to proxy.", proxy);
+										}
+										// fallback to proxy
+										actualValues[i] = proxy.getProxy();
+									}
+								} else {
+									// inject proxy because services may come and go at any time
+									actualValues[i] = proxy.getProxy();
+								}
 							}
 						}
 					}
@@ -202,12 +225,40 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 		return null;
 	}
 
-	private Class<?> getKey(final IObjectDescriptor descriptor) {
-		final Type elementType = descriptor.getDesiredType();
-		if (elementType instanceof Class<?>) {
-			return (Class<?>) elementType;
+	private Class<?> getClass(final Type type) {
+		if (type instanceof Class<?>) {
+			return (Class<?>) type;
+		} else if (type instanceof ParameterizedType) {
+			try {
+				return (Class<?>) ((ParameterizedType) type).getRawType();
+			} catch (final Exception ignored) {
+				if (ContextDebug.injection) {
+					LOG.debug("Unable to cast raw type of ParameterizedType ({}) to Class.", type, ignored);
+				}
+			}
 		}
 		return null;
+	}
+
+	private Class<?> getCollectionElementType(final IObjectDescriptor descriptor) {
+		// assume that the element is a ParameterizedType
+		final Type elementType = descriptor.getDesiredType();
+		if (elementType instanceof ParameterizedType) {
+			final Type[] typeArguments = ((ParameterizedType) elementType).getActualTypeArguments();
+			// Collections can only be parameterized with one argument
+			if (typeArguments.length == 1) {
+				return getClass(typeArguments[0]);
+			}
+		}
+
+		if (ContextDebug.injection) {
+			LOG.debug("Unable to detect collection element type for object descriptor ({}).", descriptor);
+		}
+		return null;
+	}
+
+	private Class<?> getKey(final IObjectDescriptor descriptor) {
+		return getClass(descriptor.getDesiredType());
 	}
 
 	@Override
