@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<component id="org.eclipse.gyrex.context" version="2">
+    <resource path="src/org/eclipse/gyrex/context/internal/services/GyrexContextServiceLocatorImpl.java" type="org.eclipse.gyrex.context.internal.services.GyrexContextServiceLocatorImpl">
+        <filter comment="allowed re-use because that's part of our project" id="640708718">
+            <message_arguments>
+                <message_argument value="BundleServiceHelper(BundleContext)"/>
+                <message_argument value="GyrexContextServiceLocatorImpl"/>
+            </message_arguments>
+        </filter>
+        <filter comment="allowed re-use because that's part of our project" id="640712815">
+            <message_arguments>
+                <message_argument value="BundleServiceHelper"/>
+                <message_argument value="GyrexContextServiceLocatorImpl"/>
+                <message_argument value="dispose()"/>
+            </message_arguments>
+        </filter>
+    </resource>
+</component>
