@@ -11,7 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.common.services;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.osgi.framework.BundleContext;
@@ -120,12 +120,12 @@ public interface IServiceProxy<T> {
 	 * </p>
 	 * <p>
 	 * The collection of services will be ordered based on the inverse natural
-	 * order of service objects (which is speced by
+	 * order of service objects (which is spec'ed by
 	 * {@link ServiceReference#compareTo(Object)}), i.e. a service with a higher
 	 * ranking comes before a service with a lower ranking.
 	 * </p>
 	 * 
 	 * @return an unmodifiable collection of service object
 	 */
-	Collection<T> getServices() throws IllegalStateException;
+	List<T> getServices() throws IllegalStateException;
 }

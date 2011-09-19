@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -237,14 +238,14 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	}
 
 	@Override
-	public Collection<T> getServices() throws IllegalStateException {
+	public List<T> getServices() throws IllegalStateException {
 		checkDisposed();
 
 		// ensure the listener is registered and initial services populated
 		open();
 
 		// each invocations returns a fresh read-only view
-		return Collections.unmodifiableCollection(services);
+		return Collections.unmodifiableList(services);
 	}
 
 	@Override
