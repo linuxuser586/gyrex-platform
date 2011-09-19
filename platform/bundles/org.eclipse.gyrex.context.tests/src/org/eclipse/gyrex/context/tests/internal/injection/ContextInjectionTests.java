@@ -108,7 +108,7 @@ public class ContextInjectionTests extends BaseContextTest {
 		// assert that "primary" service also changed
 		assertSame("wrong service response; service should have changed", STRING_1, object.service.getString());
 
-		// no let's really mess up
+		// now let's really mess up
 		serviceRegistration.unregister();
 
 	}

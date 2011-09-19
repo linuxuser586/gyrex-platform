@@ -15,11 +15,13 @@ import static junit.framework.Assert.assertNotNull;
 
 import javax.inject.Inject;
 
+import org.eclipse.gyrex.context.di.annotations.DynamicService;
+
 public class ConstructorInjectionWithOsgiService {
 	final ISampleService service;
 
 	@Inject
-	public ConstructorInjectionWithOsgiService(final ISampleService service) {
+	public ConstructorInjectionWithOsgiService(@DynamicService final ISampleService service) {
 		assertNotNull("no osgi service", service);
 		this.service = service;
 	}

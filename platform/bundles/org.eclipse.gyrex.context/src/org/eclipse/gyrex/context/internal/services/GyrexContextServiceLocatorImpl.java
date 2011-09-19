@@ -19,6 +19,7 @@ import org.eclipse.gyrex.context.services.IRuntimeContextServiceLocator;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
+import org.osgi.framework.InvalidSyntaxException;
 
 /**
  *
@@ -27,6 +28,7 @@ public class GyrexContextServiceLocatorImpl implements IRuntimeContextServiceLoc
 
 	private final BundleServiceHelper serviceHelper;
 	private final GyrexContextImpl context;
+	private final BundleContext bundleContext;
 
 	/**
 	 * Creates a new instance.
@@ -36,6 +38,7 @@ public class GyrexContextServiceLocatorImpl implements IRuntimeContextServiceLoc
 	 */
 	public GyrexContextServiceLocatorImpl(final GyrexContextImpl context, final BundleContext bundleContext) {
 		this.context = context;
+		this.bundleContext = bundleContext;
 		serviceHelper = new BundleServiceHelper(bundleContext);
 	}
 
@@ -50,15 +53,47 @@ public class GyrexContextServiceLocatorImpl implements IRuntimeContextServiceLoc
 	 * @see org.eclipse.gyrex.common.services.BundleServiceHelper#trackService(java.lang.Class)
 	 */
 	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface) {
-		// find the filter
-		final Filter filter = ContextConfiguration.findFilter(context.getContextPath(), serviceInterface.getName());
-		if (null != filter) {
-			return serviceHelper.trackService(serviceInterface, filter);
+		try {
+			return trackService(serviceInterface, null);
+		} catch (final InvalidSyntaxException e) {
+			// impossible because we specified "null", but you'll never know
+			throw new IllegalStateException("invalid filter syntax", e);
 		}
-
-		// don't use filter
-		// TODO: need to understand and implement behavior when filter is updated (current assumption is that a flush is necessary)
-		return serviceHelper.trackService(serviceInterface);
 	}
 
+	/**
+	 * @see org.eclipse.gyrex.common.services.BundleServiceHelper#trackService(java.lang.Class)
+	 * @throws InvalidSyntaxException
+	 */
+	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface, final String additionalFilter) throws InvalidSyntaxException {
+		// parse additional filter
+		Filter filter = null;
+		if (null != additionalFilter) {
+			filter = bundleContext.createFilter(additionalFilter);
+		}
+
+		// combine with context filter
+		final Filter contextFilter = ContextConfiguration.findFilter(context.getContextPath(), serviceInterface.getName());
+		if (null != contextFilter) {
+			if (null != filter) {
+				// combine with addition filter
+				filter = bundleContext.createFilter(String.format("(&(%s)(%s))", contextFilter.toString(), filter.toString()));
+			} else {
+				// use as is
+				filter = contextFilter;
+			}
+		} else if (null != filter) {
+			// combine with object class condition
+			filter = bundleContext.createFilter(String.format("(&(objectClass=%s)(%s))", serviceInterface.getName(), filter.toString()));
+		}
+
+		// track service
+		if (null != filter) {
+			return serviceHelper.trackService(serviceInterface, filter);
+		} else {
+			// don't use filter
+			// TODO: need to understand and implement behavior when filter is updated (current assumption is that a flush is necessary)
+			return serviceHelper.trackService(serviceInterface);
+		}
+	}
 }

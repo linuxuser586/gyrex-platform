@@ -18,16 +18,19 @@ import java.util.Collection;
 import javax.inject.Inject;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.di.annotations.DynamicService;
 
 public class DynamicFieldInjection {
 
 	@Inject
+	@DynamicService
 	ISampleService service;
 
 	@Inject
 	IRuntimeContext context;
 
 	@Inject
+	@DynamicService
 	Collection<ISampleService> services;
 
 	public void assertInjected() {

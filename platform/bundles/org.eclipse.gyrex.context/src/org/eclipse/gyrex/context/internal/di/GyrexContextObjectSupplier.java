@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.List;
 
 import org.eclipse.gyrex.common.internal.services.IServiceProxyChangeListener;
 import org.eclipse.gyrex.common.internal.services.IServiceProxyDisposalListener;
@@ -23,11 +24,13 @@ import org.eclipse.gyrex.common.internal.services.ServiceProxy;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.common.services.ServiceNotAvailableException;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.di.annotations.DynamicService;
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
 import org.eclipse.gyrex.context.internal.IContextDisposalListener;
 
 import org.eclipse.e4.core.di.IInjector;
+import org.eclipse.e4.core.di.InjectionException;
 import org.eclipse.e4.core.di.suppliers.IObjectDescriptor;
 import org.eclipse.e4.core.di.suppliers.IRequestor;
 import org.eclipse.e4.core.di.suppliers.PrimaryObjectSupplier;
@@ -35,7 +38,9 @@ import org.eclipse.e4.core.di.suppliers.PrimaryObjectSupplier;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,74 +123,23 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 				continue;
 			}
 
-			final Class<?> key = getKey(descriptors[i]);
+			final IObjectDescriptor descriptor = descriptors[i];
+			final Class<?> key = getKey(descriptor);
 			if (IRuntimeContext.class.equals(key)) {
 				// inject the handle to the underlying context
 				actualValues[i] = context.getHandle();
 			} else if (null != key) {
 				// find a context object
-				final Object value = context.get(key);
+				Object value = context.get(key);
+
+				// try OSGi service
+				if (null == value) {
+					value = getService(key, descriptor, requestor, initial, track, group);
+				}
+
+				// use what we have (if not null)
 				if (null != value) {
 					actualValues[i] = value;
-				} else {
-					// the context does not contain a context object
-					// however, there might still be a service available
-					// that the requestor is able to use (in the context)
-					// thus, get the bundle context of the requestor
-					final BundleContext bundleContext = getBundleContext(requestor);
-					if (null != bundleContext) {
-						// check if we have a collection
-						final Class<?> serviceInterface;
-						final boolean collectionOfServices;
-						if (Collection.class.isAssignableFrom(key)) {
-							serviceInterface = getCollectionElementType(descriptors[i]);
-							collectionOfServices = true;
-						} else {
-							collectionOfServices = false;
-							serviceInterface = key;
-						}
-
-						// check if it's possible to get a service
-						if (null != bundleContext.getServiceReference(serviceInterface)) {
-							// track service
-							final IServiceProxy<?> proxy = context.getServiceLocator(bundleContext).trackService(serviceInterface);
-							if (collectionOfServices) {
-								// inject read-only collection which contains service references
-								actualValues[i] = proxy.getServices();
-
-								// log message
-								if (ContextDebug.injection) {
-									LOG.debug("Injected service collection ({}).", proxy);
-								}
-							} else {
-								if (track && dynamicInjectionEnabled) {
-									// try to inject actual service object because we can update dynamically
-									try {
-										actualValues[i] = proxy.getService();
-
-										// dynamic injection was successful
-										if (ContextDebug.injection) {
-											LOG.debug("Injected real service instance ({}).", proxy);
-										}
-
-										// add a listener that updates the injection whenever the service changes
-										((ServiceProxy<?>) proxy).addChangeListener(new ReinjectOnUpdate(requestor));
-										// add a listener that updates the injection whenever the proxy goes
-										((ServiceProxy<?>) proxy).addDisposalListener(new ReinjectOnDisposal(requestor));
-									} catch (final ServiceNotAvailableException e) {
-										if (ContextDebug.injection) {
-											LOG.debug("Service not available ({}), falling back to proxy.", proxy);
-										}
-										// fallback to proxy
-										actualValues[i] = proxy.getProxy();
-									}
-								} else {
-									// inject proxy because services may come and go at any time
-									actualValues[i] = proxy.getProxy();
-								}
-							}
-						}
-					}
 				}
 			}
 		}
@@ -269,6 +223,90 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 
 	private Class<?> getKey(final IObjectDescriptor descriptor) {
 		return getClass(descriptor.getDesiredType());
+	}
+
+	private Object getService(final Class<?> key, final IObjectDescriptor descriptor, final IRequestor requestor, final boolean initial, final boolean track, final boolean group) {
+		// look for @Service annotation
+		final DynamicService serviceAnnotation = descriptor.getQualifier(DynamicService.class);
+		if (null == serviceAnnotation) {
+			if (ContextDebug.injection) {
+				LOG.debug("No @Service annotation present on ({}).", descriptor);
+			}
+			return null;
+		}
+
+		// the context does not contain a context object
+		// however, there might still be a service available
+		// that the requestor is able to use (in the context)
+		// thus, get the bundle context of the requestor
+		final BundleContext bundleContext = getBundleContext(requestor);
+		if (null == bundleContext) {
+			if (ContextDebug.injection) {
+				LOG.debug("No bundle context found for requestor ({}).", requestor);
+			}
+			return null;
+		}
+
+		// check if we have a collection
+		final boolean collectionOfServices = Collection.class.isAssignableFrom(key) || List.class.isAssignableFrom(key);
+
+		// detect OSGi service interface
+		final Class<?> serviceInterface = collectionOfServices ? getCollectionElementType(descriptor) : key;
+
+		// track service
+		final IServiceProxy<?> proxy;
+
+		// look for additional filter
+		final String filter = serviceAnnotation.filter();
+		if (StringUtils.isNotBlank(filter)) {
+			try {
+				proxy = context.getServiceLocator(bundleContext).trackService(serviceInterface, filter);
+			} catch (final InvalidSyntaxException e) {
+				throw new InjectionException(String.format("Error parsing filter '%s' specified in annotation at %s. %s", filter, descriptor, e.getMessage()), e);
+			}
+		} else {
+			proxy = context.getServiceLocator(bundleContext).trackService(serviceInterface);
+		}
+
+		// test for collection / list
+		if (collectionOfServices) {
+			// log message
+			if (ContextDebug.injection) {
+				LOG.debug("Injecting service collection ({}).", proxy);
+			}
+
+			// inject read-only collection which contains service references
+			return proxy.getServices();
+		}
+
+		if (track && dynamicInjectionEnabled && !serviceAnnotation.preferProxy()) {
+			// try to inject actual service object because we can update dynamically
+			try {
+				final Object service = proxy.getService();
+
+				// dynamic injection was successful
+				if (ContextDebug.injection) {
+					LOG.debug("Injected real service instance ({}).", proxy);
+				}
+
+				// add a listener that updates the injection whenever the service changes
+				((ServiceProxy<?>) proxy).addChangeListener(new ReinjectOnUpdate(requestor));
+				// add a listener that updates the injection whenever the proxy goes
+				((ServiceProxy<?>) proxy).addDisposalListener(new ReinjectOnDisposal(requestor));
+
+				// done;
+				return service;
+			} catch (final ServiceNotAvailableException e) {
+				if (ContextDebug.injection) {
+					LOG.debug("Service not available ({}), falling back to proxy.", proxy);
+				}
+				// fallback to proxy
+				return proxy.getProxy();
+			}
+		} else {
+			// inject proxy because services may come and go at any time
+			return proxy.getProxy();
+		}
 	}
 
 	@Override

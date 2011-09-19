@@ -17,6 +17,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.di.annotations.DynamicService;
 
 @Singleton
 public class ConstructorInjectionSingleton {
@@ -24,7 +25,7 @@ public class ConstructorInjectionSingleton {
 	final IRuntimeContext context;
 
 	@Inject
-	public ConstructorInjectionSingleton(final IRuntimeContext context, final ISampleService service) {
+	public ConstructorInjectionSingleton(final IRuntimeContext context, @DynamicService final ISampleService service) {
 		assertNotNull("no context", context);
 		assertNotNull("no osgi service", service);
 		this.context = context;
