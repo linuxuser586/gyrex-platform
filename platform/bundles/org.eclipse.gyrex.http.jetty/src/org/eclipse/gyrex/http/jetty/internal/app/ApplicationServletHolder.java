@@ -62,7 +62,7 @@ public class ApplicationServletHolder extends ServletHolder {
 		try {
 			return context.getInjector().make(heldClass);
 		} catch (final InjectionException e) {
-			final InstantiationException instantiationException = new InstantiationException("error injecting class: " + e.getMessage());
+			final InstantiationException instantiationException = new InstantiationException(String.format("Error injecting class '%s'. %s", heldClass.getName(), e.getMessage()));
 			instantiationException.initCause(e);
 			throw instantiationException;
 		}
