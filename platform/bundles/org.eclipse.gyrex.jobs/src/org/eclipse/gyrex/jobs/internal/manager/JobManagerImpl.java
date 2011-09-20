@@ -400,6 +400,8 @@ public class JobManagerImpl implements IJobManager {
 
 	private JobState getJobStateWithHungDetection(final IJob job) {
 		try {
+			// note, although "WAITING" jobs are also active, we only test for RUNNING here
+			// TODO: detect jobs stuck in WAITING state
 			if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(toInternalId(job.getId()))) {
 				return JobState.NONE;
 			}
@@ -544,6 +546,8 @@ public class JobManagerImpl implements IJobManager {
 
 	private void resetJobStateForHungJobs(final IJob job, final IExclusiveLock jobLock) {
 		try {
+			// note, although "WAITING" jobs are also active, we only test for RUNNING here
+			// TODO: reset jobs stuck in WAITING state
 			if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(toInternalId(job.getId()))) {
 				setJobState(job, JobState.NONE, jobLock);
 			}
