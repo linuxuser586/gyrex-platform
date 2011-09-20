@@ -32,6 +32,7 @@ import org.eclipse.gyrex.jobs.internal.manager.JobHungDetectionHelper;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.provider.JobProvider;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -40,6 +41,9 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+
+import org.osgi.service.prefs.BackingStoreException;
+import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -54,12 +58,34 @@ public class WorkerEngine extends Job {
 	private static final long DEFAULT_NON_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(3);
 	private static final long DEFAULT_MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
 
+	private static final String NODE_WORKER_ENGINE = "workerEngine";
+	private static final String PREF_KEY_SUSPENDED = "suspended";
+
 	private static final Logger LOG = LoggerFactory.getLogger(WorkerEngine.class);
+
+	private static Preferences getWorkerEnginePreferences() {
+		return CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_WORKER_ENGINE);
+	}
+
+	public static void resume() throws BackingStoreException {
+		final Preferences preferences = getWorkerEnginePreferences();
+		preferences.remove(PREF_KEY_SUSPENDED);
+		preferences.flush();
+	}
+
+	public static void suspend() throws BackingStoreException {
+		final Preferences preferences = getWorkerEnginePreferences();
+		preferences.putBoolean(PREF_KEY_SUSPENDED, true);
+		preferences.flush();
+	}
 
 	private final int maxConcurrentJobs;
 	private final long idleSleepTime;
+
 	private final long nonIdleSleepTime;
+
 	private long engineSleepTime = DEFAULT_IDLE_SLEEP_TIME;
+
 	private volatile int scheduledJobsCount;
 
 	private final IJobChangeListener jobFinishedListener = new JobChangeAdapter() {
@@ -289,6 +315,14 @@ public class WorkerEngine extends Job {
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
 		try {
+			// check if suspended
+			if (getWorkerEnginePreferences().getBoolean(PREF_KEY_SUSPENDED, false)) {
+				if (JobsDebug.workerEngine) {
+					LOG.debug("Worker engine is suspended.");
+				}
+				return Status.CANCEL_STATUS;
+			}
+
 			// process next job from queue
 			final boolean moreJobsAvailable = processNextJobFromQueue();
 
