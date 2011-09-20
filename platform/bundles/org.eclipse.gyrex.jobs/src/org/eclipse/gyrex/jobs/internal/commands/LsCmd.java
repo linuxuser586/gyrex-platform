@@ -58,7 +58,7 @@ public class LsCmd extends Command {
 	 * Creates a new instance.
 	 */
 	public LsCmd() {
-		super("<schedules|providers|running|running|all|job> [<filterString>] - lists schedules or jobs");
+		super("<schedules|providers|running|waiting|all|job> [<filterString>] - lists schedules or jobs");
 	}
 
 	@Override
@@ -68,19 +68,19 @@ public class LsCmd extends Command {
 			return;
 		}
 
-		if (StringUtils.startsWith("providers", what)) {
+		if (StringUtils.startsWithIgnoreCase("providers", what)) {
 			printProviders();
 		} else
 
-		if (StringUtils.startsWith("schedules", what)) {
+		if (StringUtils.startsWithIgnoreCase("schedules", what)) {
 			printSchedules();
-		} else if (StringUtils.startsWith("running", what)) {
+		} else if (StringUtils.startsWithIgnoreCase("running", what)) {
 			printJobs(JobState.RUNNING);
-		} else if (StringUtils.startsWith("waiting", what)) {
+		} else if (StringUtils.startsWithIgnoreCase("waiting", what)) {
 			printJobs(JobState.WAITING);
-		} else if (StringUtils.startsWith("all", what)) {
+		} else if (StringUtils.startsWithIgnoreCase("all", what)) {
 			printJobs(null);
-		} else if (StringUtils.startsWith("job", what)) {
+		} else if (StringUtils.startsWithIgnoreCase("job", what)) {
 			printJobs(null);
 		}
 	}
