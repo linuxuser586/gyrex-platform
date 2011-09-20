@@ -86,7 +86,17 @@ final class CleanupJob extends Job {
 			final String[] childrenNames = jobsNode.childrenNames();
 			for (final String internalId : childrenNames) {
 				final String externalId = JobManagerImpl.getExternalId(internalId);
-				final JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
+				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
+
+				// fix hung jobs
+				if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(internalId)) {
+					final Preferences jobNode = jobsNode.node(internalId);
+					jobNode.put(JobManagerImpl.PROPERTY_STATUS, JobState.NONE.name());
+					jobNode.flush();
+					job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
+				}
+
+				// only remove jobs not running and older then maxAge
 				if ((job.getState() != JobState.NONE) || ((now - job.getLastResultTimestamp()) < maxAge)) {
 					continue;
 				}
@@ -101,6 +111,7 @@ final class CleanupJob extends Job {
 					jobsNode.flush();
 				}
 
+				// remove from states
 				final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
 				for (final JobState state : JobState.values()) {
 					final Preferences stateNode = statesNode.node(state.name());

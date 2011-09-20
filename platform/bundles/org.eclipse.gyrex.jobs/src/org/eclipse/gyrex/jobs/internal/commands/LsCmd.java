@@ -22,15 +22,25 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 
 import org.eclipse.gyrex.common.console.Command;
+import org.eclipse.gyrex.common.identifiers.IdHelper;
+import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.internal.manager.JobHistoryStore;
+import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
+import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
 
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
+import org.osgi.service.prefs.BackingStoreException;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.kohsuke.args4j.Argument;
 
 /**
@@ -48,7 +58,7 @@ public class LsCmd extends Command {
 	 * Creates a new instance.
 	 */
 	public LsCmd() {
-		super("<schedules|jobs|providers> <contextPath> [<filterString>] - lists schedules or jobs");
+		super("<schedules|providers|running|running|all|job> [<filterString>] - lists schedules or jobs");
 	}
 
 	@Override
@@ -64,43 +74,77 @@ public class LsCmd extends Command {
 
 		if (StringUtils.startsWith("schedules", what)) {
 			printSchedules();
-		} else if (StringUtils.startsWith("jobs", what)) {
-			printJobs();
+		} else if (StringUtils.startsWith("running", what)) {
+			printJobs(JobState.RUNNING);
+		} else if (StringUtils.startsWith("waiting", what)) {
+			printJobs(JobState.WAITING);
+		} else if (StringUtils.startsWith("all", what)) {
+			printJobs(null);
+		} else if (StringUtils.startsWith("job", what)) {
+			printJobs(null);
 		}
 	}
 
-	private void printJobs() {
-//		final IJobManager jobManager = context.get(IJobManager.class);
-//
-//		// show single schedule if id matches
-//		if (StringUtils.isNotBlank(searchString) && IdHelper.isValidId(searchString)) {
-//			final IJob job = jobManager.getJob(searchString);
-//			if (null != job) {
-//
-//				final StrBuilder info = new StrBuilder();
-//				info.append(job.getId());
-//				info.append("                    type: ").appendln(job.getTypeId());
-//				info.append("                   state: ").appendln(job.getState());
-//				info.append("         last start time: ").appendln(job.getLastStart() > -1 ? DateFormatUtils.formatUTC(job.getLastStart(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
-//				info.append(" last successfull finish: ").appendln(job.getLastSuccessfulFinish() > -1 ? DateFormatUtils.formatUTC(job.getLastSuccessfulFinish(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
-//
-//				printf("%s", info.toString());
-//				return;
-//			}
-//		}
-//
-//		// list all
-//		final SortedSet<String> schedules = new TreeSet<String>(jobManager.getJobs());
-//		for (final String id : schedules) {
-//			if (StringUtils.isBlank(searchString) || StringUtils.contains(id, searchString)) {
-//				final IJob job = jobManager.getJob(searchString);
-//				if (null == job) {
-//					continue;
-//				}
-//
-//				printf("%s (%s) [%s]", job.getId(), job.getTypeId(), job.getState().toString());
-//			}
-//		}
+	private SortedSet<String> getJobIds(final JobState state) throws BackingStoreException {
+		if (null == state) {
+			return new TreeSet<String>(Arrays.asList(JobHistoryStore.getJobsNode().childrenNames()));
+		}
+
+		final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
+		if (!statesNode.nodeExists(state.name())) {
+			return new TreeSet<String>();
+		}
+		return new TreeSet<String>(Arrays.asList(statesNode.node(state.name()).keys()));
+	}
+
+	private void printJob(final JobImpl job) {
+		final StrBuilder info = new StrBuilder();
+		info.appendln(job.getId());
+		info.append("                    type: ").appendln(job.getTypeId());
+		info.append("                   state: ").appendln(job.getState());
+		info.append("         last start time: ").appendln(job.getLastStart() > -1 ? DateFormatUtils.formatUTC(job.getLastStart(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
+		info.append(" last successfull finish: ").appendln(job.getLastSuccessfulFinish() > -1 ? DateFormatUtils.formatUTC(job.getLastSuccessfulFinish(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
+		info.append("             last result: ").appendln(job.getLastResult() != null ? job.getLastResult().getMessage() : "(not available)");
+
+		printf("%s", info.toString());
+	}
+
+	private void printJobs(final JobState state) throws Exception {
+		// get all matching jobs and sort
+		final SortedSet<String> storageIds = getJobIds(state);
+
+		// show single job if id matches
+		if (StringUtils.isNotBlank(searchString) && IdHelper.isValidId(searchString)) {
+			for (final String storageId : storageIds) {
+				final String externalId = JobManagerImpl.getExternalId(storageId);
+				if (StringUtils.equals(searchString, externalId)) {
+					final JobImpl job = JobManagerImpl.readJob(externalId, JobHistoryStore.getJobsNode().node(storageId));
+					if (null != job) {
+						printJob(job);
+						return;
+					}
+				}
+			}
+		}
+
+		// list all
+		boolean found = false;
+		for (final String storageId : storageIds) {
+			final String externalId = JobManagerImpl.getExternalId(storageId);
+			if (StringUtils.isBlank(searchString) || StringUtils.contains(storageId, searchString)) {
+				printf("%s (storage key %s)", externalId, storageId);
+				found = true;
+			}
+		}
+
+		if (!found) {
+			if (null != state) {
+				printf("no %s jobs found", state.name());
+			} else {
+				printf("no jobs found", state.name());
+			}
+			return;
+		}
 	}
 
 	private void printProviders() {
@@ -165,12 +209,17 @@ public class LsCmd extends Command {
 		}
 
 		// list schedules
+		boolean found = false;
 		for (final String storageId : storageIds) {
 			final String externalId = ScheduleManagerImpl.getExternalId(storageId);
 			if (StringUtils.isBlank(searchString) || StringUtils.contains(storageId, searchString)) {
 				printf("%s (storage key %s)", externalId, storageId);
+				found = true;
 			}
 		}
-	}
 
+		if (!found) {
+			printf("No schedules found!");
+		}
+	}
 }

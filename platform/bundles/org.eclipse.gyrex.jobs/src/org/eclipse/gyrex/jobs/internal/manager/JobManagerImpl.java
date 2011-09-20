@@ -99,15 +99,13 @@ public class JobManagerImpl implements IJobManager {
 
 	private static final String NODE_PARAMETER = "parameter";
 
-	private static final String PROPERTY_TYPE = "type";
-
-	private static final String PROPERTY_STATUS = "status";
-
-	private static final String PROPERTY_LAST_START = "lastStart";
-	private static final String PROPERTY_LAST_SUCCESSFUL_FINISH = "lastSuccessfulFinish";
-	private static final String PROPERTY_LAST_RESULT_MESSAGE = "lastResultMessage";
-	private static final String PROPERTY_LAST_RESULT_SEVERITY = "lastResultSeverity";
-	private static final String PROPERTY_LAST_RESULT = "lastResultTimestamp";
+	static final String PROPERTY_TYPE = "type";
+	static final String PROPERTY_STATUS = "status";
+	static final String PROPERTY_LAST_START = "lastStart";
+	static final String PROPERTY_LAST_SUCCESSFUL_FINISH = "lastSuccessfulFinish";
+	static final String PROPERTY_LAST_RESULT_MESSAGE = "lastResultMessage";
+	static final String PROPERTY_LAST_RESULT_SEVERITY = "lastResultSeverity";
+	static final String PROPERTY_LAST_RESULT = "lastResultTimestamp";
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobManagerImpl.class);
 
@@ -115,7 +113,7 @@ public class JobManagerImpl implements IJobManager {
 
 	static final String SEPARATOR = "_";
 
-	static String getExternalId(final String internalId) {
+	public static String getExternalId(final String internalId) {
 		final int i = internalId.indexOf(SEPARATOR);
 		if (i < 0) {
 			return internalId;
@@ -154,11 +152,15 @@ public class JobManagerImpl implements IJobManager {
 		return builder.toString();
 	}
 
-	static IEclipsePreferences getStatesNode() {
+	public static String getInternalId(final IRuntimeContext context, final String jobId) {
+		return getInternalIdPrefix(context) + jobId;
+	}
+
+	public static IEclipsePreferences getStatesNode() {
 		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_STATES);
 	}
 
-	static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
+	public static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
 		final JobImpl job = new JobImpl();
 
 		job.setId(jobId);
@@ -198,11 +200,28 @@ public class JobManagerImpl implements IJobManager {
 		return JobState.NONE;
 	}
 
+	public static void triggerCleanUp() {
+		final long last = lastCleanup.get();
+		if ((System.currentTimeMillis() - last) > TimeUnit.HOURS.toMillis(3)) {
+			if (lastCleanup.compareAndSet(last, System.currentTimeMillis())) {
+				new CleanupJob().schedule();
+			}
+		}
+	}
+
 	private final IRuntimeContext context;
 
 	private final String internalIdPrefix;
 
 	static final String NODE_STATES = "status";
+
+	private static String getInternalIdPrefix(final IRuntimeContext context) {
+		try {
+			return DigestUtils.shaHex(context.getContextPath().toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
+		}
+	}
 
 	/**
 	 * Creates a new instance.
@@ -210,11 +229,7 @@ public class JobManagerImpl implements IJobManager {
 	@Inject
 	public JobManagerImpl(final IRuntimeContext context) {
 		this.context = context;
-		try {
-			internalIdPrefix = DigestUtils.shaHex(context.getContextPath().toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
-		} catch (final UnsupportedEncodingException e) {
-			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
-		}
+		internalIdPrefix = getInternalIdPrefix(context);
 	}
 
 	@Override
@@ -383,15 +398,26 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
+	private JobState getJobStateWithHungDetection(final IJob job) {
+		try {
+			if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(toInternalId(job.getId()))) {
+				return JobState.NONE;
+			}
+		} catch (final Exception e) {
+			// ignore
+		}
+		return job.getState();
+	}
+
 	private IExclusiveLock getLock(final IJob job) {
-		final String lockId = "gyrex.jobs.".concat(toInternalId(job.getId()));
+		final String lockId = "gyrex.jobs.modify.".concat(toInternalId(job.getId()));
 		if (JobsDebug.jobLocks) {
 			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
 		}
 		try {
 			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, 2000L);
 		} catch (final Exception e) {
-			throw new IllegalStateException(String.format("Unable to get job lock. %s", e.getMessage()), e);
+			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
 		}
 	}
 
@@ -406,8 +432,8 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 		}
 
-		// check the job state
-		if (job.getState() != JobState.NONE) {
+		// check the job state (but detect hung job)
+		if (getJobStateWithHungDetection(job) != JobState.NONE) {
 			throw new IllegalStateException(String.format("Job %s cannot be queued because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
 		}
 
@@ -420,6 +446,9 @@ public class JobManagerImpl implements IJobManager {
 		try {
 			// get job modification lock
 			jobLock = getLock(job);
+
+			// reset state of hung jobs
+			resetJobStateForHungJobs(job, jobLock);
 
 			// re-read job status (inside lock)
 			job = getJob(jobId);
@@ -510,6 +539,16 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalStateException(String.format("Error removing job %s. %s", jobId, e.getMessage()), e);
 		} finally {
 			releaseLock(jobLock, jobId);
+		}
+	}
+
+	private void resetJobStateForHungJobs(final IJob job, final IExclusiveLock jobLock) {
+		try {
+			if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(toInternalId(job.getId()))) {
+				setJobState(job, JobState.NONE, jobLock);
+			}
+		} catch (final Exception e) {
+			// ignore
 		}
 	}
 
@@ -676,6 +715,9 @@ public class JobManagerImpl implements IJobManager {
 			// get job modification lock
 			jobLock = getLock(job);
 
+			// reset state of hung jobs
+			resetJobStateForHungJobs(job, jobLock);
+
 			// re-read job status (inside lock)
 			job = getJob(jobId);
 			if (null == job) {
@@ -694,6 +736,7 @@ public class JobManagerImpl implements IJobManager {
 
 				// update last run time if new state is RUNNING
 				if (state == JobState.RUNNING) {
+					// set start time
 					setJobStartTime(job, System.currentTimeMillis(), jobLock);
 				}
 
@@ -749,12 +792,4 @@ public class JobManagerImpl implements IJobManager {
 		return internalIdPrefix.concat(id);
 	}
 
-	private void triggerCleanUp() {
-		final long last = lastCleanup.get();
-		if ((System.currentTimeMillis() - last) > TimeUnit.HOURS.toMillis(3)) {
-			if (lastCleanup.compareAndSet(last, System.currentTimeMillis())) {
-				new CleanupJob().schedule();
-			}
-		}
-	}
 }

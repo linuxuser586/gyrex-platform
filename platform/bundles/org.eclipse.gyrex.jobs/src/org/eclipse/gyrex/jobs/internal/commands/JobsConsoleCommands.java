@@ -35,6 +35,8 @@ public class JobsConsoleCommands extends BaseCommandProvider {
 
 		registerCommand("addEntryToSchedule", AddEntryToScheduleCmd.class);
 		registerCommand("setEntryParam", UpdateEntryToScheduleCmd.class);
+
+		registerCommand("cleanup", CleanupCmd.class);
 	}
 
 	public void _jobs(final CommandInterpreter ci) throws Exception {

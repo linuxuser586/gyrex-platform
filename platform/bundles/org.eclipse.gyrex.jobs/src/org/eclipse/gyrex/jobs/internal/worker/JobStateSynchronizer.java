@@ -15,6 +15,7 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.IJob;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.manager.IJobStateWatch;
+import org.eclipse.gyrex.jobs.internal.manager.JobHungDetectionHelper;
 import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
@@ -72,6 +73,10 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	@Override
 	public void done(final IJobChangeEvent event) {
 		try {
+			// set the job inactive
+			// (note, it was set active when it was scheduled)
+			JobHungDetectionHelper.setInactive(JobManagerImpl.getInternalId(jobContext.getContext(), getJobId()));
+
 			// update job state
 			updateJobState(null, JobState.NONE, null);
 
@@ -143,4 +148,5 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			LOG.error("Error updating job {} from {} to {}: {}", new Object[] { getJobId(), null != expected ? "state " + expected : "any state", state, ExceptionUtils.getRootCauseMessage(e), e });
 		}
 	}
+
 }

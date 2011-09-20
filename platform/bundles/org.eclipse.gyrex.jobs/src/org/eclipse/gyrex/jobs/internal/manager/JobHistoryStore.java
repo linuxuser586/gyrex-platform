@@ -48,7 +48,7 @@ public class JobHistoryStore {
 		return (IEclipsePreferences) jobsNode.node(jobStorageKey).node(NODE_HISTORY);
 	}
 
-	static IEclipsePreferences getJobsNode() {
+	public static IEclipsePreferences getJobsNode() {
 		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_JOBS);
 	}
 
