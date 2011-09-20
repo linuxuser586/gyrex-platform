@@ -34,7 +34,7 @@ final class JobHistoryImpl implements IJobHistory {
 	private static final String KEY_RESULT_SEVERITY = "resultSeverity";
 	private static final String KEY_RESULT_MESSAGE = "resultMessage";
 	private static final String KEY_TIMESTAMP = "timestamp";
-	private static final int MAX_HISTORY_SIZE = 30;
+	private static final int MAX_HISTORY_SIZE = 120;
 
 	private final String jobId;
 
