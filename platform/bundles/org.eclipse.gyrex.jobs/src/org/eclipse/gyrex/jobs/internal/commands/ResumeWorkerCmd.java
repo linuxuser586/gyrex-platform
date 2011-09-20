@@ -29,6 +29,7 @@ public class ResumeWorkerCmd extends Command {
 	@Override
 	protected void doExecute() throws Exception {
 		WorkerEngine.resume();
+		printf("Resumed processing of jobs.");
 	}
 
 }

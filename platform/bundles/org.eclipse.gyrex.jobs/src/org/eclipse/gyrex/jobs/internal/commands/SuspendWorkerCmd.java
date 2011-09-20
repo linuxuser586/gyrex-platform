@@ -29,6 +29,7 @@ public class SuspendWorkerCmd extends Command {
 	@Override
 	protected void doExecute() throws Exception {
 		WorkerEngine.suspend();
+		printf("Suspended processing of jobs.");
 	}
 
 }
