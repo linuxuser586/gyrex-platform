@@ -169,7 +169,7 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 
 		if (null == bundle) {
 			// ConstructorRequestor
-			// we are very bad and use reflection until there is API
+			// FIXME: https://bugs.eclipse.org/357865
 			try {
 				final Field field = requestor.getClass().getDeclaredField("constructor");
 				if (!field.isAccessible()) {
