@@ -260,6 +260,54 @@ public class ApplicationContext implements IApplicationContext {
 	}
 
 	@Override
+	public void registerServlet(final String alias, final Class<? extends Servlet> servletClass, final Map<String, String> initparams) throws ServletException, NamespaceException {
+		final String pathSpec = normalizeAliasToPathSpec(alias);
+
+		if (JettyDebug.applicationContext) {
+			LOG.debug("{} registering servlet: {} (normalized to {}) --> {}", new Object[] { this, alias, pathSpec, servletClass });
+		}
+
+		// synchronize access to registry modifications
+		registryModificationLock.lock();
+		try {
+			// reserve alias
+			registerAlias(alias);
+
+			// track bundle de-activation
+			addBundleResourceMonitor(alias, servletClass);
+
+			// create holder
+			final ApplicationServletHolder holder = new ApplicationServletHolder(servletClass);
+			if (null != initparams) {
+				holder.setInitParameters(initparams);
+			}
+
+			// register servlet
+			applicationHandler.getServletHandler().addServletWithMapping(holder, pathSpec);
+
+			// start if already started
+			if (applicationHandler.getServletHandler().isStarted() || applicationHandler.getServletHandler().isStarting()) {
+				try {
+					holder.start();
+				} catch (final Exception e) {
+					// attempt a clean unregister
+					try {
+						unregister(alias);
+					} catch (final Exception e2) {
+						if (JettyDebug.debug) {
+							LOG.debug("Exception during cleanup of failed registration.", e2);
+						}
+					}
+					// fail
+					throw new ServletException(String.format("Error starting servlet. %s", e.getMessage()), e);
+				}
+			}
+		} finally {
+			registryModificationLock.unlock();
+		}
+	}
+
+	@Override
 	public void registerServlet(final String alias, final Servlet servlet, final Map<String, String> initparams) throws ServletException, NamespaceException {
 		final String pathSpec = normalizeAliasToPathSpec(alias);
 

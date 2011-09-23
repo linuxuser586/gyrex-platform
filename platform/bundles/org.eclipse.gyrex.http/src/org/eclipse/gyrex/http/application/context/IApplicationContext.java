@@ -267,6 +267,44 @@ public interface IApplicationContext {
 	/**
 	 * Registers a servlet into the URI namespace.
 	 * <p>
+	 * This method behaves exactly the same as
+	 * {@link #registerServlet(String, Servlet, Map)}. However, in contrast to a
+	 * {@link Servlet} object this method takes a {@link Servlet} class. The
+	 * instance will be created by the application from the specified class
+	 * using dependency injection from the {@link Application#getContext()
+	 * application's context}.
+	 * </p>
+	 * <p>
+	 * The specified {@link Servlet} class must be loaded by an OSGi bundle. It
+	 * will be the bundle that is responsible for the registration. The
+	 * application will monitor the bundle so that the registrations will be
+	 * automatically (see {@link #unregister(String)} unregistered) when the
+	 * bundle is stopped.
+	 * </p>
+	 * 
+	 * @param alias
+	 *            name in the URI namespace at which the servlet is registered
+	 * @param servletClass
+	 *            the servlet class to register
+	 * @param initparams
+	 *            initialization arguments for the servlet or <code>null</code>
+	 *            if there are none. This argument is used by the servlet's
+	 *            <code>ServletConfig</code> object
+	 * @throws NamespaceException
+	 *             if the registration fails because the alias is already in use
+	 * @throws javax.servlet.ServletException
+	 *             if the servlet's <code>init</code> method throws an
+	 *             exception, or the given servlet object has already been
+	 *             registered at a different alias
+	 * @throws java.lang.IllegalArgumentException
+	 *             if any of the arguments are invalid
+	 * @see #registerServlet(String, Servlet, Map)
+	 */
+	void registerServlet(final String alias, final Class<? extends Servlet> servletClass, final Map<String, String> initparams) throws ServletException, NamespaceException;
+
+	/**
+	 * Registers a servlet into the URI namespace.
+	 * <p>
 	 * The alias is the name in the URI namespace of the application at which
 	 * the registration will be mapped.
 	 * </p>
