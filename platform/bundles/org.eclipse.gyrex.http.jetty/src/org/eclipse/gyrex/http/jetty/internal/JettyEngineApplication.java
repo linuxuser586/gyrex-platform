@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -50,6 +50,10 @@ public class JettyEngineApplication implements IApplication {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JettyEngineApplication.class);
 
+	// OSGi Http Service suggest these properties for setting the default ports
+	private static final String ORG_OSGI_SERVICE_HTTP_PORT = "org.osgi.service.http.port"; //$NON-NLS-1$
+//	private static final String ORG_OSGI_SERVICE_HTTP_PORT_SECURE = "org.osgi.service.http.port.secure"; //$NON-NLS-1$
+
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = Integer.valueOf(1);
 
@@ -83,11 +87,20 @@ public class JettyEngineApplication implements IApplication {
 			}
 		} else {
 			// start a default channel in development mode
+			// or if OSGi property is explicitly set (bug 358859)
 			if (Platform.inDevelopmentMode()) {
-				LOG.info("No channels configured. Enabling default channel on port 8080 in development mode.");
+				final int port = Integer.getInteger(ORG_OSGI_SERVICE_HTTP_PORT, 8080);
+				LOG.info("No channels configured. Enabling default channel on port {} in development mode.", port);
 				final ChannelDescriptor defaultChannel = new ChannelDescriptor();
 				defaultChannel.setId("default");
-				defaultChannel.setPort(8080);
+				defaultChannel.setPort(port);
+				createConnector(server, defaultChannel, jettyManager, nodeProperties);
+			} else if (null != Integer.getInteger(ORG_OSGI_SERVICE_HTTP_PORT)) {
+				final int port = Integer.getInteger(ORG_OSGI_SERVICE_HTTP_PORT, 8080);
+				LOG.info("No channels configured. Enabling channel on port {} configured via system property '{}'.", port, ORG_OSGI_SERVICE_HTTP_PORT);
+				final ChannelDescriptor defaultChannel = new ChannelDescriptor();
+				defaultChannel.setId("default");
+				defaultChannel.setPort(port);
 				createConnector(server, defaultChannel, jettyManager, nodeProperties);
 			}
 		}
