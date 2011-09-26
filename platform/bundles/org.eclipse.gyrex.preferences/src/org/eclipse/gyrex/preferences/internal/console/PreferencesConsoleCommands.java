@@ -17,7 +17,7 @@ import org.eclipse.gyrex.preferences.internal.PreferencesDebug;
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 
 /**
- * Commands for software installations
+ * Commands for preferences
  */
 public class PreferencesConsoleCommands extends BaseCommandProvider {
 
@@ -29,6 +29,8 @@ public class PreferencesConsoleCommands extends BaseCommandProvider {
 		registerCommand("export", ExportCmd.class);
 		registerCommand("import", ImportCmd.class);
 		registerCommand("set", SetCmd.class);
+		registerCommand("unset", UnsetCmd.class);
+		registerCommand("remove", RemoveCmd.class);
 	}
 
 	public void _prefs(final CommandInterpreter ci) throws Exception {

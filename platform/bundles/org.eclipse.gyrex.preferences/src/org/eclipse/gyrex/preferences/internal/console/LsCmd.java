@@ -32,7 +32,7 @@ public class LsCmd extends Command {
 	@Option(name = "-r", aliases = "--recursive", required = false, usage = "recursively go into child nodes")
 	protected boolean recursive = false;
 
-	@Argument(index = 0, required = true, usage = "path to a preference node")
+	@Argument(index = 0, required = true, usage = "path to a preference node (use // at the end to list keys of a node)")
 	protected String path;
 
 	/**
