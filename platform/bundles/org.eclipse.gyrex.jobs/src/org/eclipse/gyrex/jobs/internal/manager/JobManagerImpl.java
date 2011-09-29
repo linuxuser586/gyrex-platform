@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -552,7 +553,7 @@ public class JobManagerImpl implements IJobManager {
 				setJobState(job, JobState.NONE, jobLock);
 			}
 		} catch (final Exception e) {
-			// ignore
+			// ignore (also RuntimeException)
 		}
 	}
 
@@ -577,10 +578,9 @@ public class JobManagerImpl implements IJobManager {
 				}
 			}
 			// add updated/new parameter
-			for (final String key : parameter.keySet()) {
-				final String value = parameter.get(key);
-				if (StringUtils.isNotBlank(value)) {
-					paramNode.put(key, value);
+			for (final Entry<String, String> entry : parameter.entrySet()) {
+				if (StringUtils.isNotBlank(entry.getValue())) {
+					paramNode.put(entry.getKey(), entry.getValue());
 				}
 			}
 		} else {
