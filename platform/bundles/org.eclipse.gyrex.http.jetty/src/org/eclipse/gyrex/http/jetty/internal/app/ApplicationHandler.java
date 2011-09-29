@@ -51,6 +51,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The {@link Application} handler.
+ * <p>
+ * This is the main handler for an application. It provides the
+ * {@link ServletContext} and implements context request handling.
+ * </p>
  */
 public class ApplicationHandler extends ServletContextHandler {
 
