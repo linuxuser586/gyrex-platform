@@ -14,6 +14,7 @@ package org.eclipse.gyrex.http.jetty.internal.app;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import javax.servlet.RequestDispatcher;
@@ -46,6 +47,7 @@ import org.eclipse.jetty.util.resource.Resource;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -155,6 +157,15 @@ public class ApplicationHandler extends ServletContextHandler {
 
 	public void addUrl(final String url) {
 		urls.add(url);
+	}
+
+	private SessionHandler createSessionHandler() {
+		// make sure the set a proper session inactive interval
+		// otherwise Jetty will keep sessions open forever
+		final HashSessionManager sessionManager = new HashSessionManager();
+		final Map<String, String> appProperties = getApplicationRegistration().getInitProperties();
+		sessionManager.setMaxInactiveInterval(NumberUtils.toInt(appProperties.get("session.maxInactiveInterval"), 1800));
+		return new SessionHandler(sessionManager);
 	}
 
 	@Override
@@ -478,7 +489,7 @@ public class ApplicationHandler extends ServletContextHandler {
 
 		// create remaining the handlers
 		applicationDelegateHandler = new ApplicationDelegateHandler(this);
-		sessionHandler = new SessionHandler(new HashSessionManager());
+		sessionHandler = createSessionHandler();
 
 		// setup the handler chain before super initialization
 		// session -> application -> registered servlets/resources
