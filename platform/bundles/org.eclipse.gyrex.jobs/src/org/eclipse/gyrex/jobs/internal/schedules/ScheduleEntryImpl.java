@@ -101,7 +101,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 				}
 			}
 		} catch (final IllegalArgumentException e) {
-			throw new BackingStoreException(String.format("Unable to load entry '%s'. %s", id, e.getMessage(), e));
+			throw new BackingStoreException(String.format("Unable to load entry '%s'. %s", id, e.getMessage()), e);
 		}
 	}
 

@@ -141,7 +141,7 @@ public class LsCmd extends Command {
 			if (null != state) {
 				printf("no %s jobs found", state.name());
 			} else {
-				printf("no jobs found", state.name());
+				printf("no jobs found");
 			}
 			return;
 		}

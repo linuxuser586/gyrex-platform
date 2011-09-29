@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
@@ -44,9 +45,8 @@ public class JobInfo {
 
 		// collect properties
 		final Map<String, String> jobProperties = info.getJobProperties();
-		for (final Iterator stream = jobProperties.keySet().iterator(); stream.hasNext();) {
-			final String key = (String) stream.next();
-			properties.put(key, jobProperties.get(key));
+		for (final Entry<String, String> entry : jobProperties.entrySet()) {
+			properties.put(entry.getKey(), entry.getValue());
 		}
 
 		// put version

@@ -14,8 +14,6 @@ package org.eclipse.gyrex.jobs.internal.scheduler;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -53,7 +51,6 @@ public class Scheduler extends Job implements INodeChangeListener {
 
 	private long engineSleepTime = INITIAL_SLEEP_TIME;
 	private final ConcurrentMap<String, Schedule> schedulesById = new ConcurrentHashMap<String, Schedule>();
-	private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
 	/**
 	 * Creates a new instance.

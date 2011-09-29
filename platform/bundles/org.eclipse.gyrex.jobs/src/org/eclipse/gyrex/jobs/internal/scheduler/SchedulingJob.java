@@ -102,7 +102,7 @@ public class SchedulingJob implements Job {
 			}
 
 			// queue job
-			jobManager.queueJob(jobId, IJobManager.DEFAULT_QUEUE);
+			jobManager.queueJob(jobId, queue.getId());
 		} catch (final Exception e) {
 			throw new JobExecutionException(String.format("Error queuing job '%s'. %s", jobId, e.getMessage()), e);
 		}
