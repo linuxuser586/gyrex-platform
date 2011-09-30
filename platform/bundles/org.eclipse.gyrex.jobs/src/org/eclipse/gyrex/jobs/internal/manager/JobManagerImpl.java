@@ -36,7 +36,6 @@ import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.worker.JobInfo;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
-import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -107,6 +106,7 @@ public class JobManagerImpl implements IJobManager {
 	static final String PROPERTY_LAST_RESULT_MESSAGE = "lastResultMessage";
 	static final String PROPERTY_LAST_RESULT_SEVERITY = "lastResultSeverity";
 	static final String PROPERTY_LAST_RESULT = "lastResultTimestamp";
+	static final String PROPERTY_ACTIVE = "active";
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobManagerImpl.class);
 
@@ -153,14 +153,6 @@ public class JobManagerImpl implements IJobManager {
 		return builder.toString();
 	}
 
-	public static String getInternalId(final IRuntimeContext context, final String jobId) {
-		return getInternalIdPrefix(context) + jobId;
-	}
-
-	public static IEclipsePreferences getStatesNode() {
-		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_STATES);
-	}
-
 	public static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
 		final JobImpl job = new JobImpl();
 
@@ -168,6 +160,7 @@ public class JobManagerImpl implements IJobManager {
 		job.setTypeId(node.get(PROPERTY_TYPE, null));
 
 		job.setStatus(toState(node.get(PROPERTY_STATUS, null)));
+		job.setActive(node.getBoolean(PROPERTY_ACTIVE, false));
 		job.setLastStart(node.getLong(PROPERTY_LAST_START, -1));
 		job.setLastSuccessfulFinish(node.getLong(PROPERTY_LAST_SUCCESSFUL_FINISH, -1));
 		final long lastResultTimestamp = node.getLong(PROPERTY_LAST_RESULT, -1);
@@ -379,17 +372,10 @@ public class JobManagerImpl implements IJobManager {
 		}
 
 		try {
-			// don't create node if it doesn't exists
-			final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
-			if (!statesNode.nodeExists(state.name())) {
-				return Collections.emptyList();
-			}
-
-			// keys == internal job ids
-			final String[] storageIds = statesNode.node(state.name()).keys();
+			final String[] storageIds = JobHistoryStore.getJobsNode().childrenNames();
 			final List<String> jobIds = new ArrayList<String>(storageIds.length);
 			for (final String internalId : storageIds) {
-				if (internalId.startsWith(internalIdPrefix)) {
+				if (internalId.startsWith(internalIdPrefix) && StringUtils.equals(JobHistoryStore.getJobsNode().node(internalId).get(PROPERTY_STATUS, null), state.name())) {
 					jobIds.add(toExternalId(internalId));
 				}
 			}
@@ -399,11 +385,12 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private JobState getJobStateWithHungDetection(final IJob job) {
+	private JobState getJobStateWithHungDetection(final JobImpl job) {
 		try {
-			// note, although "WAITING" jobs are also active, we only test for RUNNING here
-			// TODO: detect jobs stuck in WAITING state
-			if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(toInternalId(job.getId()))) {
+			if (shouldBeInactive(job)) {
+				if (JobsDebug.debug) {
+					LOG.debug("Overriding state of job {} which isn't active in the system.", job.getId());
+				}
 				return JobState.NONE;
 			}
 		} catch (final Exception e) {
@@ -430,7 +417,7 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
 
-		IJob job = getJob(jobId);
+		JobImpl job = getJob(jobId);
 		if (null == job) {
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 		}
@@ -528,16 +515,6 @@ public class JobManagerImpl implements IJobManager {
 				jobsNode.node(internalId).removeNode();
 				jobsNode.flush();
 			}
-
-			// clean-up states
-			final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
-			for (final JobState state : JobState.values()) {
-				final Preferences node = statesNode.node(state.name());
-				if (null != node.get(internalId, null)) {
-					node.remove(internalId);
-					node.flush();
-				}
-			}
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Error removing job %s. %s", jobId, e.getMessage()), e);
 		} finally {
@@ -545,16 +522,57 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private void resetJobStateForHungJobs(final IJob job, final IExclusiveLock jobLock) {
+	private void resetJobStateForHungJobs(final JobImpl job, final IExclusiveLock jobLock) {
 		try {
-			// note, although "WAITING" jobs are also active, we only test for RUNNING here
-			// TODO: reset jobs stuck in WAITING state
-			if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(toInternalId(job.getId()))) {
+			if (shouldBeInactive(job)) {
+				if (JobsDebug.debug) {
+					LOG.debug("Resetting state of job {} which isn't active in the system.", job.getId());
+				}
 				setJobState(job, JobState.NONE, jobLock);
 			}
 		} catch (final Exception e) {
 			// ignore (also RuntimeException)
 		}
+	}
+
+	/**
+	 * Marks a job active in the system.
+	 * <p>
+	 * This must be called by the worker engine to indicate that a job left the
+	 * queue and is now scheduled locally and/or running.
+	 * </p>
+	 * 
+	 * @param jobId
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public void setActive(final String jobId) throws Exception {
+		if (JobsDebug.debug) {
+			LOG.debug("Marking job {} active.", jobId);
+		}
+		JobHungDetectionHelper.setActive(toInternalId(jobId));
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(toInternalId(jobId));
+		jobNode.putBoolean(PROPERTY_ACTIVE, true);
+		jobNode.flush();
+	}
+
+	/**
+	 * Marks a job inactive in the system.
+	 * <p>
+	 * This must be called by the worker engine to indicate that a job finished
+	 * running locally (either successful or canceled).
+	 * </p>
+	 * 
+	 * @param jobId
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public void setInactive(final String jobId) throws Exception {
+		if (JobsDebug.debug) {
+			LOG.debug("Marking job {} inactive.", jobId);
+		}
+		JobHungDetectionHelper.setInactive(toInternalId(jobId));
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(toInternalId(jobId));
+		jobNode.remove(PROPERTY_ACTIVE);
+		jobNode.flush();
 	}
 
 	private void setJobParameter(final IJob job, final Map<String, String> parameter, final IExclusiveLock lock) throws BackingStoreException {
@@ -665,17 +683,6 @@ public class JobManagerImpl implements IJobManager {
 		// update job node
 		jobNode.put(PROPERTY_STATUS, state.name());
 		jobNode.flush();
-
-		// update states
-		final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
-		for (final JobState currentState : JobState.values()) {
-			if (!currentState.equals(state)) {
-				statesNode.node(currentState.name()).remove(internalId);
-			} else {
-				statesNode.node(currentState.name()).putBoolean(internalId, true);
-			}
-			statesNode.flush();
-		}
 	}
 
 	/**
@@ -709,7 +716,7 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalArgumentException("Job state must not be null");
 		}
 
-		IJob job = getJob(jobId);
+		JobImpl job = getJob(jobId);
 		if (null == job) {
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 		}
@@ -786,6 +793,18 @@ public class JobManagerImpl implements IJobManager {
 		} finally {
 			releaseLock(jobLock, jobId);
 		}
+	}
+
+	/**
+	 * Indicates if a job, that is still marked active, should be inactive.
+	 * 
+	 * @param jobId
+	 * @return <code>true</code> if the job is marked active but it shouldn't
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public boolean shouldBeInactive(final JobImpl job) {
+		// a job should be inactive if the preference state says active but the JobHungDetectionHelper says inactive
+		return job.isActive() && !JobHungDetectionHelper.isActive(toInternalId(job.getId()));
 	}
 
 	private String toExternalId(final String internalId) {

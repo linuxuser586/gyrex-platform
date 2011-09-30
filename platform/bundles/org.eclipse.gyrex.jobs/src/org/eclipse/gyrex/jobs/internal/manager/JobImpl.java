@@ -38,6 +38,7 @@ public class JobImpl implements IJob {
 
 	private long lastResultTimestamp;
 	private IStatus lastResult;
+	private boolean active;
 
 	/**
 	 * Creates a new instance.
@@ -121,6 +122,25 @@ public class JobImpl implements IJob {
 	 */
 	public String getTypeId() {
 		return typeId;
+	}
+
+	/**
+	 * Returns the active.
+	 * 
+	 * @return the active
+	 */
+	public boolean isActive() {
+		return active;
+	}
+
+	/**
+	 * Sets the active.
+	 * 
+	 * @param active
+	 *            the active to set
+	 */
+	public void setActive(final boolean active) {
+		this.active = active;
 	}
 
 	/**

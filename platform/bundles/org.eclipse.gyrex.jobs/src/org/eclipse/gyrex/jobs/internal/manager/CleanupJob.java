@@ -89,9 +89,10 @@ final class CleanupJob extends Job {
 				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 
 				// fix hung jobs
-				if ((job.getState() == JobState.RUNNING) && !JobHungDetectionHelper.isActive(internalId)) {
+				if (job.isActive() && !JobHungDetectionHelper.isActive(internalId)) {
 					final Preferences jobNode = jobsNode.node(internalId);
 					jobNode.put(JobManagerImpl.PROPERTY_STATUS, JobState.NONE.name());
+					jobNode.remove(JobManagerImpl.PROPERTY_ACTIVE);
 					jobNode.flush();
 					job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 				}
@@ -109,16 +110,6 @@ final class CleanupJob extends Job {
 				if (jobsNode.nodeExists(internalId)) {
 					jobsNode.node(internalId).removeNode();
 					jobsNode.flush();
-				}
-
-				// remove from states
-				final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
-				for (final JobState state : JobState.values()) {
-					final Preferences stateNode = statesNode.node(state.name());
-					if (null != stateNode.get(internalId, null)) {
-						stateNode.remove(internalId);
-						stateNode.flush();
-					}
 				}
 			}
 			LOG.info("Finished clean-up of old job definitions.");

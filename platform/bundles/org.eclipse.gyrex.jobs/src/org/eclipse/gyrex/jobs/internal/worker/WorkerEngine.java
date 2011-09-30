@@ -28,7 +28,6 @@ import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 import org.eclipse.gyrex.jobs.IJobContext;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
-import org.eclipse.gyrex.jobs.internal.manager.JobHungDetectionHelper;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.provider.JobProvider;
@@ -297,8 +296,8 @@ public class WorkerEngine extends Job {
 		// (note, it will be active as long as it lives as a scheduled job)
 		// (it will be set inactive again when the job finishes by JobStateSynchronizer)
 		try {
-			JobHungDetectionHelper.setActive(JobManagerImpl.getInternalId(jobContext.getContext(), jobContext.getJobId()));
-		} catch (final IllegalStateException e) {
+			((JobManagerImpl) jobContext.getContext().get(IJobManager.class)).setActive(jobContext.getJobId());
+		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Unable to active job %s. %s", jobContext.getJobId(), e.getMessage()), e);
 		}
 

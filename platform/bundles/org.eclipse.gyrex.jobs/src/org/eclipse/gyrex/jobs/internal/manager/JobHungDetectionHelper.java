@@ -15,6 +15,7 @@ import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.internal.JobsDebug;
 
 import org.eclipse.core.runtime.IPath;
 
@@ -22,6 +23,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Hung processing detection for jobs.
@@ -33,7 +36,9 @@ import org.apache.zookeeper.data.Stat;
  * </p>
  */
 @SuppressWarnings("restriction")
-public class JobHungDetectionHelper {
+class JobHungDetectionHelper {
+
+	private static final Logger LOG = LoggerFactory.getLogger(JobHungDetectionHelper.class);
 
 	private static final IPath ACTIVE_JOBS = IZooKeeperLayout.PATH_GYREX_ROOT.append("jobs/active");
 
@@ -83,6 +88,9 @@ public class JobHungDetectionHelper {
 	 */
 	public static void setActive(final String jobStorageKey) throws IllegalStateException {
 		try {
+			if (JobsDebug.debug) {
+				LOG.debug("Creating ephemeral node for job {}.", jobStorageKey);
+			}
 			ZooKeeperGate.get().createPath(ACTIVE_JOBS.append(jobStorageKey), CreateMode.EPHEMERAL, JobsActivator.getInstance().getService(INodeEnvironment.class).getNodeId());
 		} catch (final NodeExistsException e) {
 			// FIXME: we need to better handle this case, for now we throw an exception
@@ -100,6 +108,9 @@ public class JobHungDetectionHelper {
 	 */
 	public static void setInactive(final String jobStorageKey) throws IllegalStateException {
 		try {
+			if (JobsDebug.debug) {
+				LOG.debug("Removing ephemeral node for job {}.", jobStorageKey);
+			}
 			ZooKeeperGate.get().deletePath(ACTIVE_JOBS.append(jobStorageKey));
 		} catch (final NoNodeException e) {
 			// good

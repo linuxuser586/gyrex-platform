@@ -34,8 +34,6 @@ import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
 
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-
 import org.osgi.service.prefs.BackingStoreException;
 
 import org.apache.commons.lang.StringUtils;
@@ -86,15 +84,18 @@ public class LsCmd extends Command {
 	}
 
 	private SortedSet<String> getJobIds(final JobState state) throws BackingStoreException {
+		final String[] storageIds = JobHistoryStore.getJobsNode().childrenNames();
 		if (null == state) {
-			return new TreeSet<String>(Arrays.asList(JobHistoryStore.getJobsNode().childrenNames()));
+			return new TreeSet<String>(Arrays.asList(storageIds));
 		}
 
-		final IEclipsePreferences statesNode = JobManagerImpl.getStatesNode();
-		if (!statesNode.nodeExists(state.name())) {
-			return new TreeSet<String>();
+		final TreeSet<String> jobIds = new TreeSet<String>();
+		for (final String storageId : storageIds) {
+			if (StringUtils.equals(JobHistoryStore.getJobsNode().node(storageId).get("status", null), state.name())) {
+				jobIds.add(storageId);
+			}
 		}
-		return new TreeSet<String>(Arrays.asList(statesNode.node(state.name()).keys()));
+		return jobIds;
 	}
 
 	private void printJob(final JobImpl job) {
