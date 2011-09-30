@@ -24,22 +24,36 @@ import org.eclipse.core.runtime.jobs.Job;
 /**
  * A distributed job in Gyrex.
  * <p>
- * This interface defines a Gyrex job. It's not the actually job implementation
- * that does the work but a definition of a specific job run configuration.
+ * This interface defines a Gyrex job. In contrast to an {@link Job Eclipse Job}
+ * a Gyrex job is not the actually job implementation that does the work but a
+ * definition of a specific {@link Job Eclipse Job} run configuration.
  * </p>
  * <p>
  * The Gyrex Job API extends the {@link Job Eclipse Job API} with capabilities
  * of defining, queuing and executing jobs across a set of nodes within a cloud.
- * Eclipse {@link Job}s do the actual work. They implement the business logic of
- * a job. A {@link JobProvider} is responsible for creating {@link Job}
+ * {@link Job Eclipse Jobs} do the actual work. They implement the business
+ * logic of a job. A {@link JobProvider} is responsible for creating {@link Job}
  * instances which will then be executed by a worker engine. The worker engine
  * retrieves the information which jobs should be executed from {@link IQueue
  * queues}.
  * </p>
  * <p>
+ * Like {@link Job Eclipse Jobs} Gyrex jobs also have a state that indicates
+ * what they are currently doing. When created, jobs start with a state value of
+ * {@link JobState#NONE}. When a job is queued to be run, it moves into the
+ * {@link JobState#WAITING} state. The state value stays
+ * {@link JobState#WAITING} when a job is fetched from the queue by the worker
+ * engine and schedule on a worker node to be executed. When a
+ * {@link JobState#WAITING} or {@link JobState#RUNNING} job is canceled its
+ * state value will change to {@link JobState#ABORTING}. When a job starts
+ * running on a worker node, it moves into the {@link JobState#RUNNING} state.
+ * When execution finishes (either normally or through cancelation), the state
+ * changes back to {@link JobState#NONE}.
+ * </p>
+ * <p>
  * The Gyrex {@link IJobManager} is responsible for creating, managing and
- * queuing {@link IJob job definitions}. The Gyrex {@link IScheduleManager} is
- * responsible for creating more complex schedules of recuring jobs.
+ * queuing {@link IJob job definitions}. The Gyrex {@link IScheduleManager} may
+ * be used for creating schedules of recuring jobs.
  * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
