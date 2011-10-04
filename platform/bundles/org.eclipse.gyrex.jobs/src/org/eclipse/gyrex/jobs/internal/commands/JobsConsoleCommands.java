@@ -40,6 +40,8 @@ public class JobsConsoleCommands extends BaseCommandProvider {
 
 		registerCommand("suspend", SuspendWorkerCmd.class);
 		registerCommand("resume", ResumeWorkerCmd.class);
+
+		registerCommand("cancel", CancelJobCmd.class);
 	}
 
 	public void _jobs(final CommandInterpreter ci) throws Exception {
