@@ -15,6 +15,8 @@ package org.eclipse.gyrex.jobs.manager;
 import java.util.Collection;
 import java.util.Map;
 
+import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
+import org.eclipse.gyrex.cloud.services.locking.ILockService;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.IJob;
@@ -41,6 +43,24 @@ public interface IJobManager {
 
 	/** the default queue for queuing jobs */
 	String DEFAULT_QUEUE = "gyrex.jobs.queue.default";
+
+	/**
+	 * Job parameter which specifies the id of an {@link IExclusiveLock
+	 * exclusive lock} that must be acquired by the worker engine prior to
+	 * running this job.
+	 * <p>
+	 * The lock will be held as long as the job is running and released when it
+	 * finishes. An attempt will be made to cancel the job if the lock is lost
+	 * during execution of the job.
+	 * </p>
+	 * <p>
+	 * Note, the id will be passed to {@link ILockService} as specified without
+	 * any further modifications. If clients want to use context-specific locks
+	 * they are required to add a context identifier (eg. consistent hash of
+	 * context path) to the specified id themselves.
+	 * </p>
+	 */
+	String LOCK_ID = "gyrex.jobs.lockId";
 
 	/**
 	 * Cancels the job with the specified id.

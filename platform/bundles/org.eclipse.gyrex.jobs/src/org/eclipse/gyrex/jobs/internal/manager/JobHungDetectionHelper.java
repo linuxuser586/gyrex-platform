@@ -93,8 +93,8 @@ class JobHungDetectionHelper {
 			}
 			ZooKeeperGate.get().createPath(ACTIVE_JOBS.append(jobStorageKey), CreateMode.EPHEMERAL, JobsActivator.getInstance().getService(INodeEnvironment.class).getNodeId());
 		} catch (final NodeExistsException e) {
-			// FIXME: we need to better handle this case, for now we throw an exception
-			throw new IllegalStateException(String.format("Job %s already active!", jobStorageKey), e);
+			// ignore for now (we might need to better handle this case)
+			//throw new IllegalStateException(String.format("Job %s already active!", jobStorageKey), e);
 		} catch (final Exception e) {
 			throw new IllegalStateException("Unable to set job state running!", e);
 		}

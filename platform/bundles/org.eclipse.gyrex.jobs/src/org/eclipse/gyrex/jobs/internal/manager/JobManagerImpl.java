@@ -690,6 +690,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 
 		// update job node
+		// (note, this might trigger any watches immediately)
 		jobNode.put(PROPERTY_STATUS, state.name());
 		jobNode.flush();
 	}

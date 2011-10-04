@@ -292,15 +292,6 @@ public class WorkerEngine extends Job {
 			return true;
 		}
 
-		// set the job active
-		// (note, it will be active as long as it lives as a scheduled job)
-		// (it will be set inactive again when the job finishes by JobStateSynchronizer)
-		try {
-			((JobManagerImpl) jobContext.getContext().get(IJobManager.class)).setActive(jobContext.getJobId());
-		} catch (final Exception e) {
-			throw new IllegalStateException(String.format("Unable to active job %s. %s", jobContext.getJobId(), e.getMessage()), e);
-		}
-
 		// schedule
 		job.schedule();
 
