@@ -19,9 +19,10 @@ import org.eclipse.gyrex.cloud.services.queue.IQueue;
 import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
-import org.eclipse.gyrex.jobs.IJob;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
+import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 
 import org.eclipse.core.runtime.Path;
@@ -72,25 +73,31 @@ public class SchedulingJob implements Job {
 
 			final IRuntimeContext runtimeContext = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class).get(new Path(jobContextPath));
 			if (null == runtimeContext) {
-				throw new IllegalStateException(String.format("Context '%s' not found!", jobContextPath));
+				LOG.error("Unable to find context (using path {}) for job {}.", jobContextPath, jobId);
+				return;
 			}
 
 			final IJobManager jobManager = runtimeContext.get(IJobManager.class);
+			if (!(jobManager instanceof JobManagerImpl)) {
+				LOG.error("Invalid job manager ({}). Please verify the system is setup properly.", jobManager);
+				return;
+			}
+			final JobManagerImpl jobManagerImpl = (JobManagerImpl) jobManager;
 
 			// (re-)create job if necessary
-			IJob job = jobManager.getJob(jobId);
+			JobImpl job = jobManagerImpl.getJob(jobId);
 			if (job == null) {
-				job = jobManager.createJob(jobTypeId, jobId, parameter);
+				job = jobManagerImpl.createJob(jobTypeId, jobId, parameter);
 			} else if (!job.getParameter().equals(parameter)) {
 				// parameter don't match, remove and re-create it
 				LOG.info("Re-creating job configuration parameter for job {} because they have been updated in the schedule.", job.getId());
 				jobManager.removeJob(jobId);
-				job = jobManager.createJob(jobTypeId, jobId, parameter);
+				job = jobManagerImpl.createJob(jobTypeId, jobId, parameter);
 			}
 
 			// check that job state is NONE
-			if (job.getState() != JobState.NONE) {
-				LOG.info("Job {} (type {}) cannot be queued because it is already active in the system (current state {}).", new Object[] { job.getId(), job.getTypeId(), job.getState() });
+			if (jobManagerImpl.getJobStateWithHungDetection(job) != JobState.NONE) {
+				LOG.warn("Job {} (type {}) cannot be queued because it is already active in the system (current state {}).", new Object[] { job.getId(), job.getTypeId(), job.getState() });
 				return;
 			}
 

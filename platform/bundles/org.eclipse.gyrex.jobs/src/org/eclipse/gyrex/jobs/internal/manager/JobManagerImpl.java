@@ -272,7 +272,7 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	@Override
-	public IJob createJob(final String jobTypeId, final String jobId, final Map<String, String> parameter) {
+	public JobImpl createJob(final String jobTypeId, final String jobId, final Map<String, String> parameter) {
 		if (!IdHelper.isValidId(jobId)) {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
@@ -385,7 +385,16 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private JobState getJobStateWithHungDetection(final JobImpl job) {
+	/**
+	 * Returns {@link IJob#getState()} but detects hanging jobs.
+	 * <p>
+	 * If a hanging job is detected {@link JobState#NONE} will be returned.
+	 * </p>
+	 * 
+	 * @param job
+	 * @return
+	 */
+	public JobState getJobStateWithHungDetection(final JobImpl job) {
 		try {
 			if (shouldBeInactive(job)) {
 				if (JobsDebug.debug) {
