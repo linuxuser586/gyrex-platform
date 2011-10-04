@@ -89,7 +89,7 @@ final class CleanupJob extends Job {
 				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 
 				// fix hung jobs
-				if (job.isActive() && !JobHungDetectionHelper.isActive(internalId)) {
+				if ((job.isActive() || (job.getState() == JobState.RUNNING)) && !JobHungDetectionHelper.isActive(internalId)) {
 					final Preferences jobNode = jobsNode.node(internalId);
 					jobNode.put(JobManagerImpl.PROPERTY_STATUS, JobState.NONE.name());
 					jobNode.remove(JobManagerImpl.PROPERTY_ACTIVE);
