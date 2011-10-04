@@ -711,7 +711,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		if (lockMonitor != null) {
 			if (released) {
 				lockMonitor.lockReleased(asLockType());
-			} else {
+			} else if (reason != KillReason.ACQUIRE_FAILED) {
+				// (note, do not notify whan acquire failed)
 				lockMonitor.lockLost(asLockType());
 			}
 		}
