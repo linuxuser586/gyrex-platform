@@ -64,6 +64,11 @@ public interface ILockService {
 	 * less than zero, the calling thread will block until the lock becomes
 	 * available.
 	 * </p>
+	 * <p>
+	 * If the callback is specified and the lock was acquired successfully the
+	 * {@link ILockMonitor#lockAcquired(IDistributedLock)} method will be
+	 * invoked from within this method, i.e. before this method returns.
+	 * </p>
 	 * 
 	 * @param lockId
 	 *            the lock identifier
@@ -94,6 +99,11 @@ public interface ILockService {
 	 * If the specified lock is in use and the specified timeout is equal to or
 	 * less than zero, the calling thread will block until the lock becomes
 	 * available.
+	 * </p>
+	 * <p>
+	 * If the callback is specified and the lock was acquired successfully the
+	 * {@link ILockMonitor#lockAcquired(IDistributedLock)} method will be
+	 * invoked from within this method, i.e. before this method returns.
 	 * </p>
 	 * 
 	 * @param lockId
@@ -128,6 +138,11 @@ public interface ILockService {
 	 * <p>
 	 * If the lock exists but the recovery key does not match an
 	 * {@link IllegalStateException} will be thrown.
+	 * </p>
+	 * <p>
+	 * If the callback is specified and the lock was acquired successfully the
+	 * {@link ILockMonitor#lockAcquired(IDistributedLock)} method will be
+	 * invoked from within this method, i.e. before this method returns.
 	 * </p>
 	 * 
 	 * @param lockId
