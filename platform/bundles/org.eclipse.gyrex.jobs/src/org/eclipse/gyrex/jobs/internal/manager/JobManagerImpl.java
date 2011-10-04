@@ -398,7 +398,7 @@ public class JobManagerImpl implements IJobManager {
 		try {
 			if (shouldBeInactive(job)) {
 				if (JobsDebug.debug) {
-					LOG.debug("Overriding state of job {} which isn't active in the system.", job.getId());
+					LOG.debug("Overriding state of job {} which isn't active in the system but marked active (state {}).", job.getId(), job.getState());
 				}
 				return JobState.NONE;
 			}
