@@ -23,8 +23,10 @@ import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
+import org.eclipse.gyrex.jobs.internal.worker.JobLogHelper;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.StringUtils;
@@ -56,7 +58,13 @@ public class SchedulingJob implements Job {
 		final String jobTypeId = dataMap.getString(PROP_JOB_TYPE_ID);
 		final String jobContextPath = dataMap.getString(PROP_JOB_CONTEXT_PATH);
 		try {
+			// parse path
+			final IPath contextPath = new Path(jobContextPath);
 
+			// setup MDC
+			JobLogHelper.setupMdc(jobId, contextPath);
+
+			// populate map
 			final Map<String, String> parameter = new HashMap<String, String>();
 			for (final Object keyObj : dataMap.keySet()) {
 				if (!(keyObj instanceof String)) {
@@ -71,7 +79,8 @@ public class SchedulingJob implements Job {
 				}
 			}
 
-			final IRuntimeContext runtimeContext = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class).get(new Path(jobContextPath));
+			// get context
+			final IRuntimeContext runtimeContext = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class).get(contextPath);
 			if (null == runtimeContext) {
 				LOG.error("Unable to find context (using path {}) for job {}.", jobContextPath, jobId);
 				return;
@@ -112,6 +121,9 @@ public class SchedulingJob implements Job {
 			jobManager.queueJob(jobId, queue.getId());
 		} catch (final Exception e) {
 			throw new JobExecutionException(String.format("Error queuing job '%s'. %s", jobId, e.getMessage()), e);
+		} finally {
+			// clear MDC
+			JobLogHelper.clearMdc();
 		}
 	}
 }

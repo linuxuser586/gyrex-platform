@@ -13,6 +13,8 @@ package org.eclipse.gyrex.jobs.internal.worker;
 
 import org.eclipse.gyrex.jobs.IJobContext;
 
+import org.eclipse.core.runtime.IPath;
+
 import org.slf4j.MDC;
 
 /**
@@ -31,6 +33,11 @@ public class JobLogHelper {
 	public static void setupMdc(final IJobContext jobContext) {
 		MDC.put(MDC_KEY_JOB_ID, jobContext.getJobId());
 		MDC.put(MDC_KEY_CONTEXT_PATH, jobContext.getContext().getContextPath().toString());
+	}
+
+	public static void setupMdc(final String jobId, final IPath contextPath) {
+		MDC.put(MDC_KEY_JOB_ID, jobId);
+		MDC.put(MDC_KEY_CONTEXT_PATH, contextPath.toString());
 	}
 
 	private JobLogHelper() {
