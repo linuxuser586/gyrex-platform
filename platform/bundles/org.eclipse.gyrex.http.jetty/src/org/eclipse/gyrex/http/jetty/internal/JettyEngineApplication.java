@@ -33,9 +33,12 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.http.HttpSchemes;
+import org.eclipse.jetty.server.AbstractConnector;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.bio.SocketConnector;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
+import org.eclipse.jetty.server.ssl.SslSocketConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import org.osgi.framework.Filter;
@@ -53,6 +56,9 @@ public class JettyEngineApplication implements IApplication {
 	// OSGi Http Service suggest these properties for setting the default ports
 	private static final String ORG_OSGI_SERVICE_HTTP_PORT = "org.osgi.service.http.port"; //$NON-NLS-1$
 //	private static final String ORG_OSGI_SERVICE_HTTP_PORT_SECURE = "org.osgi.service.http.port.secure"; //$NON-NLS-1$
+
+	// allow to disable NIO
+	private static boolean noNio = Boolean.getBoolean("gyrex.jetty.disableNIO");
 
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = Integer.valueOf(1);
@@ -140,21 +146,24 @@ public class JettyEngineApplication implements IApplication {
 				LOG.debug("Configuring channel {}", channel);
 			}
 
-			SelectChannelConnector connector;
+			final AbstractConnector connector;
+
 			if (channel.isSecure()) {
 				final ICertificate certificate = jettyManager.getCertificate(channel.getCertificateId());
-				connector = new SslSelectChannelConnector(new CertificateSslContextFactory(certificate));
+				connector = noNio ? new SslSocketConnector(new CertificateSslContextFactory(certificate)) : new SslSelectChannelConnector(new CertificateSslContextFactory(certificate));
 			} else {
-				connector = new SelectChannelConnector();
+				connector = noNio ? new SocketConnector() : new SelectChannelConnector();
 			}
 
 			connector.setPort(channel.getPort());
 			connector.setMaxIdleTime(200000);
 			connector.setAcceptors(2);
 			connector.setStatsOn(false);
-			connector.setLowResourcesConnections(20000);
 			connector.setLowResourcesMaxIdleTime(5000);
 			connector.setForwarded(true);
+			if (connector instanceof SelectChannelConnector) {
+				((SelectChannelConnector) connector).setLowResourcesConnections(20000);
+			}
 
 			if (null != channel.getSecureChannelId()) {
 				final ChannelDescriptor secureChannel = jettyManager.getChannel(channel.getSecureChannelId());
