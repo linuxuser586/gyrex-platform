@@ -58,7 +58,7 @@ public class JettyEngineApplication implements IApplication {
 //	private static final String ORG_OSGI_SERVICE_HTTP_PORT_SECURE = "org.osgi.service.http.port.secure"; //$NON-NLS-1$
 
 	// allow to disable NIO
-	private static boolean noNio = Boolean.getBoolean("gyrex.jetty.disableNIO");
+	private static boolean noNio = Boolean.getBoolean("gyrex.jetty.nio.disabled");
 
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = Integer.valueOf(1);
