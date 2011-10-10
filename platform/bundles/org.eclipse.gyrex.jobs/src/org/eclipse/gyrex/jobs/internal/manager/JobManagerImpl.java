@@ -402,8 +402,14 @@ public class JobManagerImpl implements IJobManager {
 	 * @return
 	 */
 	public JobState getJobStateWithHungDetection(final JobImpl job) {
+		// nothing to do if not active
+		if (job.getState() == JobState.NONE) {
+			return JobState.NONE;
+		}
+
+		// check active state
 		try {
-			if (shouldBeInactive(job)) {
+			if (mayHang(job)) {
 				if (JobsDebug.debug) {
 					LOG.debug("Overriding state of job {} which isn't active in the system but marked active (state {}).", job.getId(), job.getState());
 				}
@@ -424,6 +430,31 @@ public class JobManagerImpl implements IJobManager {
 			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, MODIFY_LOCK_TIMEOUT);
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
+		}
+	}
+
+	/**
+	 * Indicates if a job may hang.
+	 * 
+	 * @param jobId
+	 * @return <code>true</code> if the job is marked active but it shouldn't
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	private boolean mayHang(final JobImpl job) {
+		if (job.isActive()) {
+			// a job should be inactive if the preference state says active but the JobHungDetectionHelper says inactive
+			return !JobHungDetectionHelper.isActive(toInternalId(job.getId()));
+		} else {
+			// the only other valid job states of inactive jobs are WAITING, ABORTING and NONE
+			switch (job.getState()) {
+				case WAITING:
+				case ABORTING:
+				case NONE:
+					return false;
+
+				default:
+					return true;
+			}
 		}
 	}
 
@@ -540,7 +571,7 @@ public class JobManagerImpl implements IJobManager {
 
 	private void resetJobStateForHungJobs(final JobImpl job, final IExclusiveLock jobLock) {
 		try {
-			if (shouldBeInactive(job)) {
+			if (mayHang(job)) {
 				if (JobsDebug.debug) {
 					LOG.debug("Resetting state of job {} which isn't active in the system.", job.getId());
 				}
@@ -811,18 +842,6 @@ public class JobManagerImpl implements IJobManager {
 		} finally {
 			releaseLock(jobLock, jobId);
 		}
-	}
-
-	/**
-	 * Indicates if a job, that is still marked active, should be inactive.
-	 * 
-	 * @param jobId
-	 * @return <code>true</code> if the job is marked active but it shouldn't
-	 * @noreference This method is not intended to be referenced by clients.
-	 */
-	public boolean shouldBeInactive(final JobImpl job) {
-		// a job should be inactive if the preference state says active but the JobHungDetectionHelper says inactive
-		return job.isActive() && !JobHungDetectionHelper.isActive(toInternalId(job.getId()));
 	}
 
 	private String toExternalId(final String internalId) {
