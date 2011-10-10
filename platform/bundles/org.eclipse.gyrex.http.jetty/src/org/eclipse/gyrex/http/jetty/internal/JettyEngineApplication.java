@@ -33,6 +33,7 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.http.HttpSchemes;
+import org.eclipse.jetty.monitor.ThreadMonitor;
 import org.eclipse.jetty.server.AbstractConnector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.bio.SocketConnector;
@@ -120,6 +121,13 @@ public class JettyEngineApplication implements IApplication {
 		final QueuedThreadPool threadPool = new QueuedThreadPool();
 		threadPool.setName("jetty-server");
 		server.setThreadPool(threadPool);
+
+		// configure thread monitor
+		try {
+			server.addBean(new ThreadMonitor());
+		} catch (final Exception e) {
+			LOG.warn("Unable to initialize thread monitor. Automated spinning thread detection won't be available.", e);
+		}
 	}
 
 	private void createConnector(final Server server, final ChannelDescriptor channel, final IJettyManager jettyManager, final Map<String, Object> nodeProperties) {
