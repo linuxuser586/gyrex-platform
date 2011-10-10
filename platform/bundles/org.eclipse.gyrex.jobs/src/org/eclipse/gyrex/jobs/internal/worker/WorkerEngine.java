@@ -274,25 +274,36 @@ public class WorkerEngine extends Job {
 		}
 
 		// add state synchronizer and finish listener
-		job.addJobChangeListener(new JobStateSynchronizer(job, jobContext));
+		final JobStateSynchronizer stateSynchronizer = new JobStateSynchronizer(job, jobContext);
+		job.addJobChangeListener(stateSynchronizer);
 		job.addJobChangeListener(jobFinishedListener);
+
+		// mark the job active before removing from queue (bug 360402)
+		// (this will ensure that it's set active by JobStateSynchronizer)
+		stateSynchronizer.setJobActive();
 
 		// delete from queue and schedule if successful
 		// (note, we intentionally only catch NoSuchElementException here)
 		try {
 			if (!queue.deleteMessage(message)) {
+				// abort job
+				stateSynchronizer.setJobInactive();
+
 				// someone else might already processed it
 				// just continue with next available message
 				return true;
 			}
 		} catch (final NoSuchElementException e) {
+			// abort job
+			stateSynchronizer.setJobInactive();
+
 			// not too bad
 			// someone else might already processed it
 			// just continue with next available message
 			return true;
 		}
 
-		// schedule
+		// only at this point we allowed the job to proceed
 		job.schedule();
 
 		// increment count
@@ -312,6 +323,9 @@ public class WorkerEngine extends Job {
 				}
 				return Status.CANCEL_STATUS;
 			}
+
+			// ensure that the preferences are in sync (bug 360402)
+			JobsActivator.getInstance().refreshPreferences();
 
 			// process next job from queue
 			final boolean moreJobsAvailable = processNextJobFromQueue();

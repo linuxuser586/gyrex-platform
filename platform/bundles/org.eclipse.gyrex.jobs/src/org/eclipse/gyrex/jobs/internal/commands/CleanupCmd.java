@@ -12,7 +12,7 @@
 package org.eclipse.gyrex.jobs.internal.commands;
 
 import org.eclipse.gyrex.common.console.Command;
-import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
+import org.eclipse.gyrex.jobs.internal.manager.CleanupJob;
 
 /**
  * Performs cleanup of jobs
@@ -28,7 +28,9 @@ public class CleanupCmd extends Command {
 
 	@Override
 	protected void doExecute() throws Exception {
-		JobManagerImpl.triggerCleanUp();
+		final CleanupJob job = new CleanupJob();
+		job.schedule();
+		printf("Cleanup started and expected to finish asynchronously!");
 	}
 
 }

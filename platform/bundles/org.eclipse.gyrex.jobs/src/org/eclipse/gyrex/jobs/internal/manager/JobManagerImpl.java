@@ -97,6 +97,8 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
+	private static final long MODIFY_LOCK_TIMEOUT = 5000L;
+
 	private static final String NODE_PARAMETER = "parameter";
 
 	static final String PROPERTY_TYPE = "type";
@@ -154,6 +156,11 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	public static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
+		// ensure the node is current (bug 360402)
+		// FIXME: investigate stale content issues in ZK preferences
+		node.sync();
+
+		// create job
 		final JobImpl job = new JobImpl();
 
 		job.setId(jobId);
@@ -194,7 +201,7 @@ public class JobManagerImpl implements IJobManager {
 		return JobState.NONE;
 	}
 
-	public static void triggerCleanUp() {
+	static void triggerCleanUp() {
 		final long last = lastCleanup.get();
 		if ((System.currentTimeMillis() - last) > TimeUnit.HOURS.toMillis(3)) {
 			if (lastCleanup.compareAndSet(last, System.currentTimeMillis())) {
@@ -414,7 +421,7 @@ public class JobManagerImpl implements IJobManager {
 			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
 		}
 		try {
-			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, 2000L);
+			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, MODIFY_LOCK_TIMEOUT);
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
 		}
@@ -560,6 +567,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 		JobHungDetectionHelper.setActive(toInternalId(jobId));
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(toInternalId(jobId));
+		jobNode.sync();
 		jobNode.putBoolean(PROPERTY_ACTIVE, true);
 		jobNode.flush();
 	}

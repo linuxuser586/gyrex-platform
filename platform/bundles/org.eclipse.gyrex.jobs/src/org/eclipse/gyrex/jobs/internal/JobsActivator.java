@@ -19,8 +19,10 @@ import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.jobs.internal.registry.JobProviderRegistry;
+import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.service.prefs.BackingStoreException;
 
 /**
  * Bundle activator.
@@ -102,6 +104,11 @@ public class JobsActivator extends BaseBundleActivator {
 			createBundleInactiveException();
 		}
 		return proxy.getService();
+	}
+
+	public void refreshPreferences() throws BackingStoreException {
+		// FIXME: need to better understand synchronization differences
+		CloudScope.INSTANCE.getNode(SYMBOLIC_NAME).sync();
 	}
 
 	public void removeService(final Object service) {

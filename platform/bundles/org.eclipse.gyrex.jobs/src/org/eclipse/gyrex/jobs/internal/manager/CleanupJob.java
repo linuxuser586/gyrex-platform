@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Clean-up of old job entries
  */
-final class CleanupJob extends Job {
+public final class CleanupJob extends Job {
 
 	static class MutexRule implements ISchedulingRule {
 
@@ -81,7 +81,7 @@ final class CleanupJob extends Job {
 	protected IStatus run(final IProgressMonitor monitor) {
 		final IEclipsePreferences jobsNode = JobHistoryStore.getJobsNode();
 		try {
-			LOG.info("Cleaning up of old job definitions.");
+			LOG.info("Cleaning up old job definitions...");
 			final long now = System.currentTimeMillis();
 			final String[] childrenNames = jobsNode.childrenNames();
 			for (final String internalId : childrenNames) {
@@ -89,7 +89,22 @@ final class CleanupJob extends Job {
 				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 
 				// fix hung jobs
-				if ((job.isActive() || (job.getState() == JobState.RUNNING)) && !JobHungDetectionHelper.isActive(internalId)) {
+				if (job.getState() != JobState.NONE) {
+					if (JobHungDetectionHelper.isActive(internalId)) {
+						// job is still active in the system
+						continue;
+					} else if (job.isActive()) {
+						// jobs is marked active but not really processing
+						// this is bogus, we need to check if it's still in the QUEUE
+						if ((System.currentTimeMillis() - job.getLastStart()) < TimeUnit.MINUTES.toMillis(20)) {
+							// it was started 20 minutes ago, give it more time to recover
+							continue;
+						}
+					}
+
+					LOG.info("Killing hung job {} (started {} minutes ago)...", job.getId(), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastStart()));
+
+					// set inactive
 					final Preferences jobNode = jobsNode.node(internalId);
 					jobNode.put(JobManagerImpl.PROPERTY_STATUS, JobState.NONE.name());
 					jobNode.remove(JobManagerImpl.PROPERTY_ACTIVE);

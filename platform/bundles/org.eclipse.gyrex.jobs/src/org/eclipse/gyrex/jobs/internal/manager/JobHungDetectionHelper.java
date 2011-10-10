@@ -19,7 +19,9 @@ import org.eclipse.gyrex.jobs.internal.JobsDebug;
 
 import org.eclipse.core.runtime.IPath;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException.BadVersionException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
@@ -80,23 +82,56 @@ class JobHungDetectionHelper {
 		}
 	}
 
+	private static String myNodeId() {
+		return JobsActivator.getInstance().getService(INodeEnvironment.class).getNodeId();
+	}
+
 	/**
 	 * Sets the job active on <em>this</em> node.
+	 * <p>
+	 * Has no effect if the job is already active.
+	 * </p>
 	 * 
 	 * @param jobStorageKey
 	 * @throws IllegalStateException
 	 */
 	public static void setActive(final String jobStorageKey) throws IllegalStateException {
-		try {
-			if (JobsDebug.debug) {
-				LOG.debug("Creating ephemeral node for job {}.", jobStorageKey);
+		final String myNodeId = myNodeId();
+		final IPath path = ACTIVE_JOBS.append(jobStorageKey);
+		int retries = 3;
+		while (true) {
+			try {
+				// read processing node id
+				final Stat stat = new Stat();
+				final String processingNodeId = ZooKeeperGate.get().readRecord(path, (String) null, stat);
+				if (StringUtils.isNotBlank(processingNodeId) && !StringUtils.equalsIgnoreCase(myNodeId, processingNodeId)) {
+					LOG.warn("Job {} active on node {} but will now be moved to this node!", jobStorageKey, processingNodeId);
+					ZooKeeperGate.get().writeRecord(path, myNodeId, stat.getVersion());
+					return;
+				} else if (StringUtils.equalsIgnoreCase(myNodeId, processingNodeId)) {
+					// perfect
+					return;
+				}
+
+				if (JobsDebug.debug) {
+					LOG.debug("Creating ephemeral node for job {}...", jobStorageKey);
+				}
+				ZooKeeperGate.get().createPath(path, CreateMode.EPHEMERAL, myNodeId);
+			} catch (final NodeExistsException e) {
+				// retry
+				if (--retries == 0) {
+					throw new IllegalStateException("Unable to activate job!", e);
+				}
+				continue;
+			} catch (final BadVersionException e) {
+				// retry
+				if (--retries == 0) {
+					throw new IllegalStateException("Unable to activate job!", e);
+				}
+				continue;
+			} catch (final Exception e) {
+				throw new IllegalStateException("Unable to set job state running!", e);
 			}
-			ZooKeeperGate.get().createPath(ACTIVE_JOBS.append(jobStorageKey), CreateMode.EPHEMERAL, JobsActivator.getInstance().getService(INodeEnvironment.class).getNodeId());
-		} catch (final NodeExistsException e) {
-			// ignore for now (we might need to better handle this case)
-			//throw new IllegalStateException(String.format("Job %s already active!", jobStorageKey), e);
-		} catch (final Exception e) {
-			throw new IllegalStateException("Unable to set job state running!", e);
 		}
 	}
 
@@ -107,15 +142,34 @@ class JobHungDetectionHelper {
 	 * @throws IllegalStateException
 	 */
 	public static void setInactive(final String jobStorageKey) throws IllegalStateException {
-		try {
-			if (JobsDebug.debug) {
-				LOG.debug("Removing ephemeral node for job {}.", jobStorageKey);
+		final IPath path = ACTIVE_JOBS.append(jobStorageKey);
+		int retries = 3;
+		while (true) {
+			try {
+				// read processing node id
+				final Stat stat = new Stat();
+				final String processingNodeId = ZooKeeperGate.get().readRecord(path, (String) null, stat);
+				if (StringUtils.isNotBlank(processingNodeId) && !StringUtils.equalsIgnoreCase(myNodeId(), processingNodeId)) {
+					LOG.warn("Job {} active on different node (node {})!", jobStorageKey, processingNodeId);
+					return;
+				}
+
+				if (JobsDebug.debug) {
+					LOG.debug("Removing ephemeral node for job {}.", jobStorageKey);
+				}
+				ZooKeeperGate.get().deletePath(path, stat.getVersion());
+			} catch (final NoNodeException e) {
+				// good
+				return;
+			} catch (final BadVersionException e) {
+				// retry
+				if (--retries == 0) {
+					throw new IllegalStateException("Unable to deactivate job!", e);
+				}
+				continue;
+			} catch (final Exception e) {
+				throw new IllegalStateException("Unable to set job state stopped!", e);
 			}
-			ZooKeeperGate.get().deletePath(ACTIVE_JOBS.append(jobStorageKey));
-		} catch (final NoNodeException e) {
-			// good
-		} catch (final Exception e) {
-			throw new IllegalStateException("Unable to set job state stopped!", e);
 		}
 	}
 }

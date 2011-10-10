@@ -125,7 +125,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void awake(final IJobChangeEvent event) {
-		// we're not interested at the moment - job state is running
+		// nothing to do (for now)
 	}
 
 	private void cancelRealJob() {
@@ -270,9 +270,38 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		}
 	}
 
+	public void setJobActive() {
+		try {
+			// log message
+			if (JobsDebug.workerEngine) {
+				LOG.debug("Activating job {}...", getJobId());
+			}
+
+			// set the job active
+			// (this is used by the worker engine to indicate processing is ready)
+			getJobManager().setActive(getJobId());
+		} catch (final Exception e) {
+			LOG.error("Error updating job {}: {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
+		}
+	}
+
+	public void setJobInactive() {
+		try {
+			// log message
+			if (JobsDebug.workerEngine) {
+				LOG.debug("Inactivating job {}...", getJobId());
+			}
+
+			// set the job in-active
+			getJobManager().setInactive(getJobId());
+		} catch (final Exception e) {
+			LOG.error("Error updating job {}: {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
+		}
+	}
+
 	@Override
 	public void sleeping(final IJobChangeEvent event) {
-		// we're not interested at the moment - job state is running
+		// nothing to do (for now)
 	}
 
 	private void updateJobState(final JobState expected, final JobState state, final IJobStateWatch jobStateWatch) {
