@@ -7,7 +7,7 @@
 <booleanAttribute key="automaticAdd" value="true"/>
 <booleanAttribute key="automaticValidate" value="false"/>
 <stringAttribute key="bootstrap" value=""/>
-<stringAttribute key="checked" value="[NONE]"/>
+<stringAttribute key="checked" value="org.eclipse.gyrex.jobs"/>
 <booleanAttribute key="clearConfig" value="false"/>
 <booleanAttribute key="clearws" value="false"/>
 <booleanAttribute key="clearwslog" value="false"/>
@@ -53,7 +53,7 @@
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${workspace_loc:org.eclipse.gyrex.examples.fanshop/config.ini}"/>
 <stringAttribute key="timestamp" value="1308658627995"/>
-<booleanAttribute key="tracing" value="false"/>
+<booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.aspectj.osgi.service.caching.j9/debug" value="false"/>
 <mapEntry key="org.aspectj.osgi.service.weaving/debug" value="false"/>
