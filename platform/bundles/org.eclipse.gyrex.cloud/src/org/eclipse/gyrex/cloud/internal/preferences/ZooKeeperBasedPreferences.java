@@ -377,35 +377,21 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 
 	@Override
 	protected void disconnect() {
+		if (removed) {
+			return;
+		}
+
 		if (CloudDebug.zooKeeperPreferences) {
 			LOG.debug("Disconnecting preference node {}.", this);
 		}
 
-		// try to flush any pending changes
-		// (just properties here as we are recursively disconnecting the children)
-		if (!removed && propertiesDirty) {
-			try {
-				saveProperties();
-			} catch (final Exception ignored) {
-				// ignore
-			}
-		}
-
-		// set disconnected
+		// don't to anything on disconnect (assuming the connection is gone)
+		// just set disconnected
 		connected.set(false);
 
 		// disconnect children
-		childrenModifyLock.lock();
-		try {
-			if (removed) {
-				return;
-			}
-
-			for (final ZooKeeperBasedPreferences child : children.values()) {
-				child.disconnect();
-			}
-		} finally {
-			childrenModifyLock.unlock();
+		for (final ZooKeeperBasedPreferences child : children.values()) {
+			child.disconnect();
 		}
 	}
 
