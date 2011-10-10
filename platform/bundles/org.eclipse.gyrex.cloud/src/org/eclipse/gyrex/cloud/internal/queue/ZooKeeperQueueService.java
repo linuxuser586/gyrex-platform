@@ -13,6 +13,8 @@ package org.eclipse.gyrex.cloud.internal.queue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Properties;
@@ -25,8 +27,10 @@ import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 
 /**
  * Queue service based on ZooKeeper.
@@ -65,7 +69,7 @@ public class ZooKeeperQueueService implements IQueueService {
 	}
 
 	@Override
-	public IQueue getQueue(final String id, final Map<String, ?> properties) throws IllegalArgumentException, IllegalStateException, SecurityException {
+	public ZooKeeperQueue getQueue(final String id, final Map<String, ?> properties) throws IllegalArgumentException, IllegalStateException, SecurityException {
 		if (!IdHelper.isValidId(id)) {
 			throw new IllegalArgumentException("invalid id");
 		}
@@ -92,6 +96,16 @@ public class ZooKeeperQueueService implements IQueueService {
 			}
 		}
 		return queueData.toByteArray();
+	}
+
+	public Collection<String> getQueues() {
+		try {
+			return ZooKeeperGate.get().readChildrenNames(IZooKeeperLayout.PATH_QUEUES_ROOT, null);
+		} catch (final NoNodeException e) {
+			return Collections.emptyList();
+		} catch (final Exception e) {
+			throw new IllegalStateException("Error reading queues. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
 	}
 
 	@Override

@@ -166,6 +166,24 @@ public class Message implements IMessage {
 		return body;
 	}
 
+	/**
+	 * Returns the invisibleTimeoutTS.
+	 * 
+	 * @return the invisibleTimeoutTS
+	 */
+	public long getInvisibleTimeoutTS() {
+		return invisibleTimeoutTS;
+	}
+
+	/**
+	 * Returns the messageId.
+	 * 
+	 * @return the messageId
+	 */
+	public String getMessageId() {
+		return messageId;
+	}
+
 	@Override
 	public String getQueueId() {
 		return queueId;

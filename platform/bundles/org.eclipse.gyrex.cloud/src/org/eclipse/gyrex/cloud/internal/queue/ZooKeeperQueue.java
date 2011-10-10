@@ -14,6 +14,7 @@ package org.eclipse.gyrex.cloud.internal.queue;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -134,6 +135,34 @@ public class ZooKeeperQueue implements IQueue {
 	@Override
 	public String getId() {
 		return id;
+	}
+
+	/**
+	 * Returns the ordered list of messages.
+	 * <p>
+	 * Note, this represents a snapshot of the queue at the time of invoking the
+	 * method.
+	 * </p>
+	 * 
+	 * @return ordered list of messages
+	 */
+	public List<Message> getMessages() {
+		try {
+			final TreeMap<Long, String> queueChildren = readQueueChildren(null);
+			final List<Message> messages = new ArrayList<Message>(queueChildren.size());
+			for (final String messageId : queueChildren.values()) {
+				final Message message = readQueueMessage(messageId);
+				if (null != message) {
+					messages.add(message);
+				}
+			}
+			return messages;
+		} catch (final NoNodeException e) {
+			// don't fail just return null
+			return Collections.emptyList();
+		} catch (final Exception e) {
+			throw new QueueOperationFailedException(id, "READ_MESSAGES", e);
+		}
 	}
 
 	/**
@@ -287,6 +316,17 @@ public class ZooKeeperQueue implements IQueue {
 				throw new IllegalStateException(String.format("queue '%s' does not exist", id));
 			}
 			throw new QueueOperationFailedException(id, "SEND_MESSAGES", e);
+		}
+	}
+
+	public int size() {
+		try {
+			return ZooKeeperGate.get().readChildrenNames(queuePath, null).size();
+		} catch (final NoNodeException e) {
+			// don't fail just return null
+			return 0;
+		} catch (final Exception e) {
+			throw new QueueOperationFailedException(id, "READ_SIZE", e);
 		}
 	}
 
