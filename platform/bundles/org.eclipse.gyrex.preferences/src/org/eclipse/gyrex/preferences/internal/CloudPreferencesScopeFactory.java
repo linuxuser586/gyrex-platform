@@ -13,6 +13,7 @@ package org.eclipse.gyrex.preferences.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
@@ -26,28 +27,10 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link IScope} factory for the cloud scope.
  */
-public class CloudPreferencesScopeFactory implements IScope {
+public class CloudPreferencesScopeFactory implements IScope, IShutdownParticipant {
 
 	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferencesScopeFactory.class);
 	private static final AtomicReference<CloudPreferences> rootCloudNode = new AtomicReference<CloudPreferences>();
-
-	/**
-	 * Stops the factory and releases any resource.
-	 */
-	public static void stop() {
-		// flush the preferences
-		// TODO this is actually too late
-		// when the bundle is stopped the cloud is likely already disconnected
-		// for now there is some logic in ZooKeeperBasedPreferences
-		final CloudPreferences node = rootCloudNode.get();
-		if (node != null) {
-			try {
-				node.flush();
-			} catch (final Exception e) {
-				LOG.debug("Failed to flush cloud preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
-			}
-		}
-	}
 
 	@Override
 	public IEclipsePreferences create(final IEclipsePreferences parent, final String name) {
@@ -79,7 +62,26 @@ public class CloudPreferencesScopeFactory implements IScope {
 		// create
 		rootCloudNode.compareAndSet(null, new CloudPreferences(parent, name));
 
+		// register shut-down hook
+		PreferencesActivator.getInstance().addShutdownParticipant(this);
+
 		// done
 		return rootCloudNode.get();
+	}
+
+	@Override
+	public void shutdown() throws Exception {
+		// flush the preferences
+		// TODO this is actually too late
+		// when the bundle is stopped the cloud is likely already disconnected
+		// for now there is some logic in ZooKeeperBasedPreferences
+		final CloudPreferences node = rootCloudNode.get();
+		if (node != null) {
+			try {
+				node.flush();
+			} catch (final Exception e) {
+				LOG.debug("Failed to flush cloud preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
+			}
+		}
 	}
 }

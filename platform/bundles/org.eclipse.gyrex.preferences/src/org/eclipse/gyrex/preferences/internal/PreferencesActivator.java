@@ -54,9 +54,6 @@ public class PreferencesActivator extends BaseBundleActivator {
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
-		// stop factory
-		CloudPreferencesScopeFactory.stop();
-
 		// deactivate instance
 		instanceRef.set(null);
 
