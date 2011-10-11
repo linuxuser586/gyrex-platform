@@ -31,6 +31,8 @@ public class PreferencesConsoleCommands extends BaseCommandProvider {
 		registerCommand("set", SetCmd.class);
 		registerCommand("unset", UnsetCmd.class);
 		registerCommand("rm", RemoveCmd.class);
+		registerCommand("sync", SyncCmd.class);
+		registerCommand("flush", FlushCmd.class);
 	}
 
 	public void _prefs(final CommandInterpreter ci) throws Exception {
