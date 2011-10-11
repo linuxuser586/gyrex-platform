@@ -42,7 +42,11 @@ public class FlushCmd extends Command {
 	protected void doExecute() throws Exception {
 		final IPreferencesService preferencesService = EclipsePreferencesUtil.getPreferencesService();
 		final String[] decodedPath = EclipsePreferencesUtil.decodePath(StringUtils.trimToEmpty(path));
-		final Preferences node = preferencesService.getRootNode().node(StringUtils.trimToEmpty(decodedPath[0]));
+		if (!preferencesService.getRootNode().nodeExists(decodedPath[0] + "/" + decodedPath[1])) {
+			printf("ERROR: The specified node does not exist!");
+			return;
+		}
+		final Preferences node = preferencesService.getRootNode().node(decodedPath[0] + "/" + decodedPath[1]);
 		final long start = System.nanoTime();
 		node.flush();
 		final long duration = System.nanoTime() - start;

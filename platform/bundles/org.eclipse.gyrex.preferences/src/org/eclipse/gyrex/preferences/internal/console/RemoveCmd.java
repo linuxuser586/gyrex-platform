@@ -44,6 +44,11 @@ public class RemoveCmd extends Command {
 		}
 		final IPreferencesService preferencesService = EclipsePreferencesUtil.getPreferencesService();
 		final String[] decodedPath = EclipsePreferencesUtil.decodePath(StringUtils.trimToEmpty(path));
+		if (!preferencesService.getRootNode().nodeExists(decodedPath[0] + "/" + decodedPath[1])) {
+			printf("ERROR: The specified node does not exist!");
+			return;
+		}
+
 		final Preferences node = preferencesService.getRootNode().node(StringUtils.trimToEmpty(decodedPath[0]));
 		if (node.nodeExists(decodedPath[1])) {
 			node.node(decodedPath[1]).removeNode();
