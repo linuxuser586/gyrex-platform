@@ -27,6 +27,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Version;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -331,7 +332,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 				try {
 					((IShutdownParticipant) participant).shutdown();
 				} catch (final Exception e) {
-					LOG.warn("Error while shutting down shutdown participant \"{0}\": {1}", participant, e);
+					LOG.warn("Error while shutting down shutdown participant ({}). {}", new Object[] { participant, ExceptionUtils.getRootCauseMessage(e), e });
 				}
 			}
 
