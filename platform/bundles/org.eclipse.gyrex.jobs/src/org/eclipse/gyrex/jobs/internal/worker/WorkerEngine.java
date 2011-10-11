@@ -324,9 +324,6 @@ public class WorkerEngine extends Job {
 				return Status.CANCEL_STATUS;
 			}
 
-			// ensure that the preferences are in sync (bug 360402)
-			JobsActivator.getInstance().refreshPreferences();
-
 			// process next job from queue
 			final boolean moreJobsAvailable = processNextJobFromQueue();
 
