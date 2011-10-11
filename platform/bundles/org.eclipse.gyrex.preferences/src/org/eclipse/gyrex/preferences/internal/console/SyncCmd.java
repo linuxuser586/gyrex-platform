@@ -13,40 +13,22 @@ package org.eclipse.gyrex.preferences.internal.console;
 
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.gyrex.common.console.Command;
-import org.eclipse.gyrex.preferences.internal.util.EclipsePreferencesUtil;
-
-import org.eclipse.core.runtime.preferences.IPreferencesService;
-
 import org.osgi.service.prefs.Preferences;
-
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.args4j.Argument;
 
 /**
  * Syncs preferences
  */
-public class SyncCmd extends Command {
-
-	@Argument(index = 0, required = true, metaVar = "PATH", usage = "path to a preference node")
-	String path;
+public class SyncCmd extends PathBasedCmd {
 
 	/**
 	 * Creates a new instance.
 	 */
 	public SyncCmd() {
-		super("<path> - syncs a preference hierarchy");
+		super(" - syncs a preference hierarchy");
 	}
 
 	@Override
-	protected void doExecute() throws Exception {
-		final IPreferencesService preferencesService = EclipsePreferencesUtil.getPreferencesService();
-		final String[] decodedPath = EclipsePreferencesUtil.decodePath(StringUtils.trimToEmpty(path));
-		if (!preferencesService.getRootNode().nodeExists(decodedPath[0] + "/" + decodedPath[1])) {
-			printf("ERROR: The specified node does not exist!");
-			return;
-		}
-		final Preferences node = preferencesService.getRootNode().node(decodedPath[0] + "/" + decodedPath[1]);
+	protected void doExecute(final Preferences node) throws Exception {
 		final long start = System.nanoTime();
 		node.sync();
 		final long duration = System.nanoTime() - start;
