@@ -93,7 +93,7 @@ public final class CleanupJob extends Job {
 				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 
 				// fix hung jobs
-				if (JobHungDetectionHelper.isStuck(externalId, job, true)) {
+				if (JobHungDetectionHelper.isStuck(internalId, job, true)) {
 					LOG.info("Resetting job {} stuck in state {} (queued {} minutes and started {} minutes ago).", new Object[] { job.getId(), job.getState(), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastQueued()), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastStart()) });
 
 					// set inactive
