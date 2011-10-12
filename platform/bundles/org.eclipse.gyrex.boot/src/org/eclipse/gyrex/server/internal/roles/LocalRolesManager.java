@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.eclipse.gyrex.boot.internal.BootDebug;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +71,9 @@ public class LocalRolesManager {
 	 * @param roleIds
 	 */
 	public static void activateRoles(final Collection<String> roleIds) {
+		if (BootDebug.debug) {
+			LOG.debug("Activating roles {}.", StringUtils.join(roleIds, ','));
+		}
 		for (final String roleId : roleIds) {
 			try {
 				activate(roleId);
@@ -86,6 +90,9 @@ public class LocalRolesManager {
 	 * @param failOnError
 	 */
 	public static void activateRoles(final Collection<String> roleIds, final boolean failOnError) throws Exception {
+		if (BootDebug.debug) {
+			LOG.debug("Activating roles {}.", StringUtils.join(roleIds, ','));
+		}
 		for (final String roleId : roleIds) {
 			if (!activate(roleId)) {
 				throw new IllegalArgumentException("Role " + roleId + " not found!");
@@ -102,9 +109,7 @@ public class LocalRolesManager {
 			roleIds = new ArrayList<String>(activeRoles.keySet());
 		}
 		Collections.reverse(roleIds);
-		for (final String roleId : roleIds) {
-			dectivate(roleId);
-		}
+		deactivateRoles(roleIds);
 	}
 
 	/**
@@ -113,6 +118,9 @@ public class LocalRolesManager {
 	 * @param roleIds
 	 */
 	public static void deactivateRoles(final Collection<String> roleIds) {
+		if (BootDebug.debug) {
+			LOG.debug("Deactivating roles {}.", StringUtils.join(roleIds, ','));
+		}
 		for (final String roleId : roleIds) {
 			dectivate(roleId);
 		}
