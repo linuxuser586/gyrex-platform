@@ -14,6 +14,7 @@ package org.eclipse.gyrex.jobs.internal.manager;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.jobs.JobState;
+import org.eclipse.gyrex.jobs.internal.JobsDebug;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -104,8 +105,20 @@ public final class CleanupJob extends Job {
 					job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 				}
 
-				// only remove jobs not running and older then maxAge
-				if ((job.getState() != JobState.NONE) || ((now - job.getLastResultTimestamp()) < maxAge)) {
+				// remove only jobs in state NONE
+				if (job.getState() != JobState.NONE) {
+					if (JobsDebug.cleanup) {
+						LOG.debug("Skipping active job {}...", job.getId());
+					}
+					continue;
+				}
+
+				// remove only jobs not older then maxAge
+				final long jobAge = now - Math.max(job.getLastResultTimestamp(), Math.max(job.getLastQueued(), job.getLastStart()));
+				if (jobAge < maxAge) {
+					if (JobsDebug.cleanup) {
+						LOG.debug("Skipping too young {} (age {} days)...", job.getId(), TimeUnit.MILLISECONDS.toDays(jobAge));
+					}
 					continue;
 				}
 
