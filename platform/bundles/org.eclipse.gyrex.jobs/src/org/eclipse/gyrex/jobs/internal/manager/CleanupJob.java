@@ -117,7 +117,7 @@ public final class CleanupJob extends Job {
 				final long jobAge = now - Math.max(job.getLastResultTimestamp(), Math.max(job.getLastQueued(), job.getLastStart()));
 				if (jobAge < maxAge) {
 					if (JobsDebug.cleanup) {
-						LOG.debug("Skipping too young {} (age {} days)...", job.getId(), TimeUnit.MILLISECONDS.toDays(jobAge));
+						LOG.debug("Skipping too young job {} (age {} days)...", job.getId(), TimeUnit.MILLISECONDS.toDays(jobAge));
 					}
 					continue;
 				}
