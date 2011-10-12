@@ -151,7 +151,9 @@ public interface IQueue {
 	 * <p>
 	 * It is highly recommended to keep the message body size small. If you need
 	 * to transfer large data consider storing the data in a database or another
-	 * system and just send a pointer to the data in the message.
+	 * system and just send a pointer to the data in the message. Any queue
+	 * service implementation may enforce limits on the message size. Please
+	 * consult the underlying queue service documentation for further details.
 	 * </p>
 	 * <p>
 	 * When this method returns the message has been successfully submitted to
