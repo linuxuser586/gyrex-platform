@@ -97,7 +97,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private static final long MODIFY_LOCK_TIMEOUT = 5000L;
+	private static final long MODIFY_LOCK_TIMEOUT = 8000L;
 
 	private static final String NODE_PARAMETER = "parameter";
 
