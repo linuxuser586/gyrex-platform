@@ -108,18 +108,18 @@ class JobHungDetectionHelper {
 			return true;
 		}
 
+		// get activity time
+		final long timeActive = System.currentTimeMillis() - Math.max(job.getLastQueued(), job.getLastStart());
+
+		// don't even care about jobs that are less than a minute active
+		if (timeActive < 60000L) {
+			LOG.debug("Job {} was active less then a minute ago! Assuming not stuck.", job.getId(), job.getState());
+			return false;
+		}
+
 		// check if job is active in the system
 		if (JobHungDetectionHelper.isActive(jobStorageKey)) {
 			// job is still active in the system
-
-			// get activity time
-			final long timeActive = System.currentTimeMillis() - Math.max(job.getLastQueued(), job.getLastStart());
-
-			// don't even care about jobs that are less than a minute active
-			if (timeActive < 60000L) {
-				return false;
-			}
-
 			// verify that it's also marked active
 			if (!job.isActive()) {
 				LOG.debug("Job {} marked active in the system but not set active! Assuming stuck.", job.getId(), job.getState());
@@ -143,7 +143,7 @@ class JobHungDetectionHelper {
 
 		// check if the job is set active
 		if (job.isActive()) {
-			LOG.debug("Job {} (state {}) set active in the system but not marked active in the system! Assuming stuck.", job.getId(), job.getState());
+			LOG.debug("Job {} (state {}) set active in the store but not marked active in the system! Assuming stuck.", job.getId(), job.getState());
 			return true;
 		}
 
