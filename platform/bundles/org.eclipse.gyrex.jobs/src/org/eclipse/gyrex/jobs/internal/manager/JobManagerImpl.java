@@ -97,7 +97,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private static final long MODIFY_LOCK_TIMEOUT = 8000L;
+	private static final long DEFAULT_MODIFY_LOCK_TIMEOUT = 2000L;
 
 	private static final String NODE_PARAMETER = "parameter";
 
@@ -216,6 +216,8 @@ public class JobManagerImpl implements IJobManager {
 
 	private final String internalIdPrefix;
 
+	private final long modifyLockTimeout;
+
 	static final String NODE_STATES = "status";
 
 	private static String getInternalIdPrefix(final IRuntimeContext context) {
@@ -233,6 +235,8 @@ public class JobManagerImpl implements IJobManager {
 	public JobManagerImpl(final IRuntimeContext context) {
 		this.context = context;
 		internalIdPrefix = getInternalIdPrefix(context);
+		modifyLockTimeout = Long.getLong("gyrex.jobs.modifyLock.timeout", DEFAULT_MODIFY_LOCK_TIMEOUT);
+
 	}
 
 	@Override
@@ -400,7 +404,7 @@ public class JobManagerImpl implements IJobManager {
 			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
 		}
 		try {
-			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, MODIFY_LOCK_TIMEOUT);
+			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, modifyLockTimeout);
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
 		}
