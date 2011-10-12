@@ -81,6 +81,10 @@ public final class CleanupJob extends Job {
 	protected IStatus run(final IProgressMonitor monitor) {
 		final IEclipsePreferences jobsNode = JobHistoryStore.getJobsNode();
 		try {
+			// ensure the preference tree is current (bug 360402)
+			LOG.info("Refreshing job definitions...");
+			jobsNode.sync();
+
 			LOG.info("Cleaning up old job definitions...");
 			final long now = System.currentTimeMillis();
 			final String[] childrenNames = jobsNode.childrenNames();
@@ -89,20 +93,8 @@ public final class CleanupJob extends Job {
 				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 
 				// fix hung jobs
-				if (job.getState() != JobState.NONE) {
-					if (JobHungDetectionHelper.isActive(internalId)) {
-						// job is still active in the system
-						continue;
-					} else if (job.isActive()) {
-						// jobs is marked active but not really processing
-						// this is bogus, we need to check if it's still in the QUEUE
-						if ((System.currentTimeMillis() - job.getLastStart()) < TimeUnit.MINUTES.toMillis(20)) {
-							// it was started 20 minutes ago, give it more time to recover
-							continue;
-						}
-					}
-
-					LOG.info("Killing hung job {} (started {} minutes ago)...", job.getId(), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastStart()));
+				if (JobHungDetectionHelper.isStuck(externalId, job, true)) {
+					LOG.info("Resetting job {} stuck in state {} (queued {} minutes and started {} minutes ago).", new Object[] { job.getId(), job.getState(), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastQueued()), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastStart()) });
 
 					// set inactive
 					final Preferences jobNode = jobsNode.node(internalId);

@@ -9,3 +9,9 @@ org.eclipse.gyrex.jobs/workerEngine=true
 
 # debug scheduler engine
 org.eclipse.gyrex.jobs/schedulerEngine=true
+
+# debug job logs
+org.eclipse.gyrex.jobs/jobLocks=true
+
+# debug cleanup
+org.eclipse.gyrex.jobs/cleanup=true

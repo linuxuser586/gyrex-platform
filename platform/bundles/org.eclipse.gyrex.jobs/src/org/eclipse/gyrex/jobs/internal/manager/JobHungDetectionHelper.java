@@ -11,9 +11,12 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.manager;
 
+import java.util.concurrent.TimeUnit;
+
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 
@@ -41,7 +44,6 @@ import org.slf4j.LoggerFactory;
 class JobHungDetectionHelper {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobHungDetectionHelper.class);
-
 	private static final IPath ACTIVE_JOBS = IZooKeeperLayout.PATH_GYREX_ROOT.append("jobs/active");
 
 	/**
@@ -80,6 +82,93 @@ class JobHungDetectionHelper {
 		} catch (final Exception e) {
 			throw new IllegalStateException("Unable to read job run info!", e);
 		}
+	}
+
+	/**
+	 * This helper detects if a job is stuck.
+	 * 
+	 * @param jobStorageKey
+	 *            the job storage key
+	 * @param job
+	 *            the job to check
+	 * @param logLongRunning
+	 *            if warning and/or errors should be logged for jobs that have
+	 *            been active for too long
+	 * @return
+	 */
+	public static boolean isStuck(final String jobStorageKey, final JobImpl job, final boolean logLongRunning) {
+		// jobs in state NONE are never stuck
+		if (job.getState() == JobState.NONE) {
+			return false;
+		}
+
+		// check that the job has been queued
+		if (job.getLastQueued() < 0) {
+			LOG.debug("Job {} (state {}) has never been queued! Assuming stuck.", job.getId(), job.getState());
+			return true;
+		}
+
+		// check if job is active in the system
+		if (JobHungDetectionHelper.isActive(jobStorageKey)) {
+			// job is still active in the system
+
+			// get activity time
+			final long timeActive = System.currentTimeMillis() - Math.max(job.getLastQueued(), job.getLastStart());
+
+			// don't even care about jobs that are less than a minute active
+			if (timeActive < 60000L) {
+				return false;
+			}
+
+			// verify that it's also marked active
+			if (!job.isActive()) {
+				LOG.debug("Job {} marked active in the system but not set active! Assuming stuck.", job.getId(), job.getState());
+				return true;
+			}
+
+			// log a message if it has been active too long
+			if (logLongRunning) {
+				if (logLongRunning && (TimeUnit.MILLISECONDS.toHours(timeActive) > 12L)) {
+					// it has been active for more than two hours
+					LOG.error("Job {} has been active in the system for {} hours now. Please investigate.", job.getId(), TimeUnit.MILLISECONDS.toHours(timeActive));
+				} else if (TimeUnit.MILLISECONDS.toHours(timeActive) > 2L) {
+					// it has been active for more than two hours
+					LOG.warn("Job {} has been active in the system for {} hours now.", job.getId(), TimeUnit.MILLISECONDS.toHours(timeActive));
+				}
+			}
+
+			// active jobs are considered never stuck
+			return false;
+		}
+
+		// check if the job is set active
+		if (job.isActive()) {
+			LOG.debug("Job {} (state {}) set active in the system but not marked active in the system! Assuming stuck.", job.getId(), job.getState());
+			return true;
+		}
+
+		// at this point the job is not marked active but its state is not NONE (as checked above)
+		// this is only ok for WAITING or ABORTING jobs still in a queue
+		if ((job.getState() == JobState.WAITING) || (job.getState() == JobState.ABORTING)) {
+			// TODO: we need to check if it's still in the QUEUE
+			// for now we assume yes if it was queued less than 20 minutes ago
+			final long timeInQueue = System.currentTimeMillis() - job.getLastQueued();
+			if (TimeUnit.MILLISECONDS.toMinutes(timeInQueue) < 20L) {
+				if (timeInQueue < 60000L) {
+					LOG.debug("Job {} is {} (queued less than a minute ago). Assuming not stuck!", job.getId(), job.getState());
+				} else {
+					LOG.debug("Job {} is {} (queued {} minutes ago). Assuming not stuck!", new Object[] { job.getId(), job.getState(), TimeUnit.MILLISECONDS.toMinutes(timeInQueue) });
+				}
+				return false;
+			}
+
+			LOG.debug("Job {} (state {}) was queue {} minutes ago. Assuming stuck.", new Object[] { job.getId(), job.getState(), TimeUnit.MILLISECONDS.toMinutes(timeInQueue) });
+			return true;
+		}
+
+		// at this point any job is considered stuck
+		LOG.debug("Job {} is neither set active nor marked active in the system but its state is {}. Assuming stuck.", job.getId(), job.getState());
+		return true;
 	}
 
 	private static String myNodeId() {
@@ -172,4 +261,5 @@ class JobHungDetectionHelper {
 			}
 		}
 	}
+
 }

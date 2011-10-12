@@ -32,12 +32,15 @@ public class JobImpl implements IJob {
 	private String typeId;
 	private Map<String, String> parameter;
 
+	private long lastQueued;
 	private long lastStart;
-	private long lastSuccessfulFinish;
-	private JobState state;
 
+	private long lastSuccessfulFinish;
+
+	private JobState state;
 	private long lastResultTimestamp;
 	private IStatus lastResult;
+
 	private boolean active;
 
 	/**
@@ -54,6 +57,10 @@ public class JobImpl implements IJob {
 	 */
 	public String getId() {
 		return id;
+	}
+
+	public long getLastQueued() {
+		return lastQueued;
 	}
 
 	@Override
@@ -151,6 +158,10 @@ public class JobImpl implements IJob {
 	 */
 	public void setId(final String id) {
 		this.id = id;
+	}
+
+	public void setLastQueued(final long lastQueued) {
+		this.lastQueued = lastQueued;
 	}
 
 	public void setLastResult(final long timestamp, final int severity, final String message) {

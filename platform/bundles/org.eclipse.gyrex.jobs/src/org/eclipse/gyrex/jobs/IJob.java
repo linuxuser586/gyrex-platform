@@ -70,6 +70,16 @@ public interface IJob {
 	String getId();
 
 	/**
+	 * Returns the milliseconds from the Java epoch of
+	 * <code>1970-01-01T00:00:00Z</code> when the job was last queued.
+	 * 
+	 * @return the milliseconds from the Java epoch of
+	 *         <code>1970-01-01T00:00:00Z</code> when the job was last queued,
+	 *         or <code>-1</code> if the job was never queued until now
+	 */
+	long getLastQueued();
+
+	/**
 	 * Returns the last result of the job execution.
 	 * 
 	 * @return the last result (maybe <code>null</code>)

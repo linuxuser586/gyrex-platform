@@ -104,8 +104,8 @@ public class SchedulingJob implements Job {
 				job = jobManagerImpl.createJob(jobTypeId, jobId, parameter);
 			}
 
-			// check that job state is NONE
-			if (jobManagerImpl.getJobStateWithHungDetection(job) != JobState.NONE) {
+			// check that job state is NONE (and it's not stuck)
+			if ((job.getState() != JobState.NONE) && !jobManagerImpl.isStuck(job)) {
 				LOG.warn("Job {} (type {}) cannot be queued because it is already active in the system (current state {}).", new Object[] { job.getId(), job.getTypeId(), job.getState() });
 				return;
 			}

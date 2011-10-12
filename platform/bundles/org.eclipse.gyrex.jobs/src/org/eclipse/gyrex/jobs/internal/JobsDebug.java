@@ -24,5 +24,6 @@ public class JobsDebug extends BundleDebugOptions {
 	public static boolean schedulerEngine;
 
 	public static boolean jobLocks;
+	public static boolean cleanup;
 
 }
