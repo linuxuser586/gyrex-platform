@@ -26,7 +26,7 @@ package org.eclipse.gyrex.cloud.services.locking;
  * interruption. However, the lock may become invalid ({@link #isValid()}
  * returns <code>false</code>) as a result of such a failure and must be
  * explicitly recovered. When a lock becomes invalid any operation protected by
- * the lock must be suspended and may only be resumed if the node could be
+ * the lock must be suspended and may only be resumed if the lock could be
  * recovered.
  * </p>
  * <p>
