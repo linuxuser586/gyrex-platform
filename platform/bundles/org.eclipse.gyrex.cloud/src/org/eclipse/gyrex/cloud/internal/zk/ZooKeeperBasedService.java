@@ -96,9 +96,15 @@ public abstract class ZooKeeperBasedService {
 	 * </p>
 	 */
 	protected void disconnect() {
+		// don't do anything if already closed (#close may trigger this when removing the connection monitor)
+		if (isClosed()) {
+			return;
+		}
+
 		// auto-close service on disconnect
 		LOG.warn("Connection to the cloud has been lost. Closing active service {}.", ZooKeeperBasedService.this);
 		close();
+
 	}
 
 	/**
