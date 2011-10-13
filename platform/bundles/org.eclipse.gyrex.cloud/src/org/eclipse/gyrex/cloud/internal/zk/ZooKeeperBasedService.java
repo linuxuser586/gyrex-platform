@@ -91,8 +91,8 @@ public abstract class ZooKeeperBasedService {
 	/**
 	 * Disconnects the service.
 	 * <p>
-	 * The default implementation just closes the service performing an
-	 * irregular close. Subclasses may override and customize the behavior.
+	 * The default implementation calls {@link #close()} which closes the
+	 * service. Subclasses may override and customize the behavior.
 	 * </p>
 	 */
 	protected void disconnect() {
@@ -108,17 +108,16 @@ public abstract class ZooKeeperBasedService {
 	}
 
 	/**
-	 * Called when the service closes as a result of an intentional close or
-	 * unexpected network loss.
+	 * Called by {@link #close()} in order to close the service.
+	 * <p>
+	 * This may be a result of an intentional close or unexpected network loss.
+	 * Thus, clients should be prepared that the ZooKeeper is not available
+	 * anymore at this point.
+	 * </p>
 	 * <p>
 	 * The default implementation does nothing. Subclasses may override and
 	 * release any resources.
 	 * </p>
-	 * 
-	 * @param regular
-	 *            <code>true</code> if the close is a regular close, i.e. wanted
-	 *            by a client and not because of a connection loss,
-	 *            <code>false</code> otherwise
 	 */
 	protected void doClose() {
 		// empty
