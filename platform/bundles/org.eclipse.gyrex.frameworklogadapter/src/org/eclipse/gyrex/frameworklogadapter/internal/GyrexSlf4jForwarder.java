@@ -16,7 +16,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -44,29 +43,22 @@ import org.osgi.service.log.LogService;
  */
 public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 
-	final class Dispatcher implements Runnable {
+	final class LogBufferFlush implements Runnable {
 		@Override
 		public void run() {
-			// spin the loop
-			while (!Thread.currentThread().isInterrupted()) {
-				// poll for entry
-				LogEntry entry = null;
-				while ((null == entry) && !closed.get()) {
-					try {
-						entry = logBuffer.take();
-					} catch (final InterruptedException e) {
-						// reset interrupted state but keep polling
-						Thread.currentThread().interrupt();
-					}
+			// spin the loop (as long as there is a logger and the buffer is not empty)
+			while (!closed.get() && !logBuffer.isEmpty()) {
+				final SLF4JLogger logger = activeLogger.get();
+				if (null == logger) {
+					return;
 				}
 
-				// log entry
-				if ((null != entry) && !closed.get()) {
-					final SLF4JLogger logger = activeLogger.get();
-					if (null != logger) {
-						logger.log(entry);
-					}
+				final LogEntry entry = logBuffer.poll();
+				if (null == entry) {
+					return;
 				}
+
+				logger.log(entry);
 			}
 		}
 	}
@@ -182,7 +174,7 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 	ExecutorService logDispatcher = Executors.newSingleThreadExecutor(new ThreadFactory() {
 		@Override
 		public Thread newThread(final Runnable r) {
-			final Thread thread = new Thread(r, "Gyrex FrameworkLog Dispatcher");
+			final Thread thread = new Thread(r, "Gyrex FrameworkLog Buffer Dispatcher");
 			thread.setDaemon(true);
 			return thread;
 		}
@@ -231,7 +223,11 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 	@Override
 	public void logged(final LogEntry entry) {
 		if ((null != entry) && !closed.get()) {
-			if (!logBuffer.offer(entry)) {
+			// log directly if logger is available, otherwise add to buffer
+			final SLF4JLogger logger = activeLogger.get();
+			if (null != logger) {
+				logger.log(entry);
+			} else if (!logBuffer.offer(entry)) {
 				if (EclipseStarter.debug && !warningPrinted.get() && warningPrinted.compareAndSet(false, true)) {
 					System.err.println("[Eclipse Gyrex] Log buffer capacity limit reached. Some framework log messages will be discarded. Try lowering the log level or increasing the buffer size (system property 'gyrex.log.forwarder.buffer.size').");
 				}
@@ -240,9 +236,19 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 	}
 
 	public void setSLF4JLogger(final Object logger) {
-		activeLogger.set(null != logger ? new SLF4JLogger(logger) : null);
+		// unset if null
+		if (null == logger) {
+			activeLogger.set(null);
+			return;
+		}
+
+		// create and set logger
+		final SLF4JLogger slf4jLogger = new SLF4JLogger(logger);
+		activeLogger.set(null != logger ? slf4jLogger : null);
+
+		// flush buffer (every time a logger is set)
 		if (null != logger) {
-			startDispatcher();
+			logDispatcher.execute(new LogBufferFlush());
 		}
 	}
 
@@ -252,15 +258,5 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 
 		// clear all buffers
 		logBuffer.clear();
-	}
-
-	private void startDispatcher() {
-		if (!closed.get()) {
-			try {
-				logDispatcher.execute(new Dispatcher());
-			} catch (final RejectedExecutionException e) {
-				throw new IllegalStateException("inactive", e);
-			}
-		}
 	}
 }

@@ -27,7 +27,6 @@ import org.eclipse.equinox.log.ExtendedLogReaderService;
 import org.eclipse.osgi.baseadaptor.BaseAdaptor;
 import org.eclipse.osgi.baseadaptor.hooks.AdaptorHook;
 import org.eclipse.osgi.framework.log.FrameworkLog;
-import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
@@ -238,8 +237,11 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 		} catch (final NoSuchElementException e) {
 			// no logger available
 			logForwarder.setSLF4JLogger(null);
-		} catch (final Throwable e) {
-			System.err.println(NLS.bind("[Eclipse Gyrex] Failed to get SLF4J Logger. {0}", e));
+		} catch (final RuntimeException e) {
+			System.err.printf("[Eclipse Gyrex] Failed to get SLF4J Logger. %s", e.toString());
+			// don't update logger, assume current one is still good
+		} catch (final LinkageError e) {
+			System.err.printf("[Eclipse Gyrex] Failed to get SLF4J Logger. %s", e.toString());
 			// don't update logger, assume current one is still good
 		} finally {
 			// we unget the service here so that it can be released when necessary
