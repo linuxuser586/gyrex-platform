@@ -77,6 +77,9 @@ public abstract class ZooKeeperBasedService {
 
 	/**
 	 * Closes the service.
+	 * <p>
+	 * After closing a service it must be considered not useable anymore.
+	 * </p>
 	 */
 	protected final void close() {
 		if (closed.compareAndSet(false, true)) {
@@ -116,7 +119,8 @@ public abstract class ZooKeeperBasedService {
 	 * </p>
 	 * <p>
 	 * The default implementation does nothing. Subclasses may override and
-	 * release any resources.
+	 * release any resources in order to allow the service being garbage
+	 * collected.
 	 * </p>
 	 */
 	protected void doClose() {
