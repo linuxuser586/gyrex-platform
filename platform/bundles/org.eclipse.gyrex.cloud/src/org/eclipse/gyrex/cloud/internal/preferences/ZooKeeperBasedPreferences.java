@@ -395,6 +395,19 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 		}
 	}
 
+	@Override
+	protected final void doClose() {
+		// the only way this is triggered in ZooKeeperBasedPreferences is via #removeNode
+		// thus, we really clean-up here
+		connected.set(false);
+		nodeListeners = null;
+		preferenceListeners = null;
+		properties.clear();
+		children.clear();
+		propertiesVersion = -1;
+		childrenVersion = -1;
+	}
+
 	private void ensureConnectedAndLoaded() throws IllegalStateException {
 		checkRemoved();
 
@@ -1083,17 +1096,12 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 		} finally {
 			// clear any listeners and caches
 			if (removed) {
-				connected.set(false);
-				nodeListeners = null;
-				preferenceListeners = null;
-				properties.clear();
-				children.clear();
-				propertiesVersion = -1;
-				childrenVersion = -1;
+				// close the service (see bug 358210 comment #1)
+				// (note, the real clean-up happens in #doClose)
+				close();
 			}
 		}
-
-	}
+	};
 
 	@Override
 	public void removeNodeChangeListener(final INodeChangeListener listener) {
