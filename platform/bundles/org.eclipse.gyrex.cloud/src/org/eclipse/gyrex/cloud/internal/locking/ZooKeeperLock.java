@@ -640,6 +640,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 	@Override
 	public boolean isValid() {
+		// TODO: consider sleeping here when the gate state is RECOVERING
 		final String myLockName = this.myLockName;
 		final String activeLockName = this.activeLockName;
 		return (myLockName != null) && (activeLockName != null) && activeLockName.equals(myLockName);
