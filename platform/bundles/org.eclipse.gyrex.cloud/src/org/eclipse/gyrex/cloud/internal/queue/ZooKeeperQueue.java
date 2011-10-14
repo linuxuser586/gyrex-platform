@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * ZooKeeper based queue.
  */
+// TODO: investigate extending ZooKeeperBasedService for re-try operations
 public class ZooKeeperQueue implements IQueue {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperQueue.class);
