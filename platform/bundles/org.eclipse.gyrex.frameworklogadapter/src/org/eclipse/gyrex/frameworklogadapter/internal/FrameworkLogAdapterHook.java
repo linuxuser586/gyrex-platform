@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.equinox.log.ExtendedLogReaderService;
 
+import org.eclipse.core.runtime.adaptor.EclipseStarter;
 import org.eclipse.osgi.baseadaptor.BaseAdaptor;
 import org.eclipse.osgi.baseadaptor.hooks.AdaptorHook;
 import org.eclipse.osgi.framework.log.FrameworkLog;
@@ -40,8 +41,9 @@ import org.osgi.framework.ServiceReference;
  */
 public class FrameworkLogAdapterHook implements AdaptorHook {
 
-	public static final String PROP_BUFFER_SIZE = "gyrex.log.forwarder.buffer.size";
 	public static final String PROP_LOG_ENABLED = "gyrex.log.forwarder.enabled";
+	public static final String PROP_BUFFER_SIZE = "gyrex.log.forwarder.buffer.size";
+	public static final String PROP_FALLBACK_TO_SYSOUT = "gyrex.log.forwarder.fallback.sysout";
 
 	private static final AtomicReference<FrameworkLogAdapterHook> instanceRef = new AtomicReference<FrameworkLogAdapterHook>();
 
@@ -123,7 +125,14 @@ public class FrameworkLogAdapterHook implements AdaptorHook {
 		this.context = context;
 
 		if (null == logForwarder) {
-			logForwarder = new GyrexSlf4jForwarder(Integer.getInteger(PROP_BUFFER_SIZE, 0));
+			// read fallback property
+			String fallback = System.getProperty(PROP_FALLBACK_TO_SYSOUT);
+			if (null == fallback) {
+				// only set default if the property is not set
+				fallback = Boolean.toString(EclipseStarter.debug);
+			}
+			// create forwarder
+			logForwarder = new GyrexSlf4jForwarder(Integer.getInteger(PROP_BUFFER_SIZE, 0), "true".equals(fallback));
 		}
 
 		try {

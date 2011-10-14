@@ -11,7 +11,9 @@
  */
 package org.eclipse.gyrex.frameworklogadapter.internal;
 
+import java.io.PrintStream;
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -91,27 +93,6 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 			logMethod = findLogMethod(logger);
 		}
 
-		private void addServiceProperty(final ServiceReference sr, final String key, final StringBuilder serviceInfo) {
-			final Object value = sr.getProperty(key);
-			if (null != value) {
-				if (serviceInfo.length() > 0) {
-					serviceInfo.append(", ");
-				}
-
-				serviceInfo.append(key).append(": ");
-				if (value.getClass().isArray()) {
-					final Object[] values = (Object[]) value;
-					String separator = "";
-					for (final Object val : values) {
-						serviceInfo.append(separator).append(val);
-						separator = ",";
-					}
-				} else {
-					serviceInfo.append(value);
-				}
-			}
-		}
-
 		private Object getLevel(final LogEntry entry) {
 			switch (entry.getLevel()) {
 				case LogService.LOG_ERROR:
@@ -124,27 +105,6 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 				default:
 					return DEBUG_INT;
 			}
-		}
-
-		private String getMessage(final LogEntry entry) {
-			final ServiceReference sr = entry.getServiceReference();
-			if (null != sr) {
-				final StringBuilder serviceInfo = new StringBuilder(400);
-
-				addServiceProperty(sr, Constants.SERVICE_PID, serviceInfo);
-				addServiceProperty(sr, Constants.SERVICE_ID, serviceInfo);
-				addServiceProperty(sr, Constants.SERVICE_VENDOR, serviceInfo);
-				addServiceProperty(sr, Constants.OBJECTCLASS, serviceInfo);
-
-				return String.format("%s - %s", entry.getMessage(), serviceInfo.toString());
-			}
-
-			final Bundle bundle = entry.getBundle();
-			if ((null != bundle) && (bundle.getBundleId() != 0L)) {
-				return String.format("%s - %s, id: %d", entry.getMessage(), bundle.getSymbolicName(), bundle.getBundleId());
-			}
-
-			return entry.getMessage();
 		}
 
 		public void log(final LogEntry entry) {
@@ -161,34 +121,104 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 		}
 	}
 
-	private static final int DEFAULT_CAPACITY = 500;
-
+	private static final int DEFAULT_CAPACITY = 200;
 	static final String EQUINOX_LOGGER_NAME = "org.eclipse.equinox.logger";
 	static final String NEWLINE = System.getProperty("line.separator");
 
-	final AtomicBoolean closed = new AtomicBoolean(false);
-	final BlockingQueue<LogEntry> logBuffer;
+	private static void addServiceProperty(final ServiceReference sr, final String key, final StringBuilder serviceInfo) {
+		final Object value = sr.getProperty(key);
+		if (null != value) {
+			if (serviceInfo.length() > 0) {
+				serviceInfo.append(", ");
+			}
 
-	final AtomicReference<SLF4JLogger> activeLogger = new AtomicReference<SLF4JLogger>();
-
-	ExecutorService logDispatcher = Executors.newSingleThreadExecutor(new ThreadFactory() {
-		@Override
-		public Thread newThread(final Runnable r) {
-			final Thread thread = new Thread(r, "Gyrex FrameworkLog Buffer Dispatcher");
-			thread.setDaemon(true);
-			return thread;
+			serviceInfo.append(key).append(": ");
+			if (value.getClass().isArray()) {
+				final Object[] values = (Object[]) value;
+				String separator = "";
+				for (final Object val : values) {
+					serviceInfo.append(separator).append(val);
+					separator = ",";
+				}
+			} else {
+				serviceInfo.append(value);
+			}
 		}
-	});
+	}
 
-	private final AtomicBoolean warningPrinted = new AtomicBoolean(false);
+	static String getLevel(final LogEntry entry) {
+		switch (entry.getLevel()) {
+			case LogService.LOG_ERROR:
+				return "ERROR";
+			case LogService.LOG_WARNING:
+				return "WARNING";
+			case LogService.LOG_INFO:
+				return "INFO";
+			case LogService.LOG_DEBUG:
+			default:
+				return "DEBUG";
+		}
+	}
+
+	static String getMessage(final LogEntry entry) {
+		final ServiceReference sr = entry.getServiceReference();
+		if (null != sr) {
+			final StringBuilder serviceInfo = new StringBuilder(400);
+
+			addServiceProperty(sr, Constants.SERVICE_PID, serviceInfo);
+			addServiceProperty(sr, Constants.SERVICE_ID, serviceInfo);
+			addServiceProperty(sr, Constants.SERVICE_VENDOR, serviceInfo);
+			addServiceProperty(sr, Constants.OBJECTCLASS, serviceInfo);
+
+			return String.format("%s - %s", entry.getMessage(), serviceInfo.toString());
+		}
+
+		final Bundle bundle = entry.getBundle();
+		if ((null != bundle) && (bundle.getBundleId() != 0L)) {
+			return String.format("%s - %s, id: %d", entry.getMessage(), bundle.getSymbolicName(), bundle.getBundleId());
+		}
+
+		return entry.getMessage();
+	}
+
+	static PrintStream getStream(final LogEntry entry) {
+		switch (entry.getLevel()) {
+			case LogService.LOG_ERROR:
+				return System.err;
+			case LogService.LOG_DEBUG:
+				return EclipseStarter.debug ? System.out : null;
+			default:
+				return System.out;
+		}
+	}
+
+	final AtomicBoolean closed = new AtomicBoolean(false);
+	final AtomicReference<SLF4JLogger> activeLogger = new AtomicReference<SLF4JLogger>();
+	final BlockingQueue<LogEntry> logBuffer;
+	final ExecutorService logDispatcher;
+	private final AtomicBoolean capacityWarningPrinted = new AtomicBoolean(false);
 
 	/**
 	 * Creates a new instance.
 	 * 
 	 * @param bufferSize
+	 * @param fallbackToSysout
 	 */
-	public GyrexSlf4jForwarder(final int bufferSize) {
-		logBuffer = new LinkedBlockingQueue<LogEntry>(bufferSize > 0 ? bufferSize : DEFAULT_CAPACITY);
+	public GyrexSlf4jForwarder(final int bufferSize, final boolean fallbackToSysout) {
+		if (!fallbackToSysout) {
+			logBuffer = new LinkedBlockingQueue<LogEntry>(bufferSize > 0 ? bufferSize : DEFAULT_CAPACITY);
+			logDispatcher = Executors.newSingleThreadExecutor(new ThreadFactory() {
+				@Override
+				public Thread newThread(final Runnable r) {
+					final Thread thread = new Thread(r, "Gyrex FrameworkLog Buffer Dispatcher");
+					thread.setDaemon(true);
+					return thread;
+				}
+			});
+		} else {
+			logBuffer = null;
+			logDispatcher = null;
+		}
 	}
 
 	/**
@@ -227,36 +257,39 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 			final SLF4JLogger logger = activeLogger.get();
 			if (null != logger) {
 				logger.log(entry);
+			} else if (logBuffer == null) {
+				final PrintStream stream = getStream(entry);
+				if (null != stream) {
+					// we try to simulate the pattern used in LogbackConfigurator
+					stream.printf("%1$tH:%1$tM:%1$tS.%1$tL [%2$s] %3$-5s %4$s - %5$s%n", new Date(entry.getTime()), Thread.currentThread().getName(), getLevel(entry), EQUINOX_LOGGER_NAME, getMessage(entry));
+				}
 			} else if (!logBuffer.offer(entry)) {
-				if (EclipseStarter.debug && !warningPrinted.get() && warningPrinted.compareAndSet(false, true)) {
-					System.err.println("[Eclipse Gyrex] Log buffer capacity limit reached. Some framework log messages will be discarded. Try lowering the log level or increasing the buffer size (system property 'gyrex.log.forwarder.buffer.size').");
+				if (EclipseStarter.debug && !capacityWarningPrinted.get() && capacityWarningPrinted.compareAndSet(false, true)) {
+					System.err.printf("[Eclipse Gyrex] Log buffer capacity limit reached. Some framework log messages will be discarded. Try increasing the buffer size (system property '%s') or enable fallback to STDOUT (system property '%s').%n", FrameworkLogAdapterHook.PROP_BUFFER_SIZE, FrameworkLogAdapterHook.PROP_FALLBACK_TO_SYSOUT);
 				}
 			}
 		}
 	}
 
 	public void setSLF4JLogger(final Object logger) {
-		// unset if null
-		if (null == logger) {
-			activeLogger.set(null);
-			return;
-		}
-
 		// create and set logger
-		final SLF4JLogger slf4jLogger = new SLF4JLogger(logger);
-		activeLogger.set(null != logger ? slf4jLogger : null);
+		activeLogger.set(null != logger ? new SLF4JLogger(logger) : null);
 
 		// flush buffer (every time a logger is set)
-		if (null != logger) {
+		if (logDispatcher != null) {
 			logDispatcher.execute(new LogBufferFlush());
 		}
 	}
 
 	private void shutdown() {
 		// shutdown executor
-		logDispatcher.shutdownNow();
+		if (logDispatcher != null) {
+			logDispatcher.shutdownNow();
+		}
 
 		// clear all buffers
-		logBuffer.clear();
+		if (logBuffer != null) {
+			logBuffer.clear();
+		}
 	}
 }
