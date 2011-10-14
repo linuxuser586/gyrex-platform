@@ -56,7 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Captures general state of the cloud.
+ * Captures general state of the node in the cloud.
  * <p>
  * This class maintains the cloud membership of a node in a cluster. When active
  * it waits for ZooKeeperGate connection event. Once connected, it tries to
