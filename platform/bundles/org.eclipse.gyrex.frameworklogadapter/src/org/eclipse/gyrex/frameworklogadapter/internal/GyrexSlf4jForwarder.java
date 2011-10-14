@@ -161,7 +161,7 @@ public class GyrexSlf4jForwarder implements SynchronousLogListener, LogFilter {
 		}
 	}
 
-	private static final int DEFAULT_CAPACITY = 150;
+	private static final int DEFAULT_CAPACITY = 500;
 
 	static final String EQUINOX_LOGGER_NAME = "org.eclipse.equinox.logger";
 	static final String NEWLINE = System.getProperty("line.separator");
