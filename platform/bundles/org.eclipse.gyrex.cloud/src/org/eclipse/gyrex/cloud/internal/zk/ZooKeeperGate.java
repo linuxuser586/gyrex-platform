@@ -60,6 +60,7 @@ public class ZooKeeperGate {
 	/**
 	 * Public connection listeners.
 	 */
+	// TODO: implement RECOVERING state and rename to ZooKeeperGateListener
 	public static interface IConnectionMonitor {
 
 		/**
