@@ -248,7 +248,8 @@ public class ZooKeeperGate {
 			switch (event.getState()) {
 				case SyncConnected:
 					// SyncConnected ==> connection is UP
-					LOG.info("ZooKeeper Gate is now UP. Connection to cloud established.");
+					// TODO: should build some debug details and print it (such as node connected to, session id)
+					LOG.info("ZooKeeper Gate is now UP. Connection to ZooKeeper established.");
 					connected.set(true);
 
 					// notify connection listeners
@@ -258,7 +259,8 @@ public class ZooKeeperGate {
 				case Expired:
 				case Disconnected:
 					// Expired || Disconnected ==> connection is down
-					LOG.info("ZooKeeper Gate is now DOWN. Connection to cloud lost.");
+					// TODO: implement RECOVERING state
+					LOG.info("ZooKeeper Gate is now DOWN. Connection to ZooKeeper lost.");
 					connected.set(false);
 
 					// TODO: there is room for improvement here
