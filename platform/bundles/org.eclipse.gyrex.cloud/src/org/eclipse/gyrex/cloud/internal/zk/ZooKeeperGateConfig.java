@@ -47,6 +47,7 @@ public class ZooKeeperGateConfig {
 	private final String nodeId;
 
 	private String connectString;
+
 	private int sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
 	public ZooKeeperGateConfig(final NodeInfo info) {
@@ -137,5 +138,12 @@ public class ZooKeeperGateConfig {
 	 */
 	protected void setSessionTimeout(final int sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append(connectString).append(", sessionTimeout=").append(sessionTimeout).append("]");
+		return builder.toString();
 	}
 }
