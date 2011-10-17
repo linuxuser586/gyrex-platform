@@ -31,7 +31,7 @@ import java.util.concurrent.TimeoutException;
 import org.eclipse.gyrex.cloud.internal.locking.ExclusiveLockImpl;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener;
 
 import org.junit.After;
 import org.junit.Before;
@@ -151,16 +151,22 @@ public class ExclusiveLockTests {
 		// - first time when we register the monitor
 		// - second time when the reconnected happened actually
 		final CountDownLatch reconnected = new CountDownLatch(2);
-		ZooKeeperGate.addConnectionMonitor(new IConnectionMonitor() {
+		ZooKeeperGate.addConnectionMonitor(new ZooKeeperGateListener() {
 
 			@Override
-			public void connected(final ZooKeeperGate gate) {
-				reconnected.countDown();
+			public void gateDown(final ZooKeeperGate gate) {
+				// empty
 			}
 
 			@Override
-			public void disconnected(final ZooKeeperGate gate) {
-				// empty
+			public void gateRecovering(final ZooKeeperGate gate) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void gateUp(final ZooKeeperGate gate) {
+				reconnected.countDown();
 			}
 		});
 		ZooKeeperGate.get().testShutdown();

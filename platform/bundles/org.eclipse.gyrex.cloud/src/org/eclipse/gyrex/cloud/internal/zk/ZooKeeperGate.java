@@ -58,29 +58,6 @@ import org.slf4j.LoggerFactory;
 public class ZooKeeperGate {
 
 	/**
-	 * Public connection listeners.
-	 */
-	// TODO: implement RECOVERING state and rename to ZooKeeperGateListener
-	public static interface IConnectionMonitor {
-
-		/**
-		 * the connection has been established
-		 * 
-		 * @param gate
-		 *            the gate which have been connected
-		 */
-		void connected(ZooKeeperGate gate);
-
-		/**
-		 * the connection has been closed
-		 * 
-		 * @param gate
-		 *            the gate which have been disconnected
-		 */
-		void disconnected(ZooKeeperGate gate);
-	}
-
-	/**
 	 * Notifies a connection listener
 	 */
 	private static final class NotifyConnectionListener implements ISafeRunnable {
@@ -113,9 +90,9 @@ public class ZooKeeperGate {
 		@Override
 		public void run() throws Exception {
 			if (connected) {
-				((IConnectionMonitor) listener).connected(gate);
+				((ZooKeeperGateListener) listener).gateUp(gate);
 			} else {
-				((IConnectionMonitor) listener).disconnected(gate);
+				((ZooKeeperGateListener) listener).gateDown(gate);
 			}
 		}
 	}
@@ -130,7 +107,7 @@ public class ZooKeeperGate {
 	 * Adds a connection monitor.
 	 * <p>
 	 * If the gate is currently UP, the
-	 * {@link IConnectionMonitor#connected(ZooKeeperGate)} will be called as
+	 * {@link ZooKeeperGateListener#gateUp(ZooKeeperGate)} will be called as
 	 * part of the registration.
 	 * </p>
 	 * <p>
@@ -141,7 +118,7 @@ public class ZooKeeperGate {
 	 * @param connectionMonitor
 	 *            the monitor to register (may be <code>null</code>)
 	 */
-	public static void addConnectionMonitor(final IConnectionMonitor connectionMonitor) {
+	public static void addConnectionMonitor(final ZooKeeperGateListener connectionMonitor) {
 		// ignore null monitors
 		if (connectionMonitor == null) {
 			return;
@@ -198,7 +175,7 @@ public class ZooKeeperGate {
 	 * Removed a connection monitor.
 	 * <p>
 	 * If the gate is currently UP, the
-	 * {@link IConnectionMonitor#disconnected(ZooKeeperGate)} will be called as
+	 * {@link ZooKeeperGateListener#gateDown(ZooKeeperGate)} will be called as
 	 * part of the registration.
 	 * </p>
 	 * <p>
@@ -208,7 +185,7 @@ public class ZooKeeperGate {
 	 * @param connectionMonitor
 	 *            the monitor to unregister (must not be <code>null</code>)
 	 */
-	public static void removeConnectionMonitor(final IConnectionMonitor connectionMonitor) {
+	public static void removeConnectionMonitor(final ZooKeeperGateListener connectionMonitor) {
 		// ignore null monitor
 		if (connectionMonitor == null) {
 			throw new IllegalArgumentException("connection monitor must not be null");
@@ -227,7 +204,7 @@ public class ZooKeeperGate {
 	}
 
 	private final ZooKeeper zooKeeper;
-	private final IConnectionMonitor reconnectMonitor;
+	private final ZooKeeperGateListener reconnectMonitor;
 
 	private final Watcher connectionMonitor = new Watcher() {
 
@@ -301,7 +278,7 @@ public class ZooKeeperGate {
 
 	};
 
-	ZooKeeperGate(final ZooKeeperGateConfig config, final IConnectionMonitor reconnectMonitor) throws IOException {
+	ZooKeeperGate(final ZooKeeperGateConfig config, final ZooKeeperGateListener reconnectMonitor) throws IOException {
 		this.reconnectMonitor = reconnectMonitor;
 		zooKeeper = new ZooKeeper(config.getConnectString(), config.getSessionTimeout(), connectionMonitor);
 		if (CloudDebug.zooKeeperGateLifecycle) {

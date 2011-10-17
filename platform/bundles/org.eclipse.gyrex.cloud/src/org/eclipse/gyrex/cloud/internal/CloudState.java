@@ -25,7 +25,7 @@ import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.events.ICloudEventConstants;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 import org.eclipse.gyrex.server.Platform;
@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  * register the node using a generate node id.
  * </p>
  */
-public class CloudState implements IConnectionMonitor {
+public class CloudState implements ZooKeeperGateListener {
 
 	static final class AutoApproveJob extends Job {
 
@@ -287,19 +287,7 @@ public class CloudState implements IConnectionMonitor {
 	}
 
 	@Override
-	public void connected(final ZooKeeperGate gate) {
-		// update state (but only if DISCONNECTED)
-		if (!state.compareAndSet(State.DISCONNECTED, State.CONNECTING)) {
-			LOG.warn("Received CONNECTED event but old state is not DISCONNECTED: {}", this);
-			return;
-		}
-
-		// register asynchronously
-		new RegistrationJob().schedule();
-	};
-
-	@Override
-	public void disconnected(final ZooKeeperGate gate) {
+	public void gateDown(final ZooKeeperGate gate) {
 		final State oldState = state.getAndSet(State.DISCONNECTED);
 		if (oldState == State.DISCONNECTED) {
 			// already disconnected
@@ -340,6 +328,27 @@ public class CloudState implements IConnectionMonitor {
 		} finally {
 			registrationLock.unlock();
 		}
+	};
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener#gateRecovering(org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate)
+	 */
+	@Override
+	public void gateRecovering(final ZooKeeperGate gate) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void gateUp(final ZooKeeperGate gate) {
+		// update state (but only if DISCONNECTED)
+		if (!state.compareAndSet(State.DISCONNECTED, State.CONNECTING)) {
+			LOG.warn("Received CONNECTED event but old state is not DISCONNECTED: {}", this);
+			return;
+		}
+
+		// register asynchronously
+		new RegistrationJob().schedule();
 	}
 
 	private List<String> getCloudRolesToStart() {

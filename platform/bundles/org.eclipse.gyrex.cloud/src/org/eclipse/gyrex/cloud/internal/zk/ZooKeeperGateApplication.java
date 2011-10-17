@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 
 import org.slf4j.Logger;
@@ -31,7 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ZooKeeperGateApplication extends BaseApplication {
 
-	private final class ConnectRunnable implements Runnable, IConnectionMonitor {
+	private final class ConnectRunnable implements Runnable, ZooKeeperGateListener {
 		private static final int INITIAL_CONNECT_DELAY = 1000;
 		private static final int MAX_CONNECT_DELAY = 300000;
 
@@ -53,13 +52,7 @@ public class ZooKeeperGateApplication extends BaseApplication {
 		}
 
 		@Override
-		public void connected(final ZooKeeperGate gate) {
-			// reset delay on successful connect
-			delay = INITIAL_CONNECT_DELAY;
-		}
-
-		@Override
-		public void disconnected(final ZooKeeperGate gate) {
+		public void gateDown(final ZooKeeperGate gate) {
 			if (CloudDebug.zooKeeperGateLifecycle) {
 				LOG.debug("Processing disconnect event from gate.");
 			}
@@ -72,6 +65,21 @@ public class ZooKeeperGateApplication extends BaseApplication {
 
 			// re-connect if active
 			scheduleReconnectIfPossible();
+		}
+
+		/* (non-Javadoc)
+		 * @see org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener#gateRecovering(org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate)
+		 */
+		@Override
+		public void gateRecovering(final ZooKeeperGate gate) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void gateUp(final ZooKeeperGate gate) {
+			// reset delay on successful connect
+			delay = INITIAL_CONNECT_DELAY;
 		}
 
 		private int nextDelay() {

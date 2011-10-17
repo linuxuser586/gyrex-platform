@@ -15,7 +15,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate.IConnectionMonitor;
 
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -29,21 +28,27 @@ public abstract class ZooKeeperBasedService {
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperBasedService.class);
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
-	private final IConnectionMonitor connectionMonitor = new IConnectionMonitor() {
+	private final ZooKeeperGateListener connectionMonitor = new ZooKeeperGateListener() {
 		private final AtomicBoolean everConnected = new AtomicBoolean();
 
 		@Override
-		public void connected(final ZooKeeperGate gate) {
+		public void gateDown(final ZooKeeperGate gate) {
+			disconnect();
+		}
+
+		@Override
+		public void gateRecovering(final ZooKeeperGate gate) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void gateUp(final ZooKeeperGate gate) {
 			if (everConnected.compareAndSet(false, true)) {
 				// ignore first connect call (this is the initial call)
 			} else {
 				reconnect();
 			}
-		}
-
-		@Override
-		public void disconnected(final ZooKeeperGate gate) {
-			disconnect();
 		}
 	};
 
