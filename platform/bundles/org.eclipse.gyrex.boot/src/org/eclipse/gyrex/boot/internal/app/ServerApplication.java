@@ -62,6 +62,10 @@ public class ServerApplication extends BaseApplication {
 
 	/**
 	 * Indicates if the server is running.
+	 * <p>
+	 * This method returns <code>true</code> if the server finished starting and
+	 * all boot roles were activated and the shutdown has not been initiated.
+	 * </p>
 	 * 
 	 * @return <code>true</code> if running, <code>false</code> otherwise
 	 */
