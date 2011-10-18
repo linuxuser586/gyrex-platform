@@ -185,6 +185,28 @@ public abstract class BaseApplication implements IApplication {
 		// empty
 	}
 
+	/**
+	 * Called during start before the application will be started.
+	 * <p>
+	 * The default implementation does nothing. Subclasses may override.
+	 * </p>
+	 * <p>
+	 * Note, this method is called during {@link #start(IApplicationContext)}.
+	 * Implementors must not block and return in timely manner. Otherwise the
+	 * application will not start. Typically, this may be used to initialize
+	 * some state in the instance location or perform some bootstrapping prior
+	 * to starting the application. However, be aware that the application has
+	 * not been started so essential application services won't be available.
+	 * </p>
+	 * 
+	 * @param arguments
+	 *            the map with application arguments retrieved from
+	 *            {@link IApplicationContext#getArguments()}
+	 */
+	protected void onBeforeStart(final Map arguments) {
+		// empty
+	}
+
 	@Override
 	public final Object start(final IApplicationContext context) throws Exception {
 		if (debug) {
@@ -201,6 +223,9 @@ public abstract class BaseApplication implements IApplication {
 			if (debug) {
 				getLogger().debug("Starting {}....", getName());
 			}
+
+			// pre-start
+			onBeforeStart(context.getArguments());
 
 			// start application
 			doStart(context.getArguments());
