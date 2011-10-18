@@ -38,9 +38,12 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	private static final String JOB_TYPE_ID = "jobTypeId";
 	private static final String JOB_ID = "jobId";
 	private static final String CRON_EXPRESSION = "cronExpression";
+	private static final String ENABLED = "enabled";
 
 	private final String id;
 	private final String scheduleId;
+
+	private boolean enabled;
 
 	private String cronExpression;
 	private String jobTypeId;
@@ -58,6 +61,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 			throw new IllegalArgumentException("invalid entry id");
 		}
 		this.id = id;
+		enabled = Boolean.TRUE;
 	}
 
 	@Override
@@ -88,10 +92,16 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		return jobTypeId;
 	}
 
+	@Override
+	public boolean isEnabled() {
+		return enabled;
+	}
+
 	void load(final Preferences node) throws BackingStoreException {
 		try {
 			setCronExpression(node.get(CRON_EXPRESSION, null));
 			setJobTypeId(node.get(JOB_TYPE_ID, null));
+			setEnabled(node.getBoolean(ENABLED, Boolean.TRUE));
 			if (node.nodeExists(PARAMETER)) {
 				final Preferences paramNode = node.node(PARAMETER);
 				final String[] keys = paramNode.keys();
@@ -113,6 +123,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		node.put(CRON_EXPRESSION, cronExpression);
 		node.put(JOB_TYPE_ID, jobTypeId);
 		node.put(JOB_ID, getJobId());
+		node.putBoolean(ENABLED, enabled);
 
 		if ((null != jobParamater) && !jobParamater.isEmpty()) {
 			final Preferences paramNode = node.node(PARAMETER);
@@ -147,6 +158,17 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		}
 
 		this.cronExpression = cronExpression;
+	}
+
+	/**
+	 * Sets the enabled flag.
+	 * 
+	 * @param enabled
+	 *            the enabled flag to set
+	 */
+	@Override
+	public void setEnabled(final boolean enabled) {
+		this.enabled = enabled;
 	}
 
 	@Override

@@ -200,6 +200,8 @@ public class Schedule implements IPreferenceChangeListener {
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_TYPE_ID, entry.getJobTypeId());
 			// put job id
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_ID, entry.getJobId());
+			// put state
+			detail.getJobDataMap().put(SchedulingJob.PROP_ENABLED, entry.isEnabled());
 			// put context path
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_CONTEXT_PATH, ensureScheduleData(Boolean.FALSE).getContextPath().toString());
 
@@ -218,6 +220,7 @@ public class Schedule implements IPreferenceChangeListener {
 			quartzScheduler.scheduleJob(detail, trigger);
 		}
 	}
+
 	/**
 	 * Starts the schedule
 	 */

@@ -43,6 +43,8 @@ public class JobImpl implements IJob {
 
 	private boolean active;
 
+	private String lastTrigger;
+
 	/**
 	 * Creates a new instance.
 	 */
@@ -55,10 +57,12 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the jobId
 	 */
+	@Override
 	public String getId() {
 		return id;
 	}
 
+	@Override
 	public long getLastQueued() {
 		return lastQueued;
 	}
@@ -82,6 +86,7 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the lastStart
 	 */
+	@Override
 	public long getLastStart() {
 		return lastStart;
 	}
@@ -91,8 +96,19 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the lastSuccessfullFinish
 	 */
+	@Override
 	public long getLastSuccessfulFinish() {
 		return lastSuccessfulFinish;
+	}
+
+	/**
+	 * Returns the lastTrigger.
+	 * 
+	 * @return the lastTrigger
+	 */
+	@Override
+	public String getLastTrigger() {
+		return lastTrigger;
 	}
 
 	/**
@@ -100,6 +116,7 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the jobParameter
 	 */
+	@Override
 	public Map<String, String> getParameter() {
 		final Map<String, String> map = parameter;
 		if (null == map) {
@@ -113,6 +130,7 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the jobStatus
 	 */
+	@Override
 	public JobState getState() {
 		final JobState jobState = state;
 		if (null == jobState) {
@@ -127,6 +145,7 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the jobTypeId
 	 */
+	@Override
 	public String getTypeId() {
 		return typeId;
 	}
@@ -191,6 +210,16 @@ public class JobImpl implements IJob {
 	 */
 	public void setLastSuccessfulFinish(final long lastSuccessfullFinish) {
 		lastSuccessfulFinish = lastSuccessfullFinish;
+	}
+
+	/**
+	 * Set's the last trigger
+	 * 
+	 * @param lastTrigger
+	 *            the last trigger to set
+	 */
+	public void setLastTrigger(final String lastTrigger) {
+		this.lastTrigger = lastTrigger;
 	}
 
 	/**

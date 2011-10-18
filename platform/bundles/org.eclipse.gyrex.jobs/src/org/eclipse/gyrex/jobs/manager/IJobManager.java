@@ -85,12 +85,16 @@ public interface IJobManager {
 	 * 
 	 * @param jobId
 	 *            the id of the job to cancel
+	 * @param trigger
+	 *            Saved in the jobs history. Should be any free text, that
+	 *            describes who or which system triggered of the queuing. Must
+	 *            not be <code>null</code> but might be empty.
 	 * @throws IllegalArgumentException
 	 *             if the job id is invalid
 	 * @throws IllegalStateException
-	 *             if a job with the specified does not exists
+	 *             if a job with the specified id does not exists
 	 */
-	void cancelJob(String jobId) throws IllegalArgumentException, IllegalStateException;
+	void cancelJob(String jobId, String trigger) throws IllegalArgumentException, IllegalStateException;
 
 	/**
 	 * Creates a {@link IJob job} of the specified type using the given id and
@@ -185,6 +189,10 @@ public interface IJobManager {
 	 * @param queueId
 	 *            the id of the queue to add the job to (may be
 	 *            <code>null</code> for {@link #DEFAULT_QUEUE})
+	 * @param trigger
+	 *            Saved in the jobs history. Should be any free text, that
+	 *            describes who or which system triggered of the queuing. Must
+	 *            not be <code>null</code> but might be empty.
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
 	 * @throws IllegalStateException
@@ -192,7 +200,7 @@ public interface IJobManager {
 	 *             not exists or any system service is missing or it is already
 	 *             running)
 	 */
-	void queueJob(String jobId, String queueId) throws IllegalArgumentException, IllegalStateException;
+	void queueJob(String jobId, String queueId, String trigger) throws IllegalArgumentException, IllegalStateException;
 
 	/**
 	 * Removes a job explicitly from the system.

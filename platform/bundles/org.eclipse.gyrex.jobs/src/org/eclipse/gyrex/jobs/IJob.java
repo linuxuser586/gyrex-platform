@@ -110,6 +110,14 @@ public interface IJob {
 	long getLastSuccessfulFinish();
 
 	/**
+	 * Returns the last trigger of the job
+	 * 
+	 * @return the last trigger of the job or <code>null</code> if the job has
+	 *         not been queued until now
+	 */
+	String getLastTrigger();
+
+	/**
 	 * A map of all parameter defined for the job.
 	 * <p>
 	 * If not parameters are defined, an empty map will be returned.

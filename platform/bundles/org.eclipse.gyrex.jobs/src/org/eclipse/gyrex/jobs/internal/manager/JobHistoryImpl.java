@@ -33,6 +33,7 @@ final class JobHistoryImpl implements IJobHistory {
 
 	private static final String KEY_RESULT_SEVERITY = "resultSeverity";
 	private static final String KEY_RESULT_MESSAGE = "resultMessage";
+	private static final String KEY_TRIGGER = "trigger";
 	private static final String KEY_TIMESTAMP = "timestamp";
 	private static final int MAX_HISTORY_SIZE = 120;
 
@@ -52,8 +53,8 @@ final class JobHistoryImpl implements IJobHistory {
 		this.contextPath = contextPath;
 	}
 
-	public void createEntry(final long resultTimestamp, final String message, final int severity) {
-		entries.add(new JobHistoryItemImpl(resultTimestamp, message, severity));
+	public void createEntry(final long resultTimestamp, final String message, final String trigger, final int severity) {
+		entries.add(new JobHistoryItemImpl(resultTimestamp, message, trigger, severity));
 	}
 
 	/**
@@ -90,8 +91,9 @@ final class JobHistoryImpl implements IJobHistory {
 			final Preferences node = historyNode.node(entryId);
 			final long ts = node.getLong(KEY_TIMESTAMP, 0);
 			final String message = node.get(KEY_RESULT_MESSAGE, "");
+			final String trigger = node.get(KEY_TRIGGER, "");
 			final int severity = node.getInt(KEY_RESULT_SEVERITY, IStatus.CANCEL);
-			entries.add(new JobHistoryItemImpl(ts, message, severity));
+			entries.add(new JobHistoryItemImpl(ts, message, trigger, severity));
 		}
 
 		shrinkToSizeLimit();
@@ -114,8 +116,9 @@ final class JobHistoryImpl implements IJobHistory {
 			}
 			final Preferences node = historyNode.node(entryId);
 			node.putLong(KEY_TIMESTAMP, entry.getTimeStamp());
-			node.put(KEY_RESULT_MESSAGE, entry.getResult());
-			node.putInt(KEY_RESULT_SEVERITY, entry.getSeverity());
+			node.put(KEY_RESULT_MESSAGE, entry.getResult().getMessage());
+			node.put(KEY_TRIGGER, entry.getTrigger());
+			node.putInt(KEY_RESULT_SEVERITY, entry.getResult().getSeverity());
 		}
 
 		// remove entries over size limit
@@ -124,8 +127,9 @@ final class JobHistoryImpl implements IJobHistory {
 			final Preferences node = historyNode.node(entryId);
 			final long ts = node.getLong(KEY_TIMESTAMP, 0);
 			final String message = node.get(KEY_RESULT_MESSAGE, "");
+			final String trigger = node.get(KEY_TRIGGER, "");
 			final int severity = node.getInt(KEY_RESULT_SEVERITY, IStatus.CANCEL);
-			final JobHistoryItemImpl entry = new JobHistoryItemImpl(ts, message, severity);
+			final JobHistoryItemImpl entry = new JobHistoryItemImpl(ts, message, trigger, severity);
 			if (!entries.contains(entry)) {
 				node.removeNode();
 			}

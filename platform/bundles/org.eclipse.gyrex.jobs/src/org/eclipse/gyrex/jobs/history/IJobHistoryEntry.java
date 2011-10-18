@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.jobs.history;
 
 import org.eclipse.gyrex.jobs.IJob;
+import org.eclipse.gyrex.jobs.manager.IJobManager;
 
 import org.eclipse.core.runtime.IStatus;
 
@@ -35,20 +36,11 @@ import org.eclipse.core.runtime.IStatus;
 public interface IJobHistoryEntry extends Comparable<IJobHistoryEntry> {
 
 	/**
-	 * Returns the status message of the execution result.
+	 * Returns the status of the execution result.
 	 * 
-	 * @return a string representation (never <code>null</code>)
-	 * @see IStatus#getMessage()
+	 * @return a status (never <code>null</code>)
 	 */
-	String getResult();
-
-	/**
-	 * Returns the severity of the execution result.
-	 * 
-	 * @return severity of the execution
-	 * @see IStatus#getSeverity()
-	 */
-	int getSeverity();
+	IStatus getResult();
 
 	/**
 	 * Returns the milliseconds from the Java epoch of
@@ -58,5 +50,13 @@ public interface IJobHistoryEntry extends Comparable<IJobHistoryEntry> {
 	 *         <code>1970-01-01T00:00:00Z</code> when the result was created
 	 */
 	long getTimeStamp();
+
+	/**
+	 * Returns the trigger of the execution
+	 * 
+	 * @return the trigger of the execution
+	 * @see {@link IJobManager#queueJob(String, String, String)}
+	 */
+	String getTrigger();
 
 }

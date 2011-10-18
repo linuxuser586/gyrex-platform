@@ -38,6 +38,7 @@ import org.eclipse.gyrex.jobs.internal.worker.JobInfo;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
@@ -105,6 +106,7 @@ public class JobManagerImpl implements IJobManager {
 	static final String PROPERTY_STATUS = "status";
 	static final String PROPERTY_LAST_START = "lastStart";
 	static final String PROPERTY_LAST_QUEUED = "lastQueued";
+	static final String PROPERTY_LAST_TRIGGER = "lastTrigger";
 	static final String PROPERTY_LAST_SUCCESSFUL_FINISH = "lastSuccessfulFinish";
 	static final String PROPERTY_LAST_RESULT_MESSAGE = "lastResultMessage";
 	static final String PROPERTY_LAST_RESULT_SEVERITY = "lastResultSeverity";
@@ -172,6 +174,7 @@ public class JobManagerImpl implements IJobManager {
 		job.setLastStart(node.getLong(PROPERTY_LAST_START, -1));
 		job.setLastQueued(node.getLong(PROPERTY_LAST_QUEUED, -1));
 		job.setLastSuccessfulFinish(node.getLong(PROPERTY_LAST_SUCCESSFUL_FINISH, -1));
+		job.setLastTrigger(node.get(PROPERTY_LAST_TRIGGER, null));
 		final long lastResultTimestamp = node.getLong(PROPERTY_LAST_RESULT, -1);
 		if (lastResultTimestamp > -1) {
 			job.setLastResult(lastResultTimestamp, node.getInt(PROPERTY_LAST_RESULT_SEVERITY, IStatus.CANCEL), node.get(PROPERTY_LAST_RESULT_MESSAGE, ""));
@@ -240,7 +243,7 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	@Override
-	public void cancelJob(final String jobId) throws IllegalStateException {
+	public void cancelJob(final String jobId, final String trigger) throws IllegalStateException {
 		if (!IdHelper.isValidId(jobId)) {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
@@ -276,6 +279,9 @@ public class JobManagerImpl implements IJobManager {
 			try {
 				// set state
 				setJobState(job, JobState.ABORTING, jobLock);
+				// set result
+				final IStatus result = new Status(IStatus.INFO, JobsActivator.SYMBOLIC_NAME, String.format("Cancelling triggered by '%s'", trigger));
+				setJobResult(job, result, System.currentTimeMillis(), jobLock);
 			} catch (final BackingStoreException e) {
 				throw new IllegalStateException(String.format("Error canceling job %s. %s", jobId, e.getMessage()), e);
 			}
@@ -416,7 +422,7 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	@Override
-	public void queueJob(final String jobId, final String queueId) {
+	public void queueJob(final String jobId, final String queueId, final String trigger) {
 		if (!IdHelper.isValidId(jobId)) {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
@@ -464,7 +470,7 @@ public class JobManagerImpl implements IJobManager {
 				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), job.getParameter())));
 
 				// set queued time
-				setJobQueuedTime(job, System.currentTimeMillis(), jobLock);
+				setJobQueued(job, System.currentTimeMillis(), trigger, jobLock);
 			} catch (final Exception e) {
 				// try to reset the job state
 				try {
@@ -607,7 +613,7 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 	}
 
-	private void setJobQueuedTime(final IJob job, final long timestamp, final IExclusiveLock lock) throws BackingStoreException {
+	private void setJobQueued(final IJob job, final long timestamp, final String trigger, final IExclusiveLock lock) throws BackingStoreException {
 		if ((null == lock) || !lock.isValid()) {
 			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
 		}
@@ -621,6 +627,7 @@ public class JobManagerImpl implements IJobManager {
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_QUEUED, timestamp);
+		jobNode.put(PROPERTY_LAST_TRIGGER, trigger);
 		jobNode.flush();
 	}
 
@@ -651,7 +658,7 @@ public class JobManagerImpl implements IJobManager {
 
 		// save history
 		final JobHistoryImpl history = JobHistoryStore.create(internalId, job.getId(), context);
-		history.createEntry(resultTimestamp, getFormattedMessage(result, 0), result.getSeverity());
+		history.createEntry(resultTimestamp, getFormattedMessage(result, 0), jobNode.get(PROPERTY_LAST_TRIGGER, ""), result.getSeverity());
 		JobHistoryStore.flush(internalId, history);
 	}
 

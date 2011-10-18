@@ -68,7 +68,7 @@ public class CancelJobCmd extends Command {
 		// cancel single job if id matches
 		if (!StringUtils.equals(searchString, "*") && IdHelper.isValidId(searchString)) {
 			if (jobIds.contains(searchString)) {
-				jobManager.cancelJob(searchString);
+				jobManager.cancelJob(searchString, "console");
 				printf("Job %s canceled.", searchString);
 				return;
 			}
@@ -78,7 +78,7 @@ public class CancelJobCmd extends Command {
 		for (final String jobId : jobIds) {
 			if (StringUtils.equals(searchString, "*") || StringUtils.contains(jobId, searchString)) {
 				try {
-					jobManager.cancelJob(jobId);
+					jobManager.cancelJob(jobId, "console");
 					printf("Job %s canceled.", jobId);
 				} catch (final IllegalArgumentException e) {
 					printf("Job %s not WAITING or RUNNING.", jobId);

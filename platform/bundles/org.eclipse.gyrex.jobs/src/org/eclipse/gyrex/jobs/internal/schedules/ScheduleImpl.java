@@ -21,6 +21,10 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
@@ -68,7 +72,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	}
 
 	@Override
-	public ScheduleEntryImpl createEntry(final String entryId) {
+	public ScheduleEntryImpl createEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
 
 		if (isEnabled()) {
 			throw new IllegalStateException("schedule must not be enabled");
@@ -120,7 +124,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	}
 
 	@Override
-	public ScheduleEntryImpl getEntry(final String entryId) {
+	public ScheduleEntryImpl getEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
 		if (!IdHelper.isValidId(entryId)) {
 			throw new IllegalArgumentException("invalid id: " + id);
 		}
@@ -189,7 +193,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	}
 
 	@Override
-	public void removeEntry(final String entryId) {
+	public void removeEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
 
 		if (isEnabled()) {
 			throw new IllegalStateException("schedule must not be enabled");
@@ -202,6 +206,11 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		if (!entriesById.containsKey(entryId)) {
 			throw new IllegalArgumentException(String.format("schedule dosn't contain entry '%s'", entryId));
 		}
+
+		final ScheduleEntryImpl entry = getEntry(entryId);
+		final IRuntimeContext context = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class).get(getContextPath());
+		final IJobManager jobManager = context.get(IJobManager.class);
+		jobManager.removeJob(entry.getJobId());
 
 		entriesById.remove(entryId);
 	}

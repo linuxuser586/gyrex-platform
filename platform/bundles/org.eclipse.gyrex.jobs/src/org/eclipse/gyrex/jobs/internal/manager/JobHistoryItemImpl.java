@@ -12,8 +12,10 @@
 package org.eclipse.gyrex.jobs.internal.manager;
 
 import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
+import org.eclipse.gyrex.jobs.internal.JobsActivator;
 
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
@@ -23,14 +25,14 @@ import org.apache.commons.lang.time.DateFormatUtils;
  */
 final class JobHistoryItemImpl implements IJobHistoryEntry {
 
-	private final String result;
+	private final IStatus result;
+	private final String trigger;
 	private final long timestamp;
-	private final int severity;
 
-	JobHistoryItemImpl(final long timestamp, final String result, final int severity) {
+	JobHistoryItemImpl(final long timestamp, final String message, final String trigger, final int severity) {
 		this.timestamp = timestamp;
-		this.result = StringUtils.trimToEmpty(result);
-		this.severity = severity;
+		result = new Status(severity, JobsActivator.SYMBOLIC_NAME, StringUtils.trimToEmpty(message));
+		this.trigger = trigger;
 	}
 
 	@Override
@@ -47,12 +49,12 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 		// timestamp are equals
 
 		// compare result message if severity is the same
-		if (o.getSeverity() == getSeverity()) {
-			return result.compareTo(o.getResult());
+		if (o.getResult().getSeverity() == result.getSeverity()) {
+			return result.getMessage().compareTo(o.getResult().getMessage());
 		} else {
 			// severity is different
 			// a higher severity also makes this item less so that it appears earlier then others
-			return getSeverity() > o.getSeverity() ? -1 : 1;
+			return result.getSeverity() > o.getResult().getSeverity() ? -1 : 1;
 		}
 	}
 
@@ -71,24 +73,19 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 		if (timestamp != other.timestamp) {
 			return false;
 		}
-		if (severity != other.severity) {
+		if (!result.getMessage().equals(other.result.getMessage())) {
+			// result is never null
 			return false;
 		}
-		if (!result.equals(other.result)) {
-			// result is never null
+		if (result.getSeverity() != other.result.getSeverity()) {
 			return false;
 		}
 		return true;
 	}
 
 	@Override
-	public String getResult() {
+	public IStatus getResult() {
 		return result;
-	}
-
-	@Override
-	public int getSeverity() {
-		return severity;
 	}
 
 	@Override
@@ -97,11 +94,16 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 	}
 
 	@Override
+	public String getTrigger() {
+		return trigger;
+	}
+
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = (prime * result) + this.result.hashCode(); // result is never null
-		result = (prime * result) + severity;
+		result = (prime * result) + this.result.getSeverity();
 		result = (prime * result) + (int) (timestamp ^ (timestamp >>> 32));
 		return result;
 	}
@@ -111,7 +113,7 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 		final StringBuilder builder = new StringBuilder();
 		builder.append("JobHistoryItemImpl [");
 		builder.append(DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(timestamp)).append(", ");
-		switch (severity) {
+		switch (result.getSeverity()) {
 			case IStatus.OK:
 				builder.append("OK");
 				break;
@@ -130,11 +132,11 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 
 			default:
 				builder.append("severity=");
-				builder.append(severity);
+				builder.append(result.getSeverity());
 				break;
 		}
-		if (StringUtils.isNotBlank(result)) {
-			builder.append(", ").append(result);
+		if (StringUtils.isNotBlank(result.getMessage())) {
+			builder.append(", ").append(result.getMessage());
 		}
 		builder.append("]");
 		return builder.toString();

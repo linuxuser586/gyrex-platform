@@ -63,4 +63,12 @@ public interface IScheduleEntry {
 	 */
 	String getJobTypeId();
 
+	/**
+	 * Returns whether a job is created and queued at the next time the schedule entry
+	 * triggered for execution
+	 * 
+	 * @return the state of the schedule entry
+	 */
+	boolean isEnabled();
+
 }
