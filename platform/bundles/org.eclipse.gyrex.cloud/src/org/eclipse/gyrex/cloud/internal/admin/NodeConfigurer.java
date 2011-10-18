@@ -12,12 +12,15 @@
 package org.eclipse.gyrex.cloud.internal.admin;
 
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.admin.INodeConfigurer;
 import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.CloudState;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateApplication;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateConfig;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 
@@ -29,6 +32,10 @@ import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -56,19 +63,19 @@ public class NodeConfigurer implements INodeConfigurer {
 			if (connectString != null) {
 				// try connect
 				// TODO: not sure if this makes sense when configuring a remote system
-				zk = new ZooKeeper(connectString, 5000, null);
+				final CountDownLatch connected = new CountDownLatch(1);
+				zk = new ZooKeeper(connectString, 5000, new Watcher() {
+
+					@Override
+					public void process(final WatchedEvent event) {
+						if ((event.getType() == EventType.None) && (event.getState() == KeeperState.SyncConnected)) {
+							connected.countDown();
+						}
+					}
+				});
 
 				// wait at most 5 seconds for a connection
-				int waitTimeMs = 5000;
-				while ((zk.getState() != States.CONNECTED) && (waitTimeMs > 0)) {
-					try {
-						Thread.sleep(500);
-						waitTimeMs -= 500;
-					} catch (final InterruptedException e) {
-						Thread.currentThread().interrupt();
-						break;
-					}
-				}
+				connected.await(5000, TimeUnit.MILLISECONDS);
 
 				if (zk.getState() != States.CONNECTED) {
 					throw new IllegalStateException(String.format("Timeout waiting for a connection to '%s'. Please verify the connect string.", connectString));
@@ -98,8 +105,13 @@ public class NodeConfigurer implements INodeConfigurer {
 				}
 				preferences.flush();
 
-				// restart cloud
+				// remove connection to cloud
 				CloudState.unregisterNode();
+
+				// bring down ZooKeeper Gate
+				ZooKeeperGateApplication.reconnect();
+
+				// register with new cloud
 				CloudState.registerNode();
 			}
 		} catch (final Exception e) {

@@ -13,6 +13,7 @@ package org.eclipse.gyrex.cloud.internal.zk;
 
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +36,6 @@ public class ZooKeeperGateApplication extends BaseApplication {
 		private static final int MAX_CONNECT_DELAY = 300000;
 
 		private final ScheduledExecutorService executor;
-		private final ZooKeeperGateConfig config;
 		private volatile int delay;
 
 		/**
@@ -45,9 +45,8 @@ public class ZooKeeperGateApplication extends BaseApplication {
 		 * @param config
 		 * @param delay
 		 */
-		private ConnectRunnable(final ScheduledExecutorService executor, final ZooKeeperGateConfig config, final int delay) {
+		private ConnectRunnable(final ScheduledExecutorService executor, final int delay) {
 			this.executor = executor;
-			this.config = config;
 			this.delay = delay;
 		}
 
@@ -67,9 +66,6 @@ public class ZooKeeperGateApplication extends BaseApplication {
 			scheduleReconnectIfPossible();
 		}
 
-		/* (non-Javadoc)
-		 * @see org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener#gateRecovering(org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate)
-		 */
 		@Override
 		public void gateRecovering(final ZooKeeperGate gate) {
 			// TODO Auto-generated method stub
@@ -92,7 +88,7 @@ public class ZooKeeperGateApplication extends BaseApplication {
 			}
 			ZooKeeperGate oldGate = null;
 			try {
-				oldGate = ZooKeeperGate.getAndSet(new ZooKeeperGate(config, this));
+				oldGate = ZooKeeperGate.getAndSet(new ZooKeeperGate(getConfig(), this));
 				if (CloudDebug.zooKeeperGateLifecycle) {
 					LOG.debug("Successfully establish ZooKeeper connection. Gate is almost ready.");
 				}
@@ -114,14 +110,44 @@ public class ZooKeeperGateApplication extends BaseApplication {
 				if (CloudDebug.zooKeeperGateLifecycle) {
 					LOG.debug("Will re-connect because ZooKeeper Gate manager is still active.");
 				}
-				scheduleConnect(executor, nextDelay(), config);
+				try {
+					scheduleConnect(executor, nextDelay());
+				} catch (final RejectedExecutionException e) {
+					LOG.warn("Arborting ZooKeeper connect request. Gate manager is closed.");
+				}
 			}
 		}
 	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGateApplication.class);
 
+	/**
+	 * Initiates a reconnect with ZooKeeper.
+	 * <p>
+	 * Note, this will likely create a new session.
+	 * </p>
+	 * 
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public static void reconnect() {
+		final ZooKeeperGateApplication gateApplication = ZooKeeperServerApplication.connectedGateApplication;
+		if (null == gateApplication) {
+			throw new IllegalStateException("The ZooKeeper gate manager application is not started!");
+		}
+
+		// refresh the configuration
+		gateApplication.refreshConfig();
+
+		// simply shutdown the gate (assuming the execute is still running)
+		final ZooKeeperGate gate = ZooKeeperGate.getAndSet(null);
+		if (gate != null) {
+			// the notify will ensure that the manager re-connects the gate
+			gate.shutdown(true);
+		}
+	}
+
 	private ScheduledExecutorService executor;
+	private volatile ZooKeeperGateConfig config;
 
 	/**
 	 * Creates a new instance.
@@ -149,8 +175,7 @@ public class ZooKeeperGateApplication extends BaseApplication {
 	@Override
 	protected void doStart(final Map arguments) throws Exception {
 		// create initial config
-		final ZooKeeperGateConfig config = new ZooKeeperGateConfig(new NodeInfo());
-		config.readFromPreferences();
+		refreshConfig();
 
 		// initialize executor
 		executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -163,7 +188,7 @@ public class ZooKeeperGateApplication extends BaseApplication {
 		});
 
 		// kick off connection procedure
-		scheduleConnect(executor, ConnectRunnable.INITIAL_CONNECT_DELAY, config);
+		scheduleConnect(executor, ConnectRunnable.INITIAL_CONNECT_DELAY);
 
 		// register with embedded server if running
 		if (CloudActivator.getInstance().getNodeEnvironment().inStandaloneMode()) {
@@ -193,16 +218,30 @@ public class ZooKeeperGateApplication extends BaseApplication {
 		return EXIT_OK;
 	}
 
+	ZooKeeperGateConfig getConfig() {
+		final ZooKeeperGateConfig gateConfig = config;
+		if (null == gateConfig) {
+			throw new IllegalStateException("ZooKeeper gate configuration not initialized.");
+		}
+		return gateConfig;
+	}
+
 	@Override
 	protected Logger getLogger() {
 		return LOG;
 	}
 
-	void scheduleConnect(final ScheduledExecutorService executor, final int delay, final ZooKeeperGateConfig config) {
+	private void refreshConfig() {
+		final ZooKeeperGateConfig config = new ZooKeeperGateConfig(new NodeInfo());
+		config.readFromPreferences();
+		this.config = config;
+	}
+
+	void scheduleConnect(final ScheduledExecutorService executor, final int delay) {
 		if (CloudDebug.zooKeeperGateLifecycle) {
 			LOG.debug("Scheduling ZooKeeper connect attempt in {}s.", TimeUnit.MILLISECONDS.toSeconds(delay));
 		}
 
-		executor.schedule(new ConnectRunnable(executor, config, delay), delay, TimeUnit.MILLISECONDS);
+		executor.schedule(new ConnectRunnable(executor, delay), delay, TimeUnit.MILLISECONDS);
 	}
 }

@@ -11,16 +11,19 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.boot.internal.app.ServerApplication;
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.events.ICloudEventConstants;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
@@ -45,12 +48,16 @@ import org.eclipse.osgi.util.NLS;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.event.Event;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +92,7 @@ public class CloudState implements ZooKeeperGateListener {
 		protected IStatus run(final IProgressMonitor monitor) {
 			try {
 				ZooKeeperNodeInfo.approve(nodeInfo.getNodeId(), null, nodeInfo.getLocation());
-				LOG.warn("Node {} approved automatically. Welcome to your local cloud!", nodeInfo.getNodeId());
+				LOG.info("Node {} approved automatically. Welcome to your local cloud!", nodeInfo.getNodeId());
 				return Status.OK_STATUS;
 			} catch (final Exception e) {
 				LOG.error("Unable to automatically approve node {}. Please check server logs. {}", new Object[] { nodeInfo.getNodeId(), ExceptionUtils.getRootCauseMessage(e), e });
@@ -174,14 +181,25 @@ public class CloudState implements ZooKeeperGateListener {
 	 * Registers this node with the cloud.
 	 */
 	public static void registerNode() throws Exception {
-		if (!instanceRef.compareAndSet(null, new CloudState())) {
+		final CloudState cloudState = new CloudState();
+		if (!instanceRef.compareAndSet(null, cloudState)) {
 			throw new IllegalStateException("Already registered!");
 		}
 
 		// hook with ZooKeeperGate
-		// note, we use get() here in order to support concurrent #unregisterNode calls which should return null!
-		// (addConnectionMonitor can handle null monitors)
-		ZooKeeperGate.addConnectionMonitor(instanceRef.get());
+		ZooKeeperGate.addConnectionMonitor(cloudState);
+		if (CloudDebug.cloudState) {
+			LOG.debug("Initiated node registration with cloud.");
+		}
+
+		// immediately activate if possible
+		try {
+			cloudState.gateUp(ZooKeeperGate.get());
+		} catch (final IllegalStateException ignored) {
+			if (CloudDebug.cloudState) {
+				LOG.debug("Deferring node registration due to inactive ZooKeeper gate.");
+			}
+		}
 	}
 
 	/**
@@ -195,6 +213,18 @@ public class CloudState implements ZooKeeperGateListener {
 
 		// remove from gate
 		ZooKeeperGate.removeConnectionMonitor(cloudState);
+		if (CloudDebug.cloudState) {
+			LOG.debug("Initiated node un-registration from cloud.");
+		}
+
+		// de-activate if possible
+		try {
+			cloudState.gateDown(ZooKeeperGate.get());
+		} catch (final IllegalStateException ignored) {
+			if (CloudDebug.cloudState) {
+				LOG.debug("No unregistration from cloud necessary because ZooKeeper gate is not active.");
+			}
+		}
 
 		// set CLOSED
 		cloudState.state.set(State.CLOSED);
@@ -215,8 +245,22 @@ public class CloudState implements ZooKeeperGateListener {
 
 			// process node activated events
 			if (path.equals(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeInfo.getNodeId()).toString())) {
-				// force re-connect
-				reconnect(nodeInfo);
+				if (CloudDebug.cloudState) {
+					LOG.debug("Received path create event for approved node info. Assuming node has been approved.");
+				}
+
+				// refresh node info
+				try {
+					refreshNodeInfoAssumingApproved();
+				} catch (final Exception e) {
+					// smart updated failed, fallback to a complete reconnect
+					if (CloudDebug.cloudState) {
+						LOG.warn("Smart update failed for record change event ({}) for node {}, a complete re-connect will be forced! {}", new Object[] { path, nodeInfo, e.getMessage(), e });
+					} else {
+						LOG.warn("Smart update failed for record change event ({}) for node {}, a complete re-connect will be forced! {}", new Object[] { nodeInfo, e.getMessage() });
+					}
+					reconnect(nodeInfo);
+				}
 			}
 		};
 
@@ -230,6 +274,10 @@ public class CloudState implements ZooKeeperGateListener {
 
 			// process node de-activation events
 			if (path.equals(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeInfo.getNodeId()).toString())) {
+				if (CloudDebug.cloudState) {
+					LOG.debug("Received path delete event for approved node info. Assuming node has been revoked.");
+				}
+
 				// force re-connect
 				reconnect(nodeInfo);
 			}
@@ -264,6 +312,10 @@ public class CloudState implements ZooKeeperGateListener {
 
 			// process node updates
 			if (path.equals(IZooKeeperLayout.PATH_NODES_APPROVED.append(nodeInfo.getNodeId()).toString())) {
+				if (CloudDebug.cloudState) {
+					LOG.debug("Received record change event for approved node info. Assuming node has been approved.");
+				}
+
 				// refresh node info
 				try {
 					refreshNodeInfoAssumingApproved();
@@ -286,69 +338,86 @@ public class CloudState implements ZooKeeperGateListener {
 	private CloudState() {
 	}
 
-	@Override
-	public void gateDown(final ZooKeeperGate gate) {
-		final State oldState = state.getAndSet(State.DISCONNECTED);
-		if (oldState == State.DISCONNECTED) {
-			// already disconnected
-			if (CloudDebug.cloudState) {
-				LOG.debug("Ignoring disconnect request for already disconnected node.");
-			}
-			return;
-		}
-
-		if (CloudDebug.cloudState) {
-			LOG.debug("Attempting node de-registration from cloud.", new Exception("Node Disconnect Call Stack"));
-		}
-
-		// synchronize in order to prevent concurrent registrations
-		registrationLock.lock();
-		try {
-			// get current node info
-			final NodeInfo nodeInfo = myInfo.getAndSet(null);
-			if (nodeInfo == null) {
-				// already unregistered
+	/**
+	 * Creates the ephemeral ALL node record which indicates that the node is
+	 * online and does not clash with an existing node id.
+	 * 
+	 * @param parentPath
+	 * @param info
+	 * @param signature
+	 * @throws Exception
+	 */
+	private void createOrRestoreEphemeralNodeRecord(final IPath parentPath, final NodeInfo info, final String signature) throws Exception {
+		// check for existing record
+		final Stat existingStat = new Stat();
+		final IPath nodePath = parentPath.append(info.getNodeId());
+		final String existingSignature = ZooKeeperGate.get().readRecord(nodePath, (String) null, existingStat);
+		if (StringUtils.equalsIgnoreCase(existingSignature, signature)) {
+			// if existing signature maps it was created by us
+			// check if the session is still the same
+			if (existingStat.getEphemeralOwner() == ZooKeeperGate.get().getSessionId()) {
+				// recover previous session
+				if (CloudDebug.cloudState) {
+					LOG.debug("Recovering previous session for node {} (path {}).", info.getNodeId(), parentPath.lastSegment());
+				}
 				return;
 			}
 
-			// we may be already disconnected but we try to remove the ephemeral node anyway
-			try {
-				setNodeOffline(nodeInfo);
-
-				// also remove our record from the "all" path
-				ZooKeeperGate.get().deletePath(IZooKeeperLayout.PATH_NODES_ALL.append(nodeInfo.getNodeId()));
-
-				LOG.info("Node {} is now offline.", nodeInfo);
-			} catch (final IllegalStateException e) {
-				// ok, gate is gone
-			} catch (final Exception e) {
-				// this may happen (eg. connection lost unintentionally), but log a warning
-				LOG.warn("Unable to set node to offline. You may need to check node directory manually in order to bring the node back online. Another option would be complete shutdown and re-start after a few seconds. {}", e.toString());
+			// created by a different session, so let's recover by removing what is there
+			// and create a new node (see below)
+			if (CloudDebug.cloudState) {
+				LOG.debug("Cleaning up previous session for node {} (path {}).", info.getNodeId(), parentPath.lastSegment());
 			}
-		} finally {
-			registrationLock.unlock();
+			ZooKeeperGate.get().deletePath(nodePath);
+		} else if (null != existingSignature) {
+			// different non-null signature really means different node
+			throw new IllegalStateException(String.format("Node id %s (path %s) already in use (reference %s)! Please investigate.", info.getNodeId(), parentPath.lastSegment(), existingSignature));
+		}
+
+		// create new record
+		try {
+			ZooKeeperGate.get().createPath(nodePath, CreateMode.EPHEMERAL, signature);
+		} catch (final NodeExistsException e) {
+			final String existingEntry = ZooKeeperGate.get().readRecord(nodePath, (String) null, null);
+			throw new IllegalStateException(String.format("Node id %s (path %s) already in use (reference %s)! This may be a result of an unclean previous shutdown. Please retry and/or investigate if the problem still exists in a few seconds (depending on ZooKeeper session timeout).", info.getNodeId(), parentPath.lastSegment(), existingEntry));
 		}
 	};
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener#gateRecovering(org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate)
-	 */
+	@Override
+	public void gateDown(final ZooKeeperGate gate) {
+		if (CloudDebug.cloudState) {
+			LOG.debug("Received gate DOWN event. Current state is {}.", state.get());
+		}
+
+		// unregister completely
+		unregisterFromCloud(false);
+	}
+
 	@Override
 	public void gateRecovering(final ZooKeeperGate gate) {
-		// TODO Auto-generated method stub
+		if (CloudDebug.cloudState) {
+			LOG.debug("Received gate RECOVERING event. Current state is {}.", state.get());
+		}
 
+		// unregister partially
+		unregisterFromCloud(true);
 	}
 
 	@Override
 	public void gateUp(final ZooKeeperGate gate) {
-		// update state (but only if DISCONNECTED)
-		if (!state.compareAndSet(State.DISCONNECTED, State.CONNECTING)) {
-			LOG.warn("Received CONNECTED event but old state is not DISCONNECTED: {}", this);
-			return;
+		if (CloudDebug.cloudState) {
+			LOG.debug("Received gate UP event. Current state is {}.", state.get());
 		}
 
-		// register asynchronously
-		new RegistrationJob().schedule();
+		// update state (but only if DISCONNECTED)
+		if (state.compareAndSet(State.DISCONNECTED, State.CONNECTING)) {
+			if (CloudDebug.cloudState) {
+				LOG.debug("Scheduling cloud registration.");
+			}
+
+			// register asynchronously
+			new RegistrationJob().schedule();
+		}
 	}
 
 	private List<String> getCloudRolesToStart() {
@@ -391,20 +460,32 @@ public class CloudState implements ZooKeeperGateListener {
 	}
 
 	/**
+	 * Reads (or generates) a persistent node signature which does not change
+	 * between sessions.
+	 */
+	private String getNodeSignature(final NodeInfo info) throws Exception {
+		final File signatureFile = Platform.getStateLocation(CloudActivator.getInstance().getBundle()).append(".nodeCloudSignature").toFile();
+		if (!signatureFile.exists()) {
+			synchronized (CloudState.class) {
+				if (!signatureFile.exists()) {
+					FileUtils.write(signatureFile, info.getNodeId() + "-" + info.getLocation() + "-" + DigestUtils.shaHex(UUID.randomUUID().toString().getBytes(CharEncoding.US_ASCII)), CharEncoding.US_ASCII);
+				}
+			}
+		}
+		return FileUtils.readFileToString(signatureFile, CharEncoding.US_ASCII);
+	}
+
+	/**
 	 * Initializes the node information.
 	 */
 	private NodeInfo initializeNodeInfo() throws Exception {
 		final NodeInfo info = new NodeInfo();
 
+		// calculate a node signature that is independent from the ZK session in order to determine ephemeral nodes from a previous session
+		final String signature = getNodeSignature(info);
+
 		// check for node id clashes by creating an ephemeral "all" record
-		try {
-			ZooKeeperGate.get().createPath(IZooKeeperLayout.PATH_NODES_ALL.append(info.getNodeId()), CreateMode.EPHEMERAL, info.getLocation());
-		} catch (final KeeperException e) {
-			if (e.code() == Code.NODEEXISTS) {
-				final String existingEntry = ZooKeeperGate.get().readRecord(IZooKeeperLayout.PATH_NODES_ALL.append(info.getNodeId()), (String) null, null);
-				throw new IllegalStateException(NLS.bind("Node id {0} already in use by {1}! This may be a result of an unclean previous shutdown. Please retry and/or investigate if the problem still exists in a few seconds (depending on ZooKeeper session timeout).", info.getNodeId(), existingEntry));
-			}
-		}
+		createOrRestoreEphemeralNodeRecord(IZooKeeperLayout.PATH_NODES_ALL, info, signature);
 
 		// check if there is a recored in the "approved" list
 		final NodeInfo approvedNodeInfo = readApprovedNodeInfo(info.getNodeId());
@@ -413,7 +494,7 @@ public class CloudState implements ZooKeeperGateListener {
 		}
 
 		// create an ephemeral pending record
-		ZooKeeperGate.get().writeRecord(IZooKeeperLayout.PATH_NODES_PENDING.append(info.getNodeId()), CreateMode.EPHEMERAL, info.getLocation());
+		createOrRestoreEphemeralNodeRecord(IZooKeeperLayout.PATH_NODES_PENDING, info, signature);
 
 		return info;
 	}
@@ -498,8 +579,10 @@ public class CloudState implements ZooKeeperGateListener {
 			// set node info
 			myInfo.set(newInfo);
 
-			// refresh roles
-			refreshServerRoles();
+			// set online if approved
+			if (newInfo.isApproved()) {
+				setNodeOnline(newInfo);
+			}
 		} finally {
 			registrationLock.unlock();
 		}
@@ -537,6 +620,10 @@ public class CloudState implements ZooKeeperGateListener {
 
 	/**
 	 * Attempts registering the node in the cloud.
+	 * <p>
+	 * Called asynchronously after {@link #gateUp(ZooKeeperGate)} from
+	 * {@link RegistrationJob}.
+	 * </p>
 	 * 
 	 * @return <code>true</code> on success, <code>false</code> otherwise
 	 */
@@ -567,11 +654,10 @@ public class CloudState implements ZooKeeperGateListener {
 			// set node info
 			myInfo.set(nodeInfo);
 
-			// set node online
+			// set node online (if approved)
 			try {
 				if (nodeInfo.isApproved()) {
 					setNodeOnline(nodeInfo);
-					LOG.info("Node {} is now online.", nodeInfo);
 				} else if (Platform.inDevelopmentMode() && new NodeEnvironmentImpl().inStandaloneMode()) {
 					// auto-approve in standalone mode
 					// this needs to be async because approval triggers ZK events on which we react
@@ -597,14 +683,17 @@ public class CloudState implements ZooKeeperGateListener {
 		}
 	}
 
-	private void sendNodeEvent(final NodeInfo node, final boolean online) {
+	private void sendNodeEvent(final NodeInfo node, final String topic) {
+		if (CloudDebug.cloudState) {
+			LOG.debug("Node {} sending event {}.", node, topic);
+		}
 		try {
 			final Map<String, Object> properties = new HashMap<String, Object>(3);
 			properties.put(ICloudEventConstants.NODE_ID, node.getNodeId());
 			properties.put(ICloudEventConstants.NODE_TAGS, node.getTags());
 			properties.put("node.name", node.getName());
 			properties.put("node.location", node.getLocation());
-			final Event event = new Event(online ? ICloudEventConstants.TOPIC_NODE_ONLINE : ICloudEventConstants.TOPIC_NODE_OFFLINE, properties);
+			final Event event = new Event(topic, properties);
 			if (CloudDebug.cloudState) {
 				LOG.debug("Sending node event: {}", event);
 			}
@@ -614,15 +703,17 @@ public class CloudState implements ZooKeeperGateListener {
 		}
 	}
 
-	private void setNodeOffline(final NodeInfo node) throws Exception {
+	private void setNodeOffline(final NodeInfo node, final boolean interruptOnly) throws Exception {
 		// send offline event
-		sendNodeEvent(node, false);
+		sendNodeEvent(node, interruptOnly ? ICloudEventConstants.TOPIC_NODE_INTERRUPTED : ICloudEventConstants.TOPIC_NODE_OFFLINE);
 
-		// de-activate all roles
-		final List<String> roles = myRoles.getAndSet(null);
-		if ((null != roles) && !roles.isEmpty()) {
-			Collections.reverse(roles); // de-activate in reverse order
-			LocalRolesManager.deactivateRoles(roles);
+		// de-activate all roles (if not interrupted)
+		if (!interruptOnly) {
+			final List<String> roles = myRoles.getAndSet(null);
+			if ((null != roles) && !roles.isEmpty()) {
+				Collections.reverse(roles); // de-activate in reverse order
+				LocalRolesManager.deactivateRoles(roles);
+			}
 		}
 
 		// stop cloud services
@@ -631,15 +722,33 @@ public class CloudState implements ZooKeeperGateListener {
 		// stop node metrics reporter
 		NodeMetricsReporter.stop();
 
-		// remove an ephemeral record for this node
-		try {
-			ZooKeeperGate.get().deletePath(IZooKeeperLayout.PATH_NODES_ONLINE.append(node.getNodeId()));
-		} catch (final KeeperException e) {
-			// if the node already exists something is off
-			if (e.code() != KeeperException.Code.NONODE) {
+		// remove an ephemeral records for this node (but only if not interrupted)
+		if (!interruptOnly) {
+			try {
+				ZooKeeperGate.get().deletePath(IZooKeeperLayout.PATH_NODES_ONLINE.append(node.getNodeId()));
+				ZooKeeperGate.get().deletePath(IZooKeeperLayout.PATH_NODES_ALL.append(node.getNodeId()));
+			} catch (final IllegalStateException e) {
+				// gate is gone
+				if (CloudDebug.cloudState) {
+					LOG.debug("Ignored exception while removing ephemeral nodes.", e);
+				}
+			} catch (final ConnectionLossException e) {
+				// connection is gone
+				if (CloudDebug.cloudState) {
+					LOG.debug("Ignored exception while removing ephemeral nodes.", e);
+				}
+			} catch (final SessionExpiredException e) {
+				// session is gone
+				if (CloudDebug.cloudState) {
+					LOG.debug("Ignored exception while removing ephemeral nodes.", e);
+				}
+			} catch (final Exception e) {
 				throw e;
 			}
 		}
+
+		// log message (only on success)
+		LOG.info("Node {} is now {}.", node, interruptOnly ? "interrupted" : "offline");
 	}
 
 	private void setNodeOnline(final NodeInfo node) throws Exception {
@@ -647,28 +756,8 @@ public class CloudState implements ZooKeeperGateListener {
 			throw new IllegalArgumentException(NLS.bind("Node {0} must be approved first before it is allowed to join the cloud.", node.getNodeId()));
 		}
 
-		// ensure the persistent record containing all online nodes exist
-		try {
-			ZooKeeperGate.get().createPath(IZooKeeperLayout.PATH_NODES_ONLINE, CreateMode.PERSISTENT);
-		} catch (final KeeperException e) {
-			// its okay if the node already exists
-			if (e.code() != KeeperException.Code.NODEEXISTS) {
-				throw e;
-			}
-		}
-
 		// create an ephemeral record for this node in the "online" tree
-		try {
-			ZooKeeperGate.get().writeRecord(IZooKeeperLayout.PATH_NODES_ONLINE.append(node.getNodeId()), CreateMode.EPHEMERAL, node.getLocation());
-		} catch (final KeeperException e) {
-			// if the node already exists something is off
-			if (e.code() == KeeperException.Code.NODEEXISTS) {
-				// TODO investigate this error further
-				throw new IllegalStateException(NLS.bind("Unable to register node {0} in the cloud. There is already a node with that id running.", node.getNodeId()), e);
-			} else {
-				throw e;
-			}
-		}
+		createOrRestoreEphemeralNodeRecord(IZooKeeperLayout.PATH_NODES_ONLINE, node, getNodeSignature(node));
 
 		// start node metrics publisher (cpu load, memory resources)
 		// (disabled for now, we better have to understand the use cases and ZooKeeper impacts)
@@ -677,15 +766,14 @@ public class CloudState implements ZooKeeperGateListener {
 		// start cloud services
 		CloudActivator.getInstance().startCloudServices();
 
-		// get all roles that should be started
-		final List<String> roleIds = getCloudRolesToStart();
-
-		// activate cloud roles
-		LocalRolesManager.activateRoles(roleIds);
-		myRoles.set(roleIds);
+		// refresh cloud roles
+		refreshServerRoles();
 
 		// send node activation event
-		sendNodeEvent(node, true);
+		sendNodeEvent(node, ICloudEventConstants.TOPIC_NODE_ONLINE);
+
+		// log success
+		LOG.info("Node {} is now online.", node);
 	}
 
 	@Override
@@ -693,5 +781,55 @@ public class CloudState implements ZooKeeperGateListener {
 		final StringBuilder builder = new StringBuilder();
 		builder.append("CloudState [").append(state.get()).append(", ").append(myInfo.get()).append("]");
 		return builder.toString();
+	}
+
+	/**
+	 * Unregisters the node from the cloud. *
+	 * <p>
+	 * Called synchronously from {@link #gateDown(ZooKeeperGate)} or
+	 * {@link #gateRecovering(ZooKeeperGate)}.
+	 * </p>
+	 * 
+	 * @param interruptOnly
+	 */
+	void unregisterFromCloud(final boolean interruptOnly) {
+		final State oldState = state.getAndSet(State.DISCONNECTED);
+		if (oldState == State.DISCONNECTED) {
+			// already disconnected
+			if (CloudDebug.cloudState) {
+				LOG.debug("Ignoring disconnect request for already disconnected node.");
+			}
+			return;
+		}
+
+		if (CloudDebug.cloudState) {
+			LOG.debug("Attempting node de-registration from cloud.", new Exception("Node Disconnect Call Stack"));
+		}
+
+		// synchronize in order to prevent concurrent registrations
+		registrationLock.lock();
+		try {
+			// get current node info
+			final NodeInfo nodeInfo = myInfo.getAndSet(null);
+			if (nodeInfo == null) {
+				// already unregistered
+				return;
+			}
+
+			// set node completely offline
+			try {
+				setNodeOffline(nodeInfo, interruptOnly);
+			} catch (final Exception e) {
+				// this may happen (eg. connection lost unintentionally)
+				// only log a warning only if this happen during regular life-time
+				if (ServerApplication.isRunning()) {
+					LOG.warn("Unable to set node offline. You may need to check node directory manually in order to bring the node back online. Another option would be complete shutdown and re-start after a few seconds. {}", ExceptionUtils.getRootCauseMessage(e), e);
+				} else if (CloudDebug.cloudState) {
+					LOG.debug("Exception while setting node offline. {}", ExceptionUtils.getRootCauseMessage(e), e);
+				}
+			}
+		} finally {
+			registrationLock.unlock();
+		}
 	}
 }

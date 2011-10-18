@@ -65,6 +65,18 @@ public interface ICloudEventConstants {
 
 	/**
 	 * Topic under which an event is published when <em>this</em> node became
+	 * <strong>interrupted</strong> (value
+	 * <code>org/eclipse/gyrex/cloud/node/interrupted</code>).
+	 * <p>
+	 * Note, this event may be triggered multiple times while interrupted. There
+	 * is also no guarantee that an {@link #TOPIC_NODE_ONLINE ONLINE} event is
+	 * preceeding each {@link #TOPIC_NODE_INTERRUPTED INTERRUPTED} event.
+	 * </p>
+	 */
+	String TOPIC_NODE_INTERRUPTED = "org/eclipse/gyrex/cloud/node/interrupted";
+
+	/**
+	 * Topic under which an event is published when <em>this</em> node became
 	 * offline (value <code>org/eclipse/gyrex/cloud/node/offline</code>).
 	 * <p>
 	 * Note, this event may be triggered multiple times while offline. There is

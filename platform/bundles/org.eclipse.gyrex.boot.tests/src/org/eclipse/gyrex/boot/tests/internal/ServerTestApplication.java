@@ -11,12 +11,14 @@
  *******************************************************************************/
 package org.eclipse.gyrex.boot.tests.internal;
 
+import java.io.File;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.equinox.app.IApplication;
 
 import org.eclipse.gyrex.boot.internal.app.ServerApplication;
+import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -24,6 +26,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.pde.internal.junit.runtime.RemotePluginTestRunner;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,5 +72,20 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 			}
 		};
 		testRunner.schedule();
+	}
+
+	@Override
+	protected void onBeforeStart(final Map arguments) throws Exception {
+		// clean-up ZooKeeper
+		final File zooKeeperDir = Platform.getInstanceLocation().append("zookeeper").toFile();
+		if (zooKeeperDir.isDirectory()) {
+			FileUtils.deleteDirectory(zooKeeperDir);
+		}
+
+		// remove any custom state
+		final File stateArea = Platform.getInstanceLocation().append(".metadata/.plugins").toFile();
+		if (stateArea.isDirectory()) {
+			FileUtils.deleteDirectory(stateArea);
+		}
 	}
 }

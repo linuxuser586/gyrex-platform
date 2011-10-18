@@ -13,18 +13,20 @@ package org.eclipse.gyrex.cloud.internal.zk;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.SocketAddress;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.ISafeRunnable;
-import org.eclipse.core.runtime.ListenerList;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.SafeRunner;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -35,8 +37,9 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,79 +61,52 @@ import org.slf4j.LoggerFactory;
 public class ZooKeeperGate {
 
 	/**
-	 * Notifies a connection listener
+	 * ZooKeeper extension to make protected methods visible for better
+	 * debugging.
 	 */
-	private static final class NotifyConnectionListener implements ISafeRunnable {
-		private final boolean connected;
-		private final Object listener;
-		private final ZooKeeperGate gate;
+	private static final class ZooKeeper extends org.apache.zookeeper.ZooKeeper {
+		public ZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher) throws IOException {
+			super(connectString, sessionTimeout, watcher);
+		}
 
-		/**
-		 * Creates a new instance.
-		 * 
-		 * @param connected
-		 * @param listener
-		 * @param gate
-		 * @param gate
-		 */
-		private NotifyConnectionListener(final boolean connected, final Object listener, final ZooKeeperGate gate) {
-			this.connected = connected;
-			this.listener = listener;
-			this.gate = gate;
+		public ZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher, final long sessionId, final byte[] sessionPasswd) throws IOException {
+			super(connectString, sessionTimeout, watcher, sessionId, sessionPasswd);
 		}
 
 		@Override
-		public void handleException(final Throwable e) {
-			// log error
-			LOG.error("Removing bogous connection listener {} due to exception ({}).", new Object[] { listener, ExceptionUtils.getMessage(e), e });
-			// remove listener directly
-			connectionListeners.remove(listener);
+		protected SocketAddress testableRemoteSocketAddress() {
+			return super.testableRemoteSocketAddress();
 		}
 
 		@Override
-		public void run() throws Exception {
-			if (connected) {
-				((ZooKeeperGateListener) listener).gateUp(gate);
-			} else {
-				((ZooKeeperGateListener) listener).gateDown(gate);
-			}
+		protected boolean testableWaitForShutdown(final int wait) throws InterruptedException {
+			return super.testableWaitForShutdown(wait);
 		}
 	}
 
-	private static final ListenerList connectionListeners = new ListenerList(ListenerList.IDENTITY);
+	private static final CopyOnWriteArrayList<ZooKeeperGateListener> gateListeners = new CopyOnWriteArrayList<ZooKeeperGateListener>();
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGate.class);
 
 	private static final AtomicReference<ZooKeeperGate> instanceRef = new AtomicReference<ZooKeeperGate>();
-	private static final AtomicBoolean connected = new AtomicBoolean();
 
 	/**
 	 * Adds a connection monitor.
-	 * <p>
-	 * If the gate is currently UP, the
-	 * {@link ZooKeeperGateListener#gateUp(ZooKeeperGate)} will be called as
-	 * part of the registration.
-	 * </p>
 	 * <p>
 	 * This method has no effect if the monitor is already registered or the
 	 * specified monitor is <code>null</code>
 	 * </p>
 	 * 
-	 * @param connectionMonitor
-	 *            the monitor to register (may be <code>null</code>)
+	 * @param listener
+	 *            the listener to register (may be <code>null</code>)
 	 */
-	public static void addConnectionMonitor(final ZooKeeperGateListener connectionMonitor) {
+	public static void addConnectionMonitor(final ZooKeeperGateListener listener) {
 		// ignore null monitors
-		if (connectionMonitor == null) {
+		if (listener == null) {
 			return;
 		}
 
 		// add listener first
-		connectionListeners.add(connectionMonitor);
-
-		// notify
-		if (connected.get()) {
-			SafeRunner.run(new NotifyConnectionListener(true, connectionMonitor, instanceRef.get()));
-		}
+		gateListeners.addIfAbsent(listener);
 	}
 
 	private static String gateDownError(final ZooKeeperGate gate) {
@@ -174,47 +150,70 @@ public class ZooKeeperGate {
 	/**
 	 * Removed a connection monitor.
 	 * <p>
-	 * If the gate is currently UP, the
-	 * {@link ZooKeeperGateListener#gateDown(ZooKeeperGate)} will be called as
-	 * part of the registration.
-	 * </p>
-	 * <p>
 	 * This method has no effect if the monitor is not registered
 	 * </p>
 	 * 
 	 * @param connectionMonitor
-	 *            the monitor to unregister (must not be <code>null</code>)
+	 *            the monitor to unregister (may be <code>null</code>)
 	 */
 	public static void removeConnectionMonitor(final ZooKeeperGateListener connectionMonitor) {
-		// ignore null monitor
+		// ignore null monitors
 		if (connectionMonitor == null) {
-			throw new IllegalArgumentException("connection monitor must not be null");
+			return;
 		}
-
-		// get state first (to ensure that we call a disconnect)
-		final boolean notify = connected.get();
 
 		// remove listener
-		connectionListeners.remove(connectionMonitor);
-
-		// notify
-		if (notify) {
-			SafeRunner.run(new NotifyConnectionListener(false, connectionMonitor, instanceRef.get()));
-		}
+		gateListeners.remove(connectionMonitor);
 	}
 
 	private final ZooKeeper zooKeeper;
 	private final ZooKeeperGateListener reconnectMonitor;
 
-	private final Watcher connectionMonitor = new Watcher() {
+	/**
+	 * a job that triggers when the recovery time expires and closes the session
+	 */
+	private final Job recoveryTimeoutJob;
+	{
+		recoveryTimeoutJob = new Job("ZooKeeper Gate Recovery") {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				// check if still alive
+				if (!zooKeeper.getState().isAlive()) {
+					return Status.CANCEL_STATUS;
+				}
+
+				// if the gate is still disconnected then we'll set the session to expired and close the gate
+				if (keeperStateRef.compareAndSet(KeeperState.Disconnected, KeeperState.Expired)) {
+					shutdown(true);
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+		recoveryTimeoutJob.setSystem(true);
+		recoveryTimeoutJob.setPriority(Job.SHORT);
+	}
+
+	/** the primary gate watcher */
+	private final Watcher gateWatcher = new Watcher() {
 
 		@Override
 		public void process(final WatchedEvent event) {
-			// only process event if we are the active gate
-			if (!isCurrentGate(ZooKeeperGate.this)) {
+			// only process connection/state events
+			if (event.getType() != EventType.None) {
 				if (CloudDebug.zooKeeperGateLifecycle) {
-					LOG.debug("Ignored connection event for inactive gate: {}, {}", this, event);
+					LOG.trace("Ignoring event ({}).", event);
 				}
+				return;
+			}
+
+			// only process event if we are the active gate
+			final ZooKeeperGate gate = ZooKeeperGate.this;
+			if (!isCurrentGate(gate)) {
+				if (CloudDebug.zooKeeperGateLifecycle) {
+					LOG.debug("Ignored connection event for inactive gate: {}, {}", gate, event);
+				}
+				return;
 			}
 
 			// log message
@@ -226,61 +225,83 @@ public class ZooKeeperGate {
 			switch (event.getState()) {
 				case SyncConnected:
 					// SyncConnected ==> connection is UP
-					// TODO: should build some debug details and print it (such as node connected to, session id)
-					LOG.info("ZooKeeper Gate is now UP. Connection to ZooKeeper established.");
-					connected.set(true);
+					LOG.info("ZooKeeper Gate is now UP. Session {} established with {} (using timeout {}ms).", new Object[] { Long.toHexString(zooKeeper.getSessionId()), zooKeeper.testableRemoteSocketAddress(), zooKeeper.getSessionTimeout() });
+					KeeperState oldState = keeperStateRef.getAndSet(KeeperState.SyncConnected);
 
-					// notify connection listeners
-					fireConnectionEvent(true);
+					// reset recovery
+					recoveryTimeoutJob.cancel();
+
+					// notify gate listeners (on state change only)
+					if (oldState != KeeperState.SyncConnected) {
+						notifyGateUp();
+					} else {
+						if (CloudDebug.zooKeeperGateLifecycle) {
+							LOG.debug("Old state == new state, not sending any events.");
+						}
+					}
+					break;
+
+				case Disconnected:
+					// Disconnected ==> connection is down
+					LOG.info("ZooKeeper Gate is now RECOVERING. Connection lost.");
+					oldState = keeperStateRef.getAndSet(KeeperState.Disconnected);
+
+					// ZK automatically tries to re-connect; however, until the connection
+					// is established again, we won't see any events from the server;
+					// we also can't expect to reliably receive a session expired event because
+					// session expiration events come from the server, too
+
+					// schedule a job to expire the session if recovery fails
+					recoveryTimeoutJob.schedule(Math.max(500L, zooKeeper.getSessionTimeout() + 500L));
+
+					// notify gate listeners (on state change only)
+					if (oldState != KeeperState.Disconnected) {
+						notifyGateRecovering();
+					} else {
+						if (CloudDebug.zooKeeperGateLifecycle) {
+							LOG.debug("Old state == new state, not sending any events.");
+						}
+					}
 					break;
 
 				case Expired:
-				case Disconnected:
 					// Expired || Disconnected ==> connection is down
-					// TODO: implement RECOVERING state
-					LOG.info("ZooKeeper Gate is now DOWN. Connection to ZooKeeper lost.");
-					connected.set(false);
+					LOG.info("ZooKeeper Gate is now DOWN. Session expired.");
+					oldState = keeperStateRef.getAndSet(KeeperState.Expired);
 
-					// TODO: there is room for improvement here
-					// should we try to silently re-establish a session?
-					// if that fails we can still bring down the node completely
-
-					// another issue are "Disconnected" events
-					// they means connection issues, but a session including its
-					// ephemeral nodes might still be valid on the server;
-					// plus, ZK automatically tries to re-connect
-					// however, any watches might have gone away
-					// a delayed notify might be interesting, because technically we
-					// don't need to bring the whole gate down on "Disconnected", it doesn't
-					// rely on watches but other code down the road might (eg. locks)
-
-					// TODO: we need to clarify and better document our decision here
+					// reset recovery
+					recoveryTimeoutJob.cancel();
 
 					// trigger clean shutdown (and notify listeners)
-					shutdown(true);
+					shutdown(oldState != KeeperState.Expired);
 					break;
 
 				case AuthFailed:
-					// AuthFailed ==> impossible to connect
-					LOG.warn("ZooKeeper Gate is unable to connect. Authentication faild.");
-					connected.set(false);
-
-					// trigger clean shutdown (but don't notify listeners because they should never got notified before)
-					shutdown(false);
-					break;
-
+					// AuthFailed ==> maybe impossible to connect; however, not handled yet
 				default:
 					// ZooKeeper will re-try on it's own in all other cases
-					LOG.warn("ZooKeeper is now {}. Gate is not intervening. ({})", event.getState(), zooKeeper);
+					LOG.warn("Received event {} from ZooKeeper. Gate is not intervening. ({})", event.getState(), zooKeeper);
 					break;
 			}
 		}
 
 	};
 
+	private final AtomicReference<KeeperState> keeperStateRef = new AtomicReference<KeeperState>();
+
+	private final String connectString;
+	private final int sessionTimeout;
+
 	ZooKeeperGate(final ZooKeeperGateConfig config, final ZooKeeperGateListener reconnectMonitor) throws IOException {
+		// the gate manager monitor
 		this.reconnectMonitor = reconnectMonitor;
-		zooKeeper = new ZooKeeper(config.getConnectString(), config.getSessionTimeout(), connectionMonitor);
+
+		// initiate ZK connection
+		connectString = config.getConnectString();
+		sessionTimeout = config.getSessionTimeout();
+		zooKeeper = new ZooKeeper(connectString, sessionTimeout, gateWatcher);
+
+		// log message
 		if (CloudDebug.zooKeeperGateLifecycle) {
 			LOG.debug("New ZooKeeper Gate instance. {}", this, new Exception("ZooKeeper Gate Constructor Call Stack"));
 		}
@@ -453,7 +474,7 @@ public class ZooKeeperGate {
 		ensureConnected().delete(path.toString(), version);
 	}
 
-	final ZooKeeper ensureConnected() {
+	final ZooKeeper ensureConnected() throws IllegalStateException {
 		if (!zooKeeper.getState().isAlive()) {
 			throw new IllegalStateException(gateDownError(this));
 		}
@@ -501,17 +522,19 @@ public class ZooKeeperGate {
 		}
 	}
 
-	void fireConnectionEvent(final boolean connected) {
-		// notify registered listeners
-		final Object[] listeners = connectionListeners.getListeners();
-		for (final Object listener : listeners) {
-			SafeRunner.run(new NotifyConnectionListener(connected, listener, this));
-		}
-
-		// notify reconnect listener
-		if (reconnectMonitor != null) {
-			SafeRunner.run(new NotifyConnectionListener(connected, reconnectMonitor, this));
-		}
+	/**
+	 * Returns the configured connect string used by the current active
+	 * ZooKeeper gate.
+	 * <p>
+	 * This method is used for debugging purposes and may not be referenced
+	 * elsewhere.
+	 * </p>
+	 * 
+	 * @return the connect string
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public String getConnectString() {
+		return connectString;
 	}
 
 	/**
@@ -526,6 +549,98 @@ public class ZooKeeperGate {
 	 */
 	public long getSessionId() {
 		return ensureConnected().getSessionId();
+	}
+
+	/**
+	 * Returns the configured session timeout used by the current active
+	 * ZooKeeper gate.
+	 * <p>
+	 * This method is used for debugging purposes and may not be referenced
+	 * elsewhere.
+	 * </p>
+	 * 
+	 * @return the session timeout
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public int getSessionTimeout() {
+		return sessionTimeout;
+	}
+
+	private void handleBrokenListener(final ZooKeeperGateListener listener, final Throwable t) {
+		// log error
+		LOG.error("Removing bogous connection listener {} due to exception ({}).", new Object[] { listener, ExceptionUtils.getMessage(t), t });
+		// remove listener directly
+		gateListeners.remove(listener);
+	}
+
+	void notifyGateDown() {
+		// notify registered listeners
+		for (final ZooKeeperGateListener listener : gateListeners) {
+			try {
+				if (CloudDebug.zooKeeperGateLifecycle) {
+					LOG.debug("Sending gate down event to listener ({}).", listener);
+				}
+				listener.gateDown(this);
+			} catch (final RuntimeException e) {
+				handleBrokenListener(listener, e);
+			} catch (final AssertionError e) {
+				handleBrokenListener(listener, e);
+			} catch (final LinkageError e) {
+				handleBrokenListener(listener, e);
+			}
+		}
+
+		// notify reconnect listener last
+		if (reconnectMonitor != null) {
+			reconnectMonitor.gateDown(this);
+		}
+	}
+
+	void notifyGateRecovering() {
+		// notify registered listeners
+		for (final ZooKeeperGateListener listener : gateListeners) {
+			try {
+				if (CloudDebug.zooKeeperGateLifecycle) {
+					LOG.debug("Sending gate recovering event to listener ({}).", listener);
+				}
+				listener.gateRecovering(this);
+			} catch (final RuntimeException e) {
+				handleBrokenListener(listener, e);
+			} catch (final AssertionError e) {
+				handleBrokenListener(listener, e);
+			} catch (final LinkageError e) {
+				handleBrokenListener(listener, e);
+			}
+		}
+
+		// notify reconnect listener last
+		if (reconnectMonitor != null) {
+			reconnectMonitor.gateRecovering(this);
+		}
+	}
+
+	void notifyGateUp() {
+		// notify reconnect listener first
+		if (reconnectMonitor != null) {
+			reconnectMonitor.gateUp(this);
+		}
+
+		// notify registered listeners
+		for (final ZooKeeperGateListener listener : gateListeners) {
+			try {
+				if (CloudDebug.zooKeeperGateLifecycle) {
+					LOG.debug("Sending gate up event to listener ({}).", listener);
+				}
+				listener.gateUp(this);
+			} catch (final RuntimeException e) {
+				handleBrokenListener(listener, e);
+			} catch (final AssertionError e) {
+				handleBrokenListener(listener, e);
+			} catch (final LinkageError e) {
+				handleBrokenListener(listener, e);
+			}
+		}
+
 	}
 
 	/**
@@ -705,7 +820,7 @@ public class ZooKeeperGate {
 	 * Closes the gate.
 	 * 
 	 * @param notify
-	 *            set to <code>true</code> in notify registered connection
+	 *            set to <code>true</code> to notify registered connection
 	 *            listeners
 	 */
 	void shutdown(final boolean notify) {
@@ -713,20 +828,21 @@ public class ZooKeeperGate {
 			LOG.debug("Shutdown of ZooKeeper Gate. {}", this, new Exception("ZooKeeper Gate Shutdown Call Stack"));
 		}
 
-		// notify listeners
-		if (notify) {
-			fireConnectionEvent(false);
-		}
-
+		// close ZooKeeper
 		try {
 			zooKeeper.close();
 		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
-		} catch (final Exception e) {
+		} catch (final RuntimeException e) {
 			// ignored shutdown exceptions
 			if (CloudDebug.zooKeeperGateLifecycle) {
 				LOG.debug("Ignored exception during shutdown: {}", e.getMessage(), e);
 			}
+		}
+
+		// notify listeners
+		if (notify) {
+			notifyGateDown();
 		}
 	}
 
@@ -747,11 +863,11 @@ public class ZooKeeperGate {
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
-		builder.append("ZooKeeperGate [current=");
-		builder.append(isCurrentGate(this));
-		builder.append(", zk=");
-		builder.append(zooKeeper);
-		builder.append("]");
+		builder.append("ZooKeeperGate ");
+		if (isCurrentGate(this)) {
+			builder.append("CURRENT ");
+		}
+		builder.append("[").append(zooKeeper).append("]");
 		return builder.toString();
 	}
 
