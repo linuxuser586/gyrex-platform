@@ -202,8 +202,10 @@ public abstract class BaseApplication implements IApplication {
 	 * @param arguments
 	 *            the map with application arguments retrieved from
 	 *            {@link IApplicationContext#getArguments()}
+	 * @throws Exception
+	 *             in case of errors
 	 */
-	protected void onBeforeStart(final Map arguments) {
+	protected void onBeforeStart(final Map arguments) throws Exception {
 		// empty
 	}
 
