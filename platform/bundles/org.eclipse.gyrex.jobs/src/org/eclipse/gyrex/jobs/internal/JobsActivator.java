@@ -74,7 +74,7 @@ public class JobsActivator extends BaseBundleActivator {
 	}
 
 	@Override
-	protected Class getDebugOptions() {
+	protected Class<?> getDebugOptions() {
 		return JobsDebug.class;
 	}
 

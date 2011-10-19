@@ -97,7 +97,7 @@ public class JobInfo {
 
 		// collect properties
 		final Map<String, String> jobProperties = new HashMap<String, String>();
-		for (final Iterator stream = properties.keySet().iterator(); stream.hasNext();) {
+		for (final Iterator<?> stream = properties.keySet().iterator(); stream.hasNext();) {
 			final String key = (String) stream.next();
 			if (!key.startsWith(PREFIX)) {
 				jobProperties.put(key, properties.getProperty(key));

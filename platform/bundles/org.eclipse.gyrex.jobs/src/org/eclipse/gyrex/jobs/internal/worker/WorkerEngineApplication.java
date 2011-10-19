@@ -42,7 +42,7 @@ public class WorkerEngineApplication extends BaseApplication {
 	}
 
 	@Override
-	protected void doStart(final Map arguments) throws Exception {
+	protected void doStart(@SuppressWarnings("rawtypes") final Map arguments) throws Exception {
 		if (JobsDebug.workerEngine) {
 			LOG.debug("Starting worker engine application.");
 		}
