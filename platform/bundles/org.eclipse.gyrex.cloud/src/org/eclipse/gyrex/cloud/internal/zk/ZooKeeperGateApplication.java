@@ -124,7 +124,12 @@ public class ZooKeeperGateApplication extends BaseApplication {
 	/**
 	 * Initiates a reconnect with ZooKeeper.
 	 * <p>
-	 * Note, this will likely create a new session.
+	 * Note, this will likely create a new ZooKeeper session. Thus, all
+	 * ephemeral nodes will still be blocked by the previous session.
+	 * </p>
+	 * <p>
+	 * Although this method is public, client must not call it directly. It is
+	 * dangerous.
 	 * </p>
 	 * 
 	 * @noreference This method is not intended to be referenced by clients.
