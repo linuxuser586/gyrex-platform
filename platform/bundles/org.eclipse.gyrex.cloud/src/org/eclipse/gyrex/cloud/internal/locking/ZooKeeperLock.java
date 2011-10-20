@@ -19,6 +19,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.CloudState;
@@ -149,7 +150,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				}
 
 				// 3. If the pathname created in step 1 has the lowest sequence number suffix, the client has the lock and the client exits the protocol.
-				if (isValid()) {
+				if (isActiveLock()) {
 					notifyLockAcquired();
 					return true;
 				}
@@ -158,7 +159,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				String precedingNodeName = null;
 				for (int i = 0; i < nodeNames.length; i++) {
 					if (myLockName.equals(nodeNames[i])) {
-						precedingNodeName = (String) nodeNames[i - 1];
+						// note, although not possible (we check equals i=0 above) we double check
+						precedingNodeName = i > 0 ? (String) nodeNames[i - 1] : null;
 					}
 				}
 				if (precedingNodeName == null) {
@@ -180,8 +182,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 					// for now we just loop ourselves
 					// (https://bugs.eclipse.org/bugs/show_bug.cgi?id=350927)
 					while (zk.exists(pathToPreceedingNode)) {
-						// calculate sleep time (but don't sleep longer than 5 seconds)
-						final long sleepTime = timeout <= 0 ? 5000L : Math.min(abortTime - System.currentTimeMillis(), 5000L);
+						// calculate sleep time (but don't sleep longer than 2 seconds)
+						final long sleepTime = timeout <= 0 ? 2000L : Math.min(abortTime - System.currentTimeMillis(), 2000L);
 
 						// check if sleep makes sense
 						if (sleepTime <= 0L) {
@@ -192,6 +194,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 						Thread.sleep(sleepTime);
 					}
 
+					// instead of using the deletion monitor we sleep for a while and re-try
+					// (we might be able to re-enable this once ZOOKEEPER-442 is implemented)
 //					try {
 //						final WaitForDeletionMonitor waitForDeletionMonitor = new WaitForDeletionMonitor();
 //
@@ -299,7 +303,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	}
 
 	static enum KillReason {
-		ZOOKEEPER_DISCONNECT, LOCK_DELETED, LOCK_STOLEN, REGULAR_RELEASE, ACQUIRE_FAILED
+		ZOOKEEPER_DISCONNECT, LOCK_DELETED, LOCK_STOLEN, REGULAR_RELEASE, ACQUIRE_FAILED, RESUME_FAILED
 	}
 
 	/**
@@ -378,6 +382,71 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	}
 
 	/**
+	 * The loop tries to resume a previously acquired lock.
+	 */
+	private final class ResumeLockLoop implements Callable<Boolean> {
+		@Override
+		public Boolean call() throws Exception {
+			// get gate
+			final ZooKeeperGate zk = ZooKeeperGate.get();
+
+			// start resume loop
+			if (CloudDebug.zooKeeperLockService) {
+				LOG.debug("Starting resume lock loop for lock {}/{}", lockNodePath, myLockName);
+			}
+
+			// 2. Call getChildren( ) on the lock node without setting the watch flag (this is important to avoid the herd effect).
+			final Object[] nodeNames = zk.readChildrenNames(lockNodePath, null).toArray();
+
+			// sanity check
+			if (nodeNames.length == 0) {
+				// all children have been removed, the lock can't be resumed
+				// (this also means that this lock node has been delete)
+				return false;
+			}
+
+			// sort based on sequence numbers
+			Arrays.sort(nodeNames, new Comparator<Object>() {
+				@Override
+				public int compare(final Object o1, final Object o2) {
+					final String n1 = (String) o1;
+					final String n2 = (String) o2;
+					final int sequence1 = getSequenceNumber(n1);
+					final int sequence2 = getSequenceNumber(n2);
+					if (sequence1 == -1) {
+						return sequence2 != -1 ? 1 : n1.compareTo(n2);
+					} else {
+						return sequence2 == -1 ? -1 : sequence1 - sequence2;
+					}
+				}
+			});
+
+			// the active lock name
+			activeLockName = (String) nodeNames[0];
+			if (CloudDebug.zooKeeperLockService) {
+				LOG.debug("Found active lock {} for lock {}", activeLockName, lockNodePath);
+			}
+
+			// if this is still the active after refresh then we are done
+			if (isActiveLock()) {
+				notifyLockAcquired();
+				return true;
+			}
+
+			// check if our node is still there
+			for (int i = 0; i < nodeNames.length; i++) {
+				if (myLockName.equals(nodeNames[i])) {
+					// this is strange, we aren't the active lock but out node is still there
+					throw new LockAcquirationFailedException(getId(), "Impossible to resume lock. The active lock changed and conflicts with this lock.");
+				}
+			}
+
+			// we must assume that the lock has been deleted
+			return false;
+		}
+	}
+
+	/**
 	 * A monitor that allows to wait for deletion of a ZooKeeper node path.
 	 */
 	static class WaitForDeletionMonitor extends ZooKeeperMonitor {
@@ -441,20 +510,9 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 	final ZooKeeperMonitor killMonitor = new ZooKeeperMonitor() {
 		@Override
-		protected void closing(final org.apache.zookeeper.KeeperException.Code reason) {
-			// only react if we are still active (ZOOKEEPER-442)
-			if (!isValid() || isClosed()) {
-				return;
-			}
-			// the connection has been lost or the session expired
-			LOG.warn("Lock {} has been lost due to disconnect (reason {})!", getId(), reason);
-			killLock(KillReason.ZOOKEEPER_DISCONNECT);
-		};
-
-		@Override
 		protected void pathDeleted(final String path) {
 			// only react if we are still active (ZOOKEEPER-442)
-			if (!isValid() || isClosed()) {
+			if (!isActiveLock() || isClosed()) {
 				return;
 			}
 			LOG.warn("Lock {} has been deleted on the lock server!", getId());
@@ -464,7 +522,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		@Override
 		protected void recordChanged(final String path) {
 			// only react if we are still active (ZOOKEEPER-442)
-			if (!isValid() || isClosed()) {
+			if (!isActiveLock() || isClosed()) {
 				return;
 			}
 			// the lock record has been changed remotely
@@ -481,6 +539,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	final boolean recoverable;
 
 	private final ILockMonitor<T> lockMonitor;
+	private final AtomicBoolean suspended = new AtomicBoolean(false);
 
 	volatile String myLockName;
 	volatile String myRecoveryKey;
@@ -564,7 +623,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			try {
 				killLock(KillReason.ACQUIRE_FAILED);
 			} catch (final Exception cleanUpException) {
-				LOG.error("Error during cleanup of failed lock acquisition. Please check server logs and also check lock service server. The lock may now ne stalled. {}", ExceptionUtils.getRootCauseMessage(cleanUpException));
+				LOG.error("Error during cleanup of failed lock acquisition. Please check server logs and also check lock service server. The lock may now be stalled. {}", ExceptionUtils.getRootCauseMessage(cleanUpException));
 			}
 			if (e instanceof InterruptedException) {
 				throw (InterruptedException) e;
@@ -615,12 +674,22 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	protected String getToStringDetails() {
 		final StringBuilder details = new StringBuilder();
 		details.append("id=").append(lockId);
-		if (isValid()) {
+		if (isActiveLock()) {
 			details.append(", ACQUIRED");
+		}
+		if (isSuspended()) {
+			details.append(", SUSPENDED");
 		}
 		details.append(", lockName=").append(myLockName);
 		details.append(", activeLockName=").append(activeLockName);
 		return details.toString();
+	}
+
+	boolean isActiveLock() {
+		// the lock is active if it has a name and the name matches the active lock
+		final String myLockName = this.myLockName;
+		final String activeLockName = this.activeLockName;
+		return (myLockName != null) && (activeLockName != null) && activeLockName.equals(myLockName);
 	}
 
 	/**
@@ -642,11 +711,17 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	}
 
 	@Override
+	public boolean isSuspended() {
+		return suspended.get();
+	}
+
+	@Override
 	public boolean isValid() {
-		// TODO: consider sleeping here when the gate state is RECOVERING
-		final String myLockName = this.myLockName;
-		final String activeLockName = this.activeLockName;
-		return (myLockName != null) && (activeLockName != null) && activeLockName.equals(myLockName);
+		// ensure that the lock is not suspended (bug 360813)
+		resumeOrKill();
+
+		// the lock is valid if it is the active lock
+		return isActiveLock();
 	}
 
 	/**
@@ -697,7 +772,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		LOG.info("Successfully acquired lock {}!", getId());
 
 		if (lockMonitor != null) {
-			if (!isClosed() && isValid()) {
+			if (!isClosed() && isActiveLock()) {
 				lockMonitor.lockAcquired(asLockType());
 			}
 		}
@@ -722,10 +797,71 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		}
 	}
 
+	void notifyLockSuspended() {
+		// log info message
+		LOG.info("Lock {} has been suspended!", getId());
+
+		if (lockMonitor != null) {
+			if (!isClosed() && isActiveLock()) {
+				lockMonitor.lockSuspended(asLockType());
+			}
+		}
+	}
+
+	@Override
+	protected void reconnect() {
+		// only process event if this lock was active when suspended
+		if (!isSuspended() || !isActiveLock() || isClosed()) {
+			return;
+		}
+
+		// when a ZooKeeper connection has been re-established we MUST ensure that
+		// this is still the active lock; therefore we must refresh the active lock name
+		try {
+			// spin the lock resume loop
+			if (!execute(new ResumeLockLoop())) {
+				// the lock has been deleted
+				killLock(KillReason.LOCK_DELETED);
+			} else {
+				// resume the lock
+				suspended.set(false);
+			}
+		} catch (final Exception e) {
+			try {
+				killLock(KillReason.RESUME_FAILED);
+			} catch (final Exception cleanUpException) {
+				LOG.error("Error during cleanup of failed lock resume. Please check server logs and also check lock service server. The lock may now be stalled. {}", ExceptionUtils.getRootCauseMessage(cleanUpException));
+			}
+		}
+	}
+
 	@Override
 	public void release() {
 		// kill the lock
 		killLock(KillReason.REGULAR_RELEASE);
+	}
+
+	/**
+	 * This ensures that a suspended lock (due to ZooKeeper connection loss) is
+	 * either resumed or killed within a timeout.
+	 */
+	private void resumeOrKill() {
+		if (!isSuspended()) {
+			return;
+		}
+
+		LOG.warn("Lock {} is suspended! Waiting for resume.", getId());
+		// TODO: the timeout should be read from the ZooKeeperGateConfig
+		final long abortTime = System.currentTimeMillis() + 30000;
+		while (isSuspended() && (abortTime < System.currentTimeMillis())) {
+			sleep(1);
+		}
+
+		// disconnect lock if still suspended
+		// (when suspended for a long time the connection might not recover, thus we start the disconnect procedure)
+		if (isSuspended()) {
+			disconnect();
+		}
 	}
 
 	private boolean shouldDeleteOnKill(final KillReason killReason) {
@@ -743,6 +879,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				// start a delete attempt only if the node is not recoverable
 				return !isRecoverable();
 
+			case RESUME_FAILED:
 			case ACQUIRE_FAILED:
 				// delete if we can't acquire cleanly
 				return true;
@@ -751,6 +888,15 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				// delete in all other cases
 				LOG.warn("Unhandled lock kill reason {}. Please report this issue to the developers. They should sanity check the implementation.", killReason);
 				return true;
+		}
+	}
+
+	@Override
+	protected void suspend() {
+		// set the lock to suspended
+		if (suspended.compareAndSet(false, true)) {
+			// fire lock suspended event
+			notifyLockSuspended();
 		}
 	}
 

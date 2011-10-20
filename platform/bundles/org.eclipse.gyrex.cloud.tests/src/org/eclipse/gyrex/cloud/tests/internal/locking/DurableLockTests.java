@@ -53,6 +53,7 @@ public class DurableLockTests {
 		final CountDownLatch lockReleasedLatch = new CountDownLatch(1);
 		final CountDownLatch lockLostLatch = new CountDownLatch(1);
 		final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
+		final CountDownLatch lockSusspendedLatch = new CountDownLatch(1);
 
 		@Override
 		public void lockAcquired(final IDurableLock lock) {
@@ -67,6 +68,11 @@ public class DurableLockTests {
 		@Override
 		public void lockReleased(final IDurableLock lock) {
 			lockReleasedLatch.countDown();
+		}
+
+		@Override
+		public void lockSuspended(final IDurableLock lock) {
+			lockSusspendedLatch.countDown();
 		}
 	}
 

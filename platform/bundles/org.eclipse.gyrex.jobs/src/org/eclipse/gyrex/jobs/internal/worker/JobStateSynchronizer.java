@@ -223,6 +223,11 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		// empty
 	}
 
+	@Override
+	public void lockSuspended(final IExclusiveLock lock) {
+		// we let the job continue
+	}
+
 	private synchronized void releaseLock() {
 		if (null != lock) {
 			if (JobsDebug.workerEngine) {

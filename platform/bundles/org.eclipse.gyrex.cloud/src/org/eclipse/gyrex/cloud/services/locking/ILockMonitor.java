@@ -51,4 +51,20 @@ public interface ILockMonitor<L extends IDistributedLock> {
 	 *            the lock
 	 */
 	void lockReleased(L lock);
+
+	/**
+	 * Called when the lock has been suspended (likely due to a connection
+	 * interruption).
+	 * <p>
+	 * Suspended locks are in an on-hold state. While suspended no other system
+	 * might get a lock, i.e. it might still be held. However, clients may also
+	 * want to suspend their work until it is either
+	 * {@link #lockAcquired(IDistributedLock) resumed} or
+	 * {@link #lockLost(IDistributedLock) lost}.
+	 * </p>
+	 * 
+	 * @param lock
+	 *            the lock
+	 */
+	void lockSuspended(L lock);
 }

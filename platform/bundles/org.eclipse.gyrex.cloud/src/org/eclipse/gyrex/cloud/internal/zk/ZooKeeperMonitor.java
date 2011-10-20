@@ -11,8 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.zk;
 
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
@@ -27,15 +25,6 @@ public class ZooKeeperMonitor implements Watcher {
 	 * @param path
 	 */
 	protected void childrenChanged(final String path) {
-		// empty
-	}
-
-	/**
-	 * Called when the gate is closing.
-	 * 
-	 * @param reason
-	 */
-	protected void closing(final Code reason) {
 		// empty
 	}
 
@@ -61,20 +50,24 @@ public class ZooKeeperMonitor implements Watcher {
 	public void process(final WatchedEvent event) {
 		if (event.getType() == Event.EventType.None) {
 			// state of the connection changed
-			switch (event.getState()) {
-				case SyncConnected:
-					// connection established, nothing to do because watches
-					// will be automatically re-registered and delivered by ZooKeeper
-					break;
-				case Disconnected:
-					// session disconnected, the gate will close
-					closing(KeeperException.Code.CONNECTIONLOSS);
-					break;
-				case Expired:
-					// session expired, the gate will close
-					closing(KeeperException.Code.SESSIONEXPIRED);
-					break;
-			}
+			// TODO: how to handle/consume this event here?
+			// our prefered way of working with ZK connect/disconnect/expired events
+			// is using the ZKGate which has it's own connect listener (integrated into ZKBasedService)
+//			switch (event.getState()) {
+//				case SyncConnected:
+//					// connection established, nothing to do because watches
+//					// will be automatically re-registered and delivered by ZooKeeper
+//					connected();
+//					break;
+//				case Disconnected:
+//					// session disconnected, the gate will recover
+//					disconnected();
+//					break;
+//				case Expired:
+//					// session expired, the gate will close
+//					expired();
+//					break;
+//			}
 		} else {
 			final String path = event.getPath();
 			if (path != null) {

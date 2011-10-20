@@ -42,10 +42,38 @@ public interface IDistributedLock {
 	String getId();
 
 	/**
+	 * Indicates if the lock is suspended.
+	 * <p>
+	 * Returns <code>true</code> if and only if the lock was previously acquired
+	 * by the creator and is now in a suspended state.
+	 * </p>
+	 * <p>
+	 * A suspended state may be reached as a result of a network interruption
+	 * and indicates that the underlying system may still has the lock reserved
+	 * for the caller until the lock is resumed or finally considered
+	 * unrecoverable. It's purely up to the underlying system to support this
+	 * state. Not all systems might support this.
+	 * </p>
+	 * <p>
+	 * If this method returns <code>true</code> the application needs to pay
+	 * attention and pause before continuing to assume it still has the lock.
+	 * </p>
+	 * <p>
+	 * Clients are also encourage to pass a {@link ILockMonitor} when acquiring
+	 * locks in order to get actively notified when the lock has been resumed or
+	 * lost/released.
+	 * </p>
+	 * 
+	 * @return <code>true</code> if the lock is still valid, <code>false</code>
+	 *         otherwise
+	 */
+	boolean isSuspended();
+
+	/**
 	 * Indicates if the lock is still valid.
 	 * <p>
 	 * Returns <code>true</code> if and only if the lock is still acquired by
-	 * the node.
+	 * the creator.
 	 * </p>
 	 * <p>
 	 * Clients which acquired a lock should call that method regularly in order
@@ -53,12 +81,16 @@ public interface IDistributedLock {
 	 * as a result of a network interruption.
 	 * </p>
 	 * <p>
-	 * If this method returns false clients must cancel all activities which
-	 * require the exclusive lock.
+	 * If this method returns <code>false</code> clients must cancel all
+	 * activities which require the exclusive lock.
 	 * </p>
 	 * <p>
 	 * Clients are also encourage to pass a {@link ILockMonitor} when acquiring
 	 * locks in order to get actively notified when the lock has been lost.
+	 * </p>
+	 * <p>
+	 * This method will block if the lock is suspended ({@link #isSuspended()}
+	 * returns <code>true</code>) until it resumes or is lost/released.
 	 * </p>
 	 * 
 	 * @return <code>true</code> if the lock is still valid, <code>false</code>

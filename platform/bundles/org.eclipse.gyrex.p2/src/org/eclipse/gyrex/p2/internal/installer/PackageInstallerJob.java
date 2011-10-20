@@ -96,6 +96,11 @@ public class PackageInstallerJob extends Job {
 		public void lockReleased(final IDurableLock lock) {
 			// empty
 		}
+
+		@Override
+		public void lockSuspended(final IDurableLock lock) {
+			// empty, we rely on the blocking behavior of #isValid
+		}
 	};
 
 	private final Set<PackageDefinition> packagesToInstall;
