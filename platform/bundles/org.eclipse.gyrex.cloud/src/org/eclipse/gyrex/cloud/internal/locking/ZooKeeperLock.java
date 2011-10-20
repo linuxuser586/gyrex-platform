@@ -478,7 +478,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	final IPath lockNodePath;
 	final String lockNodeContent;
 	final boolean ephemeral;
-	final boolean recovarable;
+	final boolean recoverable;
 
 	private final ILockMonitor<T> lockMonitor;
 
@@ -511,7 +511,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		lockNodePath = lockNodeParentPath.append(lockId);
 		this.lockMonitor = lockMonitor;
 		this.ephemeral = ephemeral;
-		this.recovarable = recovarable;
+		this.recoverable = recovarable;
 
 		// pre-generate lock node content info
 		NodeInfo nodeInfo = CloudState.getNodeInfo();
@@ -530,6 +530,9 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		} catch (final ClassCastException e) {
 			throw new ClassCastException(String.format("Cannot cast the lock implementation %s to the generic lock type. Please make sure that the implementation implements the interface. %s", getClass().getName(), e.getMessage()));
 		}
+
+		// activate
+		activate();
 	}
 
 	protected final T acquire(final long timeout, final boolean recover, final String recoveryKey) throws InterruptedException, TimeoutException {
@@ -630,12 +633,12 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	}
 
 	/**
-	 * Returns the recovarable.
+	 * Returns the recoverable.
 	 * 
-	 * @return the recovarable
+	 * @return the recoverable
 	 */
 	protected final boolean isRecoverable() {
-		return recovarable;
+		return recoverable;
 	}
 
 	@Override

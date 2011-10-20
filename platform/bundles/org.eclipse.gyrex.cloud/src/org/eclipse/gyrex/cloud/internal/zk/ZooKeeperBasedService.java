@@ -29,8 +29,6 @@ public abstract class ZooKeeperBasedService {
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 	private final ZooKeeperGateListener connectionMonitor = new ZooKeeperGateListener() {
-		private final AtomicBoolean everConnected = new AtomicBoolean();
-
 		@Override
 		public void gateDown(final ZooKeeperGate gate) {
 			disconnect();
@@ -44,11 +42,7 @@ public abstract class ZooKeeperBasedService {
 
 		@Override
 		public void gateUp(final ZooKeeperGate gate) {
-			if (everConnected.compareAndSet(false, true)) {
-				// ignore first connect call (this is the initial call)
-			} else {
-				reconnect();
-			}
+			reconnect();
 		}
 	};
 
@@ -74,6 +68,20 @@ public abstract class ZooKeeperBasedService {
 		}
 		this.retryDelay = retryDelay;
 		this.retryCount = retryCount;
+	}
+
+	/**
+	 * Activates the service.
+	 * <p>
+	 * This must be called when the service is ready in order to register the
+	 * listener with the ZooKeeper gate.
+	 * </p>
+	 */
+	protected final void activate() {
+		// don't do anything if closed
+		if (isClosed()) {
+			return;
+		}
 
 		// hook connection monitor
 		// (the assumption is that ZooKeeperGate is active when creating a ZooKeeperBasedService)

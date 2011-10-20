@@ -254,6 +254,9 @@ public abstract class ZooKeeperBasedPreferences extends ZooKeeperBasedService im
 
 		// cache ZooKeeper path
 		zkPath = zooKeeperParentPath.append(path);
+
+		// activate
+		activate();
 	}
 
 	@Override

@@ -26,12 +26,12 @@ public class AllZooKeeperEnsembleTests {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		ZooKeeperEnsembleHelper.startEnsemble();
+//		ZooKeeperEnsembleHelper.startEnsemble();
 	}
 
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		ZooKeeperEnsembleHelper.stopEnsemble();
+//		ZooKeeperEnsembleHelper.stopEnsemble();
 	}
 
 }
