@@ -40,6 +40,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,13 +64,15 @@ public class ZooKeeperGate {
 	/**
 	 * ZooKeeper extension to make protected methods visible for better
 	 * debugging.
+	 * 
+	 * @noinstantiate This class is not intended to be instantiated by clients.
 	 */
-	private static final class ZooKeeper extends org.apache.zookeeper.ZooKeeper {
-		public ZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher) throws IOException {
+	static final class DebuggableZooKeeper extends org.apache.zookeeper.ZooKeeper {
+		public DebuggableZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher) throws IOException {
 			super(connectString, sessionTimeout, watcher);
 		}
 
-		public ZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher, final long sessionId, final byte[] sessionPasswd) throws IOException {
+		public DebuggableZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher, final long sessionId, final byte[] sessionPasswd) throws IOException {
 			super(connectString, sessionTimeout, watcher, sessionId, sessionPasswd);
 		}
 
@@ -166,7 +169,7 @@ public class ZooKeeperGate {
 		gateListeners.remove(connectionMonitor);
 	}
 
-	private final ZooKeeper zooKeeper;
+	private final DebuggableZooKeeper zooKeeper;
 	private final ZooKeeperGateListener reconnectMonitor;
 
 	/**
@@ -225,7 +228,7 @@ public class ZooKeeperGate {
 			switch (event.getState()) {
 				case SyncConnected:
 					// SyncConnected ==> connection is UP
-					LOG.info("ZooKeeper Gate is now UP. Session {} established with {} (using timeout {}ms).", new Object[] { Long.toHexString(zooKeeper.getSessionId()), zooKeeper.testableRemoteSocketAddress(), zooKeeper.getSessionTimeout() });
+					LOG.info("ZooKeeper Gate is now UP. Session 0x{} established with {} (using timeout {}ms).", new Object[] { Long.toHexString(zooKeeper.getSessionId()), zooKeeper.testableRemoteSocketAddress(), zooKeeper.getSessionTimeout() });
 					KeeperState oldState = keeperStateRef.getAndSet(KeeperState.SyncConnected);
 
 					// reset recovery
@@ -299,7 +302,7 @@ public class ZooKeeperGate {
 		// initiate ZK connection
 		connectString = config.getConnectString();
 		sessionTimeout = config.getSessionTimeout();
-		zooKeeper = new ZooKeeper(connectString, sessionTimeout, gateWatcher);
+		zooKeeper = new DebuggableZooKeeper(connectString, sessionTimeout, gateWatcher);
 
 		// log message
 		if (CloudDebug.zooKeeperGateLifecycle) {
@@ -457,7 +460,7 @@ public class ZooKeeperGate {
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
-	 * @see {@link ZooKeeper#delete(String, int)}
+	 * @see {@link DebuggableZooKeeper#delete(String, int)}
 	 */
 	public void deletePath(final IPath path, final int version) throws InterruptedException, IOException, KeeperException {
 		if (path == null) {
@@ -659,7 +662,7 @@ public class ZooKeeperGate {
 	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
-	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
+	 * @see {@link DebuggableZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
 	public Collection<String> readChildrenNames(final IPath path, final Stat stat) throws InterruptedException, KeeperException {
 		return readChildrenNames(path, null, stat);
@@ -683,7 +686,7 @@ public class ZooKeeperGate {
 	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
-	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
+	 * @see {@link DebuggableZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
 	public Collection<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException {
 		if (path == null) {
@@ -768,7 +771,7 @@ public class ZooKeeperGate {
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
-	 * @see {@link ZooKeeper#getData(String, ZooKeeperMonitor, org.apache.zookeeper.data.Stat)}
+	 * @see {@link DebuggableZooKeeper#getData(String, ZooKeeperMonitor, org.apache.zookeeper.data.Stat)}
 	 */
 	public byte[] readRecord(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException, IOException {
 		if (path == null) {
@@ -792,7 +795,7 @@ public class ZooKeeperGate {
 	 * @throws InterruptedException
 	 * @throws KeeperException
 	 * @throws IOException
-	 * @see {@link ZooKeeper#setData(String, byte[], int)}
+	 * @see {@link DebuggableZooKeeper#setData(String, byte[], int)}
 	 */
 	private Stat setData(final IPath path, final CreateMode createMode, final byte[] data, final int version) throws InterruptedException, KeeperException, IOException {
 		if (path == null) {
