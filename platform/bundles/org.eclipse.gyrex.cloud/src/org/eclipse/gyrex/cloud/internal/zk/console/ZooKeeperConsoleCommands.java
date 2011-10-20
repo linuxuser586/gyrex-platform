@@ -29,7 +29,7 @@ public class ZooKeeperConsoleCommands extends BaseCommandProvider {
 		registerCommand("set", SetCmd.class);
 		registerCommand("stat", StatCmd.class);
 		registerCommand("sync", SyncCmd.class);
-		registerCommand("reset", ResetGateCmd.class);
+		registerCommand("reconnect", ReconnectGateCmd.class);
 	}
 
 	public void _zk(final CommandInterpreter ci) throws Exception {
