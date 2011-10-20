@@ -31,6 +31,7 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 
 	JobHistoryItemImpl(final long timestamp, final String message, final String trigger, final int severity) {
 		this.timestamp = timestamp;
+		// TODO: we may need to support full serialization (eg., MultiStatus and original plug-in id, exception may not work)
 		result = new Status(severity, JobsActivator.SYMBOLIC_NAME, StringUtils.trimToEmpty(message));
 		this.trigger = trigger;
 	}
