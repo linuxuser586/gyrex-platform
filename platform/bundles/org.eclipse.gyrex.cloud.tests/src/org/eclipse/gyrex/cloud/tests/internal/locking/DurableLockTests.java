@@ -216,6 +216,7 @@ public class DurableLockTests {
 		});
 
 		LOG.info("Shutting down ZooKeeper gate");
+		// TODO: we need to rework the test to test disconnect as well as session expired
 		ZooKeeperGate.get().testShutdown();
 
 		// lock must be invalid now

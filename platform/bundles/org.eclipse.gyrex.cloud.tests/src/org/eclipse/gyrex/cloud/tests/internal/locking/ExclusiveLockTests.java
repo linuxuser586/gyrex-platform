@@ -150,6 +150,7 @@ public class ExclusiveLockTests {
 		// note, we must set a latch to "2" because connected is called twice
 		// - first time when we register the monitor
 		// - second time when the reconnected happened actually
+		// TODO: we need to rework the test to test disconnect as well as session expired
 		final CountDownLatch reconnected = new CountDownLatch(2);
 		ZooKeeperGate.addConnectionMonitor(new ZooKeeperGateListener() {
 
