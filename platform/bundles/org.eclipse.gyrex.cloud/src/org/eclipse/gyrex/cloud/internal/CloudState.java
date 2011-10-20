@@ -621,7 +621,7 @@ public class CloudState implements ZooKeeperGateListener {
 	/**
 	 * Attempts registering the node in the cloud.
 	 * <p>
-	 * Called asynchronously after {@link #gateUp(ZooKeeperGate)} from
+	 * Called asynchronously after {@link #gateUp(ZooKeeperGate)} via
 	 * {@link RegistrationJob}.
 	 * </p>
 	 * 
@@ -675,6 +675,9 @@ public class CloudState implements ZooKeeperGateListener {
 
 				return false;
 			}
+
+			// set connected
+			state.set(State.CONNECTED);
 
 			// successful registration at this point
 			return true;
