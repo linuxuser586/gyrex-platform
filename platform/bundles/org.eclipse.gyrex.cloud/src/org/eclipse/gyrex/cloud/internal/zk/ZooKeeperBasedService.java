@@ -31,18 +31,28 @@ public abstract class ZooKeeperBasedService {
 	private final ZooKeeperGateListener connectionMonitor = new ZooKeeperGateListener() {
 		@Override
 		public void gateDown(final ZooKeeperGate gate) {
-			disconnect();
+			if (!isClosed()) {
+				disconnect();
+			}
 		}
 
 		@Override
 		public void gateRecovering(final ZooKeeperGate gate) {
-			// TODO Auto-generated method stub
-
+			if (!isClosed()) {
+				suspend();
+			}
 		}
 
 		@Override
-		public void gateUp(final ZooKeeperGate gate) {
-			reconnect();
+		public synchronized void gateUp(final ZooKeeperGate gate) {
+			if (!isClosed()) {
+				// synchronized on the monitor in order to prevent entering #reconnect while processing RECOVERING event
+				synchronized (this) {
+					if (!isClosed()) {
+						reconnect();
+					}
+				}
+			}
 		}
 	};
 
@@ -107,6 +117,9 @@ public abstract class ZooKeeperBasedService {
 	/**
 	 * Disconnects the service.
 	 * <p>
+	 * This method is invoked in re-action to a gate DOWN event.
+	 * </p>
+	 * <p>
 	 * The default implementation calls {@link #close()} which closes the
 	 * service. Subclasses may override and customize the behavior.
 	 * </p>
@@ -120,7 +133,6 @@ public abstract class ZooKeeperBasedService {
 		// auto-close service on disconnect
 		LOG.warn("Connection to the cloud has been lost. Closing active service {}.", ZooKeeperBasedService.this);
 		close();
-
 	}
 
 	/**
@@ -195,11 +207,14 @@ public abstract class ZooKeeperBasedService {
 	}
 
 	/**
-	 * Reconnects the service.
+	 * Connects the service.
 	 * <p>
-	 * The default implementation does nothing which basically means that
-	 * reconnection is not supported. Subclasses may override and customize the
-	 * behavior.
+	 * This method is invoked in re-action to a gate UP event. It indicates that
+	 * the connection to ZooKeeper has been established (again).
+	 * </p>
+	 * <p>
+	 * The default implementation does nothing. Subclasses may override and
+	 * customize the behavior.
 	 * </p>
 	 */
 	protected void reconnect() {
@@ -229,6 +244,24 @@ public abstract class ZooKeeperBasedService {
 				Thread.currentThread().interrupt();
 			}
 		}
+	}
+
+	/**
+	 * Suspends the service.
+	 * <p>
+	 * This method is invoked in re-action to a gate RECOVERING event. The
+	 * connection to ZooKeeper won't be available at this point. In case the
+	 * service operates with active state (eg. ephemeral nodes) important
+	 * operations might be suspended till the connection is re-established.
+	 * </p>
+	 * <p>
+	 * The default implementation calls {@link #disconnect()}. Subclasses must
+	 * override and customize the behavior if they want to support the suspended
+	 * state.
+	 * </p>
+	 */
+	protected void suspend() {
+		disconnect();
 	}
 
 	@Override
