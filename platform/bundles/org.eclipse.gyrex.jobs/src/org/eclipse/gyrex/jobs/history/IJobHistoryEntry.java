@@ -12,7 +12,6 @@
 package org.eclipse.gyrex.jobs.history;
 
 import org.eclipse.gyrex.jobs.IJob;
-import org.eclipse.gyrex.jobs.manager.IJobManager;
 
 import org.eclipse.core.runtime.IStatus;
 
@@ -36,6 +35,25 @@ import org.eclipse.core.runtime.IStatus;
 public interface IJobHistoryEntry extends Comparable<IJobHistoryEntry> {
 
 	/**
+	 * Returns the trigger specified when the the job producing the result was
+	 * cancelled.
+	 * 
+	 * @return the trigger specified when the the job producing the result was
+	 *         cancelled (may only be not <code>null</code> if the job execution
+	 *         was cancelled)
+	 */
+	String getCancelledTrigger();
+
+	/**
+	 * Returns the trigger specified when the the job producing the result was
+	 * queued.
+	 * 
+	 * @return the trigger specified when the the job producing the result was
+	 *         queued
+	 */
+	String getQueuedTrigger();
+
+	/**
 	 * Returns the status of the execution result.
 	 * 
 	 * @return a status (never <code>null</code>)
@@ -50,13 +68,4 @@ public interface IJobHistoryEntry extends Comparable<IJobHistoryEntry> {
 	 *         <code>1970-01-01T00:00:00Z</code> when the result was created
 	 */
 	long getTimeStamp();
-
-	/**
-	 * Returns the trigger of the execution
-	 * 
-	 * @return the trigger of the execution
-	 * @see {@link IJobManager#queueJob(String, String, String)}
-	 */
-	String getTrigger();
-
 }

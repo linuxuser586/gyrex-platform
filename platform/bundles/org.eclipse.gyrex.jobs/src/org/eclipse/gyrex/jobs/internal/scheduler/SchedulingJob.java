@@ -44,16 +44,12 @@ public class SchedulingJob implements Job {
 
 	private static final Logger LOG = LoggerFactory.getLogger(SchedulingJob.class);
 
-	private static final String TRIGGER_SCHEDULE = "schedule";
-
 	static final String INTERNAL_PROP_PREFIX = "gyrex.job.";
-
 	public static final String PROP_JOB_ID = INTERNAL_PROP_PREFIX + "id";
-
 	public static final String PROP_JOB_TYPE_ID = INTERNAL_PROP_PREFIX + "type";
-
 	public static final String PROP_JOB_CONTEXT_PATH = INTERNAL_PROP_PREFIX + "contextPath";
-
+	public static final String PROP_SCHEDULE_ID = INTERNAL_PROP_PREFIX + "scheduleId";
+	public static final String PROP_SCHEDULE_ENTRY_ID = INTERNAL_PROP_PREFIX + "scheduleEntryId";
 	public static final String PROP_ENABLED = INTERNAL_PROP_PREFIX + "enabled";
 
 	@Override
@@ -62,6 +58,8 @@ public class SchedulingJob implements Job {
 		final String jobId = dataMap.getString(PROP_JOB_ID);
 		final String jobTypeId = dataMap.getString(PROP_JOB_TYPE_ID);
 		final String jobContextPath = dataMap.getString(PROP_JOB_CONTEXT_PATH);
+		final String scheduleId = dataMap.getString(PROP_SCHEDULE_ID);
+		final String scheduleEntryId = dataMap.getString(PROP_SCHEDULE_ENTRY_ID);
 		final Boolean enabled = dataMap.containsKey(PROP_ENABLED) ? dataMap.getBooleanValue(PROP_ENABLED) : null;
 
 		if ((null != enabled) && !enabled) {
@@ -130,7 +128,7 @@ public class SchedulingJob implements Job {
 			}
 
 			// queue job
-			jobManager.queueJob(jobId, queue.getId(), TRIGGER_SCHEDULE);
+			jobManager.queueJob(jobId, queue.getId(), String.format("Schedule '%s' entry '%s'.", scheduleId, scheduleEntryId));
 		} catch (final Exception e) {
 			throw new JobExecutionException(String.format("Error queuing job '%s'. %s", jobId, e.getMessage()), e);
 		} finally {

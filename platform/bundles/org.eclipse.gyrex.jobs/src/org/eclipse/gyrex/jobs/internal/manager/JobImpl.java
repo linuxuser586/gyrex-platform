@@ -34,6 +34,7 @@ public class JobImpl implements IJob {
 
 	private long lastQueued;
 	private long lastStart;
+	private long lastCancelled;
 
 	private long lastSuccessfulFinish;
 
@@ -43,7 +44,8 @@ public class JobImpl implements IJob {
 
 	private boolean active;
 
-	private String lastTrigger;
+	private String lastQueuedTrigger;
+	private String lastCancelledTrigger;
 
 	/**
 	 * Creates a new instance.
@@ -60,6 +62,24 @@ public class JobImpl implements IJob {
 	@Override
 	public String getId() {
 		return id;
+	}
+
+	/**
+	 * Returns the lastCancelled.
+	 * 
+	 * @return the lastCancelled
+	 */
+	public long getLastCancelled() {
+		return lastCancelled;
+	}
+
+	/**
+	 * Returns the lastCancelledTrigger.
+	 * 
+	 * @return the lastCancelledTrigger
+	 */
+	public String getLastCancelledTrigger() {
+		return lastCancelledTrigger;
 	}
 
 	@Override
@@ -107,8 +127,8 @@ public class JobImpl implements IJob {
 	 * @return the lastTrigger
 	 */
 	@Override
-	public String getLastTrigger() {
-		return lastTrigger;
+	public String getLastQueuedTrigger() {
+		return lastQueuedTrigger;
 	}
 
 	/**
@@ -179,8 +199,38 @@ public class JobImpl implements IJob {
 		this.id = id;
 	}
 
+	/**
+	 * Sets the lastCancelled.
+	 * 
+	 * @param lastCancelled
+	 *            the lastCancelled to set
+	 */
+	public void setLastCancelled(final long lastCancelled) {
+		this.lastCancelled = lastCancelled;
+	}
+
+	/**
+	 * Sets the lastCancelledTrigger.
+	 * 
+	 * @param lastCancelledTrigger
+	 *            the lastCancelledTrigger to set
+	 */
+	public void setLastCancelledTrigger(final String lastCancelledTrigger) {
+		this.lastCancelledTrigger = lastCancelledTrigger;
+	}
+
 	public void setLastQueued(final long lastQueued) {
 		this.lastQueued = lastQueued;
+	}
+
+	/**
+	 * Set's the last trigger
+	 * 
+	 * @param lastTrigger
+	 *            the last trigger to set
+	 */
+	public void setLastQueuedTrigger(final String lastTrigger) {
+		lastQueuedTrigger = lastTrigger;
 	}
 
 	public void setLastResult(final long timestamp, final int severity, final String message) {
@@ -210,16 +260,6 @@ public class JobImpl implements IJob {
 	 */
 	public void setLastSuccessfulFinish(final long lastSuccessfullFinish) {
 		lastSuccessfulFinish = lastSuccessfullFinish;
-	}
-
-	/**
-	 * Set's the last trigger
-	 * 
-	 * @param lastTrigger
-	 *            the last trigger to set
-	 */
-	public void setLastTrigger(final String lastTrigger) {
-		this.lastTrigger = lastTrigger;
 	}
 
 	/**

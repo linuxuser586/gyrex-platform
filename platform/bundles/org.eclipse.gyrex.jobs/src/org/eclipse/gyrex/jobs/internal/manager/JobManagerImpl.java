@@ -38,7 +38,6 @@ import org.eclipse.gyrex.jobs.internal.worker.JobInfo;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
@@ -50,7 +49,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang.text.StrBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +104,9 @@ public class JobManagerImpl implements IJobManager {
 	static final String PROPERTY_STATUS = "status";
 	static final String PROPERTY_LAST_START = "lastStart";
 	static final String PROPERTY_LAST_QUEUED = "lastQueued";
-	static final String PROPERTY_LAST_TRIGGER = "lastTrigger";
+	static final String PROPERTY_LAST_QUEUED_TRIGGER = "lastQueuedTrigger";
+	static final String PROPERTY_LAST_CANCELLED = "lastCancelled";
+	static final String PROPERTY_LAST_CANCELLED_TRIGGER = "lastCancelledTrigger";
 	static final String PROPERTY_LAST_SUCCESSFUL_FINISH = "lastSuccessfulFinish";
 	static final String PROPERTY_LAST_RESULT_MESSAGE = "lastResultMessage";
 	static final String PROPERTY_LAST_RESULT_SEVERITY = "lastResultSeverity";
@@ -127,37 +127,6 @@ public class JobManagerImpl implements IJobManager {
 		return internalId.substring(i + 1);
 	}
 
-	static String getFormattedMessage(final IStatus status, final int ident) {
-		final StrBuilder builder = new StrBuilder();
-		builder.appendPadding(ident, ' ');
-		switch (status.getSeverity()) {
-			case IStatus.CANCEL:
-				builder.append("ABORT: ");
-				break;
-			case IStatus.ERROR:
-				builder.append("ERROR: ");
-				break;
-			case IStatus.WARNING:
-				builder.append("WARNING: ");
-				break;
-			case IStatus.INFO:
-				builder.append("INFO: ");
-				break;
-		}
-		builder.append(status.getMessage());
-		if (status.getCode() != 0) {
-			builder.append(" [code ").append(status.getCode()).append("]");
-		}
-		if (status.isMultiStatus()) {
-			final IStatus[] children = status.getChildren();
-			for (final IStatus child : children) {
-				builder.appendNewLine();
-				builder.append(getFormattedMessage(child, ident + 2));
-			}
-		}
-		return builder.toString();
-	}
-
 	public static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
 		// ensure the node is current (bug 360402)
 		// (note, this is really expensive, we don't perform it here but moved it to CleanupJob)
@@ -172,13 +141,15 @@ public class JobManagerImpl implements IJobManager {
 		job.setStatus(toState(node.get(PROPERTY_STATUS, null)));
 		job.setActive(node.getBoolean(PROPERTY_ACTIVE, false));
 		job.setLastStart(node.getLong(PROPERTY_LAST_START, -1));
-		job.setLastQueued(node.getLong(PROPERTY_LAST_QUEUED, -1));
 		job.setLastSuccessfulFinish(node.getLong(PROPERTY_LAST_SUCCESSFUL_FINISH, -1));
-		job.setLastTrigger(node.get(PROPERTY_LAST_TRIGGER, null));
 		final long lastResultTimestamp = node.getLong(PROPERTY_LAST_RESULT, -1);
 		if (lastResultTimestamp > -1) {
 			job.setLastResult(lastResultTimestamp, node.getInt(PROPERTY_LAST_RESULT_SEVERITY, IStatus.CANCEL), node.get(PROPERTY_LAST_RESULT_MESSAGE, ""));
 		}
+		job.setLastQueued(node.getLong(PROPERTY_LAST_QUEUED, -1));
+		job.setLastQueuedTrigger(node.get(PROPERTY_LAST_QUEUED_TRIGGER, null));
+		job.setLastCancelled(node.getLong(PROPERTY_LAST_CANCELLED, -1));
+		job.setLastCancelledTrigger(node.get(PROPERTY_LAST_CANCELLED_TRIGGER, null));
 
 		HashMap<String, String> jobParamater;
 		if (node.nodeExists(NODE_PARAMETER)) {
@@ -222,6 +193,23 @@ public class JobManagerImpl implements IJobManager {
 	private final long modifyLockTimeout;
 
 	static final String NODE_STATES = "status";
+
+	private static String findCaller() {
+		final StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+		if (trace.length == 0) {
+			return StringUtils.EMPTY;
+		}
+
+		// find first _none_ jobs API call
+		for (int i = 0; i < trace.length; i++) {
+			if (StringUtils.startsWith(trace[i].getClassName(), JobManagerImpl.class.getName())) {
+				continue;
+			}
+			return trace.toString();
+		}
+
+		return StringUtils.EMPTY;
+	}
 
 	private static String getInternalIdPrefix(final IRuntimeContext context) {
 		try {
@@ -279,9 +267,9 @@ public class JobManagerImpl implements IJobManager {
 			try {
 				// set state
 				setJobState(job, JobState.ABORTING, jobLock);
-				// set result
-				final IStatus result = new Status(IStatus.INFO, JobsActivator.SYMBOLIC_NAME, String.format("Cancelling triggered by '%s'", trigger));
-				setJobResult(job, result, System.currentTimeMillis(), jobLock);
+
+				// add cancellation note
+				setJobCancelled(job, System.currentTimeMillis(), null != trigger ? trigger : findCaller(), jobLock);
 			} catch (final BackingStoreException e) {
 				throw new IllegalStateException(String.format("Error canceling job %s. %s", jobId, e.getMessage()), e);
 			}
@@ -470,7 +458,7 @@ public class JobManagerImpl implements IJobManager {
 				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), job.getParameter())));
 
 				// set queued time
-				setJobQueued(job, System.currentTimeMillis(), trigger, jobLock);
+				setJobQueued(job, System.currentTimeMillis(), null != trigger ? trigger : findCaller(), jobLock);
 			} catch (final Exception e) {
 				// try to reset the job state
 				try {
@@ -577,6 +565,27 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 	}
 
+	/**
+	 * records cancellation time and trigger
+	 */
+	private void setJobCancelled(final IJob job, final long timestamp, final String trigger, final IExclusiveLock lock) throws BackingStoreException {
+		if ((null == lock) || !lock.isValid()) {
+			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
+		}
+
+		final String internalId = toInternalId(job.getId());
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
+			// don't update if removed
+			return;
+		}
+
+		// update job node
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
+		jobNode.putLong(PROPERTY_LAST_CANCELLED, timestamp);
+		jobNode.put(PROPERTY_LAST_CANCELLED_TRIGGER, trigger);
+		jobNode.flush();
+	}
+
 	private void setJobParameter(final IJob job, final Map<String, String> parameter, final IExclusiveLock lock) throws BackingStoreException {
 		if ((null == lock) || !lock.isValid()) {
 			throw new IllegalStateException(String.format("Unable to update parameter of job %s due to missing or lost job lock!", job.getId()));
@@ -613,6 +622,9 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 	}
 
+	/**
+	 * records queuing time and trigger.
+	 */
 	private void setJobQueued(final IJob job, final long timestamp, final String trigger, final IExclusiveLock lock) throws BackingStoreException {
 		if ((null == lock) || !lock.isValid()) {
 			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
@@ -627,7 +639,7 @@ public class JobManagerImpl implements IJobManager {
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_QUEUED, timestamp);
-		jobNode.put(PROPERTY_LAST_TRIGGER, trigger);
+		jobNode.put(PROPERTY_LAST_QUEUED_TRIGGER, trigger);
 		jobNode.flush();
 	}
 
@@ -648,7 +660,7 @@ public class JobManagerImpl implements IJobManager {
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_RESULT, resultTimestamp);
-		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, getFormattedMessage(result, 0));
+		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, JobHistoryImpl.getFormattedMessage(result, 0));
 		jobNode.putInt(PROPERTY_LAST_RESULT_SEVERITY, result.getSeverity());
 		if (!result.matches(IStatus.CANCEL | IStatus.ERROR)) {
 			// every run that does not result in ERROR or CANCEL is considered successful
@@ -658,7 +670,7 @@ public class JobManagerImpl implements IJobManager {
 
 		// save history
 		final JobHistoryImpl history = JobHistoryStore.create(internalId, job.getId(), context);
-		history.createEntry(resultTimestamp, getFormattedMessage(result, 0), jobNode.get(PROPERTY_LAST_TRIGGER, ""), result.getSeverity());
+		history.createEntry(resultTimestamp, result, job.getLastQueued(), job.getLastQueuedTrigger(), job.getLastCancelled(), job.getLastCancelledTrigger());
 		JobHistoryStore.flush(internalId, history);
 	}
 

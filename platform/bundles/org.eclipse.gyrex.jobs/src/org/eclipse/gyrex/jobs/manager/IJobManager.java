@@ -82,13 +82,19 @@ public interface IJobManager {
 	 * This method is a no-op if the job state is neither
 	 * {@link JobState#RUNNING} nor {@link JobState#WAITING}.
 	 * </p>
+	 * <p>
+	 * A trigger may be specified in order to record in the history who or what
+	 * triggered the cancellation of the job. If trigger is <code>null</code> a
+	 * default string will be used. Callers may specify an empty string in order
+	 * to suppress generation of the default string.
+	 * </p>
 	 * 
 	 * @param jobId
 	 *            the id of the job to cancel
 	 * @param trigger
-	 *            Saved in the jobs history. Should be any free text, that
-	 *            describes who or which system triggered of the queuing. Must
-	 *            not be <code>null</code> but might be empty.
+	 *            any free text that will be saved in the job history and
+	 *            describes who or what triggered cancellation of the job (may
+	 *            be <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if the job id is invalid
 	 * @throws IllegalStateException
@@ -178,6 +184,12 @@ public interface IJobManager {
 	 * queue no job will ever be executed.
 	 * </p>
 	 * <p>
+	 * A trigger may be specified in order to record in the history who or what
+	 * triggered the execution of the job. If trigger is <code>null</code> a
+	 * default string will be used. Callers may specify an empty string in order
+	 * to suppress generation of the default string.
+	 * </p>
+	 * <p>
 	 * This method will fail if the {@link IJob#getState() job state} is
 	 * <strong>not</strong> {@link JobState#NONE}. Otherwise as a result of this
 	 * operation the {@link IJob#getState() job state} will be set to
@@ -190,9 +202,9 @@ public interface IJobManager {
 	 *            the id of the queue to add the job to (may be
 	 *            <code>null</code> for {@link #DEFAULT_QUEUE})
 	 * @param trigger
-	 *            Saved in the jobs history. Should be any free text, that
-	 *            describes who or which system triggered of the queuing. Must
-	 *            not be <code>null</code> but might be empty.
+	 *            any free text that will be saved in the job history and
+	 *            describes who or what triggered queuing of the job (may be
+	 *            <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
 	 * @throws IllegalStateException

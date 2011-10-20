@@ -12,10 +12,8 @@
 package org.eclipse.gyrex.jobs.internal.manager;
 
 import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
-import org.eclipse.gyrex.jobs.internal.JobsActivator;
 
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
@@ -26,14 +24,15 @@ import org.apache.commons.lang.time.DateFormatUtils;
 final class JobHistoryItemImpl implements IJobHistoryEntry {
 
 	private final IStatus result;
-	private final String trigger;
 	private final long timestamp;
+	private final String queuedTrigger;
+	private final String cancelledTrigger;
 
-	JobHistoryItemImpl(final long timestamp, final String message, final String trigger, final int severity) {
+	JobHistoryItemImpl(final long timestamp, final IStatus result, final String queuedTrigger, final String cancelledTrigger) {
 		this.timestamp = timestamp;
-		// TODO: we may need to support full serialization (eg., MultiStatus and original plug-in id, exception may not work)
-		result = new Status(severity, JobsActivator.SYMBOLIC_NAME, StringUtils.trimToEmpty(message));
-		this.trigger = trigger;
+		this.result = result;
+		this.queuedTrigger = queuedTrigger;
+		this.cancelledTrigger = cancelledTrigger;
 	}
 
 	@Override
@@ -85,6 +84,16 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 	}
 
 	@Override
+	public String getCancelledTrigger() {
+		return cancelledTrigger;
+	}
+
+	@Override
+	public String getQueuedTrigger() {
+		return queuedTrigger;
+	}
+
+	@Override
 	public IStatus getResult() {
 		return result;
 	}
@@ -95,15 +104,10 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 	}
 
 	@Override
-	public String getTrigger() {
-		return trigger;
-	}
-
-	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = (prime * result) + this.result.hashCode(); // result is never null
+		result = (prime * result) + this.result.getMessage().hashCode(); // result is never null
 		result = (prime * result) + this.result.getSeverity();
 		result = (prime * result) + (int) (timestamp ^ (timestamp >>> 32));
 		return result;

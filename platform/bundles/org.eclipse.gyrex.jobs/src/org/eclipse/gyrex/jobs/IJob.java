@@ -71,6 +71,25 @@ public interface IJob {
 
 	/**
 	 * Returns the milliseconds from the Java epoch of
+	 * <code>1970-01-01T00:00:00Z</code> when the job was last cancelled.
+	 * 
+	 * @return the milliseconds from the Java epoch of
+	 *         <code>1970-01-01T00:00:00Z</code> when the job was last
+	 *         cancelled, or <code>-1</code> if the job was never cancelled
+	 *         until now
+	 */
+	long getLastCancelled();
+
+	/**
+	 * Returns the trigger specified when the the job was last canceled.
+	 * 
+	 * @return the trigger specified when the the job was last canceled or
+	 *         <code>null</code> if the job has not been canceled until now
+	 */
+	String getLastCancelledTrigger();
+
+	/**
+	 * Returns the milliseconds from the Java epoch of
 	 * <code>1970-01-01T00:00:00Z</code> when the job was last queued.
 	 * 
 	 * @return the milliseconds from the Java epoch of
@@ -78,6 +97,14 @@ public interface IJob {
 	 *         or <code>-1</code> if the job was never queued until now
 	 */
 	long getLastQueued();
+
+	/**
+	 * Returns the trigger specified when the the job was last queued.
+	 * 
+	 * @return the trigger specified when the the job was last queued or
+	 *         <code>null</code> if the job has not been queued until now
+	 */
+	String getLastQueuedTrigger();
 
 	/**
 	 * Returns the last result of the job execution.
@@ -108,14 +135,6 @@ public interface IJob {
 	 *         now
 	 */
 	long getLastSuccessfulFinish();
-
-	/**
-	 * Returns the last trigger of the job
-	 * 
-	 * @return the last trigger of the job or <code>null</code> if the job has
-	 *         not been queued until now
-	 */
-	String getLastTrigger();
 
 	/**
 	 * A map of all parameter defined for the job.

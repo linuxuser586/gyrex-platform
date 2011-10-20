@@ -204,6 +204,9 @@ public class Schedule implements IPreferenceChangeListener {
 			detail.getJobDataMap().put(SchedulingJob.PROP_ENABLED, entry.isEnabled());
 			// put context path
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_CONTEXT_PATH, ensureScheduleData(Boolean.FALSE).getContextPath().toString());
+			// put schedule details
+			detail.getJobDataMap().put(SchedulingJob.PROP_SCHEDULE_ID, ensureScheduleData(Boolean.FALSE).getId());
+			detail.getJobDataMap().put(SchedulingJob.PROP_SCHEDULE_ENTRY_ID, entry.getId());
 
 			final String cronExpression = entry.getCronExpression();
 			final CronTrigger trigger = new CronTrigger(entry.getId());
