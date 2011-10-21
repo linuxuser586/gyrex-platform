@@ -719,8 +719,10 @@ public class CloudState implements ZooKeeperGateListener {
 			}
 		}
 
-		// stop cloud services
-		CloudActivator.getInstance().stopCloudServices();
+		// stop cloud services (only on full offline)
+		if (!interruptOnly) {
+			CloudActivator.getInstance().stopCloudServices();
+		}
 
 		// stop node metrics reporter
 		NodeMetricsReporter.stop();
