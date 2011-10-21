@@ -12,20 +12,21 @@
 package org.eclipse.gyrex.cloud.internal.zk;
 
 import java.io.File;
-import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Map;
 
+import org.eclipse.gyrex.boot.internal.app.ServerApplication;
+import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 import org.eclipse.gyrex.server.Platform;
 
-import org.apache.zookeeper.server.NIOServerCnxn;
+import org.eclipse.core.runtime.IPath;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.server.PurgeTxnLog;
-import org.apache.zookeeper.server.ZKDatabase;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
-import org.apache.zookeeper.server.quorum.QuorumPeer;
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,10 +39,8 @@ public class ZooKeeperServerApplication extends BaseApplication {
 
 	static volatile ZooKeeperGateApplication connectedGateApplication;
 
-	private NIOServerCnxn.Factory factory;
-	private QuorumPeer quorumPeer;
-
 	private ZooKeeperServer zkServer;
+	private Object factory;
 
 	/**
 	 * Creates a new instance.
@@ -50,34 +49,35 @@ public class ZooKeeperServerApplication extends BaseApplication {
 		debug = CloudDebug.zooKeeperServer;
 	}
 
-	@Override
-	protected void doStart(final Map arguments) throws Exception {
-		// create config
-		final ZooKeeperServerConfig config = new ZooKeeperServerConfig();
-
-		// load config file if available
-		final File zkConfigFile = Platform.getInstanceLocation().append("etc/zookeeper.properties").toFile();
-		if (zkConfigFile.isFile() && zkConfigFile.canRead()) {
-			final String zkConfigFilePath = zkConfigFile.getAbsolutePath();
-			LOG.warn("Running ZooKeeper with external configuration: {}", zkConfigFilePath);
-			try {
-				config.parse(zkConfigFilePath);
-			} catch (final ConfigException e) {
-				LOG.error("Error in ZooKeeper configuration (file {}). {}", zkConfigFilePath, e.getMessage());
-				throw e;
-			}
-		} else {
-			if (CloudDebug.zooKeeperServer) {
-				LOG.debug("Running with managed ZooKeeper configuration.");
-			}
-			config.readFromPreferences();
+	private Object createFactory(final InetSocketAddress socketAddress, final int maxClientConnextions) throws Exception {
+		// try ZooKeeper 3.4 way
+		try {
+			return CloudActivator.getInstance().getBundle().loadClass("org.apache.zookeeper.server.ServerCnxnFactory").getMethod("createFactory", InetSocketAddress.class, Integer.TYPE).invoke(null, socketAddress, maxClientConnextions);
+		} catch (final Exception e) {
+			LOG.debug("ZooKeeper 3.4 API not available. Falling back to ZooKeeper 3.3 API.");
 		}
 
-		// check which server type to launch
-		if (config.getServers().size() > 1) {
-			runEnsemble(config);
-		} else {
-			runStandalone(config);
+		// fallback to ZooKeeper 3.3 way
+		// FIXME: remove this once we upgraded (bug 361524)
+		try {
+			return CloudActivator.getInstance().getBundle().loadClass("org.apache.zookeeper.server.NIOServerCnxn$Factory").getConstructor(InetSocketAddress.class, Integer.TYPE).newInstance(socketAddress, maxClientConnextions);
+		} catch (final Exception e) {
+			throw new IllegalStateException("Unable to create ZooKeeper NIO Factory using 3.3 API.", e);
+		}
+	}
+
+	@Override
+	protected void doStart(final Map arguments) throws Exception {
+		try {
+			runStandaloneEmbedded();
+		} catch (final Exception e) {
+			// shutdown the whole server
+			if (Platform.inDevelopmentMode()) {
+				ServerApplication.shutdown(new Exception("Could not start the embedded ZooKeeper server. " + ExceptionUtils.getRootCauseMessage(e), e));
+			} else {
+				LOG.error("Unable to start embedded ZooKeeper. {}", ExceptionUtils.getRootCauseMessage(e), e);
+			}
+			throw new StartAbortedException();
 		}
 	}
 
@@ -109,7 +109,11 @@ public class ZooKeeperServerApplication extends BaseApplication {
 			if (CloudDebug.zooKeeperServer) {
 				LOG.debug("Shutting down standalone ZooKeeper server...");
 			}
-			factory.shutdown();
+			try {
+				factory.getClass().getMethod("shutdown").invoke(factory);
+			} catch (final Exception e) {
+				LOG.error("Error stopping server {}. {}", new Object[] { factory, ExceptionUtils.getRootCauseMessage(e), e });
+			}
 			factory = null;
 
 			if (zkServer.isRunning()) {
@@ -120,16 +124,6 @@ public class ZooKeeperServerApplication extends BaseApplication {
 			LOG.info("ZooKeeper server stopped.");
 		}
 
-		// shutdown ensemble node if still running
-		if (null != quorumPeer) {
-			if (CloudDebug.zooKeeperServer) {
-				LOG.debug("Shutting down ensemble node...");
-			}
-			quorumPeer.shutdown();
-			quorumPeer = null;
-			LOG.info("ZooKeeper ensemble node stopped.");
-		}
-
 		return EXIT_OK;
 	}
 
@@ -138,58 +132,14 @@ public class ZooKeeperServerApplication extends BaseApplication {
 		return LOG;
 	}
 
-	private void runEnsemble(final ZooKeeperServerConfig config) throws IOException {
-		/*
-		 * note, we could migrate everything into preferences; but this requires
-		 * to keep up with every ZooKeeper change;
-		 * A ZooKeeper ensemble should be taken seriously. Having this protection in
-		 * place ensures that administrator writes a ZooKeeper configuration file
-		 * and understands the implications of this.
-		 */
-		// sanity check that config is not preferences based
-		if (config.isPreferencesBased()) {
-			throw new IllegalArgumentException("Please create a ZooKeeper configuration file in order to setup an ensamble.");
-		}
-
-		// get directories
-		final File dataDir = new File(config.getDataLogDir());
-		final File snapDir = new File(config.getDataDir());
-
-		// clean old logs
-		PurgeTxnLog.purge(dataDir, snapDir, 3);
-
-		// create NIO factory
-		final NIOServerCnxn.Factory cnxnFactory = new NIOServerCnxn.Factory(config.getClientPortAddress(), config.getMaxClientCnxns());
-
-		// create server
-		quorumPeer = new QuorumPeer();
-		quorumPeer.setClientPortAddress(config.getClientPortAddress());
-		quorumPeer.setTxnFactory(new FileTxnSnapLog(dataDir, snapDir));
-		quorumPeer.setQuorumPeers(config.getServers());
-		quorumPeer.setElectionType(config.getElectionAlg());
-		quorumPeer.setMyid(config.getServerId());
-		quorumPeer.setTickTime(config.getTickTime());
-		quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
-		quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
-		quorumPeer.setInitLimit(config.getInitLimit());
-		quorumPeer.setSyncLimit(config.getSyncLimit());
-		quorumPeer.setQuorumVerifier(config.getQuorumVerifier());
-		quorumPeer.setCnxnFactory(cnxnFactory);
-		quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
-		quorumPeer.setLearnerType(config.getPeerType());
-
-		// start server
-		LOG.info("Starting ZooKeeper ensemble node.");
-		quorumPeer.start();
-	}
-
-	private void runStandalone(final ZooKeeperServerConfig config) throws IOException {
+	private void runStandaloneEmbedded() throws Exception {
 		// disable LOG4J JMX stuff
 		System.setProperty("zookeeper.jmx.log4j.disable", Boolean.TRUE.toString());
 
 		// get directories
-		final File dataDir = new File(config.getDataLogDir());
-		final File snapDir = new File(config.getDataDir());
+		final IPath zkBase = Platform.getInstanceLocation().append("zookeeper");
+		final File dataDir = zkBase.toFile();
+		final File snapDir = zkBase.append("logs").toFile();
 
 		// clean old logs
 		PurgeTxnLog.purge(dataDir, snapDir, 3);
@@ -197,19 +147,17 @@ public class ZooKeeperServerApplication extends BaseApplication {
 		// create standalone server
 		zkServer = new ZooKeeperServer();
 		zkServer.setTxnLogFactory(new FileTxnSnapLog(dataDir, snapDir));
-		zkServer.setTickTime(config.getTickTime());
-		zkServer.setMinSessionTimeout(config.getMinSessionTimeout());
-		zkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
 
-		factory = new NIOServerCnxn.Factory(config.getClientPortAddress(), config.getMaxClientCnxns());
+		// rely on defaults for the following values
+		zkServer.setTickTime(ZooKeeperServer.DEFAULT_TICK_TIME);
+		zkServer.setMinSessionTimeout(2 * ZooKeeperServer.DEFAULT_TICK_TIME);
+		zkServer.setMaxSessionTimeout(10 * ZooKeeperServer.DEFAULT_TICK_TIME);
+
+		// start factory on default port
+		factory = createFactory(new InetSocketAddress(2181), 10);
 
 		// start server
 		LOG.info("Starting ZooKeeper standalone server.");
-		try {
-			factory.startup(zkServer);
-		} catch (final InterruptedException e) {
-			LOG.warn("Interrupted during server start.", e);
-			Thread.currentThread().interrupt();
-		}
+		factory.getClass().getMethod("startup", ZooKeeperServer.class).invoke(factory, zkServer);
 	}
 }
