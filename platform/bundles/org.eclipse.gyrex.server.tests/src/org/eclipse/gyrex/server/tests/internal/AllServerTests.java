@@ -11,7 +11,6 @@
  */
 package org.eclipse.gyrex.server.tests.internal;
 
-import org.eclipse.gyrex.cloud.tests.internal.AllCloudTests;
 import org.eclipse.gyrex.context.tests.internal.AllContextTests;
 import org.eclipse.gyrex.persistence.tests.internal.AllPersistenceTests;
 import org.eclipse.gyrex.preferences.tests.internal.AllPreferencesTests;
@@ -25,7 +24,7 @@ import org.junit.runners.Suite.SuiteClasses;
  *
  */
 @RunWith(Suite.class)
-@SuiteClasses({ AllCloudTests.class, AllPreferencesTests.class, AllPersistenceTests.class, AllContextTests.class, AllSolrCdsTests.class })
+@SuiteClasses({ AllPreferencesTests.class, AllPersistenceTests.class, AllContextTests.class, AllSolrCdsTests.class })
 public class AllServerTests {
 
 }
