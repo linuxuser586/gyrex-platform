@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.gyrex.cloud.queue.commands.component">
-   <implementation class="org.eclipse.gyrex.cloud.internal.queue.console.QueueConsoleCommands"/>
-   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
-   <property name="service.description" type="String" value="OSGi Console commands for ZooKeeper based Queue service."/>
-   <service>
-      <provide interface="org.eclipse.osgi.framework.console.CommandProvider"/>
-   </service>
-</scr:component>
