@@ -631,8 +631,12 @@ public class CloudState implements ZooKeeperGateListener {
 		// synchronize in order to prevent concurrent registrations
 		registrationLock.lock();
 		try {
-			if (getConnectState() != State.CONNECTING) {
+			final State connectState = getConnectState();
+			if (connectState != State.CONNECTING) {
 				// abort when state is not connecting
+				if (CloudDebug.debug) {
+					LOG.debug("Aborting cloud registration due to invalid state ({}).", connectState);
+				}
 				return false;
 			}
 
@@ -643,11 +647,7 @@ public class CloudState implements ZooKeeperGateListener {
 				LOG.info("Node {} initialized.", nodeInfo);
 			} catch (final Exception e) {
 				// log error
-				if (CloudDebug.debug) {
-					LOG.error("Unable to initialize node info. Node will not be available in cloud. {}", new Object[] { e.getMessage(), e });
-				} else {
-					LOG.error("Unable to initialize node info. Node will not be available in cloud. {}", new Object[] { e.getMessage() });
-				}
+				LOG.error("Unable to initialize node info. Node will not be available in cloud. {}", new Object[] { ExceptionUtils.getRootCauseMessage(e), e });
 				return false;
 			}
 

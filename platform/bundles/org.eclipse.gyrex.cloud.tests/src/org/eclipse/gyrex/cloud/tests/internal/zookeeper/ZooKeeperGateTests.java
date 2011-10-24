@@ -146,11 +146,10 @@ public class ZooKeeperGateTests extends ZKTestCase {
 		final QuorumUtil qu = new QuorumUtil(2); // note, 1 is not enough as we need a quorum
 		qu.startAll();
 
+		final CountdownCloudStateHandler cloudState = new CountdownCloudStateHandler();
+
 		final ICloudManager cloudManager = CloudTestsActivator.getInstance().getService(ICloudManager.class);
 		final String myNodeId = cloudManager.getLocalInfo().getNodeId();
-
-		assertEquals("only-one-node-should-be-online", 1, cloudManager.getOnlineNodes().size());
-		assertEquals("only-this-node-should-be-online", myNodeId, cloudManager.getOnlineNodes().iterator().next());
 
 		final INodeConfigurer configurer = cloudManager.getNodeConfigurer(myNodeId);
 		final String connectString = qu.getConnString(); //ZooKeeperEnsembleHelper.getClientConnectString();
@@ -167,13 +166,28 @@ public class ZooKeeperGateTests extends ZKTestCase {
 		assertTrue("queue-not-empty-more-state-events-than-expected", cloudStateQueue.isEmpty());
 
 		// wait for the gate to become UP again
-		waitForGate(CONNECT_TIMEOUT);
+		new CountdownGateListener().waitForUp(CONNECT_TIMEOUT);
+
+		// now sleep a little to allow CloudState to populate ZK correctly
+		Thread.sleep(2000);
+
+		assertEquals("No node should be online", 0, cloudManager.getOnlineNodes().size());
+		assertEquals("One node should be pending.", 1, cloudManager.getPendingNodes().size());
+		assertEquals("This node should be pending.", myNodeId, cloudManager.getPendingNodes().iterator().next().getId());
+		assertEquals("No node should be approved.", 0, cloudManager.getApprovedNodes().size());
 
 		// now approve node
+		cloudState.reset();
 		ZooKeeperNodeInfo.approve(myNodeId, "test-client", "localhost");
 
-		// sleep a little to allow event propagate
-		Thread.sleep(5000);
+		// wait for cloud to become online
+		cloudState.waitForOnline(CONNECT_TIMEOUT);
+
+		assertEquals("One node should be online", 1, cloudManager.getOnlineNodes().size());
+		assertEquals("This node should be online.", myNodeId, cloudManager.getOnlineNodes().iterator().next());
+		assertEquals("One node should be approved.", 1, cloudManager.getApprovedNodes().size());
+		assertEquals("This node should be approved.", myNodeId, cloudManager.getApprovedNodes().iterator().next().getId());
+		assertEquals("No node should be pending.", 0, cloudManager.getPendingNodes().size());
 
 		// cloud should now become online, i.e. last item on the queue must be an ONLINE event
 		final CloudState s2 = cloudStateQueue.pollLast(20, TimeUnit.SECONDS);
@@ -188,20 +202,18 @@ public class ZooKeeperGateTests extends ZKTestCase {
 		// now check the gate is connected to the correct node
 		assertEquals("connect-string-must-match", connectString, ZooKeeperGate.get().getConnectString());
 
-		// the the connected server
+		// find the connected server
 		final int peer = findTargetPeer(qu);
 
 		// clear queue
 		cloudStateQueue.clear();
+		cloudState.reset();
 
 		// kill the server the client is connected to
 		qu.shutdown(peer);
 
 		// wait for re-connect
-		waitForGate(CONNECT_TIMEOUT);
-
-		// sleep a little to allow event propagate
-		Thread.sleep(5000);
+		cloudState.waitForOnline(CONNECT_TIMEOUT);
 
 		// events in the queue should not be INTERRUPTED -> ONLINE
 		assertEquals("should have two events in queue", 2, cloudStateQueue.size());
@@ -209,22 +221,6 @@ public class ZooKeeperGateTests extends ZKTestCase {
 		assertEquals("should have triggered", CloudState.ONLINE, cloudStateQueue.poll());
 
 		qu.shutdownAll();
-	}
-
-	private void waitForGate(final int timeout) throws InterruptedException, IllegalStateException {
-		final CountDownGateListener listener = new CountDownGateListener();
-
-		ZooKeeperGate.addConnectionMonitor(listener);
-		try {
-			getZooKeeperFromGate();
-		} catch (final IllegalStateException e) {
-			if (!listener.awaitUp(timeout)) {
-				throw new IllegalStateException("timeout waiting for gate to come up");
-			}
-		} finally {
-			ZooKeeperGate.removeConnectionMonitor(listener);
-		}
-
 	}
 
 }

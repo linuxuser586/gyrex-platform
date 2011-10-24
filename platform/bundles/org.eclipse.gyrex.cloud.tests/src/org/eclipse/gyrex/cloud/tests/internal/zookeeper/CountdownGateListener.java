@@ -11,42 +11,30 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.tests.internal.zookeeper;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener;
 
-public final class CountDownGateListener implements ZooKeeperGateListener {
+import org.apache.zookeeper.ZooKeeper;
+
+public final class CountdownGateListener implements ZooKeeperGateListener {
 
 	private CountDownLatch upLatch;
-	private CountDownLatch downLatch;
-	private CountDownLatch recoveringLatch;
 
-	public CountDownGateListener() {
+	public CountdownGateListener() {
 		reset();
-	}
-
-	public boolean awaitDown(final int timeout) throws InterruptedException {
-		return downLatch.await(timeout, TimeUnit.MILLISECONDS);
-	}
-
-	public boolean awaitRecovering(final int timeout) throws InterruptedException {
-		return recoveringLatch.await(timeout, TimeUnit.MILLISECONDS);
-	}
-
-	public boolean awaitUp(final int timeout) throws InterruptedException {
-		return upLatch.await(timeout, TimeUnit.MILLISECONDS);
 	}
 
 	@Override
 	public synchronized void gateDown(final ZooKeeperGate gate) {
-		downLatch.countDown();
 	}
 
 	@Override
 	public synchronized void gateRecovering(final ZooKeeperGate gate) {
-		recoveringLatch.countDown();
 	}
 
 	@Override
@@ -54,9 +42,35 @@ public final class CountDownGateListener implements ZooKeeperGateListener {
 		upLatch.countDown();
 	}
 
+	private ZooKeeper getZooKeeperFromGate() throws IllegalStateException {
+		try {
+			final Method ensureConnected = ZooKeeperGate.class.getDeclaredMethod("ensureConnected");
+			if (!ensureConnected.isAccessible()) {
+				ensureConnected.setAccessible(true);
+			}
+			return (ZooKeeper) ensureConnected.invoke(ZooKeeperGate.get());
+		} catch (final IllegalStateException e) {
+			throw e;
+		} catch (final Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public synchronized void reset() {
 		upLatch = new CountDownLatch(1);
-		downLatch = new CountDownLatch(1);
-		recoveringLatch = new CountDownLatch(1);
 	}
+
+	public void waitForUp(final int timeout) throws InterruptedException, TimeoutException {
+		ZooKeeperGate.addConnectionMonitor(this);
+		try {
+			getZooKeeperFromGate();
+		} catch (final IllegalStateException e) {
+			if (!upLatch.await(timeout, TimeUnit.MILLISECONDS)) {
+				throw new TimeoutException("timeout waiting for gate to come up");
+			}
+		} finally {
+			ZooKeeperGate.removeConnectionMonitor(this);
+		}
+	}
+
 }
