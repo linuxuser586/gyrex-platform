@@ -707,8 +707,10 @@ public class CloudState implements ZooKeeperGateListener {
 	}
 
 	private void setNodeOffline(final NodeInfo node, final boolean interruptOnly) throws Exception {
-		// send offline event
-		sendNodeEvent(node, interruptOnly ? ICloudEventConstants.TOPIC_NODE_INTERRUPTED : ICloudEventConstants.TOPIC_NODE_OFFLINE);
+		// send offline event (but only if the node was approved)
+		if (node.isApproved()) {
+			sendNodeEvent(node, interruptOnly ? ICloudEventConstants.TOPIC_NODE_INTERRUPTED : ICloudEventConstants.TOPIC_NODE_OFFLINE);
+		}
 
 		// de-activate all roles (if not interrupted)
 		if (!interruptOnly) {
