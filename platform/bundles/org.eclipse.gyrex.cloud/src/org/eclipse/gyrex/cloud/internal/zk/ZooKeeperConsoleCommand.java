@@ -33,7 +33,7 @@ public abstract class ZooKeeperConsoleCommand extends Command {
 	protected final void doExecute() throws Exception {
 		ZooKeeper keeper = null;
 		try {
-			keeper = ZooKeeperGate.get().ensureConnected();
+			keeper = ZooKeeperGate.get().getZooKeeper();
 		} catch (final Exception e) {
 			printf("ERROR: ZooKeeper not connected! %s", e.getMessage());
 			return;

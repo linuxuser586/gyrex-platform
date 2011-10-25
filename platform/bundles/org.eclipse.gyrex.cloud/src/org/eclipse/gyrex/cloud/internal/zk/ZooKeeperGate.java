@@ -127,13 +127,13 @@ public class ZooKeeperGate {
 	 * Returns the current active gate.
 	 * 
 	 * @return the active gate
-	 * @throws IllegalStateException
+	 * @throws GateDownException
 	 *             if the gate is DOWN
 	 */
-	public static ZooKeeperGate get() throws IllegalStateException {
+	public static ZooKeeperGate get() throws GateDownException {
 		final ZooKeeperGate gate = instanceRef.get();
 		if (gate == null) {
-			throw new IllegalStateException(gateDownError(null));
+			throw new GateDownException(gateDownError(null));
 		}
 		return gate;
 	}
@@ -319,10 +319,10 @@ public class ZooKeeperGate {
 		}
 
 		// create all parents
-		ZooKeeperHelper.createParents(ensureConnected(), path);
+		ZooKeeperHelper.createParents(getZooKeeper(), path);
 
 		// create node itself
-		return new Path(ensureConnected().create(path.toString(), data, ZooDefs.Ids.OPEN_ACL_UNSAFE, createMode));
+		return new Path(getZooKeeper().create(path.toString(), data, ZooDefs.Ids.OPEN_ACL_UNSAFE, createMode));
 	}
 
 	/**
@@ -420,13 +420,13 @@ public class ZooKeeperGate {
 
 		try {
 			// delete all children
-			final List<String> children = ensureConnected().getChildren(path.toString(), false);
+			final List<String> children = getZooKeeper().getChildren(path.toString(), false);
 			for (final String child : children) {
 				deletePath(path.append(child));
 			}
 
 			// delete node itself
-			ensureConnected().delete(path.toString(), -1);
+			getZooKeeper().delete(path.toString(), -1);
 		} catch (final KeeperException e) {
 			if (e.code() != Code.NONODE) {
 				throw e;
@@ -468,20 +468,13 @@ public class ZooKeeperGate {
 		}
 
 		// delete all children
-		final List<String> children = ensureConnected().getChildren(path.toString(), false);
+		final List<String> children = getZooKeeper().getChildren(path.toString(), false);
 		for (final String child : children) {
 			deletePath(path.append(child));
 		}
 
 		// delete node itself
-		ensureConnected().delete(path.toString(), version);
-	}
-
-	final ZooKeeper ensureConnected() throws IllegalStateException {
-		if (!zooKeeper.getState().isAlive()) {
-			throw new IllegalStateException(gateDownError(this));
-		}
-		return zooKeeper;
+		getZooKeeper().delete(path.toString(), version);
 	}
 
 	/**
@@ -519,7 +512,7 @@ public class ZooKeeperGate {
 			throw new IllegalArgumentException("path must not be null");
 		}
 		try {
-			return ensureConnected().exists(path.toString(), monitor) != null;
+			return getZooKeeper().exists(path.toString(), monitor) != null;
 		} catch (final KeeperException e) {
 			throw e;
 		}
@@ -551,7 +544,7 @@ public class ZooKeeperGate {
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	public long getSessionId() {
-		return ensureConnected().getSessionId();
+		return getZooKeeper().getSessionId();
 	}
 
 	/**
@@ -567,6 +560,13 @@ public class ZooKeeperGate {
 	 */
 	public int getSessionTimeout() {
 		return sessionTimeout;
+	}
+
+	final ZooKeeper getZooKeeper() {
+		// note, we don't perform any checks here but simply return what we have
+		// this is essential because downstream code should rely on KeeperException
+		// as thrown by ZooKeeper itself instead of also handling our custom logic
+		return zooKeeper;
 	}
 
 	private void handleBrokenListener(final ZooKeeperGateListener listener, final Throwable t) {
@@ -692,7 +692,7 @@ public class ZooKeeperGate {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
-		return ensureConnected().getChildren(path.toString(), watch, stat);
+		return getZooKeeper().getChildren(path.toString(), watch, stat);
 	}
 
 	/**
@@ -777,7 +777,7 @@ public class ZooKeeperGate {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
-		return ensureConnected().getData(path.toString(), watch, stat);
+		return getZooKeeper().getData(path.toString(), watch, stat);
 	}
 
 	/**
@@ -816,7 +816,7 @@ public class ZooKeeperGate {
 		}
 
 		// set data
-		return ensureConnected().setData(path.toString(), data, version);
+		return getZooKeeper().setData(path.toString(), data, version);
 	}
 
 	/**
