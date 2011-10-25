@@ -100,11 +100,11 @@ public class ZooKeeperGateTests extends ZKTestCase {
 
 	private ZooKeeper getZooKeeperFromGate() throws IllegalStateException {
 		try {
-			final Method ensureConnected = ZooKeeperGate.class.getDeclaredMethod("ensureConnected");
-			if (!ensureConnected.isAccessible()) {
-				ensureConnected.setAccessible(true);
+			final Method getZooKeeperMethod = ZooKeeperGate.class.getDeclaredMethod("getZooKeeper");
+			if (!getZooKeeperMethod.isAccessible()) {
+				getZooKeeperMethod.setAccessible(true);
 			}
-			return (ZooKeeper) ensureConnected.invoke(ZooKeeperGate.get());
+			return (ZooKeeper) getZooKeeperMethod.invoke(ZooKeeperGate.get());
 		} catch (final IllegalStateException e) {
 			throw e;
 		} catch (final Exception e) {
