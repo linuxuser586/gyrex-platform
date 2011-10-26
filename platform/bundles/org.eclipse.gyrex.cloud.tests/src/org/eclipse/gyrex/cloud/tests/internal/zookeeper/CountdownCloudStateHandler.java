@@ -34,12 +34,12 @@ import org.slf4j.LoggerFactory;
 
 public class CountdownCloudStateHandler implements EventHandler {
 
-	public static enum CloudState {
+	public static enum CloudStateEvent {
 		ONLINE, OFFLINE, INTERRUPTED
 	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(CountdownCloudStateHandler.class);
-	private static final BlockingDeque<CloudState> deque = new LinkedBlockingDeque<CloudState>();
+	private final BlockingDeque<CloudStateEvent> deque = new LinkedBlockingDeque<CloudStateEvent>();
 
 	private final ServiceRegistration<EventHandler> registration;
 
@@ -65,19 +65,32 @@ public class CountdownCloudStateHandler implements EventHandler {
 		registration.unregister();
 	}
 
+	/**
+	 * Returns the deque.
+	 * 
+	 * @return the deque
+	 */
+	public BlockingDeque<CloudStateEvent> events() {
+		return deque;
+	}
+
 	@Override
 	public void handleEvent(final Event event) {
 		LOG.debug("Received cloud event: {}", event);
 		if (StringUtils.equals(event.getTopic(), ICloudEventConstants.TOPIC_NODE_ONLINE)) {
+			deque.add(CloudStateEvent.ONLINE);
 			online.countDown();
 		} else if (StringUtils.equals(event.getTopic(), ICloudEventConstants.TOPIC_NODE_OFFLINE)) {
+			deque.add(CloudStateEvent.OFFLINE);
 			offline.countDown();
 		} else if (StringUtils.equals(event.getTopic(), ICloudEventConstants.TOPIC_NODE_INTERRUPTED)) {
+			deque.add(CloudStateEvent.INTERRUPTED);
 			interrupted.countDown();
 		}
 	}
 
 	public void reset() {
+		deque.clear();
 		online = new CountDownLatch(1);
 		offline = new CountDownLatch(1);
 		interrupted = new CountDownLatch(1);

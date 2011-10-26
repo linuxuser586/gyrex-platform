@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,35 @@ import org.slf4j.LoggerFactory;
  * Base class for ZooKeeper based service implementations.
  */
 public abstract class ZooKeeperBasedService {
+
+	/**
+	 * Convenience {@link Callable} that provides direct access to ZooKeeper.
+	 * 
+	 * @param <V>
+	 */
+	protected static abstract class ZooKeeperCallable<V> implements Callable<V> {
+		@Override
+		public V call() throws Exception {
+			return call(ZooKeeperGate.get().getZooKeeper());
+		}
+
+		protected abstract V call(ZooKeeper keeper) throws Exception;
+	}
+
+	/**
+	 * Convenience {@link Callable} that provides access to
+	 * {@link ZooKeeperGate}.
+	 * 
+	 * @param <V>
+	 */
+	protected static abstract class ZooKeeperGateCallable<V> implements Callable<V> {
+		@Override
+		public V call() throws Exception {
+			return call(ZooKeeperGate.get());
+		}
+
+		protected abstract V call(ZooKeeperGate gate) throws Exception;
+	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperBasedService.class);
 
@@ -54,6 +84,11 @@ public abstract class ZooKeeperBasedService {
 				}
 			}
 		}
+
+		@Override
+		public String toString() {
+			return String.format("ZooKeeperGateListener {%s}", ZooKeeperBasedService.this);
+		};
 	};
 
 	private final long retryDelay;
@@ -184,6 +219,11 @@ public abstract class ZooKeeperBasedService {
 					LOG.debug("Connection to the server has been lost (retry attempt {}).", i);
 				}
 				sleep(i);
+			} catch (final GateDownException e) {
+				LOG.warn("ZooKeeper gate DOWN for service {}. The service may be invalid now.", this);
+				// propagate this exception
+				// (note, we rely on connectionMonitor to close the service)
+				throw e;
 			}
 		}
 		throw exception;

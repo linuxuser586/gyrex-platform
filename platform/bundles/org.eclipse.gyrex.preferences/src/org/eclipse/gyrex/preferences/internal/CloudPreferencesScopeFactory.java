@@ -13,6 +13,7 @@ package org.eclipse.gyrex.preferences.internal;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.cloud.internal.preferences.ZooKeeperPreferencesService;
 import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
@@ -31,6 +32,7 @@ public class CloudPreferencesScopeFactory implements IScope, IShutdownParticipan
 
 	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferencesScopeFactory.class);
 	private static final AtomicReference<CloudPreferences> rootCloudNode = new AtomicReference<CloudPreferences>();
+	private static final ZooKeeperPreferencesService service = new ZooKeeperPreferencesService(CloudScope.NAME);
 
 	@Override
 	public IEclipsePreferences create(final IEclipsePreferences parent, final String name) {
@@ -60,7 +62,7 @@ public class CloudPreferencesScopeFactory implements IScope, IShutdownParticipan
 		}
 
 		// create
-		rootCloudNode.compareAndSet(null, new CloudPreferences(parent, name));
+		rootCloudNode.compareAndSet(null, new CloudPreferences(parent, name, service));
 
 		// register shut-down hook
 		PreferencesActivator.getInstance().addShutdownParticipant(this);
@@ -83,5 +85,8 @@ public class CloudPreferencesScopeFactory implements IScope, IShutdownParticipan
 				LOG.debug("Failed to flush cloud preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
 			}
 		}
+
+		// stop the service
+		service.shutdown();
 	}
 }

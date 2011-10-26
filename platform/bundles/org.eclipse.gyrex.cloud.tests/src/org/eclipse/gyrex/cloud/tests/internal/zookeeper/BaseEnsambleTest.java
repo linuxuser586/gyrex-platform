@@ -11,27 +11,24 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.tests.internal.zookeeper;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import org.apache.zookeeper.ZKTestCase;
+import org.junit.After;
+import org.junit.Before;
 
 /**
- * special suite that tests the cloud connection robustness with ZooKeeper
+ * Base class for all ensemble tests
  */
-@RunWith(Suite.class)
-@SuiteClasses({ ZooKeeperGateTests.class })
-public class AllZooKeeperEnsembleTests {
+public class BaseEnsambleTest extends ZKTestCase {
 
-	@BeforeClass
-	public static void setUpClass() throws Exception {
-//		ZooKeeperEnsembleHelper.startEnsemble();
+	protected static final int CONNECT_TIMEOUT = 10000;
+
+	@Before
+	public void setUp() throws Exception {
+		EnsembleHelper.assertRunningAndConnected();
 	}
 
-	@AfterClass
-	public static void tearDownClass() throws Exception {
-//		ZooKeeperEnsembleHelper.stopEnsemble();
+	@After
+	public void tearDown() throws Exception {
 	}
 
 }

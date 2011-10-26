@@ -20,6 +20,7 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener;
 
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooKeeper.States;
 
 public final class CountdownGateListener implements ZooKeeperGateListener {
 
@@ -44,7 +45,7 @@ public final class CountdownGateListener implements ZooKeeperGateListener {
 
 	private ZooKeeper getZooKeeperFromGate() throws IllegalStateException {
 		try {
-			final Method ensureConnected = ZooKeeperGate.class.getDeclaredMethod("ensureConnected");
+			final Method ensureConnected = ZooKeeperGate.class.getDeclaredMethod("getZooKeeper");
 			if (!ensureConnected.isAccessible()) {
 				ensureConnected.setAccessible(true);
 			}
@@ -52,7 +53,7 @@ public final class CountdownGateListener implements ZooKeeperGateListener {
 		} catch (final IllegalStateException e) {
 			throw e;
 		} catch (final Exception e) {
-			throw new RuntimeException(e);
+			throw new IllegalStateException(e);
 		}
 	}
 
@@ -61,11 +62,21 @@ public final class CountdownGateListener implements ZooKeeperGateListener {
 	}
 
 	public void waitForUp(final int timeout) throws InterruptedException, TimeoutException {
+		final long abortTime = System.currentTimeMillis() + timeout;
 		ZooKeeperGate.addConnectionMonitor(this);
 		try {
-			getZooKeeperFromGate();
+			boolean connected = false;
+			do {
+				final ZooKeeper zooKeeper = getZooKeeperFromGate();
+				// at this point the gate is up, check if ZK is connected (to also catch RECOVERING)
+				connected = zooKeeper.getState() == States.CONNECTED;
+			} while (!connected && (abortTime > System.currentTimeMillis()));
+
+			if (!connected) {
+				throw new TimeoutException("timeout waiting for ZooKeeper to be connected");
+			}
 		} catch (final IllegalStateException e) {
-			if (!upLatch.await(timeout, TimeUnit.MILLISECONDS)) {
+			if (!upLatch.await(Math.max(abortTime - System.currentTimeMillis(), 250L), TimeUnit.MILLISECONDS)) {
 				throw new TimeoutException("timeout waiting for gate to come up");
 			}
 		} finally {

@@ -13,6 +13,7 @@ package org.eclipse.gyrex.cloud.tests.internal;
 
 import org.eclipse.gyrex.cloud.tests.internal.locking.ZooKeeperLockTestSuite;
 import org.eclipse.gyrex.cloud.tests.internal.queue.ZooKeeperQueueTests;
+import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.ZooKeeperPreferencesTests;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -22,7 +23,7 @@ import org.junit.runners.Suite.SuiteClasses;
  *
  */
 @RunWith(Suite.class)
-@SuiteClasses({ ZooKeeperQueueTests.class, ZooKeeperLockTestSuite.class })
+@SuiteClasses({ ZooKeeperQueueTests.class, ZooKeeperLockTestSuite.class, ZooKeeperPreferencesTests.class })
 public class AllCloudTests {
 
 }

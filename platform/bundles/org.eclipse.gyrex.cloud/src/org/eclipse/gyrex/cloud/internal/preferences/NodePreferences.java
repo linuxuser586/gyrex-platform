@@ -11,8 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.preferences;
 
-import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
-
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 /**
@@ -25,15 +23,15 @@ public class NodePreferences extends ZooKeeperBasedPreferences {
 	 * 
 	 * @param parent
 	 * @param name
-	 * @param zooKeeperParentPath
+	 * @param service
 	 */
-	public NodePreferences(final IEclipsePreferences parent, final String name) {
-		super(parent, name, IZooKeeperLayout.PATH_PREFERENCES_ROOT);
+	public NodePreferences(final IEclipsePreferences parent, final String name, final ZooKeeperPreferencesService service) {
+		super(parent, name, service);
 	}
 
 	@Override
 	protected ZooKeeperBasedPreferences newChild(final String name) {
-		return new NodePreferences(this, name);
+		return new NodePreferences(this, name, getService());
 	}
 
 }

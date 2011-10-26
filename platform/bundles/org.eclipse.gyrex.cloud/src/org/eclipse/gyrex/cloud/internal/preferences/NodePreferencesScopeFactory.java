@@ -27,8 +27,11 @@ import org.slf4j.LoggerFactory;
  * {@link IScope} preferences factory for <code>node</code> preferences.
  */
 public class NodePreferencesScopeFactory implements IScope {
+
 	private static final Logger LOG = LoggerFactory.getLogger(NodePreferencesScopeFactory.class);
 	private static final AtomicReference<NodePreferences> rootNode = new AtomicReference<NodePreferences>();
+
+	private static final ZooKeeperPreferencesService service = new ZooKeeperPreferencesService(NodeScope.NAME);
 
 	/**
 	 * Stops the factory and releases any resource.
@@ -43,6 +46,9 @@ public class NodePreferencesScopeFactory implements IScope {
 				LOG.warn("Failed to flush node preferences. Changes migt be lost. {}", ExceptionUtils.getRootCauseMessage(e));
 			}
 		}
+
+		// stop the service
+		service.shutdown();
 	}
 
 	@Override
@@ -67,7 +73,7 @@ public class NodePreferencesScopeFactory implements IScope {
 		}
 
 		// create
-		rootNode.compareAndSet(null, new NodePreferences(parent, name));
+		rootNode.compareAndSet(null, new NodePreferences(parent, name, service));
 
 		// done
 		return rootNode.get();
