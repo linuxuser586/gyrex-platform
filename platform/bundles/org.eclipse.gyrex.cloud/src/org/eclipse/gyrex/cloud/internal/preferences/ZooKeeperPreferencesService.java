@@ -18,12 +18,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperBasedService;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperHelper;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -53,11 +54,38 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 	/**
 	 * Callable implementation for
-	 * {@link ZooKeeperPreferencesService#connectNode(ZooKeeperBasedPreferences)}
+	 * {@link ZooKeeperPreferencesService#getVersionInfo(String))}.
 	 * 
-	 * @see ZooKeeperPreferencesService#connectNode(ZooKeeperBasedPreferences)
+	 * @see ZooKeeperPreferencesService#getVersionInfo(String))
 	 */
-	private class ConnectNode extends ZooKeeperCallable<Boolean> {
+	private final class GetVersionInfo extends ZooKeeperCallable<Stat> {
+
+		private final String path;
+
+		/**
+		 * Creates a new instance.
+		 * 
+		 * @param path
+		 */
+		private GetVersionInfo(final String path) {
+			this.path = path;
+		}
+
+		@Override
+		protected Stat call(final ZooKeeper keeper) throws Exception {
+			checkClosed();
+
+			return keeper.exists(path, false);
+		}
+	}
+
+	/**
+	 * Callable implementation for
+	 * {@link ZooKeeperPreferencesService#loadNode(ZooKeeperBasedPreferences)}
+	 * 
+	 * @see ZooKeeperPreferencesService#loadNode(ZooKeeperBasedPreferences)
+	 */
+	private class LoadNode extends ZooKeeperCallable<Boolean> {
 		private final String path;
 
 		/**
@@ -65,7 +93,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		 * 
 		 * @param activeNode
 		 */
-		public ConnectNode(final String path) {
+		public LoadNode(final String path) {
 			this.path = path;
 		}
 
@@ -80,7 +108,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 			// log message
 			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("Connecting node {} at {}.", new Object[] { node, path });
+				LOG.debug("Loading node {} at {}.", new Object[] { node, path });
 			}
 
 			// check if path exists
@@ -94,28 +122,19 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			}
 
 			// note, when connecting a node for the first time we must not force
-			// sync with remote; instead we can rely on the version to correctly
+			// sync with remote; instead we must rely on the version to correctly
 			// represent if a node is new and must be updated or if the
 			// remote is newer and the local info must be updated
 
-			// there is also some subtile implementation detail which requires
-			// to carefully set force sync ... in case a node does not exist
-			// remotely it will be deleted locally if force sync is true
-
-			// thus, if a node had been connected and loaded successfully before
-			// its version will be greater than -1; in such a case we must remove
-			// it locally if it doesn't exist anymore when the system comes back
-			// online; therefore, we set force sync based on version comparison
-
 			// load properties
-			new RefreshProperties(path, node.propertiesVersion > -1).call(keeper);
+			new RefreshProperties(path, false).call(keeper);
 
 			// load children
-			new RefreshChildren(path, node.childrenVersion > -1).call(keeper);
+			new RefreshChildren(path, false).call(keeper);
 
 			// log message
 			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("Connected node {} at {}.", new Object[] { node, path });
+				LOG.debug("Done loading node {} (version {}, cversion {}) at {}.", new Object[] { node, node.propertiesVersion, node.childrenVersion, path });
 			}
 
 			// done
@@ -197,6 +216,10 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 					return false;
 				}
 
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Exception reading children for node {} from ZooKeeper {}. Removing node.", new Object[] { node, path, e });
+				}
+
 				// a sync is forced and the node does not exist
 				// thus, we need to remove the local node
 				// note, we do it the long way in order to trigger proper events
@@ -208,6 +231,11 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				}
 			} finally {
 				node.childrenModifyLock.unlock();
+			}
+
+			// log message
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Done reading children for node {} (version {}) from ZooKeeper {}", new Object[] { node, node.propertiesVersion, path });
 			}
 
 			// done
@@ -277,6 +305,10 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 					return false;
 				}
 
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Exception reading properties for node {} from ZooKeeper {}. Removing node.", new Object[] { node, path, e });
+				}
+
 				// a sync is forced and the node does not exist
 				// thus, we need to remove it locally
 				// note, we do it the long way in order to trigger proper events
@@ -288,6 +320,11 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				}
 			}
 
+			// log message
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Done reading properties for node {} (version {}) from ZooKeeper {}", new Object[] { node, node.propertiesVersion, path });
+			}
+
 			// done
 			return true;
 		}
@@ -295,27 +332,38 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 	/**
 	 * Callable implementation for
-	 * {@link ZooKeeperPreferencesService#removeNode(String)}.
+	 * {@link ZooKeeperPreferencesService#removeNode(String, int))}.
 	 * 
-	 * @see ZooKeeperPreferencesService#removeNode(String)
+	 * @see ZooKeeperPreferencesService#removeNode(String, int))
 	 */
-	private final class RemoveNode extends ZooKeeperGateCallable<Boolean> {
+	private final class RemoveNode extends ZooKeeperCallable<Boolean> {
 
 		private final String path;
+		private final int propertiesVersion;
 
 		/**
 		 * Creates a new instance.
 		 * 
 		 * @param path
+		 * @param propertiesVersion
 		 */
-		private RemoveNode(final String path) {
+		private RemoveNode(final String path, final int propertiesVersion) {
 			this.path = path;
+			this.propertiesVersion = propertiesVersion;
 		}
 
 		@Override
-		protected Boolean call(final ZooKeeperGate gate) throws Exception {
+		protected Boolean call(final ZooKeeper keeper) throws Exception {
 			checkClosed();
-			gate.deletePath(new Path(path));
+
+			try {
+				keeper.delete(path, propertiesVersion);
+			} catch (final NoNodeException e) {
+				// consider this a successful deletion
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Node at {} already deleted. ({})", new Object[] { path, ExceptionUtils.getRootCauseMessage(e) });
+				}
+			}
 			return true;
 		}
 	}
@@ -385,6 +433,8 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		}
 	}
 
+	private static final int MINIMUM_SEGMENT_COUNT = IZooKeeperLayout.PATH_PREFERENCES_ROOT.segmentCount() + 1;
+
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperPreferencesService.class);
 
 	/**
@@ -397,12 +447,15 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 * nodes should be refreshed/hooked.
 	 * </p>
 	 * <p>
-	 * Only the following events will be processed by the monitor:
+	 * The following events will be processed by the monitor:
 	 * <ul>
 	 * <li>RECORD CHANGED - when properties of a node should be refreshed</li>
-	 * <li>CHILDREN CHANGED - when children of a node should be refreshed</li>
+	 * <li>CHILDREN CHANGED - when children of a node changed</li>
 	 * <li>PATH CREATED - when a node that has been created locally (but never
-	 * flushed) was also created remotely</li>
+	 * flushed) was also created remotely (either through a local flush or a
+	 * remote flush)</li>
+	 * <li>PATH DELETE - when a node that has been watched locally was removed
+	 * remotely (either through a local flush or a remote flush)</li>
 	 * </ul>
 	 * This streamlines the update handling processing.
 	 * </p>
@@ -438,18 +491,36 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			}
 
 			try {
-				// refresh properties and notify listeners (but only if remote is newer)
-				refreshProperties(path, false);
-
-				// also refresh children and notify listeners (but only if remote is newer)
-				// (this is necessary because even the parent node may not exist;
-				// in such a case, this will be the only watch triggered by ZooKeeper)
-				// TODO: we may want to "schedule" a refresh of all parent nodes
-				refreshChildren(path, false);
+				// load the node completely
+				loadNode(path, true);
 			} catch (final Exception ignored) {
 				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
 			}
 		}
+
+		@Override
+		protected void pathDeleted(final String path) {
+			if (isClosed()) {
+				return;
+			}
+
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("({}) Preference at {} removed remotely", ZooKeeperPreferencesService.this, path);
+			}
+
+			final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
+			if (null != node) {
+				try {
+					// remove the node
+					node.removeNode(true);
+				} catch (final Exception ignored) {
+					LOG.debug("Ignored exception removing node stored at '{}': {} ", new Object[] { node, path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+				} finally {
+					// assume the node is removed anyway
+					deactivateNode(node);
+				}
+			}
+		};
 
 		@Override
 		protected void recordChanged(final String path) {
@@ -462,7 +533,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			}
 
 			try {
-				// refresh properties and notify listeners (but only if remote is newer)
+				// refresh just properties and notify listeners (but only if remote is newer)
 				refreshProperties(path, false);
 			} catch (final Exception ignored) {
 				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
@@ -492,81 +563,10 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		activate();
 	}
 
-	/**
-	 * Activates the specified node.
-	 * <p>
-	 * This method is triggered when a new node is added to the local tree and
-	 * events must be processed for the node.
-	 * </p>
-	 * 
-	 * @param node
-	 *            the node to activate
-	 * @return <code>true</code> if the node has to be connected and the method
-	 *         should fail it it couldn't (note, the node is still active
-	 *         afterwards)
-	 * @throws Exception
-	 */
-	public final void activateNode(final ZooKeeperBasedPreferences node, final boolean forceConnection) throws Exception {
-		checkClosed();
-
-		// add to active nodes
-		final ZooKeeperBasedPreferences existingNode = activeNodesByPath.putIfAbsent(node.zkPath, node);
-		if (null != existingNode) {
-			// already active
-			// sanity check
-			if (existingNode != node) {
-				LOG.error("Attempt to activate a second node for the same path {}: existing=({}) new=({})", new Object[] { node.zkPath, existingNode, node, new Exception("Activation Call Stack") });
-				throw new IllegalStateException(String.format("Invalid attempt to activate a seconde node instance (%s).", node.absolutePath()));
-			}
-			return;
-		}
-
-		// connect the node if possible or required
-		if (connected || forceConnection) {
-			try {
-				connectNode(node);
-			} catch (final ConnectionLossException e) {
-				if (forceConnection) {
-					throw e;
-				}
-				// ignore (will re-connect when gate comes back)
-				LOG.debug("Ignored exception connecting node {}: {} ", new Object[] { node, ExceptionUtils.getRootCauseMessage(e), e });
-			} catch (final SessionExpiredException e) {
-				if (forceConnection) {
-					throw e;
-				}
-				// ignore (will re-connect when gate comes back)
-				LOG.debug("Ignored exception connecting node {}: {} ", new Object[] { node, ExceptionUtils.getRootCauseMessage(e), e });
-			}
-		}
-	}
-
 	final void checkClosed() {
 		if (isClosed()) {
 			throw new IllegalStateException("CLOSED");
 		}
-	}
-
-	/**
-	 * Connects the specified node.
-	 * <p>
-	 * This method ensures that essential watchers are registered in ZooKeeper.
-	 * </p>
-	 * 
-	 * @param node
-	 *            the node to connect
-	 * @return <code>true</code> if the node has been connected
-	 * @throws Exception
-	 */
-	final void connectNode(final ZooKeeperBasedPreferences node) throws Exception {
-		checkClosed();
-
-		if (CloudDebug.zooKeeperPreferences) {
-			LOG.debug("Stack for connectNode request for node {}.", node, new Exception("Stack for preference node connection request."));
-		}
-
-		// connect the node (i.e. hook essential watchers)
-		execute(new ConnectNode(node.zkPath));
 	}
 
 	/**
@@ -597,7 +597,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	@Override
 	protected void doClose() {
 		if (CloudDebug.zooKeeperPreferences) {
-			LOG.debug("Closing preferences {}", this);
+			LOG.debug("Closing preferences {}", this, new Exception("doClose"));
 		}
 
 		// set disconnected
@@ -613,11 +613,48 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		activeNodesByPath.clear();
 	}
 
+	final String getChildPath(final String path, final String childName) {
+		if (childName.indexOf(IPath.SEPARATOR) > -1) {
+			throw new IllegalArgumentException("invalid child name: " + childName);
+		}
+
+		return path + IPath.SEPARATOR + childName;
+	}
+
+	final String getParentPath(final String path) {
+		// note, although there is a performance overhead we'll use path and properly check
+		// that the parent is still  within the preference hierarchy, i.e.
+		// must have at least global preference root + 1 minimum segments
+		final IPath parent = new Path(path);
+
+		// abort if below preference root
+		if (parent.segmentCount() <= MINIMUM_SEGMENT_COUNT) {
+			return null;
+		}
+
+		return parent.removeLastSegments(1).toString();
+	}
+
 	@Override
 	protected String getToStringDetails() {
 		final StringBuilder details = new StringBuilder();
 		details.append(name);
 		return details.toString();
+	}
+
+	/**
+	 * Returns the node remote versions (aka. properties version) of the
+	 * specified path in ZooKeeper.
+	 * 
+	 * @param path
+	 *            the ZooKeeper path of the preference node to remove
+	 * @return the version information (may be <code>null</code> if the path
+	 *         does not exist remotely)
+	 */
+	public final Stat getVersionInfo(final String path) throws Exception {
+		checkClosed();
+
+		return execute(new GetVersionInfo(path));
 	}
 
 	/**
@@ -639,6 +676,58 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		return connected;
 	}
 
+	/**
+	 * Loads the specified node.
+	 * <p>
+	 * This method ensures that essential watchers are registered in ZooKeeper
+	 * and the local node (if active) is properly populated with information
+	 * from ZooKeeper.
+	 * </p>
+	 * 
+	 * @param path
+	 *            path to the node to load
+	 * @param forceIfNotConnected
+	 *            if the service is not connected an load attempt will be forced
+	 *            (which may result in exceptions thrown by ZooKeeper)
+	 * @throws Exception
+	 */
+	public final void loadNode(final String path, final boolean forceIfNotConnected) throws Exception {
+		checkClosed();
+
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.trace("Stack for loadNode request for node {}.", path, new Exception("Stack for preference node load request."));
+		}
+
+		// connect the node if possible or required
+		if (connected || forceIfNotConnected) {
+			try {
+				// connect the node (i.e. hook essential watchers)
+				execute(new LoadNode(path));
+			} catch (final ConnectionLossException e) {
+				if (forceIfNotConnected) {
+					throw e;
+				}
+				// ignore (will re-connect when gate comes back)
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Ignored exception loading node at {}: {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
+				}
+			} catch (final SessionExpiredException e) {
+				if (forceIfNotConnected) {
+					throw e;
+				}
+				// ignore (will re-connect when gate comes back)
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Ignored exception loading node at {}: {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
+				}
+			}
+		} else {
+			// ignore (will re-connect when gate comes back)
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Not loading node at {}: DISCONNECTED ({})", path, this);
+			}
+		}
+	}
+
 	@Override
 	protected void reconnect() {
 		if (CloudDebug.zooKeeperPreferences) {
@@ -649,12 +738,12 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		connected = true;
 
 		// re-connect all available nodes
-		final HashSet<ZooKeeperBasedPreferences> nodes = new HashSet<ZooKeeperBasedPreferences>(activeNodesByPath.values());
-		for (final ZooKeeperBasedPreferences node : nodes) {
+		final HashSet<String> paths = new HashSet<String>(activeNodesByPath.keySet());
+		for (final String path : paths) {
 			try {
-				connectNode(node);
+				loadNode(path, true);
 			} catch (final Exception e) {
-				LOG.debug("Ignored exception connecting node {}: {} ", new Object[] { node, ExceptionUtils.getRootCauseMessage(e), e });
+				LOG.debug("Ignored exception connecting {}: {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
 			}
 		}
 	}
@@ -679,6 +768,10 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		// check if loaded
 		if (!activeNodesByPath.containsKey(path)) {
 			return;
+		}
+
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.trace("Stack for refreshChildren request for node {}.", path, new Exception("refreshChildren"));
 		}
 
 		execute(new RefreshChildren(path, forceSyncWithRemoteVersion));
@@ -707,6 +800,10 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			return;
 		}
 
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.trace("Stack for refreshProperties request for node {}.", path, new Exception("refreshProperties"));
+		}
+
 		execute(new RefreshProperties(path, forceSyncWithRemoteVersion));
 	}
 
@@ -718,11 +815,19 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 * 
 	 * @param path
 	 *            the ZooKeeper path of the preference node to remove
+	 * @param propertiesVersion
+	 *            the last known version of the node properties (will be used
+	 *            for detecting concurrant node modification which may conflict
+	 *            with the removal)
 	 */
-	public final void removeNode(final String path) throws Exception {
+	public final void removeNode(final String path, final int propertiesVersion) throws Exception {
 		checkClosed();
 
-		execute(new RemoveNode(path));
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.trace("Stack for removeNode request for node {}.", path, new Exception("removeNode"));
+		}
+
+		execute(new RemoveNode(path, propertiesVersion));
 	}
 
 	/**
@@ -754,6 +859,11 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		if (!activeNodesByPath.containsKey(path)) {
 			return -1;
 		}
+
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.trace("Stack for writeProperties request for node {}.", path, new Exception("writeProperties"));
+		}
+
 		return execute(new WriteProperties(path, propertyBytes, propertiesVersion));
 	}
 }

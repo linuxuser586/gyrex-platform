@@ -19,7 +19,7 @@
     </encoder>
   </appender>
 
-  <logger name="org.eclipse.gyrex" level="DEBUG" />
+  <logger name="org.eclipse.gyrex" level="DEBUG" />  <logger name="org.apache.zookeeper.JUnit4ZKTestRunner" level="DEBUG" />
   <root level="WARN">
     <appender-ref ref="console" />
   </root>

@@ -9,11 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.cloud.tests.internal;
-
-import org.eclipse.gyrex.cloud.tests.internal.locking.ZooKeeperLockTestSuite;
-import org.eclipse.gyrex.cloud.tests.internal.queue.ZooKeeperQueueTests;
-import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.AllZooKeeperPreferencesNonEnsembleTests;
+package org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -23,7 +19,7 @@ import org.junit.runners.Suite.SuiteClasses;
  *
  */
 @RunWith(Suite.class)
-@SuiteClasses({ ZooKeeperQueueTests.class, ZooKeeperLockTestSuite.class, AllZooKeeperPreferencesNonEnsembleTests.class })
-public class AllCloudTests {
+@SuiteClasses({ ZooKeeperPreferencesTests.class, ZooKeeperPreferencesSimpleStressTests.class })
+public class AllZooKeeperPreferencesNonEnsembleTests {
 
 }

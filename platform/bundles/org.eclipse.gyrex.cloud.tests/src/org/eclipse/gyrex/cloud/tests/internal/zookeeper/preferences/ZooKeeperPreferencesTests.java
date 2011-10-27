@@ -17,6 +17,7 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.preferences.ZooKeeperBasedPreferences;
@@ -30,8 +31,6 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.NodeChangeEvent;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 import org.eclipse.core.runtime.preferences.IPreferencesService;
-
-import org.osgi.service.prefs.Preferences;
 
 import org.apache.zookeeper.ZKTestCase;
 import org.junit.After;
@@ -63,6 +62,7 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 		service = new TestablePreferencesService("test");
 		assertTrue("must be connected", service.isConnected());
 
+		// preferences root
 		preferencesRoot = CloudTestsActivator.getInstance().getService(IPreferencesService.class).getRootNode();
 	}
 
@@ -75,203 +75,30 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 	}
 
 	@Test
-	public void testActivationOnChildren() throws Exception {
+	public void test01ScopeRootActivation() throws Exception {
 		// create preference tree
 		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
+		assertTrue("must be active", service.isActive(r1));
 
-		// accessing children must activate
-		assertNotNull("children never null", r1.childrenNames());
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnExists() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// exists check must activate
-		assertTrue("node does not exist?", r1.nodeExists(""));
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnFlush() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// flushing data must activate
-		r1.flush();
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnGet() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// accessing data must activate
-		assertEquals("unexpected data", DEFAULT_VALUE, r1.get(KEY, DEFAULT_VALUE));
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnKeys() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// accessing keys must activate
-		assertNotNull("keys never null", r1.keys());
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnNodeListener() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// hook listeners for capturing event
-		final NodeChangeRecorder nodeEvents = new NodeChangeRecorder();
-		r1.addNodeChangeListener(nodeEvents);
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnPreferenceListener() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// hook listeners for capturing event
-		final PreferenceChangeRecorder preferenceEvents = new PreferenceChangeRecorder();
-		r1.addPreferenceChangeListener(preferenceEvents);
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnPut() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// putting data must activate
-		r1.put(KEY, VALUE);
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnRemove() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// removing data must activate
-		r1.remove(KEY);
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	@Test
-	public void testActivationOnSync() throws Exception {
-		// create preference tree
-		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
-
-		// syncing data must activate
-		r1.sync();
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
-	}
-
-	private void testCreateNode(final boolean flushUsingParent) throws Exception {
-		// create preference tree
-		final TestablePreferences rootNode = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(rootNode));
-
-		// hook listeners for capturing event
-		final NodeChangeRecorder nodeEvents = new NodeChangeRecorder();
-		rootNode.addNodeChangeListener(nodeEvents);
-
-		final String testNodeName = "testNode" + System.currentTimeMillis();
-		assertFalse("test node must not exists", rootNode.nodeExists(testNodeName));
-
-		// also check that the path does not exists in ZooKeeper
-		final IPath testNodeZkPath = new Path(rootNode.testableGetZooKeeperPath()).append(testNodeName);
-		assertFalse("test node path must not exists in ZooKeeper after flush", ZooKeeperGate.get().exists(testNodeZkPath));
-
-		// create an empty node
-		final Preferences testNode = rootNode.node(testNodeName);
-		assertSame("parent not the same object", rootNode, testNode.parent());
-
-		// check event
-		final NodeChangeEvent event = nodeEvents.pollAdded();
-		assertNotNull("no event", event);
-		assertSame("not the same node", testNode, event.getChild());
-		assertSame("not the same node", rootNode, event.getParent());
-
-		// flush at level
-		if (flushUsingParent) {
-			assertSame("parent not the same object", rootNode, testNode.parent());
-			rootNode.flush();
-		} else {
-			testNode.flush();
+		// another one must fail
+		try {
+			new TestablePreferences(preferencesRoot, testablePreferenceName, service);
+			fail("must not be possible to create a second scope root");
+		} catch (final IllegalStateException e) {
+			// good
 		}
-
-		// paths must be there
-		assertTrue("test node must exists after flush", rootNode.nodeExists(testNodeName));
-		assertTrue("test node path must exists in ZooKeeper after flush", ZooKeeperGate.get().exists(testNodeZkPath));
-
-		// no event
-		nodeEvents.assertEmpty();
 	}
 
 	@Test
-	public void testCreateNodeFlushAtNode() throws Exception {
-		testCreateNode(false);
-	}
-
-	@Test
-	public void testCreateNodeFlushAtParent() throws Exception {
-		testCreateNode(true);
-	}
-
-	@Test
-	public void testSetAndGetDataWithEvents() throws Exception {
+	public void test02SetAndGetDataWithEvents() throws Exception {
 		// create preference tree
 		final TestablePreferences r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
-		assertFalse("must be inactive", service.isActive(r1));
 
 		// access any data
 		assertNotNull("children never null", r1.childrenNames());
 		assertEquals("children must be empty", 0, r1.childrenNames().length);
 		assertNotNull("keys never null", r1.keys());
 		assertEquals("keys must be empty", 0, r1.keys().length);
-
-		// must be active now
-		assertTrue("must be active now", service.isActive(r1));
 
 		// hook listeners for capturing event
 		final PreferenceChangeRecorder preferenceEvents = new PreferenceChangeRecorder();
@@ -305,6 +132,124 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 
 		// no events should be triggered
 		preferenceEvents.assertEmpty("unexpected preference event during flush");
+		nodeEvents.assertEmpty();
+	}
+
+	@Test
+	public void test03CreateNodeFlushAtNode() throws Exception {
+		testCreateNode(false);
+	}
+
+	@Test
+	public void test03CreateNodeFlushAtParent() throws Exception {
+		testCreateNode(true);
+	}
+
+	@Test
+	public void test04RemoveNode() throws Exception {
+		// create preference tree
+		final TestablePreferences rootNode = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
+
+		final String testNodeName = "testNode" + System.currentTimeMillis();
+
+		// create node
+		final TestablePreferences testNode = (TestablePreferences) rootNode.node(testNodeName);
+		rootNode.flush();
+		assertTrue("must exist", rootNode.nodeExists(testNodeName));
+
+		// hook listeners for capturing event
+		final NodeChangeRecorder nodeEvents = new NodeChangeRecorder();
+		rootNode.addNodeChangeListener(nodeEvents);
+
+		// remove node
+		testNode.removeNode();
+
+		// check existence
+		assertTrue("test node must be removed", testNode.testableRemoved());
+		assertFalse("test node must be removed from parent", rootNode.testableGetChildren().containsKey(testNodeName));
+		assertFalse("test node must be removed from parent", rootNode.testableGetChildren().containsValue(testNode));
+		assertFalse("test node must not exists anymore", testNode.nodeExists(""));
+		assertFalse("test node must not exists anymore", rootNode.nodeExists(testNodeName));
+		assertTrue("test node path must still exists in ZooKeeper before flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
+
+		// must be in active
+		assertFalse("must not be active after removal", service.isActive(testNode));
+
+		// check event
+		final NodeChangeEvent event = nodeEvents.pollRemoved();
+		assertNotNull("no event", event);
+		assertSame("not the same node", testNode, event.getChild());
+		assertSame("not the same node", rootNode, event.getParent());
+
+		// flush at test node must fail
+		try {
+			testNode.flush();
+			fail("must not be able to flush on removed node");
+		} catch (final Exception e) {
+			// assume ok
+		}
+
+		// flush at parent
+		rootNode.flush();
+
+		// paths must be removed in ZooKeeper
+		assertFalse("test node path must not exists in ZooKeeper after flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
+
+	}
+
+	private void testCreateNode(final boolean flushUsingParent) throws Exception {
+		// create preference tree
+		final TestablePreferences rootNode = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
+
+		// hook listeners for capturing event
+		final NodeChangeRecorder nodeEvents = new NodeChangeRecorder();
+		rootNode.addNodeChangeListener(nodeEvents);
+
+		final String testNodeName = "testNode" + System.currentTimeMillis();
+		assertFalse("test node must not exists", rootNode.nodeExists(testNodeName));
+
+		// also check that the path does not exists in ZooKeeper
+		final IPath testNodeZkPath = new Path(rootNode.testableGetZooKeeperPath()).append(testNodeName);
+		assertFalse("test node path must not exists in ZooKeeper after flush", ZooKeeperGate.get().exists(testNodeZkPath));
+
+		// create an empty node
+		final TestablePreferences testNode = (TestablePreferences) rootNode.node(testNodeName);
+
+		// check exists
+		assertFalse("test node must not be removed", testNode.testableRemoved());
+		assertTrue("test node must be contained in parent", rootNode.testableGetChildren().containsKey(testNodeName));
+		assertTrue("test node must be contained in parent", rootNode.testableGetChildren().containsValue(testNode));
+		assertTrue("test node must exists", testNode.nodeExists(""));
+		assertTrue("test node must exists", rootNode.nodeExists(testNodeName));
+		assertFalse("test node path must not exists in ZooKeeper before flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
+
+		// must be active
+		assertTrue("must be active", service.isActive(testNode));
+
+		// check parent and access
+		assertSame("parent not the same object", rootNode, testNode.parent());
+		assertSame("must return the same object", testNode, testNode.node(""));
+		assertSame("must return the same object", testNode, rootNode.node(testNodeName));
+
+		// check event
+		final NodeChangeEvent event = nodeEvents.pollAdded();
+		assertNotNull("no event", event);
+		assertSame("not the same node", testNode, event.getChild());
+		assertSame("not the same node", rootNode, event.getParent());
+
+		// flush at level
+		if (flushUsingParent) {
+			assertSame("parent not the same object", rootNode, testNode.parent());
+			rootNode.flush();
+		} else {
+			testNode.flush();
+		}
+
+		// paths must be there
+		assertTrue("test node must exists after flush", rootNode.nodeExists(testNodeName));
+		assertTrue("test node path must exists in ZooKeeper after flush", ZooKeeperGate.get().exists(testNodeZkPath));
+
+		// no event
 		nodeEvents.assertEmpty();
 	}
 }

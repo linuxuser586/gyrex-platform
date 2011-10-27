@@ -23,8 +23,8 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperNodeInfo;
 import org.eclipse.gyrex.cloud.tests.internal.CloudTestsActivator;
 import org.eclipse.gyrex.cloud.tests.internal.zookeeper.CountdownCloudStateHandler.CloudStateEvent;
+import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.AllZooKeeperPreferencesNonEnsembleTests;
 import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.ZooKeeperPreferencesEnsambleTests;
-import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.ZooKeeperPreferencesTests;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
@@ -38,7 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(Suite.class)
-@SuiteClasses({ ZooKeeperEnsambleTest.class, ZooKeeperPreferencesTests.class, ZooKeeperPreferencesEnsambleTests.class })
+@SuiteClasses({ ZooKeeperEnsambleTest.class, ZooKeeperPreferencesEnsambleTests.class, AllZooKeeperPreferencesNonEnsembleTests.class })
 public class ZooKeeperEnsambleTestSuite {
 
 	private static final int CONNECT_TIMEOUT = 30000;

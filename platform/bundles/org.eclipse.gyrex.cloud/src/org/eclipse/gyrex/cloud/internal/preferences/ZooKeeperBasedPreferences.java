@@ -19,8 +19,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -43,7 +45,9 @@ import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.CharEncoding;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +93,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	private final ConcurrentMap<String, ZooKeeperBasedPreferences> children = new ConcurrentHashMap<String, ZooKeeperBasedPreferences>(4);
 
 	/** list of children removed locally but not yet flushed to ZooKeeper */
-	private final Set<String> pendingChildRemovals = new HashSet<String>(); // guarded by childrenModifyLock
+	private final Map<String, ZooKeeperBasedPreferences> pendingChildRemovals = new HashMap<String, ZooKeeperBasedPreferences>(); // guarded by childrenModifyLock
 
 	/** properties of the node */
 	private final Properties properties = new Properties();
@@ -125,20 +129,33 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		if (parent == null) {
 			throw new IllegalArgumentException("parent must not be null");
 		}
+		if (name == null) {
+			throw new IllegalArgumentException("name must not be null");
+		}
+		if (service == null) {
+			throw new IllegalArgumentException("service must not be null");
+		}
 		this.service = service;
 		this.parent = parent;
 		this.name = name;
 
 		// cache path computed based on parent
-		final String parentPath = parent.absolutePath();
-		if (parentPath.equals(PATH_SEPARATOR)) {
+		if (parent.absolutePath().equals(PATH_SEPARATOR)) {
 			path = new Path(name).makeAbsolute();
 		} else {
-			path = new Path(parentPath).append(name).makeAbsolute();
+			path = new Path(parent.absolutePath()).append(name).makeAbsolute();
 		}
 
 		// pre-compute and cache ZooKeeper path
 		zkPath = IZooKeeperLayout.PATH_PREFERENCES_ROOT.append(path).toString();
+
+		// immediately activate the node if this is the scope root
+		// all others will be activated in createChild
+		if (!(parent instanceof ZooKeeperBasedPreferences)) {
+			if (null != service.activeNodesByPath.putIfAbsent(zkPath, this)) {
+				throw new IllegalStateException(String.format("programming/concurrency error: created a new scope root although one already existed (new=%s) (%s)", this, service));
+			}
+		}
 	}
 
 	@Override
@@ -148,7 +165,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public void accept(final IPreferenceNodeVisitor visitor) throws BackingStoreException {
-		ensureActiveAndConnected();
+		ensureLoaded();
 		if (!visitor.visit(this)) {
 			return;
 		}
@@ -167,7 +184,12 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				}
 			}
 		}
-		ensureActiveAndConnectIfPossible();
+
+		// make an attempt to load the node if a listener is added
+		// (this ensures that any watch is properly hooked with ZooKeeper)
+		ensureLoadedIfPossible();
+
+		// add listener
 		nodeListeners.add(listener);
 	}
 
@@ -180,7 +202,12 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				}
 			}
 		}
-		ensureActiveAndConnectIfPossible();
+
+		// make an attempt to load the node if a listener is added
+		// (this ensures that any watch is properly hooked with ZooKeeper)
+		ensureLoadedIfPossible();
+
+		// add listener
 		preferenceListeners.add(listener);
 	}
 
@@ -194,62 +221,17 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	private void checkRemoved() {
 		if (removed) {
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Node {} has been removed! Operation will fail.", new Object[] { this });
+			}
 			throw new IllegalStateException(String.format("Node '%s' has been removed.", name));
-		}
-	}
-
-	/**
-	 * Called by children when a child was removed.
-	 * <p>
-	 * The child will be deleted from the list of children. If the delete was
-	 * not triggered remotely, it will also be recorded for remote removal on
-	 * flush.
-	 * </p>
-	 * 
-	 * @param child
-	 * @param triggeredRemotely
-	 */
-	private void childRemoved(final ZooKeeperBasedPreferences child, final boolean triggeredRemotely) {
-		// don't do anything if removed
-		if (removed) {
-			return;
-		}
-
-		boolean wasRemoved = false;
-
-		// prevent concurrent modification (eg. remote and local removal)
-		childrenModifyLock.lock();
-		try {
-			if (removed) {
-				return;
-			}
-
-			// remove child
-			if (children.remove(child.name(), child)) {
-				// trigger event
-				wasRemoved = true;
-
-				// remember removals for flush (if this is not a remote triggered removal)
-				if (!triggeredRemotely) {
-					pendingChildRemovals.add(child.name());
-				}
-			}
-		} finally {
-			childrenModifyLock.unlock();
-		}
-
-		// fire events outside of lock
-		// TODO we need to understand event ordering better (eg. concurrent remote updates)
-		// (this may result in sending events asynchronously through an ordered queue, but for now we do it directly)
-		if (wasRemoved) {
-			fireNodeEvent(child, false);
 		}
 	}
 
 	@Override
 	public String[] childrenNames() throws BackingStoreException {
 		try {
-			ensureActiveAndConnected();
+			ensureLoaded();
 			final Set<String> names = children.keySet();
 			return !names.isEmpty() ? (String[]) names.toArray(EMPTY_NAMES_ARRAY) : EMPTY_NAMES_ARRAY;
 		} catch (final Exception e) {
@@ -261,7 +243,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	@Override
 	public void clear() throws BackingStoreException {
 		// ensure loaded
-		ensureActiveAndConnected();
+		ensureLoaded();
 
 		try {
 
@@ -278,7 +260,45 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	}
 
 	private BackingStoreException createBackingStoreException(final String action, final Exception cause) {
-		return new BackingStoreException(String.format("Error %s (node %s). %s", action, absolutePath(), cause.getMessage()), cause);
+		return new BackingStoreException(String.format("Error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
+	}
+
+	private ZooKeeperBasedPreferences createChild(final String name, final List<ZooKeeperBasedPreferences> added) {
+		// prevent concurrent modification
+		childrenModifyLock.lock();
+		try {
+			// create child only if necessary
+			ZooKeeperBasedPreferences child = children.get(name);
+			if (null != child) {
+				return child;
+			}
+
+			// create new child
+			child = newChild(name);
+			children.put(name, child);
+
+			// log message
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Node {} child created: {} ", this, name);
+			}
+
+			// register with service
+			final ZooKeeperBasedPreferences oldChild = service.activeNodesByPath.put(child.zkPath, child);
+			if (null != oldChild) {
+				throw new AssertionError(String.format("programming/concurrency error: created a new child although one still existed (new=%s) (old=%s)", child, oldChild));
+			}
+
+			// remove from pending removals list
+			pendingChildRemovals.remove(name);
+
+			// trigger event
+			if (null != added) {
+				added.add(child);
+			}
+			return child;
+		} finally {
+			childrenModifyLock.unlock();
+		}
 	}
 
 	final void dispose() {
@@ -291,37 +311,54 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		childrenVersion = -1;
 	}
 
-	private void ensureActiveAndConnected() throws IllegalStateException {
+	/**
+	 * Ensures a node that should be loaded is loaded.
+	 * 
+	 * @throws BackingStoreException
+	 *             if the node could not be loaded (eg. the system is not
+	 *             connected)
+	 */
+	private void ensureLoaded() throws BackingStoreException {
 		// check removed
 		checkRemoved();
 
 		try {
-			// activate (if necessary)
-			service.activateNode(this, true);
+			// load (if necessary)
+			if (shouldLoad()) {
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Ensuring that node {} (version {}, cversion {}) is loaded!", new Object[] { this, propertiesVersion, childrenVersion });
+				}
+				service.loadNode(zkPath, true);
+			}
 		} catch (final Exception e) {
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Exception while connecting node {}: {}", new Object[] { this, ExceptionUtils.getRootCauseMessage(e), e });
 			}
 
-			// throw
-			throw new IllegalStateException(String.format("Error activating node '%s'. %s", this, e.getMessage()), e);
+			// throw BackingStoreException
+			throw createBackingStoreException("loading node", e);
 		}
 	}
 
-	private void ensureActiveAndConnectIfPossible() throws IllegalStateException {
+	private void ensureLoadedIfPossible() throws IllegalStateException {
 		// check removed
 		checkRemoved();
 
 		try {
-			// activate (if possible)
-			service.activateNode(this, false);
+			// load (if possible and necessary)
+			if (shouldLoad()) {
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Ensuring (if possible) that node {} (version {}, cversion {}) is loaded!", new Object[] { this, propertiesVersion, childrenVersion });
+				}
+				service.loadNode(zkPath, false);
+			}
 		} catch (final Exception e) {
 			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("Exception while connecting node {}: {}", new Object[] { this, ExceptionUtils.getRootCauseMessage(e), e });
+				LOG.debug("Exception while loading node {}: {}", new Object[] { this, ExceptionUtils.getRootCauseMessage(e), e });
 			}
 
 			// throw
-			throw new IllegalStateException(String.format("Error activating node '%s'. %s", this, e.getMessage()), e);
+			throw new IllegalStateException(String.format("Error loading node '%s'. %s", this, e.getMessage()), e);
 		}
 	}
 
@@ -373,7 +410,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 
 		// ensure active
-		ensureActiveAndConnected();
+		ensureLoaded();
 
 		// prevent concurrent children modification (eg. remote _and_ local flush)
 		// (note, it is important to do this early; in case a node does not exist
@@ -414,8 +451,13 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new IllegalArgumentException("key must not be null");
 		}
 
-		// ensure active but don't fail if off-line
-		ensureActiveAndConnectIfPossible();
+		// make an attempt to load the node if this node is accessed
+		// for read purposes without having any values; this it likely
+		// indicates that someone wants to just "read" a value; thus
+		// we try to be smart and load any remote data that is available
+		if (shouldLoad() && properties.isEmpty()) {
+			ensureLoadedIfPossible();
+		}
 
 		final String value = properties.getProperty(key);
 		return value == null ? def : value;
@@ -473,7 +515,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	@Override
 	public String[] keys() throws BackingStoreException {
 		// ensure active
-		ensureActiveAndConnected();
+		ensureLoaded();
 
 		if (properties.isEmpty()) {
 			return EMPTY_NAMES_ARRAY;
@@ -484,13 +526,47 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	}
 
 	/**
-	 * Called by {@link ZooKeeperPreferencesService} when children have been
-	 * loaded from ZooKeeper.
+	 * Updates the local node children with children from ZooKeeper.
+	 * <p>
+	 * This method is called by {@link ZooKeeperPreferencesService} when
+	 * children have been loaded from ZooKeeper.
+	 * <p>
+	 * However, in contrast to {@link #loadProperties(byte[], int)} this method
+	 * will only process children which don't exists locally. This is necessary
+	 * because of the way we interact with ZooKeeper and the functionality
+	 * provided by ZooKeeper.
+	 * </p>
+	 * <p>
+	 * When a preference node is created locally it's not written to ZooKeeper
+	 * immediately. Instead, it's only created in ZooKeeper when someone
+	 * actually calls {@link #flush()}. When this happens, ZooKeeper may trigger
+	 * a children-change on the node parents. But because of the distributed
+	 * nature the flush may still be ongoing. As a result, any children
+	 * refreshing would have to be deferred till everything in the tree has been
+	 * flushed. But a user may explicitly only flush a specific child node and
+	 * <em>not</em> a sibling. In this case, a replace implementation would
+	 * silently remove the sibling when the children-change is triggered by
+	 * ZooKeeper for the parent. To avoid that we ould have to implement
+	 * additional state that keeps track of this. Thus, a design decision was
+	 * made to only process added nodes when a children-change is triggered.
+	 * This also fits nicely into the {@link #flush()} & {@link #sync()}
+	 * contract.
+	 * </p>
+	 * <p>
+	 * Local, unflushed removals are handled internally by remembering nodes
+	 * which has been removed ({@link #pendingChildRemovals}. When this method
+	 * is called, any unflushed local removals will be restored. This decision
+	 * was made because we don't want to let nodes diverge at runtime. The
+	 * {@link #childrenVersion} will be used to resolve conflicts. For example,
+	 * when a child node is removed locally and some other child node of the
+	 * same parent is updated remotely we must abort the local removal because
+	 * we cannot reliably guarantee which change should take precedence.
+	 * </p>
 	 * 
 	 * @param remoteChildrenNames
 	 * @param childrenVersion
 	 */
-	final void loadChildren(final Collection<String> remoteChildrenNames, final int childrenVersion) {
+	final void loadChildren(final Collection<String> remoteChildrenNames, final int childrenVersion) throws Exception {
 		// don't do anything if removed
 		if (removed) {
 			return;
@@ -534,12 +610,27 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					continue;
 				}
 
-				// does not exist locally, assume added in ZooKeeper
-				final ZooKeeperBasedPreferences child = newChild(name);
-				children.put(name, child);
+				// detect conflicting local removals
+				final ZooKeeperBasedPreferences removedNode = pendingChildRemovals.get(name);
+				if (null != removedNode) {
+					final Stat versionInfo = service.getVersionInfo(removedNode.zkPath);
+					if (null == versionInfo) {
+						// already removed remotely (the removal doesn't need to flushed anymore)
+						// we simply drop it from the pendingChildRemovals silently
+						pendingChildRemovals.remove(name);
+					} else if ((versionInfo.getVersion() == removedNode.propertiesVersion) && (versionInfo.getCversion() == removedNode.childrenVersion)) {
+						// we keep the pending flush in this case because the remote didn't change
+						// thus, we are still good for a flush, i.e. keep it in the pendingChildRemovals
+					} else {
+						for (final String child : pendingChildRemovals.keySet()) {
+							LOG.debug("Node {} restored unflushed local removal for child: {}", this, child);
+						}
+						pendingChildRemovals.remove(name);
+					}
+				}
 
-				// create event
-				addedNodes.add(child);
+				// does not exist locally, assume added in ZooKeeper
+				final ZooKeeperBasedPreferences child = createChild(name, addedNodes);
 
 				// log message
 				if (CloudDebug.zooKeeperPreferences) {
@@ -549,10 +640,21 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// remove nodes which no longer exists remotely
 			for (final String name : childrenToRemove) {
-				// remove from children
-				final ZooKeeperBasedPreferences child = children.remove(name);
+				// find child
+				final ZooKeeperBasedPreferences child = children.get(name);
+				if (null == child) {
+					continue;
+				}
 
-				// mark removed
+				// check that it has been previously flushed to ZooKeeper at least once
+				if ((child.propertiesVersion < 0) && (child.childrenVersion < 0)) {
+					if (CloudDebug.zooKeeperPreferences) {
+						LOG.debug("Node {} child {} was never flushed and won't be removed: {} ", new Object[] { this, name, child });
+					}
+					continue;
+				}
+
+				// remove node
 				child.removeNode(true);
 
 				// create event
@@ -566,9 +668,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// flush any local pending deletes (remote always wins)
 			if (CloudDebug.zooKeeperPreferences) {
-				for (final String child : pendingChildRemovals) {
-					LOG.debug("Node {} restored unflushed local removal for child: {}", this, child);
-				}
+				LOG.debug("Clearing pending child removales of node {}: {}", this, pendingChildRemovals.keySet());
 			}
 			pendingChildRemovals.clear();
 
@@ -591,8 +691,21 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	}
 
 	/**
-	 * Called by {@link ZooKeeperPreferencesService} when properties have been
-	 * loaded from ZooKeeper.
+	 * Updates the local node properties with properties from ZooKeeper.
+	 * <p>
+	 * This method is called by {@link ZooKeeperPreferencesService} when
+	 * properties have been loaded from ZooKeeper.
+	 * <p>
+	 * The local properties will be completely replaced with the properties
+	 * loaded from the specified bytes. Properties that exist locally but not
+	 * remotely will be removed locally. Properties that exist remotely but not
+	 * locally will be added locally. Proper events will be fired.
+	 * </p>
+	 * <p>
+	 * The replace strategy relies on the node version provided by ZooKeeper.
+	 * The version of a ZooKeeper node is used as the properties version. When
+	 * writing properties to ZooKeeper we'll receive a response
+	 * </p>
 	 * 
 	 * @param remotePropertyBytes
 	 * @param propertiesVersion
@@ -730,34 +843,25 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		ZooKeeperBasedPreferences child = children.get(key);
 
 		// create the child locally if it doesn't exist
-		boolean added = false;
+		final List<ZooKeeperBasedPreferences> added = new ArrayList<ZooKeeperBasedPreferences>(1);
 		if (child == null) {
-			// ensure that the node is connected with ZooKeeper
-			ensureActiveAndConnected();
-
-			// prevent concurrent modification
-			childrenModifyLock.lock();
-			try {
-
-				// create child if necessary
-				child = children.get(key);
-				while (child == null) {
-					if (!children.containsKey(key)) {
-						children.put(key, newChild(key));
-						added = true;
-						// remove from pending removals list
-						pendingChildRemovals.remove(key);
-					}
-					child = children.get(key);
-				}
-			} finally {
-				childrenModifyLock.unlock();
+			// make an attempt to load the node if this node is accessed
+			// for read purposes without having any children; this likely
+			// indicates that someone wants to traverse the tree; thus
+			// we try to be smart and load any remote data that is available
+			if (shouldLoad() && children.isEmpty()) {
+				ensureLoadedIfPossible();
 			}
+
+			// create child
+			child = createChild(key, added);
 		}
 
 		// notify listeners if a child was added
-		if (added) {
-			fireNodeEvent(child, true);
+		if (!added.isEmpty()) {
+			for (final ZooKeeperBasedPreferences addedChild : added) {
+				fireNodeEvent(addedChild, true);
+			}
 		}
 		return child.node(index == -1 ? EMPTY_STRING : path.substring(index + 1));
 	}
@@ -785,7 +889,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 
 		// in order to properly check if the node exists we ensure its fully loaded
-		ensureActiveAndConnected();
+		ensureLoaded();
 
 		// now check again if a check for this node is requested
 		if (pathName.length() == 0) {
@@ -823,8 +927,13 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new IllegalArgumentException("value must not be null");
 		}
 
-		// ensure active but don't fail if off-line
-		ensureActiveAndConnectIfPossible();
+		// make an attempt to load the node if this node is accessed
+		// for write purposes without having any values; this likely
+		// indicates that someone wants to set some values; thus
+		// we try to be smart and load any remote data that is available
+		if (shouldLoad() && properties.isEmpty()) {
+			ensureLoadedIfPossible();
+		}
 
 		final String oldValue = properties.getProperty(key);
 		if (value.equals(oldValue)) {
@@ -896,8 +1005,13 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			throw new IllegalArgumentException("key must not be null");
 		}
 
-		// ensure active but don't fail if off-line
-		ensureActiveAndConnectIfPossible();
+		// make an attempt to load the node if this node is accessed
+		// for write purposes without having any values; this likely
+		// indicates that someone wants to update some values; thus
+		// we try to be smart and load any remote data that is available
+		if (shouldLoad() && properties.isEmpty()) {
+			ensureLoadedIfPossible();
+		}
 
 		final String oldValue = properties.getProperty(key);
 		if (oldValue == null) {
@@ -926,6 +1040,56 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		firePreferenceEvent(new PreferenceChangeEvent(this, key, oldValue, null));
 	}
 
+	/**
+	 * Called by children when a child was removed.
+	 * <p>
+	 * The child will be deleted from the list of children. If the delete was
+	 * not triggered remotely, it will also be recorded for remote removal on
+	 * flush.
+	 * </p>
+	 * 
+	 * @param child
+	 * @param triggeredRemotely
+	 */
+	private boolean removeChild(final ZooKeeperBasedPreferences child, final boolean triggeredRemotely) {
+		// prevent concurrent modification (eg. remote and local removal)
+		childrenModifyLock.lock();
+		try {
+			// remove child (only if possible)
+			if (!children.remove(child.name(), child)) {
+				return false;
+			}
+
+			// immediatly mark the child removed
+			child.removed = true;
+
+			// log message
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Node {} child removed: {} ", this, child.name());
+			}
+
+			// remove it from the service
+			if (!service.activeNodesByPath.remove(child.zkPath, child)) {
+				if (service.activeNodesByPath.containsKey(child.zkPath)) {
+					throw new AssertionError(String.format("programming/concurrency error: unable to remove node (%s) from server active nodes list; we have the lock so this should not happen (service activeNodesByPath %s)", this, StringUtils.join(service.activeNodesByPath.keySet(), ",")));
+				}
+			}
+
+			// remember removals for flush (if this is not a remote triggered removal)
+			if (!triggeredRemotely) {
+				pendingChildRemovals.put(child.name(), child);
+			}
+		} finally {
+			childrenModifyLock.unlock();
+		}
+
+		// trigger event outside of lock
+		fireNodeEvent(child, false);
+
+		// report success
+		return true;
+	}
+
 	@Override
 	public void removeNode() throws BackingStoreException {
 		removeNode(false);
@@ -946,41 +1110,34 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			checkRemoved();
 		}
 
-		// prevent concurrent children modification (eg. remote _and_ local removal)
-		childrenModifyLock.lock();
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("Removing node {} (version {}, cversion {})", new Object[] { this, propertiesVersion, childrenVersion });
+		}
+
+		// remove from the parent (but only if this is not the scope root)
+		if (parent instanceof ZooKeeperBasedPreferences) {
+			// remove the node from the parent's collection and notify listeners
+			if (!((ZooKeeperBasedPreferences) parent).removeChild(this, triggeredRemotely)) {
+				// sanity check
+				if (!removed) {
+					throw new AssertionError(String.format("programming/concurrency error: node (%s) must be removed at this point (parent %s)", this, parent));
+				}
+				return;
+			}
+		}
+
+		// at this point the node was successfully removed from the parent
+		// we continue removing all the keys and children outside of any
+		// locks and clean-up afterwards
 		try {
-			// prevent concurrent property modification (eg. remote _and_ local removal)
-			propertiesModificationLock.lock();
-			try {
-				// re-check inside lock if already removed (but abort silently if this was triggered remotely)
-				if (triggeredRemotely && removed) {
-					return;
-				} else {
-					checkRemoved();
-				}
 
-				// don't remove the scope root from the parent
-				boolean reallyRemove = false;
-				if ((parent != null) && (parent instanceof ZooKeeperBasedPreferences)) {
-					reallyRemove = true;
-					// remove the node from the parent's collection and notify listeners
-					((ZooKeeperBasedPreferences) parent).childRemoved(this, triggeredRemotely);
-				}
-
-				// clear all the property values. do it "the long way" so
-				// everyone gets notification
+			// clear all the property values. do it "the long way" so
+			// everyone gets notification
+			while (!properties.isEmpty()) {
 				final String[] keys = properties.stringPropertyNames().toArray(new String[0]);
 				for (int i = 0; i < keys.length; i++) {
 					remove(keys[i]);
 				}
-
-				// now set removed and deactivate
-				if (reallyRemove) {
-					removed = true;
-					service.deactivateNode(this);
-				}
-			} finally {
-				propertiesModificationLock.unlock();
 			}
 
 			// remove all the children (do it "the long way" so everyone gets notified)
@@ -993,14 +1150,14 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					// been removed. no work to do.
 				}
 			}
-		} finally {
-			childrenModifyLock.unlock();
 
+		} finally {
 			// clear any listeners and caches
-			if (removed) {
-				// clean-up after removal
-				dispose();
-			}
+			dispose();
+		}
+
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("Removed node {} (version {}, cversion {})", new Object[] { this, propertiesVersion, childrenVersion });
 		}
 	}
 
@@ -1009,14 +1166,14 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		if (nodeListeners != null) {
 			nodeListeners.remove(listener);
 		}
-	};
+	}
 
 	@Override
 	public void removePreferenceChangeListener(final IPreferenceChangeListener listener) {
 		if (preferenceListeners != null) {
 			preferenceListeners.remove(listener);
 		}
-	}
+	};
 
 	private void saveChildren() throws Exception {
 		// don't do anything if removed
@@ -1035,18 +1192,16 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			}
 
 			// recursively flush children (which will create any new path in ZooKeeper)
-			final Collection<ZooKeeperBasedPreferences> childNodes = children.values();
-			for (final ZooKeeperBasedPreferences child : childNodes) {
+			for (final ZooKeeperBasedPreferences child : children.values()) {
 				child.flush();
 			}
 
 			// remove children marked for removal
-			for (final String childName : pendingChildRemovals) {
-				final String childPath = zkPath + IPath.SEPARATOR + childName;
+			for (final ZooKeeperBasedPreferences child : pendingChildRemovals.values()) {
 				if (CloudDebug.zooKeeperPreferences) {
-					LOG.debug("Removing child node {} at {}", childName, childPath);
+					LOG.debug("Removing child node {}", child);
 				}
-				service.removeNode(childPath);
+				service.removeNode(child.zkPath, child.propertiesVersion);
 			}
 			pendingChildRemovals.clear();
 
@@ -1106,6 +1261,22 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
+	/**
+	 * Indicates if the node should been loaded.
+	 * <p>
+	 * A node that has not been loaded previously should be loaded. The "loaded"
+	 * state is determined based on remote versions. If the node has no remote
+	 * versions we must consider the node NOT loaded. This may not be entirely
+	 * true if it doesn't exists remotely.
+	 * </p>
+	 * 
+	 * @return <code>true</code> if the node should be loaded,
+	 *         <code>false</code> otherwise
+	 */
+	private boolean shouldLoad() {
+		return (propertiesVersion == -1) || (childrenVersion != -1);
+	}
+
 	@Override
 	public void sync() throws BackingStoreException {
 		// sync tree
@@ -1130,7 +1301,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 
 		// check connection
-		ensureActiveAndConnected();
+		ensureLoaded();
 
 		// prevent concurrent children modification (eg. remote _and_ local flush)
 		childrenModifyLock.lock();
@@ -1213,6 +1384,16 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	 */
 	protected String testableGetZooKeeperPath() {
 		return zkPath;
+	}
+
+	/**
+	 * Indicates if the node has been removed
+	 * 
+	 * @return <code>true</code> if removed, <code>false</code> otherwise
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	protected boolean testableRemoved() {
+		return removed;
 	}
 
 	@Override
