@@ -32,6 +32,9 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences.NodeChangeEvent;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 import org.eclipse.core.runtime.preferences.IPreferencesService;
 
+import org.osgi.service.prefs.BackingStoreException;
+
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -150,51 +153,10 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 		// create preference tree
 		final TestablePreferences rootNode = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
 
-		final String testNodeName = "testNode" + System.currentTimeMillis();
-
-		// create node
-		final TestablePreferences testNode = (TestablePreferences) rootNode.node(testNodeName);
-		rootNode.flush();
-		assertTrue("must exist", rootNode.nodeExists(testNodeName));
-
-		// hook listeners for capturing event
-		final NodeChangeRecorder nodeEvents = new NodeChangeRecorder();
-		rootNode.addNodeChangeListener(nodeEvents);
-
-		// remove node
-		testNode.removeNode();
-
-		// check existence
-		assertTrue("test node must be removed", testNode.testableRemoved());
-		assertFalse("test node must be removed from parent", rootNode.testableGetChildren().containsKey(testNodeName));
-		assertFalse("test node must be removed from parent", rootNode.testableGetChildren().containsValue(testNode));
-		assertFalse("test node must not exists anymore", testNode.nodeExists(""));
-		assertFalse("test node must not exists anymore", rootNode.nodeExists(testNodeName));
-		assertTrue("test node path must still exists in ZooKeeper before flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
-
-		// must be in active
-		assertFalse("must not be active after removal", service.isActive(testNode));
-
-		// check event
-		final NodeChangeEvent event = nodeEvents.pollRemoved();
-		assertNotNull("no event", event);
-		assertSame("not the same node", testNode, event.getChild());
-		assertSame("not the same node", rootNode, event.getParent());
-
-		// flush at test node must fail
-		try {
-			testNode.flush();
-			fail("must not be able to flush on removed node");
-		} catch (final Exception e) {
-			// assume ok
+		// try multiple times
+		for (int i = 0; i < 10; i++) {
+			testRemoveNode(rootNode);
 		}
-
-		// flush at parent
-		rootNode.flush();
-
-		// paths must be removed in ZooKeeper
-		assertFalse("test node path must not exists in ZooKeeper after flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
-
 	}
 
 	private void testCreateNode(final boolean flushUsingParent) throws Exception {
@@ -251,5 +213,52 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 
 		// no event
 		nodeEvents.assertEmpty();
+	}
+
+	private void testRemoveNode(final TestablePreferences rootNode) throws BackingStoreException, InterruptedException, KeeperException {
+		final String testNodeName = "testNode" + System.currentTimeMillis();
+
+		// create node
+		final TestablePreferences testNode = (TestablePreferences) rootNode.node(testNodeName);
+		rootNode.flush();
+		assertTrue("must exist", rootNode.nodeExists(testNodeName));
+
+		// hook listeners for capturing event
+		final NodeChangeRecorder nodeEvents = new NodeChangeRecorder();
+		rootNode.addNodeChangeListener(nodeEvents);
+
+		// remove node
+		testNode.removeNode();
+
+		// check existence
+		assertTrue("test node must be removed", testNode.testableRemoved());
+		assertFalse("test node must be removed from parent", rootNode.testableGetChildren().containsKey(testNodeName));
+		assertFalse("test node must be removed from parent", rootNode.testableGetChildren().containsValue(testNode));
+		assertFalse("test node must not exists anymore", testNode.nodeExists(""));
+		assertFalse("test node must not exists anymore", rootNode.nodeExists(testNodeName));
+		assertTrue("test node path must still exists in ZooKeeper before flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
+
+		// must be in active
+		assertFalse("must not be active after removal", service.isActive(testNode));
+
+		// check event
+		final NodeChangeEvent event = nodeEvents.pollRemoved();
+		assertNotNull("no event", event);
+		assertSame("not the same node", testNode, event.getChild());
+		assertSame("not the same node", rootNode, event.getParent());
+
+		// flush at test node must fail
+		try {
+			testNode.flush();
+			fail("must not be able to flush on removed node");
+		} catch (final Exception e) {
+			// assume ok
+		}
+
+		// flush at parent
+		rootNode.flush();
+
+		// paths must be removed in ZooKeeper
+		assertFalse("test node path must not exists in ZooKeeper after flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
 	}
 }

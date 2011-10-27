@@ -307,8 +307,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		preferenceListeners = null;
 		properties.clear();
 		children.clear();
-		propertiesVersion = -1;
-		childrenVersion = -1;
+
+		// but do not reset versions, they are required for
+		// resolving conflicts when loading children
 	}
 
 	/**
@@ -430,6 +431,13 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			} finally {
 				propertiesModificationLock.unlock();
 			}
+
+			// initialize children version
+			// (this is required in order to work around a concurrency issue in ZooKeeper;
+			// when saving properties the node might be created; in this case the cversion start
+			// with 0; this conflicts with our loadChildren logic which)
+			// TODO: we may be able to solve this when upgrading to ZooKeeper 3.4 and implementing multi-operations
+			childrenVersion = Math.max(0, childrenVersion);
 
 			// save children
 			saveChildren();
@@ -554,13 +562,14 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	 * </p>
 	 * <p>
 	 * Local, unflushed removals are handled internally by remembering nodes
-	 * which has been removed ({@link #pendingChildRemovals}. When this method
-	 * is called, any unflushed local removals will be restored. This decision
-	 * was made because we don't want to let nodes diverge at runtime. The
-	 * {@link #childrenVersion} will be used to resolve conflicts. For example,
-	 * when a child node is removed locally and some other child node of the
-	 * same parent is updated remotely we must abort the local removal because
-	 * we cannot reliably guarantee which change should take precedence.
+	 * which has been removed ({@link #pendingChildRemovals}). When this method
+	 * is called, unflushed local removals will be restored <em>if</em> the
+	 * remote child changed. This decision was made because we don't want to let
+	 * nodes diverge at runtime. The child's {@link #propertiesVersion} will be
+	 * used to resolve conflicts. For example, when a child node is removed
+	 * locally and some other child node of the same parent is updated remotely
+	 * we must abort the local removal because we cannot reliably guarantee
+	 * which change should take precedence.
 	 * </p>
 	 * 
 	 * @param remoteChildrenNames
@@ -589,9 +598,6 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// update children version
 			this.childrenVersion = childrenVersion;
 
-			// collect all children that need to be removed
-			final Set<String> childrenToRemove = new HashSet<String>(children.keySet());
-
 			// note, the policy here is very simple: we completely
 			// replace the local children with the loaded children;
 			// this keeps the implementation simple and also delegates
@@ -600,8 +606,6 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// discover added children
 			for (final String name : remoteChildrenNames) {
-				// any children that exists remotely, must not be removed locally
-				childrenToRemove.remove(name);
 
 				// detect existing nodes
 				if (children.containsKey(name)) {
@@ -617,13 +621,19 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					if (null == versionInfo) {
 						// already removed remotely (the removal doesn't need to flushed anymore)
 						// we simply drop it from the pendingChildRemovals silently
+						for (final String child : pendingChildRemovals.keySet()) {
+							LOG.debug("Node {} child also removed remotely: {}", this, child);
+						}
 						pendingChildRemovals.remove(name);
 					} else if ((versionInfo.getVersion() == removedNode.propertiesVersion) && (versionInfo.getCversion() == removedNode.childrenVersion)) {
 						// we keep the pending flush in this case because the remote didn't change
 						// thus, we are still good for a flush, i.e. keep it in the pendingChildRemovals
+						for (final String child : pendingChildRemovals.keySet()) {
+							LOG.debug("Node {} keeping unflushed local removal for child: {}", this, child);
+						}
 					} else {
 						for (final String child : pendingChildRemovals.keySet()) {
-							LOG.debug("Node {} restored unflushed local removal for child: {}", this, child);
+							LOG.debug("Node {} restored local removal for child due to newer remot version: {}", this, child);
 						}
 						pendingChildRemovals.remove(name);
 					}
@@ -637,40 +647,6 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					LOG.debug("Node {} child added: {} ", this, child);
 				}
 			}
-
-			// remove nodes which no longer exists remotely
-			for (final String name : childrenToRemove) {
-				// find child
-				final ZooKeeperBasedPreferences child = children.get(name);
-				if (null == child) {
-					continue;
-				}
-
-				// check that it has been previously flushed to ZooKeeper at least once
-				if ((child.propertiesVersion < 0) && (child.childrenVersion < 0)) {
-					if (CloudDebug.zooKeeperPreferences) {
-						LOG.debug("Node {} child {} was never flushed and won't be removed: {} ", new Object[] { this, name, child });
-					}
-					continue;
-				}
-
-				// remove node
-				child.removeNode(true);
-
-				// create event
-				removedNodes.add(child);
-
-				// log message
-				if (CloudDebug.zooKeeperPreferences) {
-					LOG.debug("Node {} child removed: {} ", this, child);
-				}
-			}
-
-			// flush any local pending deletes (remote always wins)
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("Clearing pending child removales of node {}: {}", this, pendingChildRemovals.keySet());
-			}
-			pendingChildRemovals.clear();
 
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Loaded children for node {} (now at cversion {})", this, childrenVersion);
@@ -1255,7 +1231,6 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Saved properties of node {} (now at version {})", this, propertiesVersion);
 			}
-
 		} finally {
 			propertiesModificationLock.unlock();
 		}

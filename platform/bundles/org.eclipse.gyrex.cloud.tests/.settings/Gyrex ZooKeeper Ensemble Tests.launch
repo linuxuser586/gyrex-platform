@@ -30,7 +30,7 @@
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl} -consoleLog -console&#13;&#10;-nosplash"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="org.eclipse.gyrex.cloud.tests"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-server&#13;&#10;-XX:+UseParallelGC&#13;&#10;-XX:MaxPermSize=128m&#13;&#10;-Dbuild.test.dir=${system_property:java.io.tmpdir}"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-Dlogback.configurationFile=${resource_loc:/org.eclipse.gyrex.cloud.tests/logback.xml}&#13;&#10;-Dbuild.test.dir=${system_property:java.io.tmpdir}&#13;&#10;-server&#13;&#10;-XX:+UseParallelGC&#13;&#10;-XX:MaxPermSize=128m&#13;&#10;-ea:org.eclipse..."/>
 <stringAttribute key="pde.version" value="3.3"/>
 <stringAttribute key="product" value="org.eclipse.equinox.p2.director.app.product"/>
 <booleanAttribute key="run_in_ui_thread" value="false"/>
