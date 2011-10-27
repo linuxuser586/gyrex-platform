@@ -76,12 +76,12 @@ public class ZooKeeperPreferencesEnsambleTests extends BaseEnsambleTest {
 		s1 = new TestablePreferencesService("s1");
 		assertTrue("must be connected", s1.isConnected());
 		r1 = new TestablePreferences(preferencesRoot, testablePreferenceName, s1);
-		assertFalse("must be inactive", s1.isActive(r1));
+		assertTrue("must be active", s1.isActive(r1));
 
 		s2 = new TestablePreferencesService("s2");
 		assertTrue("must be connected", s2.isConnected());
 		r2 = new TestablePreferences(preferencesRoot, testablePreferenceName, s2);
-		assertFalse("must be inactive", s2.isActive(r2));
+		assertTrue("must be active", s2.isActive(r2));
 	}
 
 	@Override
