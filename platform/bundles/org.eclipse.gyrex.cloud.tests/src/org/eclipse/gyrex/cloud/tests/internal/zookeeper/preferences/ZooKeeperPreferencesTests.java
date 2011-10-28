@@ -53,6 +53,21 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 	private TestablePreferencesService service;
 	private IEclipsePreferences preferencesRoot;
 
+	private void assertExists(final TestablePreferences parent, final String childName, final TestablePreferences child) throws BackingStoreException {
+		assertEquals(String.format("node %s must have the specified child name", child.absolutePath()), childName, child.name());
+		assertFalse(String.format("node %s must not be removed", child.absolutePath()), child.testableRemoved());
+		assertTrue(String.format("node %s  must be contained in parent", child.absolutePath()), parent.testableGetChildren().containsKey(child.name()));
+		assertTrue(String.format("node %s  must be contained in parent", child.absolutePath()), parent.testableGetChildren().containsValue(child));
+		assertTrue(String.format("node %s  must exists", child.absolutePath()), child.nodeExists(""));
+		assertTrue(String.format("node %s  must exists", child.absolutePath()), parent.nodeExists(child.name()));
+	}
+
+	private TestablePreferences create(final TestablePreferences parent, final String childName) throws Exception {
+		final TestablePreferences node = (TestablePreferences) parent.node(childName);
+		assertExists(parent, childName, node);
+		return node;
+	}
+
 	@Before
 	public void setUp() throws Exception {
 		// enable debugging
@@ -159,6 +174,31 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 		}
 	}
 
+	@Test
+	public void test05SyncNode() throws Exception {
+		// create preference tree
+		final TestablePreferences rootNode = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
+
+		final String testNodeName = "testNode" + System.currentTimeMillis();
+		assertFalse("test node must not exists", rootNode.nodeExists(testNodeName));
+
+		// create an empty node
+		final TestablePreferences testNode = create(rootNode, testNodeName);
+
+		// check that the path does not exists in ZooKeeper
+		final IPath testNodeZkPath = new Path(rootNode.testableGetZooKeeperPath()).append(testNodeName);
+		assertFalse("test node path must not exists in ZooKeeper before sync", ZooKeeperGate.get().exists(testNodeZkPath));
+
+		// call sync
+		testNode.sync();
+
+		// node must be created at this point
+		assertExists(rootNode, testNodeName, testNode);
+
+		// path must exists as well
+		assertTrue("test node path must exists in ZooKeeper after sync", ZooKeeperGate.get().exists(testNodeZkPath));
+	}
+
 	private void testCreateNode(final boolean flushUsingParent) throws Exception {
 		// create preference tree
 		final TestablePreferences rootNode = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
@@ -175,14 +215,9 @@ public class ZooKeeperPreferencesTests extends ZKTestCase {
 		assertFalse("test node path must not exists in ZooKeeper after flush", ZooKeeperGate.get().exists(testNodeZkPath));
 
 		// create an empty node
-		final TestablePreferences testNode = (TestablePreferences) rootNode.node(testNodeName);
+		final TestablePreferences testNode = create(rootNode, testNodeName);
 
-		// check exists
-		assertFalse("test node must not be removed", testNode.testableRemoved());
-		assertTrue("test node must be contained in parent", rootNode.testableGetChildren().containsKey(testNodeName));
-		assertTrue("test node must be contained in parent", rootNode.testableGetChildren().containsValue(testNode));
-		assertTrue("test node must exists", testNode.nodeExists(""));
-		assertTrue("test node must exists", rootNode.nodeExists(testNodeName));
+		// check ZooKeeper does not exists
 		assertFalse("test node path must not exists in ZooKeeper before flush", ZooKeeperGate.get().exists(new Path(testNode.testableGetZooKeeperPath())));
 
 		// must be active

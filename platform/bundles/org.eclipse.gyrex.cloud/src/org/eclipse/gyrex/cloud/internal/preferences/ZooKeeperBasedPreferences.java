@@ -1308,6 +1308,18 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			try {
 				checkRemoved();
 
+				// check that the node exists in ZooKeeper, i.e. was flushed at least once
+				if (propertiesVersion == -1) {
+					final Stat versionInfo = service.getVersionInfo(zkPath);
+					if (null == versionInfo) {
+						// this is a new node, it was never flushed so there is no way we can refresh properties and children
+						if (CloudDebug.zooKeeperPreferences) {
+							LOG.debug("Sync aborted for node {} (version {}, cversion {}): it was never flushed and does not exists in ZooKeeper.", new Object[] { this, propertiesVersion, childrenVersion });
+						}
+						return;
+					}
+				}
+
 				// refresh properties & children (override any local changes)
 				service.refreshProperties(zkPath, true);
 				service.refreshChildren(zkPath, true);
