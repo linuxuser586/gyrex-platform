@@ -474,7 +474,7 @@ public class ZooKeeperGate {
 		final List<String> children = getZooKeeper().getChildren(path.toString(), false, stat);
 
 		// abort if version doesn't match
-		if (stat.getVersion() != version) {
+		if ((version > -1) && (stat.getVersion() != version)) {
 			throw new BadVersionException(path.toString());
 		}
 
