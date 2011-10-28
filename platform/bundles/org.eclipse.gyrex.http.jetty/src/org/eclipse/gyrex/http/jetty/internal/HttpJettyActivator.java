@@ -22,7 +22,6 @@ import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.http.internal.BundleFinder;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.admin.JettyManagerImpl;
-import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -31,7 +30,6 @@ import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
 
 public class HttpJettyActivator extends BaseBundleActivator {
 
@@ -78,10 +76,6 @@ public class HttpJettyActivator extends BaseBundleActivator {
 		} finally {
 			IO.close(in);
 		}
-	}
-
-	public static ServiceRegistration registerMetrics(final MetricSet metricSet) {
-		return getInstance().getServiceHelper().registerService(MetricSet.SERVICE_NAME, metricSet, "Eclipse Gyrex", metricSet.getDescription(), null, null);
 	}
 
 	private volatile JettyManagerImpl jettyManager;

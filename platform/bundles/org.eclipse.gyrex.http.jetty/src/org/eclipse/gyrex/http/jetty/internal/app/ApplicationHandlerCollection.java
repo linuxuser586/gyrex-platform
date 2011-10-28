@@ -22,8 +22,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.application.Application;
-import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyEngineApplication;
 import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 import org.eclipse.gyrex.server.Platform;
 
@@ -42,8 +42,6 @@ import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.handler.AbstractHandlerContainer;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.URIUtil;
-
-import org.osgi.framework.ServiceRegistration;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -69,8 +67,6 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	private final JettyGateway jettyGateway;
 	private final ApplicationHandlerCollectionMetrics metrics;
 
-	private final ServiceRegistration metricsRegistration;
-
 	/**
 	 * Creates a new instance.
 	 * 
@@ -79,7 +75,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	public ApplicationHandlerCollection(final JettyGateway jettyGateway) {
 		this.jettyGateway = jettyGateway;
 		metrics = new ApplicationHandlerCollectionMetrics();
-		metricsRegistration = HttpJettyActivator.registerMetrics(metrics);
+		JettyEngineApplication.registerMetrics(metrics);
 	}
 
 	public boolean addIfAbsent(final Handler handler) {
@@ -95,8 +91,9 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	public void destroy() {
 		// super
 		super.destroy();
+
 		// unregister metrics
-		metricsRegistration.unregister();
+		JettyEngineApplication.unregisterMetrics(metrics);
 	}
 
 	private void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException { // check async requests

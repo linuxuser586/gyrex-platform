@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,6 +29,7 @@ import org.eclipse.gyrex.http.jetty.admin.ICertificate;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.app.JettyGateway;
 import org.eclipse.gyrex.http.jetty.internal.connectors.CertificateSslContextFactory;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
@@ -66,6 +68,8 @@ public class JettyEngineApplication implements IApplication {
 	private static final AtomicReference<CountDownLatch> stopSignalRef = new AtomicReference<CountDownLatch>(null);
 	private static final AtomicReference<Throwable> jettyErrorRef = new AtomicReference<Throwable>();
 
+	private static Map<MetricSet, ServiceRegistration> metricsRegistrations = new ConcurrentHashMap<MetricSet, ServiceRegistration>();
+
 	/**
 	 * Force a shutdown of the ZooKeeper gate.
 	 */
@@ -73,6 +77,30 @@ public class JettyEngineApplication implements IApplication {
 		final CountDownLatch stopSignal = stopSignalRef.get();
 		if (stopSignal != null) {
 			stopSignal.countDown();
+		}
+	}
+
+	public static ServiceRegistration registerMetrics(final MetricSet metricSet) {
+		final ServiceRegistration metricsRegistration = HttpJettyActivator.getInstance().getServiceHelper().registerService(MetricSet.SERVICE_NAME, metricSet, "Eclipse Gyrex", metricSet.getDescription(), null, null);
+		final ServiceRegistration oldRegistration = metricsRegistrations.put(metricSet, metricsRegistration);
+		if ((null != oldRegistration) && (oldRegistration != metricsRegistration)) {
+			try {
+				oldRegistration.unregister();
+			} catch (final IllegalStateException e) {
+				// ignore
+			}
+		}
+		return metricsRegistration;
+	}
+
+	public static void unregisterMetrics(final MetricSet metrics) {
+		final ServiceRegistration registration = metricsRegistrations.remove(metrics);
+		if (null != registration) {
+			try {
+				registration.unregister();
+			} catch (final IllegalStateException e) {
+				// ignore
+			}
 		}
 	}
 
@@ -293,6 +321,13 @@ public class JettyEngineApplication implements IApplication {
 
 			// remove gateway
 			gatewayServiceRegistration.unregister();
+
+			// remove metrics
+			while (!metricsRegistrations.isEmpty()) {
+				for (final MetricSet metric : metricsRegistrations.keySet()) {
+					unregisterMetrics(metric);
+				}
+			}
 
 			// shutdown Jetty
 			try {
