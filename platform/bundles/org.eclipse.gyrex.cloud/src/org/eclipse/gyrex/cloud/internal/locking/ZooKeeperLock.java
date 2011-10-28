@@ -760,6 +760,12 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			// sent notification
 			notifyLockReleased(KillReason.ZOOKEEPER_DISCONNECT);
 		} catch (final Exception e) {
+			// fail if this is a regular release
+			if (killReason == KillReason.REGULAR_RELEASE) {
+				throw new IllegalStateException(String.format("Unable to remove lock node %s. Please check server logs and also ZooKeeper. If node still exists and the session is not closed it might never get released. %s", lockNodePath.append(myLockName), ExceptionUtils.getRootCauseMessage(e)), e);
+			}
+
+			// log error and continue
 			LOG.warn("Unable to remove lock node {}. Please check server logs and also ZooKeeper. If node still exists and the session is not closed it might never get released. However, it should get released automatically after the session times out on the ZooKeeper server. {}", lockNodePath.append(myLockName), ExceptionUtils.getRootCauseMessage(e));
 		} finally {
 			// close the service
