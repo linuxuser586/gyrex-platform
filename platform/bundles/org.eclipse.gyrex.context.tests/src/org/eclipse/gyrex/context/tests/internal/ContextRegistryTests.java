@@ -18,6 +18,7 @@ import static junit.framework.Assert.fail;
 
 import java.util.Collection;
 
+import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
 import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
@@ -33,6 +34,7 @@ import org.junit.Test;
 /**
  *
  */
+@SuppressWarnings("restriction")
 public class ContextRegistryTests {
 
 	private ContextRegistryImpl contextRegistry;
@@ -57,6 +59,9 @@ public class ContextRegistryTests {
 	@Before
 	public void setUp() throws Exception {
 		contextRegistry = ContextActivator.getInstance().getContextRegistryImpl();
+
+		CloudDebug.debug = true;
+		CloudDebug.zooKeeperPreferences = true;
 	}
 
 	@After
