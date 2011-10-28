@@ -138,6 +138,23 @@ public class ExclusiveLockTests {
 	}
 
 	@Test
+	public void testAcquire003MultiTimes() throws Exception {
+		final String lockId = "test." + ZooKeeperGate.get().getSessionId() + "." + System.currentTimeMillis();
+
+		// test acquiring the same lock multiple times in a row
+		for (int i = 0; i < 5; i++) {
+			final Future<ExclusiveLockImpl> lock1 = executorService.submit(newAcquireLockCall(new ExclusiveLockImpl(lockId, null), 0));
+
+			final ExclusiveLockImpl lock = lock1.get(15, TimeUnit.SECONDS);
+			assertNotNull(lock);
+			assertTrue(lock.isValid());
+
+			lock.release();
+			assertFalse(lock.isValid());
+		}
+	}
+
+	@Test
 	public void testDisconnect001() throws Exception {
 		final String lockId = "test." + ZooKeeperGate.get().getSessionId() + "." + System.currentTimeMillis();
 		final Future<ExclusiveLockImpl> lock1 = executorService.submit(newAcquireLockCall(new ExclusiveLockImpl(lockId, null), 0));
