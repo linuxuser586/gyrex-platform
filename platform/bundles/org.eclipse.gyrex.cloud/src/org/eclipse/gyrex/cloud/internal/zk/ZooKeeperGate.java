@@ -460,15 +460,25 @@ public class ZooKeeperGate {
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
-	 * @see {@link DebuggableZooKeeper#delete(String, int)}
+	 * @see {@link ZooKeeper#delete(String, int)}
 	 */
 	public void deletePath(final IPath path, final int version) throws InterruptedException, IOException, KeeperException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
 
+		// read stats
+		final Stat stat = new Stat();
+
+		// read children
+		final List<String> children = getZooKeeper().getChildren(path.toString(), false, stat);
+
+		// abort if version doesn't match
+		if (stat.getVersion() != version) {
+			throw new BadVersionException(path.toString());
+		}
+
 		// delete all children
-		final List<String> children = getZooKeeper().getChildren(path.toString(), false);
 		for (final String child : children) {
 			deletePath(path.append(child));
 		}
@@ -662,7 +672,7 @@ public class ZooKeeperGate {
 	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
-	 * @see {@link DebuggableZooKeeper#getChildren(String, ZooKeeperMonitor)}
+	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
 	public Collection<String> readChildrenNames(final IPath path, final Stat stat) throws InterruptedException, KeeperException {
 		return readChildrenNames(path, null, stat);
@@ -686,7 +696,7 @@ public class ZooKeeperGate {
 	 * @throws NoNodeException
 	 * @throws KeeperException
 	 * @throws InterruptedException
-	 * @see {@link DebuggableZooKeeper#getChildren(String, ZooKeeperMonitor)}
+	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
 	public Collection<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException {
 		if (path == null) {
@@ -771,7 +781,7 @@ public class ZooKeeperGate {
 	 * @throws KeeperException
 	 * @throws InterruptedException
 	 * @throws IOException
-	 * @see {@link DebuggableZooKeeper#getData(String, ZooKeeperMonitor, org.apache.zookeeper.data.Stat)}
+	 * @see {@link ZooKeeper#getData(String, ZooKeeperMonitor, org.apache.zookeeper.data.Stat)}
 	 */
 	public byte[] readRecord(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException, IOException {
 		if (path == null) {
@@ -795,7 +805,7 @@ public class ZooKeeperGate {
 	 * @throws InterruptedException
 	 * @throws KeeperException
 	 * @throws IOException
-	 * @see {@link DebuggableZooKeeper#setData(String, byte[], int)}
+	 * @see {@link ZooKeeper#setData(String, byte[], int)}
 	 */
 	private Stat setData(final IPath path, final CreateMode createMode, final byte[] data, final int version) throws InterruptedException, KeeperException, IOException {
 		if (path == null) {
