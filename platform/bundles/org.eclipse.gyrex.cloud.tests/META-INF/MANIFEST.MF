@@ -9,6 +9,7 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Import-Package: junit.framework;version="4.8.1",
  org.apache.commons.io;version="2.0.0",
  org.apache.commons.lang;version="2.4.0",
+ org.apache.commons.lang.math;version="2.4.0",
  org.apache.zookeeper;version="3.4.0",
  org.apache.zookeeper.data;version="3.4.0",
  org.apache.zookeeper.server;version="3.4.0",

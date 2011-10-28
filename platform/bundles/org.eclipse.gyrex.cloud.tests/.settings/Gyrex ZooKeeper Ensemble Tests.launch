@@ -37,7 +37,7 @@
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
 <stringAttribute key="testApplication" value="org.eclipse.gyrex.boot.tests.servertestapp"/>
-<stringAttribute key="timestamp" value="1319113177031"/>
+<stringAttribute key="timestamp" value="1319789701839"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.aspectj.osgi.service.caching.j9/debug" value="false"/>

@@ -15,6 +15,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
@@ -33,6 +37,7 @@ import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
+import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
@@ -51,6 +56,153 @@ import org.slf4j.LoggerFactory;
  * </p>
  */
 public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
+
+	/**
+	 * Watcher implementation that defers processing of events into a separate
+	 * thread to avoid a backlog in the ZooKeeper event thread.
+	 * <p>
+	 * The following events will be processed by the monitor:
+	 * <ul>
+	 * <li>RECORD CHANGED - when properties of a node should be refreshed</li>
+	 * <li>CHILDREN CHANGED - when children of a node changed</li>
+	 * <li>PATH CREATED - when a node that has been created locally (but never
+	 * flushed) was also created remotely (either through a local flush or a
+	 * remote flush)</li>
+	 * <li>PATH DELETE - when a node that has been watched locally was removed
+	 * remotely (either through a local flush or a remote flush)</li>
+	 * </ul>
+	 * This streamlines the update handling processing.
+	 * </p>
+	 */
+	private final class DeferredProcessingMonitor extends ZooKeeperMonitor {
+
+		private final class DeferredRunnable implements Runnable {
+			private final WatchedEvent event;
+
+			private DeferredRunnable(final WatchedEvent event) {
+				this.event = event;
+			}
+
+			@Override
+			public void run() {
+				deferredProcess(event);
+			}
+		}
+
+		final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(final Runnable r) {
+				final Thread t = new Thread(r, String.format("ZooKeeper-Preference-EventProcessor-%s", name));
+				t.setDaemon(true);
+				return t;
+			}
+		});
+
+		@Override
+		protected void childrenChanged(final String path) {
+			if (isClosed()) {
+				return;
+			}
+
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("({}) Preference at {} updated remotely: CHILDREN CHANGED", ZooKeeperPreferencesService.this, path);
+			}
+
+			try {
+				// refresh children and notify listeners (but only if remote is newer)
+				refreshChildren(path, false);
+			} catch (final Exception ignored) {
+				LOG.debug("Ignored exception refreshing children of '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+			}
+		}
+
+		void deferredProcess(final WatchedEvent event) {
+			if (isClosed()) {
+				return;
+			}
+
+			// call super which processes in thread
+			super.process(event);
+		}
+
+		@Override
+		protected void pathCreated(final String path) {
+			if (isClosed()) {
+				return;
+			}
+
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("({}) Preference at {} created remotely", ZooKeeperPreferencesService.this, path);
+			}
+
+			try {
+				// load the node completely
+				loadNode(path, true);
+			} catch (final Exception ignored) {
+				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+			}
+		}
+
+		@Override
+		protected void pathDeleted(final String path) {
+			if (isClosed()) {
+				return;
+			}
+
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("({}) Preference at {} removed remotely", ZooKeeperPreferencesService.this, path);
+			}
+
+			final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
+			if (null != node) {
+				try {
+					// note, we have seen backlog of events submitted by ZooKeeper
+					// before remove the node we must check if it's really gone
+					// after all, events are processed asynchronously so this might already be re-created
+					final Stat stat = getVersionInfo(path);
+					if (null == stat) {
+						// remove the node
+						node.removeNode(true);
+					} else {
+						// refresh it
+						loadNode(path, false);
+					}
+				} catch (final Exception ignored) {
+					LOG.debug("Ignored exception processing node deleted event '{}': {} ", new Object[] { node, path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+				}
+			}
+		}
+
+		@Override
+		public void process(final org.apache.zookeeper.WatchedEvent event) {
+			if (isClosed()) {
+				return;
+			}
+			try {
+				executor.execute(new DeferredRunnable(event));
+			} catch (final RejectedExecutionException e) {
+				// closed
+			}
+		}
+
+		@Override
+		protected void recordChanged(final String path) {
+			if (isClosed()) {
+				return;
+			}
+
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("({}) Preference at {} updated remotely: PROPERTIES", ZooKeeperPreferencesService.this, path);
+			}
+
+			try {
+				// refresh just properties and notify listeners (but only if remote is newer)
+				refreshProperties(path, false);
+			} catch (final Exception ignored) {
+				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+			}
+		}
+	}
 
 	/**
 	 * Callable implementation for
@@ -340,16 +492,19 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 		private final String path;
 		private final int propertiesVersion;
+		private final int childrenVersion;
 
 		/**
 		 * Creates a new instance.
 		 * 
 		 * @param path
 		 * @param propertiesVersion
+		 * @param childrenVersion
 		 */
-		private RemoveNode(final String path, final int propertiesVersion) {
+		private RemoveNode(final String path, final int propertiesVersion, final int childrenVersion) {
 			this.path = path;
 			this.propertiesVersion = propertiesVersion;
+			this.childrenVersion = childrenVersion;
 		}
 
 		@Override
@@ -357,7 +512,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			checkClosed();
 
 			try {
-				keeper.delete(path, propertiesVersion);
+				ZooKeeperHelper.deleteTree(keeper, new Path(path), propertiesVersion, childrenVersion);
 			} catch (final NoNodeException e) {
 				// consider this a successful deletion
 				if (CloudDebug.zooKeeperPreferences) {
@@ -446,100 +601,8 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 * be re-registered for all existing nodes. However, only already loaded
 	 * nodes should be refreshed/hooked.
 	 * </p>
-	 * <p>
-	 * The following events will be processed by the monitor:
-	 * <ul>
-	 * <li>RECORD CHANGED - when properties of a node should be refreshed</li>
-	 * <li>CHILDREN CHANGED - when children of a node changed</li>
-	 * <li>PATH CREATED - when a node that has been created locally (but never
-	 * flushed) was also created remotely (either through a local flush or a
-	 * remote flush)</li>
-	 * <li>PATH DELETE - when a node that has been watched locally was removed
-	 * remotely (either through a local flush or a remote flush)</li>
-	 * </ul>
-	 * This streamlines the update handling processing.
-	 * </p>
 	 */
-	final ZooKeeperMonitor monitor = new ZooKeeperMonitor() {
-
-		@Override
-		protected void childrenChanged(final String path) {
-			if (isClosed()) {
-				return;
-			}
-
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} updated remotely: CHILDREN CHANGED", ZooKeeperPreferencesService.this, path);
-			}
-
-			try {
-				// refresh children and notify listeners (but only if remote is newer)
-				refreshChildren(path, false);
-			} catch (final Exception ignored) {
-				LOG.debug("Ignored exception refreshing children of '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-			}
-		}
-
-		@Override
-		protected void pathCreated(final String path) {
-			if (isClosed()) {
-				return;
-			}
-
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} created remotely", ZooKeeperPreferencesService.this, path);
-			}
-
-			try {
-				// load the node completely
-				loadNode(path, true);
-			} catch (final Exception ignored) {
-				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-			}
-		}
-
-		@Override
-		protected void pathDeleted(final String path) {
-			if (isClosed()) {
-				return;
-			}
-
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} removed remotely", ZooKeeperPreferencesService.this, path);
-			}
-
-			final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
-			if (null != node) {
-				try {
-					// remove the node
-					node.removeNode(true);
-				} catch (final Exception ignored) {
-					LOG.debug("Ignored exception removing node stored at '{}': {} ", new Object[] { node, path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-				} finally {
-					// assume the node is removed anyway
-					deactivateNode(node);
-				}
-			}
-		};
-
-		@Override
-		protected void recordChanged(final String path) {
-			if (isClosed()) {
-				return;
-			}
-
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} updated remotely: PROPERTIES", ZooKeeperPreferencesService.this, path);
-			}
-
-			try {
-				// refresh just properties and notify listeners (but only if remote is newer)
-				refreshProperties(path, false);
-			} catch (final Exception ignored) {
-				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-			}
-		};
-	};
+	final DeferredProcessingMonitor monitor = new DeferredProcessingMonitor();
 
 	final String name;
 	final ConcurrentMap<String, ZooKeeperBasedPreferences> activeNodesByPath = new ConcurrentHashMap<String, ZooKeeperBasedPreferences>();
@@ -602,6 +665,9 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 		// set disconnected
 		connected = false;
+
+		// shutdown event processor
+		monitor.executor.shutdownNow();
 
 		// invalidate all nodes
 		final Collection<ZooKeeperBasedPreferences> values = activeNodesByPath.values();
@@ -817,17 +883,21 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 *            the ZooKeeper path of the preference node to remove
 	 * @param propertiesVersion
 	 *            the last known version of the node properties (will be used
-	 *            for detecting concurrant node modification which may conflict
+	 *            for detecting concurrent node modification which may conflict
 	 *            with the removal)
+	 * @param childrenVersion
+	 *            the last known version of the node children (will be used for
+	 *            detecting concurrent node modification which may conflict with
+	 *            the removal)
 	 */
-	public final void removeNode(final String path, final int propertiesVersion) throws Exception {
+	public final void removeNode(final String path, final int propertiesVersion, final int childrenVersion) throws Exception {
 		checkClosed();
 
 		if (CloudDebug.zooKeeperPreferences) {
 			LOG.trace("Stack for removeNode request for node {}.", path, new Exception("removeNode"));
 		}
 
-		execute(new RemoveNode(path, propertiesVersion));
+		execute(new RemoveNode(path, propertiesVersion, childrenVersion));
 	}
 
 	/**

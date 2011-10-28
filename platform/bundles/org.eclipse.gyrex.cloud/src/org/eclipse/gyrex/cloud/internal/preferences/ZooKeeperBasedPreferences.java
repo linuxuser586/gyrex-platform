@@ -313,6 +313,40 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	}
 
 	/**
+	 * Implementation of {@link #remove(String)} without failing if the node has
+	 * been removed.
+	 * 
+	 * @param key
+	 */
+	private void doRemove(final String key) {
+		final String oldValue = properties.getProperty(key);
+		if (oldValue == null) {
+			return;
+		}
+
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("[REMOVE] {} - {}", new Object[] { this, key });
+		}
+
+		// prevent concurrent property modification (eg. remote _and_ local flush)
+		propertiesModificationLock.lock();
+		try {
+			if (null == properties.remove(key)) {
+				// had been removed concurrently
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("[REMOVE] Aborted due to concurrent removal. {} - {}", new Object[] { this, key });
+				}
+				return;
+			}
+		} finally {
+			propertiesModificationLock.unlock();
+		}
+
+		// fire change event outside of lock
+		firePreferenceEvent(new PreferenceChangeEvent(this, key, oldValue, null));
+	}
+
+	/**
 	 * Ensures a node that should be loaded is loaded.
 	 * 
 	 * @throws BackingStoreException
@@ -465,6 +499,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		// we try to be smart and load any remote data that is available
 		if (shouldLoad() && properties.isEmpty()) {
 			ensureLoadedIfPossible();
+		} else {
+			// just check if removed
+			checkRemoved();
 		}
 
 		final String value = properties.getProperty(key);
@@ -631,6 +668,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 						for (final String child : pendingChildRemovals.keySet()) {
 							LOG.debug("Node {} keeping unflushed local removal for child: {}", this, child);
 						}
+						continue;
 					} else {
 						for (final String child : pendingChildRemovals.keySet()) {
 							LOG.debug("Node {} restored local removal for child due to newer remot version: {}", this, child);
@@ -909,6 +947,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		// we try to be smart and load any remote data that is available
 		if (shouldLoad() && properties.isEmpty()) {
 			ensureLoadedIfPossible();
+		} else {
+			// just check if removed
+			checkRemoved();
 		}
 
 		final String oldValue = properties.getProperty(key);
@@ -987,33 +1028,12 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		// we try to be smart and load any remote data that is available
 		if (shouldLoad() && properties.isEmpty()) {
 			ensureLoadedIfPossible();
+		} else {
+			// just check if removed
+			checkRemoved();
 		}
 
-		final String oldValue = properties.getProperty(key);
-		if (oldValue == null) {
-			return;
-		}
-
-		if (CloudDebug.zooKeeperPreferences) {
-			LOG.debug("[REMOVE] {} - {}", new Object[] { this, key });
-		}
-
-		// prevent concurrent property modification (eg. remote _and_ local flush)
-		propertiesModificationLock.lock();
-		try {
-			if (null == properties.remove(key)) {
-				// had been removed concurrently
-				if (CloudDebug.zooKeeperPreferences) {
-					LOG.debug("[REMOVE] Aborted due to concurrent removal. {} - {}", new Object[] { this, key });
-				}
-				return;
-			}
-		} finally {
-			propertiesModificationLock.unlock();
-		}
-
-		// fire change event outside of lock
-		firePreferenceEvent(new PreferenceChangeEvent(this, key, oldValue, null));
+		doRemove(key);
 	}
 
 	/**
@@ -1112,7 +1132,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			while (!properties.isEmpty()) {
 				final String[] keys = properties.stringPropertyNames().toArray(new String[0]);
 				for (int i = 0; i < keys.length; i++) {
-					remove(keys[i]);
+					doRemove(keys[i]);
 				}
 			}
 
@@ -1177,7 +1197,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				if (CloudDebug.zooKeeperPreferences) {
 					LOG.debug("Removing child node {}", child);
 				}
-				service.removeNode(child.zkPath, child.propertiesVersion);
+				service.removeNode(child.zkPath, child.propertiesVersion, child.childrenVersion);
 			}
 			pendingChildRemovals.clear();
 

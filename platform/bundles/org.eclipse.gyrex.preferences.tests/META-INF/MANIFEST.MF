@@ -15,5 +15,6 @@ Import-Package: junit.framework;version="4.8.1",
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.gyrex.common;bundle-version="1.0.0",
  org.eclipse.gyrex.preferences;bundle-version="1.0.0",
- org.eclipse.gyrex.cloud;bundle-version="1.0.0"
+ org.eclipse.gyrex.cloud;bundle-version="1.0.0",
+ org.eclipse.gyrex.boot.tests;bundle-version="1.0.0"
 Export-Package: org.eclipse.gyrex.preferences.tests.internal;x-friends:="org.eclipse.gyrex.server.tests"

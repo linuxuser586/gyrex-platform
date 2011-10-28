@@ -15,7 +15,10 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.fail;
 
+import org.eclipse.gyrex.boot.tests.junit.LoggingJUnit4ClassRunner;
+import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.preferences.CloudScope;
+import org.eclipse.gyrex.preferences.internal.PreferencesDebug;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
@@ -25,10 +28,13 @@ import org.osgi.service.prefs.Preferences;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  *
  */
+@SuppressWarnings("restriction")
+@RunWith(LoggingJUnit4ClassRunner.class)
 public class CloudPreferencesBlackBoxTests {
 
 	private static final String PATH_5 = "tests/with/some/deep/path";
@@ -42,7 +48,7 @@ public class CloudPreferencesBlackBoxTests {
 		parent.flush();
 
 		assertFalse("node removal failed", node.nodeExists(""));
-		assertFalse("node removal failed at parent", parent.nodeExists(PATH_1));
+		assertFalse("node removal failed at parent", parent.nodeExists(node.name()));
 
 		try {
 			node.get(KEY_1, null);
@@ -54,6 +60,9 @@ public class CloudPreferencesBlackBoxTests {
 
 	@Before
 	public void setUp() throws Exception {
+		CloudDebug.debug = true;
+		CloudDebug.zooKeeperPreferences = true;
+		PreferencesDebug.debug = true;
 	}
 
 	@After
