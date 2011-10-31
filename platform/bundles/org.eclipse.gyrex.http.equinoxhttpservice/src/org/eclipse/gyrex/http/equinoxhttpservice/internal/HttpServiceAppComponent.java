@@ -67,16 +67,18 @@ public class HttpServiceAppComponent {
 				manager.mount("http:/", DEFAULT_APP_ID);
 				manager.mount("https:/", DEFAULT_APP_ID);
 			} catch (final MountConflictException e) {
-				LOG.info("Application {} will not be mounted again. {} ", DEFAULT_APP_ID, e.getMessage());
+				LOG.debug("HttpService application {} will not be mounted again. {} ", DEFAULT_APP_ID, e.getMessage());
 				return;
 			} catch (final MalformedURLException e) {
 				// should not happen, URLs are hard-coded at development time
 				return;
 			}
 
+			// activate
+			manager.activate(DEFAULT_APP_ID);
 		} catch (final ApplicationRegistrationException e) {
 			// already registered
-			LOG.info("Application with id {} already registered. Not registering HttpService application again. ", DEFAULT_APP_ID);
+			LOG.info("HttpService application with id {} already registered.", DEFAULT_APP_ID);
 			return;
 		}
 	}
