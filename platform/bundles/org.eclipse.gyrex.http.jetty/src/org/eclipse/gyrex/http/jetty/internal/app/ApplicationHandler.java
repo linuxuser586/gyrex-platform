@@ -14,7 +14,6 @@ package org.eclipse.gyrex.http.jetty.internal.app;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import javax.servlet.RequestDispatcher;
@@ -139,6 +138,8 @@ public class ApplicationHandler extends ServletContextHandler {
 
 		// initialize application registration
 		this.applicationRegistration = applicationRegistration;
+
+		// set init params
 		getInitParams().putAll(applicationRegistration.getInitProperties());
 
 		// set display name
@@ -163,8 +164,7 @@ public class ApplicationHandler extends ServletContextHandler {
 		// make sure the set a proper session inactive interval
 		// otherwise Jetty will keep sessions open forever
 		final HashSessionManager sessionManager = new HashSessionManager();
-		final Map<String, String> appProperties = getApplicationRegistration().getInitProperties();
-		sessionManager.setMaxInactiveInterval(NumberUtils.toInt(appProperties.get("session.maxInactiveInterval"), 1800));
+		sessionManager.setMaxInactiveInterval(NumberUtils.toInt(getInitParameter("session.maxInactiveInterval"), 1800));
 		return new SessionHandler(sessionManager);
 	}
 

@@ -27,6 +27,7 @@ import org.eclipse.equinox.http.servlet.ExtendedHttpService;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
+import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 
 import org.osgi.framework.Bundle;
 import org.osgi.service.http.HttpContext;
@@ -63,6 +64,19 @@ public interface IApplicationContext {
 	 * <code>org.eclipse.gyrex.context</code>).
 	 */
 	String SERVLET_CONTEXT_ATTRIBUTE_CONTEXT = "org.eclipse.gyrex.context";
+
+	/**
+	 * Returns the properties for the application.
+	 * <p>
+	 * The properties can be specified when registering an application. They
+	 * allow a way to configure applications. An application can also be
+	 * re-configured using the {@link IApplicationManager} but any changes to
+	 * the properties wont be reflected until the application is restarted.
+	 * </p>
+	 * 
+	 * @return the application properties
+	 */
+	Map<String, String> getInitProperties();
 
 	/**
 	 * Provides access to an application specific {@link ServletContext}.

@@ -189,7 +189,7 @@ public interface IApplicationManager {
 	 * @param properties
 	 *            application properties which may configure the application
 	 *            further when
-	 *            {@link Application#initialize(org.eclipse.gyrex.http.application.service.IApplicationServiceSupport)}
+	 *            {@link Application#initialize(org.eclipse.gyrex.http.application.context.IApplicationContext)}
 	 *            is invoked
 	 * @throws ApplicationRegistrationException
 	 *             if an application with the specified id is already registered

@@ -27,6 +27,7 @@ import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.internal.HttpDebug;
 
 import org.osgi.framework.Bundle;
+import org.osgi.framework.Constants;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 import org.osgi.service.http.NamespaceException;
@@ -47,15 +48,19 @@ public class HttpServiceImpl implements HttpService, ExtendedHttpService {
 	private final CopyOnWriteArraySet<String> aliasRegistrations = new CopyOnWriteArraySet<String>();
 	private final CopyOnWriteArraySet<Filter> filterRegistrations = new CopyOnWriteArraySet<Filter>();
 
+	private final org.osgi.framework.Filter registrationFilter;
+
 	/**
 	 * Creates a new instance.
 	 * 
+	 * @param registrationFilter
 	 * @param applicationServiceSupport
 	 * @param bundle2
 	 */
-	public HttpServiceImpl(final IApplicationContext context, final Bundle bundle) {
+	public HttpServiceImpl(final IApplicationContext context, final Bundle bundle, final org.osgi.framework.Filter registrationFilter) {
 		this.context = context;
 		this.bundle = bundle;
+		this.registrationFilter = registrationFilter;
 	}
 
 	@Override
@@ -72,8 +77,63 @@ public class HttpServiceImpl implements HttpService, ExtendedHttpService {
 		return context;
 	}
 
+	private boolean isFiltered(final String alias, final Filter filter) {
+		if (null == registrationFilter) {
+			return false;
+		}
+
+		final Map<String, Object> m = new HashMap<String, Object>(6);
+		putBundleProperties(m);
+		m.put("type", "filter");
+		m.put("alias", alias);
+		m.put(Constants.OBJECTCLASS, filter.getClass().getName());
+		return registrationFilter.matches(m);
+	}
+
+	private boolean isFiltered(final String alias, final Servlet servlet) {
+		if (null == registrationFilter) {
+			return false;
+		}
+
+		final Map<String, Object> m = new HashMap<String, Object>(6);
+		putBundleProperties(m);
+		m.put("type", "servlet");
+		m.put("alias", alias);
+		m.put(Constants.OBJECTCLASS, servlet.getClass().getName());
+		return registrationFilter.matches(m);
+	}
+
+	private boolean isFiltered(final String alias, final String name) {
+		if (null == registrationFilter) {
+			return false;
+		}
+
+		final Map<String, Object> m = new HashMap<String, Object>(6);
+		putBundleProperties(m);
+		m.put("type", "resource");
+		m.put("alias", alias);
+		m.put("resource", name);
+		return registrationFilter.matches(m);
+	}
+
+	private void putBundleProperties(final Map<String, Object> m) {
+		m.put("id", new Long(bundle.getBundleId()));
+		m.put("location", bundle.getLocation());
+		final String name = bundle.getSymbolicName();
+		if (name != null) {
+			m.put("name", name);
+		}
+	}
+
 	@Override
 	public void registerFilter(final String alias, final Filter filter, final Dictionary initparams, final HttpContext context) throws ServletException, NamespaceException {
+		if (isFiltered(alias, filter)) {
+			if (HttpDebug.httpService) {
+				LOG.debug("Ignoring filtered filter with alias {} (bundle {} ({}), filter {})", new Object[] { alias, bundle.getSymbolicName(), bundle.getBundleId(), filter });
+			}
+			return;
+		}
+
 		if (HttpDebug.httpService) {
 			LOG.debug("Registering filter with alias {} (bundle {} ({}), filter {})", new Object[] { alias, bundle.getSymbolicName(), bundle.getBundleId(), filter });
 		}
@@ -83,6 +143,13 @@ public class HttpServiceImpl implements HttpService, ExtendedHttpService {
 
 	@Override
 	public void registerResources(final String alias, final String name, final HttpContext context) throws NamespaceException {
+		if (isFiltered(alias, name)) {
+			if (HttpDebug.httpService) {
+				LOG.debug("Ignoring filtered resource with alias {} (bundle {} ({}), name {})", new Object[] { alias, bundle.getSymbolicName(), bundle.getBundleId(), name });
+			}
+			return;
+		}
+
 		try {
 			if (HttpDebug.httpService) {
 				LOG.debug("Registering resource with alias {} (bundle {} ({}), name {})", new Object[] { alias, bundle.getSymbolicName(), bundle.getBundleId(), name });
@@ -96,6 +163,13 @@ public class HttpServiceImpl implements HttpService, ExtendedHttpService {
 
 	@Override
 	public void registerServlet(final String alias, final Servlet servlet, final Dictionary initparams, final HttpContext context) throws ServletException, NamespaceException {
+		if (isFiltered(alias, servlet)) {
+			if (HttpDebug.httpService) {
+				LOG.debug("Ignoring filtered servlet with alias {} (bundle {} ({}), servlet {})", new Object[] { alias, bundle.getSymbolicName(), bundle.getBundleId(), servlet });
+			}
+			return;
+		}
+
 		try {
 			if (HttpDebug.httpService) {
 				LOG.debug("Registering servlet with alias {} (bundle {} ({}), servlet {})", new Object[] { alias, bundle.getSymbolicName(), bundle.getBundleId(), servlet });

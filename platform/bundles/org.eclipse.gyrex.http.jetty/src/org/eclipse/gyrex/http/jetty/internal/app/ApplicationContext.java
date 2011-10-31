@@ -43,7 +43,6 @@ import org.eclipse.jetty.servlet.ServletMapping;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.URIUtil;
-import org.eclipse.jetty.util.log.Log;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -138,6 +137,11 @@ public class ApplicationContext implements IApplicationContext {
 				monitor.activate();
 			}
 		}
+	}
+
+	@Override
+	public Map<String, String> getInitProperties() {
+		return applicationHandler.getInitParams();
 	}
 
 	@Override
@@ -420,7 +424,7 @@ public class ApplicationContext implements IApplicationContext {
 				try {
 					filterHolder.doStop();
 				} catch (final Exception e) {
-					Log.ignore(e);
+					// ignore
 				}
 			}
 		} finally {
@@ -456,7 +460,7 @@ public class ApplicationContext implements IApplicationContext {
 				final String[] pathSpecs = mapping.getPathSpecs();
 				for (final String spec : pathSpecs) {
 					if (pathSpec.equals(spec)) {
-						mapping.setPathSpecs((String[]) LazyList.removeFromArray(mapping.getPathSpecs(), spec));
+						mapping.setPathSpecs(LazyList.removeFromArray(mapping.getPathSpecs(), spec));
 						removedSomething = true;
 					}
 				}
