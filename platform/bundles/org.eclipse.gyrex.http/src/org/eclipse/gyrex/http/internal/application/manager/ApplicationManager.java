@@ -50,6 +50,7 @@ public class ApplicationManager implements IApplicationManager {
 	public static final String KEY_CONTEXT_PATH = "contextPath";
 	public static final String KEY_PROVIDER_ID = "providerId";
 	public static final String KEY_ACTIVE = "active";
+	public static final boolean DEFAULT_ACTIVE = true; // *true* for backwards compatibility
 
 	public static IEclipsePreferences getAppsNode() {
 		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(HttpActivator.SYMBOLIC_NAME).node(NODE_APPLICATIONS);
@@ -192,7 +193,7 @@ public class ApplicationManager implements IApplicationManager {
 			}
 
 			// return
-			return node.node(applicationId).getBoolean(KEY_ACTIVE, false);
+			return node.node(applicationId).getBoolean(KEY_ACTIVE, DEFAULT_ACTIVE);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error activating application. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}

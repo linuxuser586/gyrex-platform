@@ -66,7 +66,7 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 			appNode.addPreferenceChangeListener(applicationActiveListener);
 
 			// register if active
-			if (appNode.getBoolean(ApplicationManager.KEY_ACTIVE, true)) {
+			if (appNode.getBoolean(ApplicationManager.KEY_ACTIVE, ApplicationManager.DEFAULT_ACTIVE)) {
 				// register
 				mountApp(applicationId);
 			}
@@ -179,7 +179,7 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 				appNode.addPreferenceChangeListener(applicationActiveListener);
 
 				// register if active
-				if (appNode.getBoolean(ApplicationManager.KEY_ACTIVE, true)) {
+				if (appNode.getBoolean(ApplicationManager.KEY_ACTIVE, ApplicationManager.DEFAULT_ACTIVE)) {
 					mountAppAtGatway(applicationId, gateway);
 				}
 			}
