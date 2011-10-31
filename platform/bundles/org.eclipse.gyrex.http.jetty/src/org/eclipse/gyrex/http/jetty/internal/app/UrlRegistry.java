@@ -21,9 +21,9 @@ import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistrati
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.util.log.Log;
 import org.eclipse.osgi.util.NLS;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,7 +153,7 @@ public class UrlRegistry implements IUrlRegistry {
 				handler.destroy();
 			}
 		} catch (final Exception e) {
-			Log.warn("Error while unbinding url '" + url + "' from the underlying Jetty engine. There might be resources leaking. {}", e.getMessage());
+			LOG.warn("Error while unbinding url '{}' from the underlying Jetty engine. There might be resources leaking. {}", new Object[] { url, ExceptionUtils.getRootCauseMessage(e), e });
 		}
 
 		// return app id
