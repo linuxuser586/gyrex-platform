@@ -18,6 +18,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
@@ -146,6 +148,25 @@ public class ApplicationManager implements IApplicationManager {
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Error reading application info for application %s. %s", applicationId, ExceptionUtils.getRootCauseMessage(e)), e);
 		}
+	}
+
+	public Collection<String> getMounts(final String applicationId) throws IllegalStateException {
+		final IEclipsePreferences urlsNode = ApplicationManager.getUrlsNode();
+		try {
+			final SortedSet<String> mounts = new TreeSet<String>();
+			final String[] urls = urlsNode.keys();
+			for (final String url : urls) {
+				final String appId = urlsNode.get(url, StringUtils.EMPTY);
+				if (appId.equals(applicationId)) {
+					mounts.add(url);
+				}
+			}
+
+			return mounts;
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error reading application info for application %s. %s", applicationId, ExceptionUtils.getRootCauseMessage(e)), e);
+		}
+
 	}
 
 	@Override
