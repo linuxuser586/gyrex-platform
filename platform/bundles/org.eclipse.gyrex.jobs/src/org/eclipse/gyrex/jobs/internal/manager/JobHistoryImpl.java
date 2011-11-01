@@ -175,8 +175,12 @@ final class JobHistoryImpl implements IJobHistory {
 			node.put(KEY_RESULT_MESSAGE, JobHistoryImpl.getFormattedMessage(entry.getResult(), 0));
 			node.putInt(KEY_RESULT_SEVERITY, entry.getResult().getSeverity());
 
-			node.put(KEY_QUEUED_TRIGGER, entry.getQueuedTrigger());
-			node.put(KEY_CANCELLED_TRIGGER, entry.getCancelledTrigger());
+			if (null != entry.getQueuedTrigger()) {
+				node.put(KEY_QUEUED_TRIGGER, entry.getQueuedTrigger());
+			}
+			if (null != entry.getCancelledTrigger()) {
+				node.put(KEY_CANCELLED_TRIGGER, entry.getCancelledTrigger());
+			}
 		}
 
 		// remove entries over size limit
