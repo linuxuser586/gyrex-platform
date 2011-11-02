@@ -41,9 +41,9 @@ public class ApplicationRegistration {
 	private final String providerId;
 	private final IRuntimeContext context;
 	private final ConcurrentMap<IApplicationContext, ApplicationInstance> activeApplications = new ConcurrentHashMap<IApplicationContext, ApplicationInstance>(1);
-	private final Map<String, String> initProperties;
 
 	private final Lock applicationCreationLock = new ReentrantLock();
+	private final ApplicationManager manager;
 
 	/**
 	 * Creates a new instance.
@@ -53,11 +53,11 @@ public class ApplicationRegistration {
 	 * @param context
 	 * @param initProperties
 	 */
-	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> initProperties) {
+	public ApplicationRegistration(final String applicationId, final String providerId, final IRuntimeContext context, final ApplicationManager manager) {
 		this.applicationId = applicationId;
 		this.providerId = providerId;
 		this.context = context;
-		this.initProperties = initProperties;
+		this.manager = manager;
 	}
 
 	/**
@@ -195,7 +195,12 @@ public class ApplicationRegistration {
 	 * @return the initProperties
 	 */
 	public Map<String, String> getInitProperties() {
-		return initProperties != null ? initProperties : NO_INIT_PROPERTIES;
+		// dynamically load from manager
+		final Map<String, String> p = manager.getProperties(applicationId);
+		if (null != p) {
+			return p;
+		}
+		return NO_INIT_PROPERTIES;
 	}
 
 	/**

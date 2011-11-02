@@ -128,23 +128,11 @@ public class ApplicationManager implements IApplicationManager {
 				throw new IllegalStateException(String.format("application information %s contains invalid context path %s", applicationId, String.valueOf(contextPath)));
 			}
 
-			Map<String, String> properties = null;
-			if (appNode.nodeExists(NODE_PROPERTIES)) {
-				final Preferences propertiesNode = appNode.node(NODE_PROPERTIES);
-				final String[] keys = propertiesNode.keys();
-				if (keys.length > 0) {
-					properties = new HashMap<String, String>(keys.length);
-					for (final String key : keys) {
-						properties.put(key, propertiesNode.get(key, null));
-					}
-				}
-			}
-
 			final IRuntimeContext context = HttpActivator.getInstance().getService(IRuntimeContextRegistry.class).get(new Path(contextPath));
 			if (context == null) {
 				throw new IllegalStateException(String.format("context %s does not exists", contextPath));
 			}
-			return new ApplicationRegistration(applicationId, providerId, context, properties);
+			return new ApplicationRegistration(applicationId, providerId, context, this);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Error reading application info for application %s. %s", applicationId, ExceptionUtils.getRootCauseMessage(e)), e);
 		}
