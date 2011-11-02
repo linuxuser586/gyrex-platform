@@ -182,8 +182,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 					// for now we just loop ourselves
 					// (https://bugs.eclipse.org/bugs/show_bug.cgi?id=350927)
 					while (zk.exists(pathToPreceedingNode)) {
-						// calculate sleep time (but don't sleep longer than 2 seconds)
-						final long sleepTime = timeout <= 0 ? 2000L : Math.min(abortTime - System.currentTimeMillis(), 2000L);
+						// calculate sleep time
+						// (should wake up at least some time before the abort time to allow another cycle)
+						// (and should not sleep less than 50ms)
+						final long sleepTime = timeout <= 0 ? 2000L : Math.max(Math.min(abortTime - System.currentTimeMillis() - 500L, 2000L), 50L);
 
 						// check if sleep makes sense
 						if (sleepTime <= 0L) {
