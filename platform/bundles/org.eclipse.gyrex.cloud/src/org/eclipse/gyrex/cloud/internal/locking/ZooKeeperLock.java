@@ -202,7 +202,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			}
 
 			// when a this point the loop
-			throw new TimeoutException(String.format("Unable to acquire lock %s within the given timeout.", getId()));
+			throw new TimeoutException(String.format("Unable to acquire lock %s within the given timeout. (%s/%s)", getId(), activeLockName, myLockName));
 		}
 	}
 
