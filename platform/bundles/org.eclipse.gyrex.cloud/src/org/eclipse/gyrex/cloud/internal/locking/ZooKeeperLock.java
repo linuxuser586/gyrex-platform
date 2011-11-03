@@ -178,54 +178,18 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				// 5. if exists( ) returns false, go to step 2. Otherwise, wait for a notification for the pathname from the previous step before going to step 2.
 				final IPath pathToPreceedingNode = lockNodePath.append(precedingNodeName);
 				if (zk.exists(pathToPreceedingNode)) {
+					// the lock is still taken, wait for the predecessor go away
 					// TODO: we really need to fix ZooKeeper in order to allow removal of transient watches
-					// for now we just loop ourselves
+					// for now we just sleep a little and re-try again
 					// (https://bugs.eclipse.org/bugs/show_bug.cgi?id=350927)
-					while (zk.exists(pathToPreceedingNode)) {
-						// calculate sleep time
-						// (should wake up at least some time before the abort time to allow another cycle)
-						// (and should not sleep less than 50ms)
-						final long sleepTime = timeout <= 0 ? 2000L : Math.max(Math.min(abortTime - System.currentTimeMillis() - 500L, 2000L), 50L);
 
-						// check if sleep makes sense
-						if (sleepTime <= 0L) {
-							break;
-						}
+					// calculate sleep time
+					// (should wake up at least some time before the abort time to allow another cycle)
+					// (and should not sleep less than 50ms)
+					final long sleepTime = timeout <= 0 ? 2000L : Math.max(Math.min(abortTime - System.currentTimeMillis() - 500L, 2000L), 50L);
 
-						// sleep
-						Thread.sleep(sleepTime);
-					}
-
-					// instead of using the deletion monitor we sleep for a while and re-try
-					// (we might be able to re-enable this once ZOOKEEPER-442 is implemented)
-//					try {
-//						final WaitForDeletionMonitor waitForDeletionMonitor = new WaitForDeletionMonitor();
-//
-//						// an "exists" will leave a watch in ZooKeeper if the node does not exists
-//						// however, we are only interested in "delete" events (but not "created")
-//						// thus, instead of an "exists" call we do a "getData" which throws a NoNodeException
-//						// the NoNodeException will not install the waitForDeletionMonitor
-//						// (https://bugs.eclipse.org/bugs/show_bug.cgi?id=350927)
-//						//
-//						zk.readRecord(pathToPreceedingNode, waitForDeletionMonitor, null);
-//
-//						if (CloudDebug.zooKeeperLockService) {
-//							LOG.debug("Waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
-//						}
-//
-//						if (!waitForDeletionMonitor.await(timeout)) {
-//							if (CloudDebug.zooKeeperLockService) {
-//								LOG.debug("Timeout waiting for preceeing lock {} to release lock {}", precedingNodeName, lockNodePath);
-//							}
-//							// node has not been deleted
-//							throw new TimeoutException(String.format("Unable to acquire lock %s within the given timeout.", getId()));
-//						}
-//						if (CloudDebug.zooKeeperLockService) {
-//							LOG.debug("Preceeing lock {} released lock {}", precedingNodeName, lockNodePath);
-//						}
-//					} catch (final NoNodeException e) {
-//						// good
-//					}
+					// sleep
+					Thread.sleep(sleepTime);
 				}
 
 				if (CloudDebug.zooKeeperLockService) {
