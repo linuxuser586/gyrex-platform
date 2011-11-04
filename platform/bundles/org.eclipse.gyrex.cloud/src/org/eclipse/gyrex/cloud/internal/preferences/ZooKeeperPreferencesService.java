@@ -342,7 +342,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			// the only thing we can do in order to prevent watchers on the same node to remove children
 			// while we are adding them is to ensure that the childrenModifyLock is properly set
 			// and we wait for any concurrent flushes to finish before loading the list for children from ZooKeeper
-			if (!node.childrenModifyLock.tryLock(45, TimeUnit.SECONDS)) {
+			if (!node.childrenModifyLock.tryLock(5, TimeUnit.MINUTES)) {
 				throw new IllegalStateException(String.format("lock timeout waiting for childrenModifyLock on node '%s'", node));
 			}
 			try {
