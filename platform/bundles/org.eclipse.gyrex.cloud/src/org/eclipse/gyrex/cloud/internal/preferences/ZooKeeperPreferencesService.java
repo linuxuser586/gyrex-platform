@@ -13,12 +13,11 @@ package org.eclipse.gyrex.cloud.internal.preferences;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
@@ -29,7 +28,11 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
@@ -37,7 +40,6 @@ import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
-import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
@@ -76,27 +78,32 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 */
 	private final class DeferredProcessingMonitor extends ZooKeeperMonitor {
 
-		private final class DeferredRunnable implements Runnable {
-			private final WatchedEvent event;
+		/** default delay for processing events */
+		private static final int DEFAULT_EVENT_PROCESSING_DELAY = 5000;
 
-			private DeferredRunnable(final WatchedEvent event) {
-				this.event = event;
-			}
+		final PathEvents events = new PathEvents();
+		final Job processEventsJob;
+		{
+			final long delay = Integer.getInteger("gyrex.preferences.remoteEventProcessingDelay", DEFAULT_EVENT_PROCESSING_DELAY);
+			processEventsJob = new Job(String.format("Processing %s preference events from ZooKeeper", name)) {
+				@Override
+				protected IStatus run(final IProgressMonitor monitor) {
+					try {
+						processEvents(monitor);
+					} finally {
+						// re-schedule as long as it is not closed
+						if (!isClosed()) {
+							schedule(delay);
+						}
+					}
 
-			@Override
-			public void run() {
-				deferredProcess(event);
-			}
+					return Status.OK_STATUS;
+				}
+			};
+			processEventsJob.setSystem(true);
+			processEventsJob.setPriority(Job.SHORT);
+			processEventsJob.schedule(DEFAULT_EVENT_PROCESSING_DELAY);
 		}
-
-		final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(final Runnable r) {
-				final Thread t = new Thread(r, String.format("ZooKeeper-Preference-EventProcessor-%s", name));
-				t.setDaemon(true);
-				return t;
-			}
-		});
 
 		@Override
 		protected void childrenChanged(final String path) {
@@ -108,21 +115,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("({}) Preference at {} updated remotely: CHILDREN CHANGED", ZooKeeperPreferencesService.this, path);
 			}
 
-			try {
-				// refresh children and notify listeners (but only if remote is newer)
-				refreshChildren(path, false);
-			} catch (final Exception ignored) {
-				LOG.debug("Ignored exception refreshing children of '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-			}
-		}
-
-		void deferredProcess(final WatchedEvent event) {
-			if (isClosed()) {
-				return;
-			}
-
-			// call super which processes in thread
-			super.process(event);
+			events.childrenChanged(path);
 		}
 
 		@Override
@@ -135,12 +128,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("({}) Preference at {} created remotely", ZooKeeperPreferencesService.this, path);
 			}
 
-			try {
-				// load the node completely
-				loadNode(path, true);
-			} catch (final Exception ignored) {
-				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-			}
+			events.created(path);
 		}
 
 		@Override
@@ -153,36 +141,55 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("({}) Preference at {} removed remotely", ZooKeeperPreferencesService.this, path);
 			}
 
-			final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
-			if (null != node) {
-				try {
-					// note, we have seen backlog of events submitted by ZooKeeper
-					// before remove the node we must check if it's really gone
-					// after all, events are processed asynchronously so this might already be re-created
-					final Stat stat = getVersionInfo(path);
-					if (null == stat) {
-						// remove the node
-						node.removeNode(true);
-					} else {
-						// refresh it
-						loadNode(path, false);
-					}
-				} catch (final Exception ignored) {
-					LOG.debug("Ignored exception processing node deleted event '{}': {} ", new Object[] { node, path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-				}
-			}
+			events.deleted(path);
 		}
 
-		@Override
-		public void process(final org.apache.zookeeper.WatchedEvent event) {
-			if (isClosed()) {
+		void processEvents(final IProgressMonitor monitor) {
+			if (isClosed() || !isConnected()) {
 				return;
 			}
-			try {
-				executor.execute(new DeferredRunnable(event));
-			} catch (final RejectedExecutionException e) {
-				// closed
+
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Processing events from ZooKeeper.");
 			}
+
+			for (Entry<String, boolean[]> entry = events.removeNext(); (entry != null) && !monitor.isCanceled() && isConnected() && !isClosed(); entry = events.removeNext()) {
+				final String path = entry.getKey();
+				if (entry.getValue()[PathEvents.CREATED] || entry.getValue()[PathEvents.DELETED]) {
+					final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
+					if (null != node) {
+						try {
+							// events are processed asynchronously so this might already be re-created or removed
+							final Stat stat = getVersionInfo(path);
+							if (null == stat) {
+								// remove the node
+								node.removeNode(true);
+							} else {
+								// load the node
+								loadNode(path, true);
+							}
+						} catch (final Exception ignored) {
+							LOG.debug("Ignored exception processing node event '{}': {} ", new Object[] { node, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+						}
+					}
+
+				} else if (entry.getValue()[PathEvents.CHILDREN_CHANGED]) {
+					try {
+						// refresh children and notify listeners (but only if remote is newer)
+						refreshChildren(path, false);
+					} catch (final Exception ignored) {
+						LOG.debug("Ignored exception refreshing children of '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+					}
+				} else if (entry.getValue()[PathEvents.RECORD_CHANGED]) {
+					try {
+						// refresh just properties and notify listeners (but only if remote is newer)
+						refreshProperties(path, false);
+					} catch (final Exception ignored) {
+						LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+					}
+				}
+			}
+
 		}
 
 		@Override
@@ -195,12 +202,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("({}) Preference at {} updated remotely: PROPERTIES", ZooKeeperPreferencesService.this, path);
 			}
 
-			try {
-				// refresh just properties and notify listeners (but only if remote is newer)
-				refreshProperties(path, false);
-			} catch (final Exception ignored) {
-				LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
-			}
+			events.recordChanged(path);
 		}
 	}
 
@@ -291,6 +293,64 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 			// done
 			return true;
+		}
+
+	}
+
+	/**
+	 * An structure for collecting and combining ZooKeeper path events.
+	 */
+	static final class PathEvents {
+
+		static final int CREATED = 0;
+		static final int DELETED = 1;
+		static final int RECORD_CHANGED = 2;
+		static final int CHILDREN_CHANGED = 3;
+
+		private final LinkedHashMap<String, boolean[]> pathEvents = new LinkedHashMap<String, boolean[]>();
+
+		synchronized void childrenChanged(final String path) {
+			final boolean[] events = ensureEvents(path);
+			events[CHILDREN_CHANGED] = true;
+		}
+
+		synchronized void clear() {
+			pathEvents.clear();
+		}
+
+		synchronized void created(final String path) {
+			final boolean[] events = ensureEvents(path);
+			events[CREATED] = true;
+		}
+
+		synchronized void deleted(final String path) {
+			final boolean[] events = ensureEvents(path);
+			events[DELETED] = true;
+		}
+
+		private boolean[] ensureEvents(final String path) {
+			boolean[] events = pathEvents.get(path);
+			if (null == events) {
+				events = new boolean[] { false, false, false, false };
+				pathEvents.put(path, events);
+			}
+			return events;
+		}
+
+		synchronized void recordChanged(final String path) {
+			final boolean[] events = ensureEvents(path);
+			events[RECORD_CHANGED] = true;
+		}
+
+		synchronized Entry<String, boolean[]> removeNext() {
+			final Iterator<Entry<String, boolean[]>> iterator = pathEvents.entrySet().iterator();
+			if (!iterator.hasNext()) {
+				return null;
+			}
+
+			final Entry<String, boolean[]> next = iterator.next();
+			iterator.remove();
+			return next;
 		}
 
 	}
@@ -626,6 +686,21 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		activate();
 	}
 
+	/**
+	 * Activates the specified node.
+	 * <p>
+	 * This method is triggered when a node was added to the local tree and the
+	 * service should process events for the node.
+	 * </p>
+	 * 
+	 * @param node
+	 *            the node to activate
+	 */
+	public final void activateNode(final ZooKeeperBasedPreferences node) {
+		// simply put to the active nodes map
+		activeNodesByPath.put(node.zkPath, node);
+	}
+
 	final void checkClosed() {
 		if (isClosed()) {
 			throw new IllegalStateException("CLOSED");
@@ -640,10 +715,11 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 * </p>
 	 * 
 	 * @param node
-	 *            the node to de activate
+	 *            the node to de-activate
 	 */
 	public final void deactivateNode(final ZooKeeperBasedPreferences node) {
 		// simply remove from the active nodes map
+		// (but only the specified instance)
 		activeNodesByPath.remove(node.zkPath, node);
 	}
 
@@ -667,7 +743,8 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		connected = false;
 
 		// shutdown event processor
-		monitor.executor.shutdownNow();
+		monitor.processEventsJob.cancel();
+		monitor.events.clear();
 
 		// invalidate all nodes
 		final Collection<ZooKeeperBasedPreferences> values = activeNodesByPath.values();

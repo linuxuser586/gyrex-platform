@@ -112,7 +112,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			final ZooKeeperGate zk = ZooKeeperGate.get();
 
 			// start acquire loop
-			do {
+			ACQUIRE_LOOP: do {
 				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Starting acquire lock loop for lock {}/{}", lockNodePath, myLockName);
 				}
@@ -124,7 +124,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				if (nodeNames.length == 0) {
 					// this is bogus, we actually created a node above
 					LOG.warn("Unexpected child count for ZooKeeper node {}. We just created a sequential child but it wasn't there. This may indicate an instability in the system.", lockNodePath);
-					continue;
+					continue ACQUIRE_LOOP;
 				}
 
 				// sort based on sequence numbers
@@ -182,14 +182,24 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 					// TODO: we really need to fix ZooKeeper in order to allow removal of transient watches
 					// for now we just sleep a little and re-try again
 					// (https://bugs.eclipse.org/bugs/show_bug.cgi?id=350927)
+					final long maxSleepTime = timeout <= 0 ? 5000L : Math.max((abortTime - System.currentTimeMillis() - 500), 50L);
+					long sleepTime = 250L;
+					while ((timeout <= 0) || (abortTime > System.currentTimeMillis())) {
+						if (!zk.exists(pathToPreceedingNode)) {
+							// node has been removed
+							continue ACQUIRE_LOOP;
+						}
 
-					// calculate sleep time
-					// (should wake up at least some time before the abort time to allow another cycle)
-					// (and should not sleep less than 50ms)
-					final long sleepTime = timeout <= 0 ? 2000L : Math.max(Math.min(abortTime - System.currentTimeMillis() - 500L, 2000L), 50L);
+						if (CloudDebug.zooKeeperLockService) {
+							LOG.debug("Sleeping {}ms lock {}/{}", new Object[] { sleepTime, lockNodePath, myLockName });
+						}
 
-					// sleep
-					Thread.sleep(sleepTime);
+						// sleep
+						Thread.sleep(sleepTime);
+
+						// update sleep time
+						sleepTime = Math.min(sleepTime * 2, maxSleepTime);
+					}
 				}
 
 				if (CloudDebug.zooKeeperLockService) {

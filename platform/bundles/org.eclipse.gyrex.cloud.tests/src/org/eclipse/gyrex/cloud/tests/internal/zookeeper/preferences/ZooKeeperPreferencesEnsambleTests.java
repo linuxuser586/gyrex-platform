@@ -43,7 +43,7 @@ import org.junit.Test;
  */
 public class ZooKeeperPreferencesEnsambleTests extends BaseEnsambleTest {
 
-	protected static final int TIMEOUT = 5000;
+	protected static final int TIMEOUT = 10000;
 
 	protected static final String KEY = "key";
 	protected static final String DEFAULT_VALUE = "default-value";

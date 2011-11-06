@@ -45,7 +45,6 @@ import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.CharEncoding;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -275,7 +274,12 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// create new child
 			child = newChild(name);
-			children.put(name, child);
+			final ZooKeeperBasedPreferences existingChild = children.put(name, child);
+			if ((null != existingChild) && (existingChild != child)) {
+				// this shouldn't happen (because of the lock)
+				// but let's be really sure
+				throw new AssertionError(String.format("programming/concurrency error: created a new child although one still existed (new=%s %d) (old=%s %d)", child, System.identityHashCode(child), existingChild, System.identityHashCode(existingChild)));
+			}
 
 			// log message
 			if (CloudDebug.zooKeeperPreferences) {
@@ -283,10 +287,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			}
 
 			// register with service
-			final ZooKeeperBasedPreferences oldChild = service.activeNodesByPath.put(child.zkPath, child);
-			if (null != oldChild) {
-				throw new AssertionError(String.format("programming/concurrency error: created a new child although one still existed (new=%s) (old=%s)", child, oldChild));
-			}
+			service.activateNode(child);
 
 			// remove from pending removals list
 			pendingChildRemovals.remove(name);
@@ -482,9 +483,11 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			childrenModifyLock.unlock();
 		}
 
+		// log a message that the node has been flushed
 		if (CloudDebug.zooKeeperPreferences) {
-			LOG.debug("Flushed node {} (version {}, cversion {})", new Object[] { this, propertiesVersion, childrenVersion });
+			LOG.info("Flushed node {} (version {}, cversion {})", new Object[] { this, propertiesVersion, childrenVersion });
 		}
+
 	}
 
 	@Override
@@ -1064,12 +1067,8 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				LOG.debug("Node {} child removed: {} ", this, child.name());
 			}
 
-			// remove it from the service
-			if (!service.activeNodesByPath.remove(child.zkPath, child)) {
-				if (service.activeNodesByPath.containsKey(child.zkPath)) {
-					throw new AssertionError(String.format("programming/concurrency error: unable to remove node (%s) from server active nodes list; we have the lock so this should not happen (service activeNodesByPath %s)", this, StringUtils.join(service.activeNodesByPath.keySet(), ",")));
-				}
-			}
+			// remove from the service
+			service.deactivateNode(child);
 
 			// remember removals for flush (if this is not a remote triggered removal)
 			if (!triggeredRemotely) {
@@ -1153,7 +1152,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 
 		if (CloudDebug.zooKeeperPreferences) {
-			LOG.debug("Removed node {} (version {}, cversion {})", new Object[] { this, propertiesVersion, childrenVersion });
+			LOG.info("Removed node {} (version {}, cversion {}{})", new Object[] { this, propertiesVersion, childrenVersion, triggeredRemotely ? ", TRIGGERED REMOTELY" : "" });
 		}
 	}
 

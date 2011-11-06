@@ -55,7 +55,6 @@ public class ExportCmd extends Command {
 
 		IEclipsePreferences node = preferencesService.getRootNode();
 
-		final String path = ci.nextArgument();
 		if (StringUtils.isNotBlank(path)) {
 			node = (IEclipsePreferences) node.node(path);
 		}
