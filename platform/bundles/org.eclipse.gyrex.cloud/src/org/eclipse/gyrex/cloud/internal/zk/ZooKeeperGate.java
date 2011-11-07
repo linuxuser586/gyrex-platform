@@ -14,7 +14,6 @@ package org.eclipse.gyrex.cloud.internal.zk;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketAddress;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -674,7 +673,7 @@ public class ZooKeeperGate {
 	 * @throws InterruptedException
 	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
-	public Collection<String> readChildrenNames(final IPath path, final Stat stat) throws InterruptedException, KeeperException {
+	public List<String> readChildrenNames(final IPath path, final Stat stat) throws InterruptedException, KeeperException {
 		return readChildrenNames(path, null, stat);
 	}
 
@@ -698,7 +697,7 @@ public class ZooKeeperGate {
 	 * @throws InterruptedException
 	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
-	public Collection<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException {
+	public List<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException {
 		if (path == null) {
 			throw new IllegalArgumentException("path must not be null");
 		}
