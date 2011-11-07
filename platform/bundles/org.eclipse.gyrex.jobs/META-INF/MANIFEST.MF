@@ -40,7 +40,6 @@ Export-Package: org.eclipse.gyrex.jobs;version="1.0.0";x-friends:="org.eclipse.g
  org.eclipse.gyrex.jobs.internal.commands;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.components;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.manager;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.internal.monitoring;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.registry;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.scheduler;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.schedules;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
