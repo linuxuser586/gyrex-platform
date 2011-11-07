@@ -138,8 +138,8 @@ public class ZooKeeperServerApplication extends BaseApplication {
 
 		// get directories
 		final IPath zkBase = Platform.getInstanceLocation().append("zookeeper");
-		final File dataDir = zkBase.toFile();
-		final File snapDir = zkBase.append("logs").toFile();
+		final File dataDir = zkBase.append("logs").toFile();
+		final File snapDir = zkBase.toFile();
 
 		// clean old logs
 		PurgeTxnLog.purge(dataDir, snapDir, 3);
