@@ -1268,7 +1268,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	 *         <code>false</code> otherwise
 	 */
 	private boolean shouldLoad() {
-		return (propertiesVersion == -1) || (childrenVersion != -1);
+		return (propertiesVersion == -1) || (childrenVersion == -1);
 	}
 
 	@Override
