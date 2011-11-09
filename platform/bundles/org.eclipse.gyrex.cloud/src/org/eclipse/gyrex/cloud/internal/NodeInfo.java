@@ -58,7 +58,7 @@ public class NodeInfo {
 	private static String generateNodeId() {
 		try {
 			// we use the host name and hash of the instance location
-			return InetAddress.getLocalHost().getHostName().toLowerCase() + "-" + Integer.toHexString(Platform.getInstanceLocation().toString().hashCode());
+			return InetAddress.getLocalHost().getHostName().toLowerCase() + "_" + Integer.toHexString(Platform.getInstanceLocation().toString().hashCode());
 		} catch (final Exception e) {
 			// fallback to UUID id
 			return UUID.randomUUID().toString();
