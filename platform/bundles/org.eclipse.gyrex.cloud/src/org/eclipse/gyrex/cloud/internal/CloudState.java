@@ -468,7 +468,7 @@ public class CloudState implements ZooKeeperGateListener {
 		if (!signatureFile.exists()) {
 			synchronized (CloudState.class) {
 				if (!signatureFile.exists()) {
-					FileUtils.write(signatureFile, info.getNodeId() + "-" + info.getLocation() + "-" + DigestUtils.shaHex(UUID.randomUUID().toString().getBytes(CharEncoding.US_ASCII)), CharEncoding.US_ASCII);
+					FileUtils.write(signatureFile, info.getNodeId() + "::" + info.getLocation() + "::" + DigestUtils.shaHex(UUID.randomUUID().toString().getBytes(CharEncoding.US_ASCII)), CharEncoding.US_ASCII);
 				}
 			}
 		}
