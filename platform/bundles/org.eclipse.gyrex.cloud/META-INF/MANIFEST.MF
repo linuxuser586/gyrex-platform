@@ -53,7 +53,13 @@ Export-Package: org.eclipse.gyrex.cloud.admin;version="1.0.0";
  org.eclipse.gyrex.cloud.internal.preferences;x-friends:="org.eclipse.gyrex.cloud.tests,org.eclipse.gyrex.preferences.tests,org.eclipse.gyrex.preferences",
  org.eclipse.gyrex.cloud.internal.queue;x-friends:="org.eclipse.gyrex.cloud.tests",
  org.eclipse.gyrex.cloud.internal.queue.console;x-friends:="org.eclipse.gyrex.cloud.tests",
- org.eclipse.gyrex.cloud.internal.zk;x-friends:="org.eclipse.gyrex.preferences,org.eclipse.gyrex.admin.ui.cloud,org.eclipse.gyrex.cloud.tests",
+ org.eclipse.gyrex.cloud.internal.zk;
+  x-friends:="org.eclipse.gyrex.preferences,
+   org.eclipse.gyrex.admin.ui.cloud,
+   org.eclipse.gyrex.cloud.tests,
+   org.eclipse.gyrex.admin.ui,
+   org.eclipse.gyrex.admin.ui.jobs,
+   org.eclipse.gyrex.jobs",
  org.eclipse.gyrex.cloud.internal.zk.console;x-friends:="org.eclipse.gyrex.cloud.tests",
  org.eclipse.gyrex.cloud.services.locking;version="1.0.0",
  org.eclipse.gyrex.cloud.services.queue;version="1.0.0"

@@ -98,7 +98,8 @@ public class JobManagerImpl implements IJobManager {
 
 	private static final long DEFAULT_MODIFY_LOCK_TIMEOUT = 3000L;
 
-	private static final String NODE_PARAMETER = "parameter";
+	static final String NODE_PARAMETER = "parameter";
+	static final String NODE_STATES = "status";
 
 	static final String PROPERTY_TYPE = "type";
 	static final String PROPERTY_STATUS = "status";
@@ -116,8 +117,58 @@ public class JobManagerImpl implements IJobManager {
 	private static final Logger LOG = LoggerFactory.getLogger(JobManagerImpl.class);
 
 	private static AtomicLong lastCleanup = new AtomicLong();
+	private static final long modifyLockTimeout = Long.getLong("gyrex.jobs.modifyLock.timeout", DEFAULT_MODIFY_LOCK_TIMEOUT);
 
 	static final String SEPARATOR = "_";
+
+	public static void cancel(JobImpl job, final String trigger) {
+		IExclusiveLock jobLock = null;
+		try {
+			// get job modification lock
+			jobLock = getLock(job);
+
+			// re-read job status (inside lock)
+			job = getJob(job.getId(), job.getStorageKey());
+			if (null == job) {
+				throw new IllegalStateException(String.format("Job %s does not exist!", job.getId()));
+			}
+
+			// re-check job status (inside lock)
+			if ((job.getState() != JobState.WAITING) && (job.getState() != JobState.RUNNING)) {
+				// no-op
+				return;
+			}
+
+			try {
+				// set state
+				setJobState(job, JobState.ABORTING, jobLock);
+
+				// add cancellation note
+				setJobCancelled(job, System.currentTimeMillis(), null != trigger ? trigger : findCaller(), jobLock);
+			} catch (final BackingStoreException e) {
+				throw new IllegalStateException(String.format("Error canceling job %s. %s", job.getId(), e.getMessage()), e);
+			}
+		} finally {
+			releaseLock(jobLock, job.getId());
+		}
+	}
+
+	private static String findCaller() {
+		final StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+		if (trace.length == 0) {
+			return StringUtils.EMPTY;
+		}
+
+		// find first _none_ jobs API call
+		for (int i = 0; i < trace.length; i++) {
+			if (StringUtils.startsWith(trace[i].getClassName(), JobManagerImpl.class.getName())) {
+				continue;
+			}
+			return trace.toString();
+		}
+
+		return StringUtils.EMPTY;
+	}
 
 	public static String getExternalId(final String internalId) {
 		final int i = internalId.indexOf(SEPARATOR);
@@ -127,13 +178,47 @@ public class JobManagerImpl implements IJobManager {
 		return internalId.substring(i + 1);
 	}
 
+	private static String getInternalIdPrefix(final IRuntimeContext context) {
+		try {
+			return DigestUtils.shaHex(context.getContextPath().toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
+		} catch (final UnsupportedEncodingException e) {
+			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
+		}
+	}
+
+	public static JobImpl getJob(final String jobId, final String storageKey) throws IllegalStateException {
+		try {
+			// don't create node if it doesn't exist
+			if (!JobHistoryStore.getJobsNode().nodeExists(storageKey)) {
+				return null;
+			}
+
+			// read job
+			return readJob(jobId, JobHistoryStore.getJobsNode().node(storageKey));
+		} catch (final Exception e) {
+			throw new IllegalStateException(String.format("Error reading job data. %s", e.getMessage()), e);
+		}
+	}
+
+	private static IExclusiveLock getLock(final JobImpl job) {
+		final String lockId = "gyrex.jobs.modify.".concat(job.getStorageKey());
+		if (JobsDebug.jobLocks) {
+			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
+		}
+		try {
+			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, modifyLockTimeout);
+		} catch (final Exception e) {
+			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
+		}
+	}
+
 	public static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
 		// ensure the node is current (bug 360402)
 		// (note, this is really expensive, we don't perform it here but moved it to CleanupJob)
 		//node.sync();
 
 		// create job
-		final JobImpl job = new JobImpl();
+		final JobImpl job = new JobImpl(node.name());
 
 		job.setId(jobId);
 		job.setTypeId(node.get(PROPERTY_TYPE, null));
@@ -165,6 +250,68 @@ public class JobManagerImpl implements IJobManager {
 		return job;
 	}
 
+	private static void releaseLock(final IExclusiveLock jobLock, final String jobId) {
+		if (null != jobLock) {
+			if (JobsDebug.jobLocks) {
+				LOG.debug("Releasing lock {} for job {}", new Object[] { jobLock.getId(), jobId });
+			}
+			try {
+				jobLock.release();
+			} catch (final Exception e) {
+				// ignore
+			}
+		}
+	}
+
+	/**
+	 * records cancellation time and trigger
+	 */
+	private static void setJobCancelled(final JobImpl job, final long timestamp, final String trigger, final IExclusiveLock lock) throws BackingStoreException {
+		if ((null == lock) || !lock.isValid()) {
+			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
+		}
+
+		if (!JobHistoryStore.getJobsNode().nodeExists(job.getStorageKey())) {
+			// don't update if removed
+			return;
+		}
+
+		// update job node
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(job.getStorageKey());
+		jobNode.putLong(PROPERTY_LAST_CANCELLED, timestamp);
+		jobNode.put(PROPERTY_LAST_CANCELLED_TRIGGER, trigger);
+		jobNode.flush();
+	}
+
+	private static void setJobState(final JobImpl job, final JobState state, final IExclusiveLock lock) throws BackingStoreException {
+		if (null == state) {
+			throw new IllegalArgumentException("job state must not be null");
+		}
+
+		if ((null == lock) || !lock.isValid()) {
+			throw new IllegalStateException(String.format("Unable to update job state of job %s to %s due to missing or lost job lock!", job.getId(), state.toString()));
+		}
+
+		if (!JobHistoryStore.getJobsNode().nodeExists(job.getStorageKey())) {
+			// don't update if removed
+			return;
+		}
+
+		final Preferences jobNode = JobHistoryStore.getJobsNode().node(job.getStorageKey());
+		if (StringUtils.equals(jobNode.get(PROPERTY_STATUS, null), state.name())) {
+			// don't update if not different
+			return;
+		}
+
+		// update job node
+		// (note, this might trigger any watches immediately)
+		jobNode.put(PROPERTY_STATUS, state.name());
+		jobNode.flush();
+
+		// update job
+		job.setStatus(state);
+	}
+
 	static JobState toState(final Object value) {
 		if (value instanceof String) {
 			try {
@@ -190,35 +337,6 @@ public class JobManagerImpl implements IJobManager {
 
 	private final String internalIdPrefix;
 
-	private final long modifyLockTimeout;
-
-	static final String NODE_STATES = "status";
-
-	private static String findCaller() {
-		final StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-		if (trace.length == 0) {
-			return StringUtils.EMPTY;
-		}
-
-		// find first _none_ jobs API call
-		for (int i = 0; i < trace.length; i++) {
-			if (StringUtils.startsWith(trace[i].getClassName(), JobManagerImpl.class.getName())) {
-				continue;
-			}
-			return trace.toString();
-		}
-
-		return StringUtils.EMPTY;
-	}
-
-	private static String getInternalIdPrefix(final IRuntimeContext context) {
-		try {
-			return DigestUtils.shaHex(context.getContextPath().toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
-		} catch (final UnsupportedEncodingException e) {
-			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
-		}
-	}
-
 	/**
 	 * Creates a new instance.
 	 */
@@ -226,8 +344,6 @@ public class JobManagerImpl implements IJobManager {
 	public JobManagerImpl(final IRuntimeContext context) {
 		this.context = context;
 		internalIdPrefix = getInternalIdPrefix(context);
-		modifyLockTimeout = Long.getLong("gyrex.jobs.modifyLock.timeout", DEFAULT_MODIFY_LOCK_TIMEOUT);
-
 	}
 
 	@Override
@@ -236,7 +352,7 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
 
-		JobImpl job = getJob(jobId);
+		final JobImpl job = getJob(jobId);
 		if (null == job) {
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 		}
@@ -247,35 +363,7 @@ public class JobManagerImpl implements IJobManager {
 			return;
 		}
 
-		IExclusiveLock jobLock = null;
-		try {
-			// get job modification lock
-			jobLock = getLock(job);
-
-			// re-read job status (inside lock)
-			job = getJob(jobId);
-			if (null == job) {
-				throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-			}
-
-			// re-check job status (inside lock)
-			if ((job.getState() != JobState.WAITING) && (job.getState() != JobState.RUNNING)) {
-				// no-op
-				return;
-			}
-
-			try {
-				// set state
-				setJobState(job, JobState.ABORTING, jobLock);
-
-				// add cancellation note
-				setJobCancelled(job, System.currentTimeMillis(), null != trigger ? trigger : findCaller(), jobLock);
-			} catch (final BackingStoreException e) {
-				throw new IllegalStateException(String.format("Error canceling job %s. %s", jobId, e.getMessage()), e);
-			}
-		} finally {
-			releaseLock(jobLock, jobId);
-		}
+		cancel(job, trigger);
 	}
 
 	@Override
@@ -341,19 +429,7 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
 
-		try {
-			final String internalId = toInternalId(jobId);
-
-			// don't create node if it doesn't exist
-			if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
-				return null;
-			}
-
-			// read job
-			return readJob(jobId, JobHistoryStore.getJobsNode().node(internalId));
-		} catch (final BackingStoreException e) {
-			throw new IllegalStateException(String.format("Error reading job data. %s", e.getMessage()), e);
-		}
+		return getJob(jobId, toInternalId(jobId));
 	}
 
 	@Override
@@ -389,18 +465,6 @@ public class JobManagerImpl implements IJobManager {
 			return Collections.unmodifiableCollection(jobIds);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Error reading job data. %s", e.getMessage()), e);
-		}
-	}
-
-	private IExclusiveLock getLock(final IJob job) {
-		final String lockId = "gyrex.jobs.modify.".concat(toInternalId(job.getId()));
-		if (JobsDebug.jobLocks) {
-			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
-		}
-		try {
-			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, modifyLockTimeout);
-		} catch (final Exception e) {
-			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
 		}
 	}
 
@@ -476,26 +540,13 @@ public class JobManagerImpl implements IJobManager {
 		triggerCleanUp();
 	}
 
-	private void releaseLock(final IExclusiveLock jobLock, final String jobId) {
-		if (null != jobLock) {
-			if (JobsDebug.jobLocks) {
-				LOG.debug("Releasing lock {} for job {}", new Object[] { jobLock.getId(), jobId });
-			}
-			try {
-				jobLock.release();
-			} catch (final Exception e) {
-				// ignore
-			}
-		}
-	}
-
 	@Override
 	public void removeJob(final String jobId) {
 		if (!IdHelper.isValidId(jobId)) {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		}
 
-		final IJob job = getJob(jobId);
+		final JobImpl job = getJob(jobId);
 		if (null == job) {
 			return;
 		}
@@ -562,27 +613,6 @@ public class JobManagerImpl implements IJobManager {
 		JobHungDetectionHelper.setInactive(toInternalId(jobId));
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(toInternalId(jobId));
 		jobNode.remove(PROPERTY_ACTIVE);
-		jobNode.flush();
-	}
-
-	/**
-	 * records cancellation time and trigger
-	 */
-	private void setJobCancelled(final IJob job, final long timestamp, final String trigger, final IExclusiveLock lock) throws BackingStoreException {
-		if ((null == lock) || !lock.isValid()) {
-			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
-		}
-
-		final String internalId = toInternalId(job.getId());
-		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
-			// don't update if removed
-			return;
-		}
-
-		// update job node
-		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
-		jobNode.putLong(PROPERTY_LAST_CANCELLED, timestamp);
-		jobNode.put(PROPERTY_LAST_CANCELLED_TRIGGER, trigger);
 		jobNode.flush();
 	}
 
@@ -689,36 +719,6 @@ public class JobManagerImpl implements IJobManager {
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_START, startTimestamp);
 		jobNode.flush();
-	}
-
-	private void setJobState(final JobImpl job, final JobState state, final IExclusiveLock lock) throws BackingStoreException {
-		if (null == state) {
-			throw new IllegalArgumentException("job state must not be null");
-		}
-
-		if ((null == lock) || !lock.isValid()) {
-			throw new IllegalStateException(String.format("Unable to update job state of job %s to %s due to missing or lost job lock!", job.getId(), state.toString()));
-		}
-
-		final String internalId = toInternalId(job.getId());
-		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
-			// don't update if removed
-			return;
-		}
-
-		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
-		if (StringUtils.equals(jobNode.get(PROPERTY_STATUS, null), state.name())) {
-			// don't update if not different
-			return;
-		}
-
-		// update job node
-		// (note, this might trigger any watches immediately)
-		jobNode.put(PROPERTY_STATUS, state.name());
-		jobNode.flush();
-
-		// update job
-		job.setStatus(state);
 	}
 
 	/**

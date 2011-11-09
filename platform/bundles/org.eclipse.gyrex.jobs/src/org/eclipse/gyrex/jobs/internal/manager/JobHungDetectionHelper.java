@@ -11,11 +11,14 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.manager;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
@@ -40,27 +43,48 @@ import org.slf4j.LoggerFactory;
  * engine dies.
  * </p>
  */
-@SuppressWarnings("restriction")
-class JobHungDetectionHelper {
+public class JobHungDetectionHelper {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobHungDetectionHelper.class);
 	private static final IPath ACTIVE_JOBS = IZooKeeperLayout.PATH_GYREX_ROOT.append("jobs/active");
 
 	/**
-	 * Returns the timestamp since when a job is active.
+	 * Returns the list of active jobs.
+	 * 
+	 * @param watcher
+	 *            if not <code>null</code> and the call is sucessfull the watch
+	 *            will be registered with ZooKeeper
+	 * @return the timestamp (or -1 if the job is not active)
+	 * @throws IllegalStateException
+	 */
+	public static List<String> getActiveJobs(final ZooKeeperMonitor watcher) throws IllegalStateException {
+		try {
+			return ZooKeeperGate.get().readChildrenNames(ACTIVE_JOBS, watcher, null);
+		} catch (final NoNodeException e) {
+			try {
+				ZooKeeperGate.get().exists(ACTIVE_JOBS, watcher);
+			} catch (final Exception e2) {
+				throw new IllegalStateException("Unable to read job run info!", e2);
+			}
+			return Collections.emptyList();
+		} catch (final Exception e) {
+			throw new IllegalStateException("Unable to read job run info!", e);
+		}
+	}
+
+	/**
+	 * Returns the processing node id of the active job.
 	 * 
 	 * @param jobStorageKey
 	 * @return the timestamp (or -1 if the job is not active)
 	 * @throws IllegalStateException
 	 */
-	public static long getActiveSince(final String jobStorageKey) throws IllegalStateException {
+	public static String getProcessingNodeId(final String jobStorageKey, final Stat stat) throws IllegalStateException {
 		try {
-			final Stat stat = new Stat();
-			ZooKeeperGate.get().readRecord(ACTIVE_JOBS.append(jobStorageKey), stat);
-			return stat.getCtime();
+			return ZooKeeperGate.get().readRecord(ACTIVE_JOBS.append(jobStorageKey), (String) null, stat);
 		} catch (final NoNodeException e) {
 			// good
-			return -1;
+			return null;
 		} catch (final Exception e) {
 			throw new IllegalStateException("Unable to read job run info!", e);
 		}

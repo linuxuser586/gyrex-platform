@@ -5,36 +5,40 @@
 <booleanAttribute key="automaticAdd" value="true"/>
 <booleanAttribute key="automaticValidate" value="false"/>
 <stringAttribute key="bootstrap" value=""/>
-<stringAttribute key="checked" value="org.eclipse.gyrex.preferences"/>
+<stringAttribute key="checked" value="org.eclipse.gyrex.boot,org.eclipse.gyrex.cloud"/>
 <booleanAttribute key="clearConfig" value="true"/>
 <booleanAttribute key="clearws" value="true"/>
 <booleanAttribute key="clearwslog" value="false"/>
-<stringAttribute key="configLocation" value="${workspace_loc}/.metadata/.plugins/org.eclipse.pde.core/Gyrex ZooKeeper Preferences Non-Ensemble Test Suite"/>
+<stringAttribute key="configLocation" value="${workspace_loc}/.metadata/.plugins/org.eclipse.pde.core/Gyrex ZooKeeper Ensemble Tests"/>
 <booleanAttribute key="default" value="true"/>
 <booleanAttribute key="includeOptional" value="true"/>
-<stringAttribute key="location" value="${workspace_loc}/../junit-workspacesGyrexPreferencesTestSuite(withinserver)"/>
+<stringAttribute key="location" value="${workspace_loc}/../junit-workspacesGyrexCloudTests(withinserver)"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
-<listEntry value="/org.eclipse.gyrex.cloud.tests/src/org/eclipse/gyrex/cloud/tests/internal/zookeeper/preferences/AllZooKeeperPreferencesNonEnsembleTests.java"/>
+<listEntry value="/org.eclipse.gyrex.cloud.tests/src/org/eclipse/gyrex/cloud/tests/internal/zookeeper/ZooKeeperEnsambleTestSuite.java"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
 <listEntry value="1"/>
 </listAttribute>
+<listAttribute key="org.eclipse.debug.ui.favoriteGroups">
+<listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
+</listAttribute>
 <stringAttribute key="org.eclipse.jdt.junit.CONTAINER" value=""/>
+<stringAttribute key="org.eclipse.jdt.junit.FAILURENAMES" value="D:\Temp\Windows\testFailures5288574738211335046.txt"/>
 <booleanAttribute key="org.eclipse.jdt.junit.KEEPRUNNING_ATTR" value="false"/>
 <stringAttribute key="org.eclipse.jdt.junit.TESTNAME" value=""/>
 <stringAttribute key="org.eclipse.jdt.junit.TEST_KIND" value="org.eclipse.jdt.junit.loader.junit4"/>
-<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.AllZooKeeperPreferencesNonEnsembleTests"/>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.eclipse.gyrex.cloud.tests.internal.zookeeper.ZooKeeperEnsambleTestSuite"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl} -consoleLog -console&#13;&#10;-nosplash"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="org.eclipse.gyrex.cloud.tests"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-Dlogback.configurationFile=${resource_loc:/org.eclipse.gyrex.cloud.tests/logback.xml}&#13;&#10;-server&#13;&#10;-XX:+UseParallelGC&#13;&#10;-XX:MaxPermSize=128m&#13;&#10;-ea"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-Dlogback.configurationFile=${resource_loc:/org.eclipse.gyrex.cloud.tests/logback.xml}&#13;&#10;-Dbuild.test.dir=${system_property:java.io.tmpdir}&#13;&#10;-server&#13;&#10;-XX:+UseParallelGC&#13;&#10;-XX:MaxPermSize=128m&#13;&#10;-ea:org.eclipse..."/>
 <stringAttribute key="pde.version" value="3.3"/>
 <stringAttribute key="product" value="org.eclipse.equinox.p2.director.app.product"/>
 <booleanAttribute key="run_in_ui_thread" value="false"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}\configuration\config.ini"/>
 <stringAttribute key="testApplication" value="org.eclipse.gyrex.boot.tests.servertestapp"/>
-<stringAttribute key="timestamp" value="1320742205224"/>
+<stringAttribute key="timestamp" value="1320742971715"/>
 <booleanAttribute key="tracing" value="true"/>
 <mapAttribute key="tracingOptions">
 <mapEntry key="org.aspectj.osgi.service.caching.j9/debug" value="false"/>
@@ -64,6 +68,13 @@
 <mapEntry key="org.eclipse.core.runtime/url/debug/cachecopy" value="false"/>
 <mapEntry key="org.eclipse.core.runtime/url/debug/cachelookup" value="false"/>
 <mapEntry key="org.eclipse.core.runtime/url/debug/connect" value="false"/>
+<mapEntry key="org.eclipse.e4.core.contexts/debug" value="false"/>
+<mapEntry key="org.eclipse.e4.core.contexts/debug/listeners" value="false"/>
+<mapEntry key="org.eclipse.e4.core.contexts/debug/names" value="false"/>
+<mapEntry key="org.eclipse.e4.core.di/debug" value="false"/>
+<mapEntry key="org.eclipse.e4.core.di/debug/injector" value="false"/>
+<mapEntry key="org.eclipse.e4.core.services/debug" value="false"/>
+<mapEntry key="org.eclipse.e4.core.services/debug/injector" value="false"/>
 <mapEntry key="org.eclipse.equinox.ds/debug" value="false"/>
 <mapEntry key="org.eclipse.equinox.ds/instantiate_all" value="false"/>
 <mapEntry key="org.eclipse.equinox.ds/performance" value="false"/>
@@ -80,18 +91,25 @@
 <mapEntry key="org.eclipse.equinox.security.ui/debug/storage" value="false"/>
 <mapEntry key="org.eclipse.equinox.security/debug" value="false"/>
 <mapEntry key="org.eclipse.equinox.security/debug/loginFramework" value="false"/>
+<mapEntry key="org.eclipse.gemini.jpa.weaving/debug" value="false"/>
+<mapEntry key="org.eclipse.gyrex.admin.ui.p2/debug" value="true"/>
 <mapEntry key="org.eclipse.gyrex.boot/debug" value="true"/>
-<mapEntry key="org.eclipse.gyrex.boot/debugRoles" value="true"/>
-<mapEntry key="org.eclipse.gyrex.boot/operationMode" value="true"/>
+<mapEntry key="org.eclipse.gyrex.boot/operationMode" value="false"/>
+<mapEntry key="org.eclipse.gyrex.boot/roles" value="true"/>
 <mapEntry key="org.eclipse.gyrex.cloud/cloudState" value="true"/>
 <mapEntry key="org.eclipse.gyrex.cloud/debug" value="true"/>
 <mapEntry key="org.eclipse.gyrex.cloud/nodeMetrics" value="false"/>
 <mapEntry key="org.eclipse.gyrex.cloud/zooKeeperGateLifecycle" value="true"/>
-<mapEntry key="org.eclipse.gyrex.cloud/zooKeeperServer" value="true"/>
+<mapEntry key="org.eclipse.gyrex.cloud/zooKeeperLockService" value="false"/>
+<mapEntry key="org.eclipse.gyrex.cloud/zooKeeperPreferences" value="false"/>
+<mapEntry key="org.eclipse.gyrex.cloud/zooKeeperServer" value="false"/>
 <mapEntry key="org.eclipse.gyrex.context/debug" value="true"/>
-<mapEntry key="org.eclipse.gyrex.context/objectLifecycle" value="false"/>
+<mapEntry key="org.eclipse.gyrex.context/injection" value="true"/>
+<mapEntry key="org.eclipse.gyrex.context/objectLifecycle" value="true"/>
 <mapEntry key="org.eclipse.gyrex.context/preferencesLookup" value="true"/>
 <mapEntry key="org.eclipse.gyrex.context/preferencesModify" value="true"/>
+<mapEntry key="org.eclipse.gyrex.examples.bugsearch/debug" value="true"/>
+<mapEntry key="org.eclipse.gyrex.examples.bugsearch/httpApiRequests" value="true"/>
 <mapEntry key="org.eclipse.gyrex.http.jetty/applicationContext" value="true"/>
 <mapEntry key="org.eclipse.gyrex.http.jetty/debug" value="true"/>
 <mapEntry key="org.eclipse.gyrex.http.jetty/engine" value="true"/>
@@ -100,19 +118,26 @@
 <mapEntry key="org.eclipse.gyrex.http.registry/applicationLifecycle" value="true"/>
 <mapEntry key="org.eclipse.gyrex.http.registry/debug" value="true"/>
 <mapEntry key="org.eclipse.gyrex.http.registry/extensionRegistration" value="true"/>
+<mapEntry key="org.eclipse.gyrex.http/applicationLifecycle" value="true"/>
 <mapEntry key="org.eclipse.gyrex.http/debug" value="true"/>
+<mapEntry key="org.eclipse.gyrex.http/gatewayBinding" value="true"/>
+<mapEntry key="org.eclipse.gyrex.http/httpService" value="true"/>
+<mapEntry key="org.eclipse.gyrex.jobs/cleanup" value="true"/>
+<mapEntry key="org.eclipse.gyrex.jobs/debug" value="true"/>
+<mapEntry key="org.eclipse.gyrex.jobs/jobLocks" value="true"/>
+<mapEntry key="org.eclipse.gyrex.jobs/providerRegistry" value="true"/>
+<mapEntry key="org.eclipse.gyrex.jobs/schedulerEngine" value="true"/>
+<mapEntry key="org.eclipse.gyrex.jobs/workerEngine" value="true"/>
+<mapEntry key="org.eclipse.gyrex.p2/debug" value="true"/>
+<mapEntry key="org.eclipse.gyrex.p2/nodeInstallation" value="true"/>
+<mapEntry key="org.eclipse.gyrex.persistence.solr/debug" value="true"/>
+<mapEntry key="org.eclipse.gyrex.persistence.solr/embeddedSolrServer" value="true"/>
 <mapEntry key="org.eclipse.gyrex.preferences/debug" value="true"/>
 <mapEntry key="org.eclipse.gyrex.search/debug" value="true"/>
 <mapEntry key="org.eclipse.help/debug" value="true"/>
 <mapEntry key="org.eclipse.help/debug/context" value="false"/>
 <mapEntry key="org.eclipse.help/debug/search" value="false"/>
 <mapEntry key="org.eclipse.help/debug/toc" value="false"/>
-<mapEntry key="org.eclipse.jface/debug" value="false"/>
-<mapEntry key="org.eclipse.jface/debug/dialog/noparent" value="false"/>
-<mapEntry key="org.eclipse.jface/debug/viewers/reentrantViewerCalls" value="false"/>
-<mapEntry key="org.eclipse.jface/newlook/preferences/showNewLook" value="false"/>
-<mapEntry key="org.eclipse.jface/trace/actions" value="false"/>
-<mapEntry key="org.eclipse.jface/trace/toolbarDisposal" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug/bundleTime" value="false"/>
 <mapEntry key="org.eclipse.osgi/debug/events" value="false"/>
@@ -153,19 +178,6 @@
 <mapEntry key="org.eclipse.osgi/trace/classLoading" value="false"/>
 <mapEntry key="org.eclipse.osgi/trace/filename" value="runtime.traces"/>
 <mapEntry key="org.eclipse.osgi/trace/filters" value="trace.properties"/>
-<mapEntry key="org.eclipse.ui.cheatsheets/debug" value="true"/>
-<mapEntry key="org.eclipse.ui.cheatsheets/trace/creation/times" value="true"/>
-<mapEntry key="org.eclipse.ui.forms/debug" value="true"/>
-<mapEntry key="org.eclipse.ui.forms/debug/focus" value="true"/>
-<mapEntry key="org.eclipse.ui.forms/debug/text" value="true"/>
-<mapEntry key="org.eclipse.ui.forms/debug/textsize" value="true"/>
-<mapEntry key="org.eclipse.ui.navigator/debug" value="false"/>
-<mapEntry key="org.eclipse.ui.navigator/debug/dnd" value="false"/>
-<mapEntry key="org.eclipse.ui.navigator/debug/resolution" value="false"/>
-<mapEntry key="org.eclipse.ui.navigator/debug/setup" value="false"/>
-<mapEntry key="org.eclipse.ui.navigator/debug/sort" value="false"/>
-<mapEntry key="org.eclipse.ui.navigator/debug/viewermap" value="false"/>
-<mapEntry key="org.eclipse.ui.navigator/perf/explorer/createPartControl" value="1300"/>
 <mapEntry key="org.eclipse.ui.workbench/debug" value="false"/>
 <mapEntry key="org.eclipse.ui/debug" value="false"/>
 <mapEntry key="org.eclipse.ui/debug/contributions" value="false"/>

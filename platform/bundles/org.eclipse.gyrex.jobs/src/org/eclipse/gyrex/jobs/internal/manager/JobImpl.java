@@ -28,6 +28,7 @@ import org.apache.commons.lang.time.DateFormatUtils;
  */
 public class JobImpl implements IJob {
 
+	private final String storageKey;
 	private String id;
 	private String typeId;
 	private Map<String, String> parameter;
@@ -50,7 +51,8 @@ public class JobImpl implements IJob {
 	/**
 	 * Creates a new instance.
 	 */
-	public JobImpl() {
+	public JobImpl(final String storageKey) {
+		this.storageKey = storageKey;
 		lastStart = lastSuccessfulFinish = -1;
 	}
 
@@ -85,6 +87,16 @@ public class JobImpl implements IJob {
 	@Override
 	public long getLastQueued() {
 		return lastQueued;
+	}
+
+	/**
+	 * Returns the lastTrigger.
+	 * 
+	 * @return the lastTrigger
+	 */
+	@Override
+	public String getLastQueuedTrigger() {
+		return lastQueuedTrigger;
 	}
 
 	@Override
@@ -122,16 +134,6 @@ public class JobImpl implements IJob {
 	}
 
 	/**
-	 * Returns the lastTrigger.
-	 * 
-	 * @return the lastTrigger
-	 */
-	@Override
-	public String getLastQueuedTrigger() {
-		return lastQueuedTrigger;
-	}
-
-	/**
 	 * Returns the jobParameter.
 	 * 
 	 * @return the jobParameter
@@ -158,6 +160,15 @@ public class JobImpl implements IJob {
 		}
 
 		return state;
+	}
+
+	/**
+	 * Returns the storageKey.
+	 * 
+	 * @return the storageKey
+	 */
+	public String getStorageKey() {
+		return storageKey;
 	}
 
 	/**
