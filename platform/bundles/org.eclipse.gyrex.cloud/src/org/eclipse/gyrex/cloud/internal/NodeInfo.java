@@ -56,7 +56,13 @@ public class NodeInfo {
 	 * @return the generated node id
 	 */
 	private static String generateNodeId() {
-		return UUID.randomUUID().toString();
+		try {
+			// we use the host name and hash of the instance location
+			return InetAddress.getLocalHost().getHostName().toLowerCase() + "-" + Integer.toHexString(Platform.getInstanceLocation().toString().hashCode());
+		} catch (final Exception e) {
+			// fallback to UUID id
+			return UUID.randomUUID().toString();
+		}
 	}
 
 	private static String getDefaultLocationInfo(final String nodeId) {
@@ -293,12 +299,12 @@ public class NodeInfo {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (approved ? 1231 : 1237);
-		result = prime * result + ((location == null) ? 0 : location.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
-		result = prime * result + ((tags == null) ? 0 : tags.hashCode());
-		result = prime * result + version;
+		result = (prime * result) + (approved ? 1231 : 1237);
+		result = (prime * result) + ((location == null) ? 0 : location.hashCode());
+		result = (prime * result) + ((name == null) ? 0 : name.hashCode());
+		result = (prime * result) + ((nodeId == null) ? 0 : nodeId.hashCode());
+		result = (prime * result) + ((tags == null) ? 0 : tags.hashCode());
+		result = (prime * result) + version;
 		return result;
 	}
 
