@@ -125,7 +125,7 @@ public class JobManagerImpl implements IJobManager {
 		IExclusiveLock jobLock = null;
 		try {
 			// get job modification lock
-			jobLock = getLock(job);
+			jobLock = acquireLock(job);
 
 			// re-read job status (inside lock)
 			job = getJob(job.getId(), job.getStorageKey());
@@ -200,7 +200,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private static IExclusiveLock getLock(final JobImpl job) {
+	static IExclusiveLock acquireLock(final JobImpl job) {
 		final String lockId = "gyrex.jobs.modify.".concat(job.getStorageKey());
 		if (JobsDebug.jobLocks) {
 			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
@@ -392,7 +392,7 @@ public class JobManagerImpl implements IJobManager {
 			final JobImpl job = readJob(jobId, node);
 
 			// acquire lock
-			jobLock = getLock(job);
+			jobLock = acquireLock(job);
 
 			// update job parameter
 			setJobParameter(job, parameter, jobLock);
@@ -497,7 +497,7 @@ public class JobManagerImpl implements IJobManager {
 		IExclusiveLock jobLock = null;
 		try {
 			// get job modification lock
-			jobLock = getLock(job);
+			jobLock = acquireLock(job);
 
 			// re-read job status (inside lock)
 			job = getJob(jobId);
@@ -559,7 +559,7 @@ public class JobManagerImpl implements IJobManager {
 		IExclusiveLock jobLock = null;
 		try {
 			// get job modification lock
-			jobLock = getLock(job);
+			jobLock = acquireLock(job);
 
 			// remove from preferences
 			final String internalId = toInternalId(jobId);
@@ -760,7 +760,7 @@ public class JobManagerImpl implements IJobManager {
 		IExclusiveLock jobLock = null;
 		try {
 			// get job modification lock
-			jobLock = getLock(job);
+			jobLock = acquireLock(job);
 
 			// re-read job status (inside lock)
 			job = getJob(jobId);
@@ -816,7 +816,7 @@ public class JobManagerImpl implements IJobManager {
 		IExclusiveLock jobLock = null;
 		try {
 			// get job modification lock
-			jobLock = getLock(job);
+			jobLock = acquireLock(job);
 
 			try {
 				// set state

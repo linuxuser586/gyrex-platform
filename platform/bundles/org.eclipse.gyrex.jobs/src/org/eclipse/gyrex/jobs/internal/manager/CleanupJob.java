@@ -13,6 +13,7 @@ package org.eclipse.gyrex.jobs.internal.manager;
 
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 
@@ -23,7 +24,6 @@ import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
-import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -93,47 +93,52 @@ public final class CleanupJob extends Job {
 				final String externalId = JobManagerImpl.getExternalId(internalId);
 				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 
-				// fix hung jobs
-				if (JobHungDetectionHelper.isStuck(internalId, job, true)) {
-					LOG.info("Resetting job {} stuck in state {} (queued {} minutes and started {} minutes ago).", new Object[] { job.getId(), job.getState(), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastQueued()), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastStart()) });
-
-					// set inactive
-					final Preferences jobNode = jobsNode.node(internalId);
-					jobNode.put(JobManagerImpl.PROPERTY_STATUS, JobState.NONE.name());
-					jobNode.remove(JobManagerImpl.PROPERTY_ACTIVE);
-					jobNode.flush();
+				// acquire lock (see bug 363423)
+				final IExclusiveLock lock = JobManagerImpl.acquireLock(job);
+				try {
+					// re-read job in lock
 					job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
-				}
 
-				// remove only jobs in state NONE
-				if (job.getState() != JobState.NONE) {
-					if (JobsDebug.cleanup) {
-						LOG.debug("Skipping active job {}...", job.getId());
+					// fix hung jobs
+					if (JobHungDetectionHelper.isStuck(internalId, job, true)) {
+						LOG.info("Resetting job {} stuck in state {} (queued {} minutes and started {} minutes ago).", new Object[] { job.getId(), job.getState(), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastQueued()), TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - job.getLastStart()) });
+
+						// set inactive
+						final Preferences jobNode = jobsNode.node(internalId);
+						jobNode.put(JobManagerImpl.PROPERTY_STATUS, JobState.NONE.name());
+						jobNode.remove(JobManagerImpl.PROPERTY_ACTIVE);
+						jobNode.flush();
+						job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
 					}
-					continue;
-				}
 
-				// remove only jobs not older then maxAge
-				final long jobAge = now - Math.max(job.getLastResultTimestamp(), Math.max(job.getLastQueued(), job.getLastStart()));
-				if (jobAge < maxAge) {
-					if (JobsDebug.cleanup) {
-						LOG.debug("Skipping too young job {} (age {} days)...", job.getId(), TimeUnit.MILLISECONDS.toDays(jobAge));
+					// remove only jobs in state NONE
+					if (job.getState() != JobState.NONE) {
+						if (JobsDebug.cleanup) {
+							LOG.debug("Skipping active job {}...", job.getId());
+						}
+						continue;
 					}
-					continue;
-				}
 
-				// note, we do not use the exclusive lock here
-				// thus, the operation might be unsafe
-				// TODO: investigate, add tests and fix
+					// remove only jobs not older then maxAge
+					final long jobAge = now - Math.max(job.getLastResultTimestamp(), Math.max(job.getLastQueued(), job.getLastStart()));
+					if (jobAge < maxAge) {
+						if (JobsDebug.cleanup) {
+							LOG.debug("Skipping too young job {} (age {} days)...", job.getId(), TimeUnit.MILLISECONDS.toDays(jobAge));
+						}
+						continue;
+					}
 
-				LOG.info("Removing job {}.", externalId);
-				if (jobsNode.nodeExists(internalId)) {
-					jobsNode.node(internalId).removeNode();
-					jobsNode.flush();
+					LOG.info("Removing job {}.", externalId);
+					if (jobsNode.nodeExists(internalId)) {
+						jobsNode.node(internalId).removeNode();
+						jobsNode.flush();
+					}
+				} finally {
+					lock.release();
 				}
 			}
 			LOG.info("Finished clean-up of old job definitions.");
-		} catch (final BackingStoreException e) {
+		} catch (final Exception e) {
 			LOG.warn("Unable to clean-up old job definitions. {}", ExceptionUtils.getRootCauseMessage(e));
 			return Status.CANCEL_STATUS;
 		}
