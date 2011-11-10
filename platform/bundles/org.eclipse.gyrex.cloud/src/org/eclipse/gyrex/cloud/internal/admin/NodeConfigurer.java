@@ -39,11 +39,15 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class NodeConfigurer implements INodeConfigurer {
+
+	private static final Logger LOG = LoggerFactory.getLogger(NodeConfigurer.class);
 
 	private final String nodeId;
 
@@ -115,6 +119,7 @@ public class NodeConfigurer implements INodeConfigurer {
 				CloudState.registerNode();
 			}
 		} catch (final Exception e) {
+			LOG.debug("Exception connecting to cloud using connect string {}.", connectString, e);
 			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, "Unable to connect to ZooKeeper. " + ExceptionUtils.getRootCauseMessage(e), e);
 		} finally {
 			if (zk != null) {

@@ -13,6 +13,7 @@ package org.eclipse.gyrex.cloud.internal.zk;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -525,6 +526,27 @@ public class ZooKeeperGate {
 		} catch (final KeeperException e) {
 			throw e;
 		}
+	}
+
+	/**
+	 * Returns more information about the server this node is connected to.
+	 * <p>
+	 * This method is used for debugging purposes and may not be referenced
+	 * elsewhere.
+	 * </p>
+	 * 
+	 * @return the server info
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public String getConnectedServerInfo() {
+		final SocketAddress socketAddress = zooKeeper.testableRemoteSocketAddress();
+		if (socketAddress instanceof InetSocketAddress) {
+			return String.format("%s:%d", ((InetSocketAddress) socketAddress).getHostName(), ((InetSocketAddress) socketAddress).getPort());
+		}
+		if (null != socketAddress) {
+			return socketAddress.toString();
+		}
+		return null;
 	}
 
 	/**
