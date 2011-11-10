@@ -175,9 +175,9 @@ public class JobHungDetectionHelper {
 		// this is only ok for WAITING or ABORTING jobs still in a queue
 		if ((job.getState() == JobState.WAITING) || (job.getState() == JobState.ABORTING)) {
 			// TODO: we need to check if it's still in the QUEUE
-			// for now we assume yes if it was queued less than 20 minutes ago
+			// for now we assume yes if it was queued less than 120 minutes ago
 			final long timeInQueue = System.currentTimeMillis() - job.getLastQueued();
-			if (TimeUnit.MILLISECONDS.toMinutes(timeInQueue) < 20L) {
+			if (TimeUnit.MILLISECONDS.toMinutes(timeInQueue) < 120L) {
 				if (timeInQueue < 60000L) {
 					LOG.debug("Job {} is {} (queued less than a minute ago). Assuming not stuck!", job.getId(), job.getState());
 				} else {
