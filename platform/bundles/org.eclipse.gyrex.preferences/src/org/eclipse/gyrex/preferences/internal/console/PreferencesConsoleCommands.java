@@ -33,6 +33,7 @@ public class PreferencesConsoleCommands extends BaseCommandProvider {
 		registerCommand("rm", RemoveCmd.class);
 		registerCommand("sync", SyncCmd.class);
 		registerCommand("flush", FlushCmd.class);
+		registerCommand("dump", DumpCmd.class);
 	}
 
 	public void _prefs(final CommandInterpreter ci) throws Exception {
