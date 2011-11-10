@@ -1415,6 +1415,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		if (!service.isConnected()) {
 			toString.append(" DISCONNECTED");
 		}
+		toString.append(" [").append(propertiesVersion).append('/').append(childrenVersion).append(']');
 		return toString.toString();
 	}
 }
