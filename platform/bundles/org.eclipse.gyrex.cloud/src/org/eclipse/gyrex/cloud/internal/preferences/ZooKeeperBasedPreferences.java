@@ -69,6 +69,8 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
+	private static final long RELOAD_AGE = Long.getLong("gyrex.preferences.reloadAfter", 3000L);
+
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperBasedPreferences.class);
 
 	private static final String VERSION_KEY = "gyrex.preferences.version"; //$NON-NLS-1$
@@ -111,6 +113,12 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	/** ZooKeeper version of the children */
 	volatile int childrenVersion = -1;
+
+	/** last time properties have been loaded */
+	volatile long propertiesLoadTimestamp;
+
+	/** last time children have been loaded */
+	volatile long childrenLoadTimestamp;
 
 	private volatile ListenerList nodeListeners;
 	private volatile ListenerList preferenceListeners;
@@ -358,6 +366,11 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		// check removed
 		checkRemoved();
 
+		// prevent too frequent load attempts
+		if ((propertiesLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE)) && (childrenLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE))) {
+			return;
+		}
+
 		try {
 			// load (if necessary)
 			if (shouldLoad()) {
@@ -366,6 +379,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 				}
 				service.loadNode(zkPath, true);
 			}
+
+			// update load timestamps
+			propertiesLoadTimestamp = childrenLoadTimestamp = System.currentTimeMillis();
 		} catch (final Exception e) {
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Exception while connecting node {}: {}", new Object[] { this, ExceptionUtils.getRootCauseMessage(e), e });
@@ -380,6 +396,11 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		// check removed
 		checkRemoved();
 
+		// prevent too frequent load attempts
+		if ((propertiesLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE)) && (childrenLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE))) {
+			return;
+		}
+
 		try {
 			// load (if possible and necessary)
 			if (shouldLoad()) {
@@ -387,6 +408,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					LOG.debug("Ensuring (if possible) that node {} (version {}, cversion {}) is loaded!", new Object[] { this, propertiesVersion, childrenVersion });
 				}
 				service.loadNode(zkPath, false);
+
+				// update load timestamps
+				propertiesLoadTimestamp = childrenLoadTimestamp = System.currentTimeMillis();
 			}
 		} catch (final Exception e) {
 			if (CloudDebug.zooKeeperPreferences) {
@@ -438,10 +462,16 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	 *            the event to fire
 	 */
 	private void firePreferenceEvent(final PreferenceChangeEvent event) {
+		if (CloudDebug.zooKeeperPreferences) {
+			LOG.debug("Sending event {}.", event);
+		}
 		final ListenerList listeners = preferenceListeners;
 		if (listeners != null) {
 			for (final Object listener : listeners.getListeners()) {
 				try {
+					if (CloudDebug.zooKeeperPreferences) {
+						LOG.debug("Sending event to {}.", listener);
+					}
 					((IPreferenceChangeListener) listener).preferenceChange(event);
 				} catch (final AssertionError e) {
 					LOG.error("Removing bogus preference listener ({}) after exception.", listener, e);
@@ -655,6 +685,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// update children version
 			this.childrenVersion = childrenVersion;
+			childrenLoadTimestamp = System.currentTimeMillis();
 
 			// note, the policy here is very simple: we completely
 			// replace the local children with the loaded children;
@@ -783,6 +814,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 			// update properties version (after they were de-serialized successfully)
 			this.propertiesVersion = propertiesVersion;
+			propertiesLoadTimestamp = System.currentTimeMillis();
 
 			// collect all property names
 			final Set<String> propertyNames = new HashSet<String>();
@@ -812,9 +844,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 					properties.put(key, newValue);
 					if (CloudDebug.zooKeeperPreferences) {
 						if (oldValue == null) {
-							LOG.debug("Node {} property added: {} - {}", new Object[] { this, key, newValue });
+							LOG.debug("Node {} property added: {}={}", new Object[] { this, key, newValue });
 						} else {
-							LOG.debug("Node {} property updated: {} - {}", new Object[] { this, key, newValue });
+							LOG.debug("Node {} property updated: {}={}", new Object[] { this, key, newValue });
 						}
 					}
 					// create event
@@ -1286,7 +1318,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	 *         <code>false</code> otherwise
 	 */
 	private boolean shouldLoad() {
-		return (propertiesVersion == -1) || (childrenVersion == -1);
+		// in order to prevent from missing watcher events we only allow a certain age
+		// after that we also want to re-load a node in order to not miss any remote changes
+		return (propertiesVersion == -1) || (childrenVersion == -1) || (propertiesLoadTimestamp < (System.currentTimeMillis() - RELOAD_AGE)) || (childrenLoadTimestamp < (System.currentTimeMillis() - RELOAD_AGE));
 	}
 
 	@Override

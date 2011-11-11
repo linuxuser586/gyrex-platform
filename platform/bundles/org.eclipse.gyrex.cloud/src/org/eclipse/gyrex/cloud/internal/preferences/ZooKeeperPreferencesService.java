@@ -100,10 +100,6 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				return;
 			}
 
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} updated remotely: CHILDREN CHANGED", ZooKeeperPreferencesService.this, path);
-			}
-
 			events.childrenChanged(path);
 		}
 
@@ -111,10 +107,6 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		protected void pathCreated(final String path) {
 			if (isClosed()) {
 				return;
-			}
-
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} created remotely", ZooKeeperPreferencesService.this, path);
 			}
 
 			events.created(path);
@@ -126,10 +118,6 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				return;
 			}
 
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} removed remotely", ZooKeeperPreferencesService.this, path);
-			}
-
 			events.deleted(path);
 		}
 
@@ -138,7 +126,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			while (!isClosed()) {
 
 				if (CloudDebug.zooKeeperPreferences) {
-					LOG.debug("Processing events from ZooKeeper.");
+					LOG.debug("Waiting for events from ZooKeeper.");
 				}
 
 				// get next event
@@ -158,7 +146,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				}
 
 				if (CloudDebug.zooKeeperPreferencesSync) {
-					LOG.debug("Processing event {}", entry.getKey(), PathEvents.toString(entry.getValue()));
+					LOG.debug("Processing event {} (path {})", PathEvents.toString(entry.getValue()), entry.getKey());
 				}
 
 				// handle event
@@ -204,10 +192,6 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		protected void recordChanged(final String path) {
 			if (isClosed()) {
 				return;
-			}
-
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("({}) Preference at {} updated remotely: PROPERTIES", ZooKeeperPreferencesService.this, path);
 			}
 
 			events.recordChanged(path);
@@ -755,7 +739,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 *            the node to activate
 	 */
 	public final void activateNode(final ZooKeeperBasedPreferences node) {
-		// simply put to the active nodes map
+		// put to the active nodes map
 		activeNodesByPath.put(node.zkPath, node);
 	}
 
