@@ -28,11 +28,7 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.jobs.Job;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.CreateMode;
@@ -78,31 +74,23 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 */
 	private final class DeferredProcessingMonitor extends ZooKeeperMonitor {
 
-		/** default delay for processing events */
-		private static final int DEFAULT_EVENT_PROCESSING_DELAY = 5000;
-
 		final PathEvents events = new PathEvents();
-		final Job processEventsJob;
-		{
-			final long delay = Integer.getInteger("gyrex.preferences.remoteEventProcessingDelay", DEFAULT_EVENT_PROCESSING_DELAY);
-			processEventsJob = new Job(String.format("Processing %s preference events from ZooKeeper", name)) {
-				@Override
-				protected IStatus run(final IProgressMonitor monitor) {
-					try {
-						processEvents(monitor);
-					} finally {
-						// re-schedule as long as it is not closed
-						if (!isClosed()) {
-							schedule(delay);
-						}
-					}
-
-					return Status.OK_STATUS;
+		final Thread processEventsThread = new Thread(ZooKeeperPreferencesService.this.toString() + " EventProcessor") {
+			@Override
+			public void run() {
+				// spin the loop as long as the service is not closed
+				while (!isClosed()) {
+					processEventsLoop();
 				}
 			};
-			processEventsJob.setSystem(true);
-			processEventsJob.setPriority(Job.SHORT);
-			processEventsJob.schedule(DEFAULT_EVENT_PROCESSING_DELAY);
+		};
+
+		/**
+		 * Creates a new instance.
+		 */
+		public DeferredProcessingMonitor() {
+			// start the event processing thread as soon as possible
+			processEventsThread.start();
 		}
 
 		@Override
@@ -144,16 +132,31 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			events.deleted(path);
 		}
 
-		void processEvents(final IProgressMonitor monitor) {
-			if (isClosed() || !isConnected()) {
-				return;
-			}
+		void processEventsLoop() {
+			// as long as the service is not closed
+			while (!isClosed()) {
 
-			if (CloudDebug.zooKeeperPreferences) {
-				LOG.debug("Processing events from ZooKeeper.");
-			}
+				if (CloudDebug.zooKeeperPreferences) {
+					LOG.debug("Processing events from ZooKeeper.");
+				}
 
-			for (Entry<String, boolean[]> entry = events.removeNext(); (entry != null) && !monitor.isCanceled() && isConnected() && !isClosed(); entry = events.removeNext()) {
+				// get next event
+				Entry<String, boolean[]> entry;
+				try {
+					entry = events.next();
+				} catch (final InterruptedException e) {
+					if (CloudDebug.zooKeeperPreferences) {
+						LOG.debug("Terminating ZooKeeper event processor thread {}.", processEventsThread);
+					}
+
+					// set interrupt flag
+					Thread.currentThread().interrupt();
+
+					// return
+					return;
+				}
+
+				// handle event
 				final String path = entry.getKey();
 				if (entry.getValue()[PathEvents.CREATED] || entry.getValue()[PathEvents.DELETED]) {
 					final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
@@ -309,48 +312,77 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 		private final LinkedHashMap<String, boolean[]> pathEvents = new LinkedHashMap<String, boolean[]>();
 
-		synchronized void childrenChanged(final String path) {
-			final boolean[] events = ensureEvents(path);
-			events[CHILDREN_CHANGED] = true;
+		public void childrenChanged(final String path) {
+			submitEvent(path, CHILDREN_CHANGED);
 		}
 
-		synchronized void clear() {
-			pathEvents.clear();
-		}
-
-		synchronized void created(final String path) {
-			final boolean[] events = ensureEvents(path);
-			events[CREATED] = true;
-		}
-
-		synchronized void deleted(final String path) {
-			final boolean[] events = ensureEvents(path);
-			events[DELETED] = true;
-		}
-
-		private boolean[] ensureEvents(final String path) {
-			boolean[] events = pathEvents.get(path);
-			if (null == events) {
-				events = new boolean[] { false, false, false, false };
-				pathEvents.put(path, events);
+		public void clear() {
+			synchronized (pathEvents) {
+				pathEvents.clear();
+				pathEvents.notifyAll();
 			}
-			return events;
 		}
 
-		synchronized void recordChanged(final String path) {
-			final boolean[] events = ensureEvents(path);
-			events[RECORD_CHANGED] = true;
+		public void created(final String path) {
+			submitEvent(path, CREATED);
 		}
 
-		synchronized Entry<String, boolean[]> removeNext() {
-			final Iterator<Entry<String, boolean[]>> iterator = pathEvents.entrySet().iterator();
-			if (!iterator.hasNext()) {
-				return null;
+		public void deleted(final String path) {
+			submitEvent(path, DELETED);
+		}
+
+		/**
+		 * Receives the next entry.
+		 * <p>
+		 * Blocks until an entry becomes available.
+		 * </p>
+		 * 
+		 * @return the next entry
+		 * @throws InterruptedException
+		 */
+		public Entry<String, boolean[]> next() throws InterruptedException {
+			Entry<String, boolean[]> next = null;
+			while (next == null) {
+				// retrieve next event
+				synchronized (pathEvents) {
+					final Iterator<Entry<String, boolean[]>> iterator = pathEvents.entrySet().iterator();
+					if (iterator.hasNext()) {
+						next = iterator.next();
+						iterator.remove();
+					}
+				}
+
+				// wait if none is available
+				if (null == next) {
+					synchronized (pathEvents) {
+						pathEvents.wait();
+					}
+				}
 			}
 
-			final Entry<String, boolean[]> next = iterator.next();
-			iterator.remove();
 			return next;
+		}
+
+		public void recordChanged(final String path) {
+			submitEvent(path, RECORD_CHANGED);
+		}
+
+		private void submitEvent(final String path, final int event) {
+			// synchronize on pathEvents
+			synchronized (pathEvents) {
+				// ensure event array is created
+				boolean[] events = pathEvents.get(path);
+				if (null == events) {
+					events = new boolean[] { false, false, false, false };
+					pathEvents.put(path, events);
+				}
+
+				// set event flag
+				events[event] = true;
+
+				// notify waiting thread
+				pathEvents.notify();
+			}
 		}
 
 	}
@@ -743,7 +775,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		connected = false;
 
 		// shutdown event processor
-		monitor.processEventsJob.cancel();
+		monitor.processEventsThread.interrupt();
 		monitor.events.clear();
 
 		// invalidate all nodes
