@@ -21,6 +21,7 @@ import org.osgi.service.prefs.BackingStoreException;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.KeeperException.BadVersionException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 
 /**
  * ZooKeeper based preferences.
@@ -41,7 +42,13 @@ public class CloudPreferences extends ZooKeeperBasedPreferences {
 
 	@Override
 	protected BackingStoreException createBackingStoreException(final String action, final Exception cause) {
+		// ZooKeeper bad version
 		if (cause instanceof BadVersionException) {
+			return new ModificationConflictException(String.format("Concurrent modification error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
+		}
+
+		// ZooKeeper NoNode usually also means a concurrent modification
+		if (cause instanceof NoNodeException) {
 			return new ModificationConflictException(String.format("Concurrent modification error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
 		}
 
