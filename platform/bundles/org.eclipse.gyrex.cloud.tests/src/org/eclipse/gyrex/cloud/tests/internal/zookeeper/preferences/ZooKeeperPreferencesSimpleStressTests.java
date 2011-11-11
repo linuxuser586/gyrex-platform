@@ -65,7 +65,7 @@ public class ZooKeeperPreferencesSimpleStressTests extends ZKTestCase {
 		getNode(root, 7).flush();
 		root.flush();
 
-		root.sync();
+//		root.sync();
 
 		assertEquals(value, getNode(getNode(root, 6), 2).get(KEY, DEFAULT_VALUE));
 	}
@@ -121,7 +121,7 @@ public class ZooKeeperPreferencesSimpleStressTests extends ZKTestCase {
 	public void test01() throws Exception {
 		final TestablePreferences root = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 6; i++) {
 			doTest01(root);
 		}
 
