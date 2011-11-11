@@ -394,6 +394,20 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		return rootDefinition;
 	}
 
+	public boolean hasRealContext(IPath contextPath) throws IllegalArgumentException {
+		checkClosed();
+		contextPath = sanitize(contextPath);
+
+		final Lock readLock = contextRegistryLock.readLock();
+		readLock.lock();
+		try {
+			return contexts.containsKey(contextPath);
+		} finally {
+			readLock.unlock();
+		}
+
+	}
+
 	public void removeDefinition(final ContextDefinition contextDefinition) {
 		checkClosed();
 		final IPath path = sanitize(contextDefinition.getPath());

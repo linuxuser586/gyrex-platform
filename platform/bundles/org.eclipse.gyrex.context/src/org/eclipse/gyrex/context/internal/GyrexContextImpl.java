@@ -11,6 +11,7 @@
  */
 package org.eclipse.gyrex.context.internal;
 
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -34,6 +35,7 @@ import org.osgi.framework.BundleEvent;
 import org.osgi.framework.BundleListener;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.text.StrBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,6 +160,21 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 			// dispose preferences
 			preferences.dispose();
 		}
+	}
+
+	public void dump(final StrBuilder dump) {
+		dump.appendln(contextPath.toString());
+		dump.appendPadding(1, ' ').appendln("Objects");
+		if (!computedObjects.isEmpty()) {
+			for (final Entry<Class<?>, GyrexContextObject> entry : computedObjects.entrySet()) {
+				dump.appendPadding(2, ' ').appendln(entry.getKey());
+				dump.appendPadding(3, ' ').appendln(entry.getValue());
+			}
+		} else {
+			dump.appendPadding(2, ' ').appendln("(none)");
+		}
+		dump.appendPadding(1, ' ').appendln("Preferences");
+		preferences.dump(2, dump);
 	}
 
 	/**

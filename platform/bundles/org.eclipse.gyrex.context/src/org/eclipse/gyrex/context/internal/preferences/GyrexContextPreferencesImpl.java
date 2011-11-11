@@ -35,6 +35,7 @@ import org.osgi.service.prefs.Preferences;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang.text.StrBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -203,6 +204,36 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	@PreDestroy
 	public void dispose() {
 		context = null;
+	}
+
+	public void dump(final int ident, final StrBuilder dump) {
+		final String path = getPreferencesPathToSettings(context.getContextPath(), null);
+		final IEclipsePreferences root = ContextConfiguration.getRootNodeForContextPreferences();
+		try {
+			if (!root.nodeExists(path)) {
+				dump.appendPadding(ident, ' ').appendln("(none)");
+				return;
+			}
+
+			dump(ident, dump, root.node(path));
+		} catch (final BackingStoreException e) {
+			dump.appendPadding(ident, ' ').appendln(e.getMessage());
+		}
+	}
+
+	/**
+	 * @param ident
+	 * @param dump
+	 * @param node
+	 * @throws BackingStoreException
+	 */
+	private void dump(final int ident, final StrBuilder dump, final Preferences node) throws BackingStoreException {
+		for (final String key : node.keys()) {
+			dump.appendPadding(ident, ' ').append("P:").append(key).append('=').appendln(node.get(key, null));
+		}
+		for (final String name : node.childrenNames()) {
+			dump(ident + 1, dump, node.node(name));
+		}
 	}
 
 	@Override
