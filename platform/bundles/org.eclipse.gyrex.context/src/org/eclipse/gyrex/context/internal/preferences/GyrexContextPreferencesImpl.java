@@ -13,6 +13,7 @@ package org.eclipse.gyrex.context.internal.preferences;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.PreDestroy;
@@ -228,10 +229,14 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	 * @throws BackingStoreException
 	 */
 	private void dump(final int ident, final StrBuilder dump, final Preferences node) throws BackingStoreException {
-		for (final String key : node.keys()) {
-			dump.appendPadding(ident, ' ').append("P:").append(key).append('=').appendln(node.get(key, null));
+		final String[] keys = node.keys();
+		Arrays.sort(keys);
+		for (final String key : keys) {
+			dump.appendPadding(ident, ' ').append(key).append('=').appendln(node.get(key, null));
 		}
-		for (final String name : node.childrenNames()) {
+		final String[] childrenNames = node.childrenNames();
+		Arrays.sort(childrenNames);
+		for (final String name : childrenNames) {
 			dump(ident + 1, dump, node.node(name));
 		}
 	}

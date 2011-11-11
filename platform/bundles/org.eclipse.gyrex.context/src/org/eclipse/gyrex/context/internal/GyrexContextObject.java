@@ -240,13 +240,7 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 	}
 
 	public void dump(final int ident, final StrBuilder dump) {
-		if (!isComputed) {
-			dump.appendPadding(ident, ' ').appendln("(not cumputed yet)");
-		} else {
-			dump.appendPadding(ident, ' ').appendln(computedObject);
-			dump.appendPadding(ident + 1, ' ').appendln(computedObjectProvider);
-		}
-
+		dump.appendPadding(ident, ' ').appendln(computedObject);
 	}
 
 	@Override

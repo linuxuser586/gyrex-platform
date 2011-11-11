@@ -34,6 +34,7 @@ public class DumpContextCmd extends BaseContextDefinitionCmd {
 		// get real context
 		if (!ContextActivator.getInstance().getContextRegistryImpl().hasRealContext(contextDefinition.getPath())) {
 			printf("Context not instantiated!");
+			return;
 		}
 
 		final GyrexContextImpl context = ContextActivator.getInstance().getContextRegistryImpl().getRealContext(contextDefinition.getPath());

@@ -192,6 +192,12 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 		// get computed object
 		GyrexContextObject contextObject = computedObjects.get(type);
 		if (null == contextObject) {
+			// check if would be possible to compute an object
+			if (null == getContextRegistry().getObjectProviderRegistry().getType(type.getName())) {
+				return null;
+			}
+
+			// compute object
 			computedObjects.putIfAbsent(type, new GyrexContextObject(this, type));
 			contextObject = computedObjects.get(type);
 		}
