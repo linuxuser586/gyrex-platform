@@ -18,3 +18,4 @@ org.eclipse.gyrex.cloud/zooKeeperLockService=true
 
 # debug preferences
 org.eclipse.gyrex.cloud/zooKeeperPreferences=true
+org.eclipse.gyrex.cloud/zooKeeperPreferencesSync=true

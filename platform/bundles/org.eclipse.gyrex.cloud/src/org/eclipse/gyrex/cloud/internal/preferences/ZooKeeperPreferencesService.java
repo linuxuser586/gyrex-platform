@@ -31,6 +31,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.text.StrBuilder;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -156,6 +157,10 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 					return;
 				}
 
+				if (CloudDebug.zooKeeperPreferencesSync) {
+					LOG.debug("Processing event {}", entry.getKey(), PathEvents.toString(entry.getValue()));
+				}
+
 				// handle event
 				final String path = entry.getKey();
 				if (entry.getValue()[PathEvents.CREATED] || entry.getValue()[PathEvents.DELETED]) {
@@ -171,8 +176,8 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 								// load the node
 								loadNode(path, true);
 							}
-						} catch (final Exception ignored) {
-							LOG.debug("Ignored exception processing node event '{}': {} ", new Object[] { node, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+						} catch (final Exception e) {
+							LOG.error("Exception processing node event '{}': {} ", new Object[] { node, ExceptionUtils.getRootCauseMessage(e), e });
 						}
 					}
 
@@ -180,15 +185,15 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 					try {
 						// refresh children and notify listeners (but only if remote is newer)
 						refreshChildren(path, false);
-					} catch (final Exception ignored) {
-						LOG.debug("Ignored exception refreshing children of '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+					} catch (final Exception e) {
+						LOG.error("Exception refreshing children of '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
 					}
 				} else if (entry.getValue()[PathEvents.RECORD_CHANGED]) {
 					try {
 						// refresh just properties and notify listeners (but only if remote is newer)
 						refreshProperties(path, false);
-					} catch (final Exception ignored) {
-						LOG.debug("Ignored exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(ignored), ignored });
+					} catch (final Exception e) {
+						LOG.error("Exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
 					}
 				}
 			}
@@ -309,6 +314,23 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		static final int DELETED = 1;
 		static final int RECORD_CHANGED = 2;
 		static final int CHILDREN_CHANGED = 3;
+
+		public static String toString(final boolean[] event) {
+			final StrBuilder str = new StrBuilder();
+			if (event[CREATED]) {
+				str.append("CREATED");
+			}
+			if (event[DELETED]) {
+				str.appendSeparator('+').append("DELETED");
+			}
+			if (event[RECORD_CHANGED]) {
+				str.appendSeparator('+').append("RECORD_CHANGED");
+			}
+			if (event[CHILDREN_CHANGED]) {
+				str.appendSeparator('+').append("CHILDREN_CHANGED");
+			}
+			return str.toString();
+		}
 
 		private final LinkedHashMap<String, boolean[]> pathEvents = new LinkedHashMap<String, boolean[]>();
 
@@ -761,7 +783,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 	@Override
 	protected void disconnect() {
-		if (CloudDebug.zooKeeperPreferences) {
+		if (CloudDebug.zooKeeperPreferencesSync) {
 			LOG.debug("Disconnecting preferences {}", this);
 		}
 
@@ -771,7 +793,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 	@Override
 	protected void doClose() {
-		if (CloudDebug.zooKeeperPreferences) {
+		if (CloudDebug.zooKeeperPreferencesSync) {
 			LOG.debug("Closing preferences {}", this, new Exception("doClose"));
 		}
 
@@ -909,7 +931,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 	@Override
 	protected void reconnect() {
-		if (CloudDebug.zooKeeperPreferences) {
+		if (CloudDebug.zooKeeperPreferencesSync) {
 			LOG.debug("Reconnecting preferences {}", this);
 		}
 

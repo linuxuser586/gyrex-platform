@@ -258,6 +258,10 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
+	protected BackingStoreException createBackingStoreException(final String action, final Exception cause) {
+		return new BackingStoreException(String.format("Error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
+	}
+
 	private ZooKeeperBasedPreferences createChild(final String name, final List<ZooKeeperBasedPreferences> added) {
 		// prevent concurrent modification
 		childrenModifyLock.lock();
@@ -407,10 +411,21 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		final ListenerList listeners = nodeListeners;
 		if (listeners != null) {
 			for (final Object listener : listeners.getListeners()) {
-				if (added) {
-					((INodeChangeListener) listener).added(event);
-				} else {
-					((INodeChangeListener) listener).removed(event);
+				try {
+					if (added) {
+						((INodeChangeListener) listener).added(event);
+					} else {
+						((INodeChangeListener) listener).removed(event);
+					}
+				} catch (final AssertionError e) {
+					LOG.error("Removing bogus node listener ({}) after exception.", listener, e);
+					listeners.remove(listener);
+				} catch (final LinkageError e) {
+					LOG.error("Removing bogus node listener ({}) after exception.", listener, e);
+					listeners.remove(listener);
+				} catch (final Exception e) {
+					LOG.error("Removing bogus node listener ({}) after exception.", listener, e);
+					listeners.remove(listener);
 				}
 			}
 		}
@@ -428,8 +443,15 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			for (final Object listener : listeners.getListeners()) {
 				try {
 					((IPreferenceChangeListener) listener).preferenceChange(event);
+				} catch (final AssertionError e) {
+					LOG.error("Removing bogus preference listener ({}) after exception.", listener, e);
+					listeners.remove(listener);
+				} catch (final LinkageError e) {
+					LOG.error("Removing bogus preference listener ({}) after exception.", listener, e);
+					listeners.remove(listener);
 				} catch (final Exception e) {
-					LOG.error("Removing bogus preference listener ({}) after exception.");
+					LOG.warn("Removing bogus preference listener ({}) after exception. ", listener, e);
+					listeners.remove(listener);
 				}
 			}
 		}
@@ -924,10 +946,6 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return false;
 		}
 		return child.nodeExists(pathName.substring(index + 1));
-	}
-
-	protected BackingStoreException createBackingStoreException(final String action, final Exception cause) {
-		return new BackingStoreException(String.format("Error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
 	}
 
 	@Override
