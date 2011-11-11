@@ -694,7 +694,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 * nodes should be refreshed/hooked.
 	 * </p>
 	 */
-	final DeferredProcessingMonitor monitor = new DeferredProcessingMonitor();
+	final DeferredProcessingMonitor monitor;
 
 	final String name;
 	final ConcurrentMap<String, ZooKeeperBasedPreferences> activeNodesByPath = new ConcurrentHashMap<String, ZooKeeperBasedPreferences>();
@@ -712,7 +712,11 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		if (!IdHelper.isValidId(name)) {
 			throw new IllegalArgumentException("invalid name; please use only ascii chars (see IdHelper)");
 		}
+		// set name
 		this.name = name;
+
+		// initialize ZooKeeper watcher after name has been set
+		monitor = new DeferredProcessingMonitor();
 
 		// immediately activate the service
 		activate();
