@@ -135,6 +135,7 @@ public class ServerRole {
 		if (BootDebug.roles) {
 			LOG.debug("Starting application {}", applicationId);
 		}
+		// FIXME: we need to check for running instances before we launch
 		final ApplicationDescriptor applicationDescriptor = BootActivator.getInstance().getEclipseApplication(applicationId);
 		if (applicationDescriptor == null) {
 			throw new IllegalStateException(NLS.bind("Application {0} not found!", applicationId));

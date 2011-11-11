@@ -401,7 +401,7 @@ public class ServerApplication extends BaseApplication {
 	private void loggingOn(final String[] arguments) {
 		// configure logback
 		try {
-			LogbackConfigurator.configureDefaultContext(arguments);
+			LogbackConfigurator.configureDefaultContext();
 		} catch (final ClassNotFoundException e) {
 			// logback not available
 			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());

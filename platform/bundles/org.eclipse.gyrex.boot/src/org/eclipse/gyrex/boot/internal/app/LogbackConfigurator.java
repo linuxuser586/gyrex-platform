@@ -46,7 +46,9 @@ import ch.qos.logback.core.util.StatusPrinter;
 
 public class LogbackConfigurator {
 
-	public static void configureDefaultContext(final String[] arguments) throws Exception {
+	private static File logConfigurationFile;
+
+	public static void configureDefaultContext() throws Exception {
 		// reset JUL (this should disable the default JUL console output)
 		LogManager.getLogManager().reset();
 
@@ -84,7 +86,7 @@ public class LogbackConfigurator {
 		final File configurationFile = getLogConfigurationFile();
 		if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canRead()) {
 
-			sm.add(new InfoStatus("Loading configuration from workspace.", lc));
+			sm.add(new InfoStatus(String.format("Loading configuration from '%s'.", configurationFile.getAbsolutePath()), lc));
 
 			// create our customized configurator
 			final JoranConfigurator configurator = new JoranConfigurator() {
@@ -185,6 +187,13 @@ public class LogbackConfigurator {
 	}
 
 	private static File getLogConfigurationFile() {
+		// use configured file
+		final File file = logConfigurationFile;
+		if (null != file) {
+			return file;
+		}
+
+		// use default file
 		final Location instanceLocation = BootActivator.getInstance().getInstanceLocation();
 		return new Path(instanceLocation.getURL().getPath()).append("etc/logback.xml").toFile();
 	}
@@ -201,5 +210,18 @@ public class LogbackConfigurator {
 
 		// print logback's internal status
 		StatusPrinter.printIfErrorsOccured(lc);
+	}
+
+	/**
+	 * Allows to change the log configuration file at runtime.
+	 * 
+	 * @param file
+	 *            the file to set
+	 * @return the previously used file
+	 */
+	public static File setLogConfigurationFile(final File file) {
+		final File oldFile = logConfigurationFile;
+		logConfigurationFile = file;
+		return oldFile;
 	}
 }
