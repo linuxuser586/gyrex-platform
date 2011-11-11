@@ -1302,6 +1302,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			// save record data
 			// (note, we do it within the lock in order to get proper stats/version info)
 			propertiesVersion = service.writeProperties(zkPath, out.toByteArray(), propertiesVersion);
+			propertiesLoadTimestamp = System.currentTimeMillis();
 
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Saved properties of node {} (now at version {})", this, propertiesVersion);
