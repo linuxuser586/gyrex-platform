@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
  * obtained via {@link #INSTANCE}
  * </p>
  * 
+ * @see ModificationConflictException
  * @noinstantiate This class is not intended to be instantiated by clients.
  */
 public final class CloudScope implements IScopeContext {

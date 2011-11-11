@@ -13,8 +13,14 @@ package org.eclipse.gyrex.preferences.internal;
 
 import org.eclipse.gyrex.cloud.internal.preferences.ZooKeeperBasedPreferences;
 import org.eclipse.gyrex.cloud.internal.preferences.ZooKeeperPreferencesService;
+import org.eclipse.gyrex.preferences.ModificationConflictException;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
+import org.osgi.service.prefs.BackingStoreException;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.zookeeper.KeeperException.BadVersionException;
 
 /**
  * ZooKeeper based preferences.
@@ -31,6 +37,16 @@ public class CloudPreferences extends ZooKeeperBasedPreferences {
 	 */
 	public CloudPreferences(final IEclipsePreferences parent, final String name, final ZooKeeperPreferencesService service) {
 		super(parent, name, service);
+	}
+
+	@Override
+	protected BackingStoreException createBackingStoreException(final String action, final Exception cause) {
+		if (cause instanceof BadVersionException) {
+			return new ModificationConflictException(String.format("Concurrent modification error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
+		}
+
+		// default
+		return super.createBackingStoreException(action, cause);
 	}
 
 	@Override
