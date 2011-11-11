@@ -368,6 +368,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		// prevent too frequent load attempts
 		if ((propertiesLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE)) && (childrenLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE))) {
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Node had been loaded recently. Skipping load request for node {}!", this);
+			}
 			return;
 		}
 
@@ -398,6 +401,9 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 		// prevent too frequent load attempts
 		if ((propertiesLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE)) && (childrenLoadTimestamp > (System.currentTimeMillis() - RELOAD_AGE))) {
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Node had been loaded recently. Skipping load request for node {}!", this);
+			}
 			return;
 		}
 
