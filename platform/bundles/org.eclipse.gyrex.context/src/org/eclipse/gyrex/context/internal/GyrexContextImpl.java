@@ -168,7 +168,12 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 		if (!computedObjects.isEmpty()) {
 			for (final Entry<Class<?>, GyrexContextObject> entry : computedObjects.entrySet()) {
 				dump.appendPadding(2, ' ').appendln(entry.getKey());
-				dump.appendPadding(3, ' ').appendln(entry.getValue());
+				final GyrexContextObject value = entry.getValue();
+				if (null != value) {
+					value.dump(3, dump);
+				} else {
+					dump.appendPadding(3, ' ').appendln("(no value)");
+				}
 			}
 		} else {
 			dump.appendPadding(2, ' ').appendln("(none)");

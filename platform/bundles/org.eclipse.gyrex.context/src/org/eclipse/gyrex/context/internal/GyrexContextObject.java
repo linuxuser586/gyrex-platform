@@ -28,6 +28,7 @@ import org.eclipse.gyrex.context.internal.provider.TypeRegistration.TypeRegistra
 import org.osgi.framework.Filter;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.text.StrBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -236,6 +237,16 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 
 		// unset (also means disposed)
 		context = null;
+	}
+
+	public void dump(final int ident, final StrBuilder dump) {
+		if (!isComputed) {
+			dump.appendPadding(ident, ' ').appendln("(not cumputed yet)");
+		} else {
+			dump.appendPadding(ident, ' ').appendln(computedObject);
+			dump.appendPadding(ident + 1, ' ').appendln(computedObjectProvider);
+		}
+
 	}
 
 	@Override
