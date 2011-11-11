@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences;
 
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
 
 import java.util.Properties;
@@ -25,10 +26,15 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  *
  */
 public class TestablePreferences extends ZooKeeperBasedPreferences {
+
+	private static final Logger LOG = LoggerFactory.getLogger(TestablePreferences.class);
 
 	/**
 	 * Creates a new instance.
@@ -39,6 +45,27 @@ public class TestablePreferences extends ZooKeeperBasedPreferences {
 	 */
 	public TestablePreferences(final IEclipsePreferences parent, final String name, final ZooKeeperPreferencesService service) {
 		super(parent, name, service);
+	}
+
+	public void assertChildrenVersionEquals(final TestablePreferences other) {
+		if (other.testableGetChildrenVersion() != testableGetChildrenVersion()) {
+			// note, there is some delay here that we must catch
+			// in case a node is flushed the children version will
+			// not be immediately updated but only when the ZooKeeper
+			// watch triggers back
+			//(https://issues.apache.org/jira/browse/ZOOKEEPER-1297)
+			LOG.debug("Waiting for preferences children version sync ({}) ({})", this, other);
+			final long abort = System.currentTimeMillis() + 500L;
+			while ((abort > System.currentTimeMillis()) && (other.testableGetChildrenVersion() != testableGetChildrenVersion())) {
+				try {
+					Thread.sleep(50L);
+				} catch (final InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			}
+		}
+
+		assertEquals("children version must be consistent", other.testableGetChildrenVersion(), testableGetChildrenVersion());
 	}
 
 	@Override
@@ -68,7 +95,7 @@ public class TestablePreferences extends ZooKeeperBasedPreferences {
 	}
 
 	@Override
-	public int testableGetChildrenVersion() {
+	protected int testableGetChildrenVersion() {
 		return super.testableGetChildrenVersion();
 	}
 
