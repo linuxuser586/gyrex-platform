@@ -229,10 +229,11 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	 * @throws BackingStoreException
 	 */
 	private void dump(final int ident, final StrBuilder dump, final Preferences node) throws BackingStoreException {
+		dump.appendPadding(ident, ' ').append(node.name());
 		final String[] keys = node.keys();
 		Arrays.sort(keys);
 		for (final String key : keys) {
-			dump.appendPadding(ident, ' ').append(key).append('=').appendln(node.get(key, null));
+			dump.appendPadding(ident + 1, ' ').append(key).append('=').appendln(node.get(key, null));
 		}
 		final String[] childrenNames = node.childrenNames();
 		Arrays.sort(childrenNames);
