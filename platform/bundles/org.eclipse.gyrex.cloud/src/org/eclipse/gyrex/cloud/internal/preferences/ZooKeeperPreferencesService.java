@@ -668,7 +668,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 						stat = keeper.exists(path, false);
 					} catch (final NodeExistsException e) {
 						// it has been created concurrently (this is bad luck)
-						// fail so that final higher level API final can react on those events
+						// fail so that higher level API can react on those events
 						throw e;
 					}
 				}
