@@ -258,10 +258,6 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 		}
 	}
 
-	private BackingStoreException createBackingStoreException(final String action, final Exception cause) {
-		return new BackingStoreException(String.format("Error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
-	}
-
 	private ZooKeeperBasedPreferences createChild(final String name, final List<ZooKeeperBasedPreferences> added) {
 		// prevent concurrent modification
 		childrenModifyLock.lock();
@@ -928,6 +924,10 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 			return false;
 		}
 		return child.nodeExists(pathName.substring(index + 1));
+	}
+
+	protected BackingStoreException createBackingStoreException(final String action, final Exception cause) {
+		return new BackingStoreException(String.format("Error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
 	}
 
 	@Override
