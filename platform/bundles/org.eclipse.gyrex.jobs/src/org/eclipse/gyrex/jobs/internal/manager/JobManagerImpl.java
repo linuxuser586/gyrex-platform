@@ -121,6 +121,18 @@ public class JobManagerImpl implements IJobManager {
 
 	static final String SEPARATOR = "_";
 
+	static IExclusiveLock acquireLock(final JobImpl job) {
+		final String lockId = "gyrex.jobs.modify.".concat(job.getStorageKey());
+		if (JobsDebug.jobLocks) {
+			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
+		}
+		try {
+			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, modifyLockTimeout);
+		} catch (final Exception e) {
+			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
+		}
+	}
+
 	public static void cancel(JobImpl job, final String trigger) {
 		IExclusiveLock jobLock = null;
 		try {
@@ -197,18 +209,6 @@ public class JobManagerImpl implements IJobManager {
 			return readJob(jobId, JobHistoryStore.getJobsNode().node(storageKey));
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Error reading job data. %s", e.getMessage()), e);
-		}
-	}
-
-	static IExclusiveLock acquireLock(final JobImpl job) {
-		final String lockId = "gyrex.jobs.modify.".concat(job.getStorageKey());
-		if (JobsDebug.jobLocks) {
-			LOG.debug("Requesting lock {} for job {}", new Object[] { lockId, job.getId(), new Exception("Call Stack") });
-		}
-		try {
-			return JobsActivator.getInstance().getService(ILockService.class).acquireExclusiveLock(lockId, null, modifyLockTimeout);
-		} catch (final Exception e) {
-			throw new IllegalStateException(String.format("Unable to get job modify lock. %s", e.getMessage()), e);
 		}
 	}
 
@@ -762,6 +762,9 @@ public class JobManagerImpl implements IJobManager {
 			// get job modification lock
 			jobLock = acquireLock(job);
 
+			// make sure node is in sync
+			syncJobNode(jobId);
+
 			// re-read job status (inside lock)
 			job = getJob(jobId);
 			if (null == job) {
@@ -829,6 +832,14 @@ public class JobManagerImpl implements IJobManager {
 			}
 		} finally {
 			releaseLock(jobLock, jobId);
+		}
+	}
+
+	private void syncJobNode(final String jobId) {
+		try {
+			JobHistoryStore.getJobsNode().node(toInternalId(jobId)).sync();
+		} catch (final BackingStoreException e) {
+			LOG.warn("Exception refreshing job {}. Available job data might be stale.", toInternalId(jobId), e);
 		}
 	}
 
