@@ -40,7 +40,9 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,9 +251,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	/**
 	 * Operation for deleting a lock node.
 	 */
-	private final class DeleteLockNode implements Callable<Boolean> {
+	private final class DeleteLockNode extends ZooKeeperCallable<Boolean> {
+
 		@Override
-		public Boolean call() throws Exception {
+		protected Boolean call(final ZooKeeper keeper) throws Exception {
 			final String lockName = myLockName;
 			if (lockName == null) {
 				return false;
@@ -260,18 +263,37 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			// delete path
 			try {
 				if (CloudDebug.zooKeeperLockService) {
-					LOG.debug("Deleting lock node in ZooKeeper {}/{}", lockNodePath, myLockName);
+					LOG.debug("Deleting my lock node in ZooKeeper {}/{}", lockNodePath, myLockName);
 				}
-				ZooKeeperGate.get().deletePath(lockNodePath.append(lockName), -1);
+				keeper.delete(lockNodePath.append(lockName).toString(), -1);
 			} catch (final NoNodeException e) {
 				// node already gone
 				if (CloudDebug.zooKeeperLockService) {
-					LOG.debug("Lock node already gone {}/{}", lockNodePath, myLockName);
+					LOG.debug("My lock node already gone {}/{}", lockNodePath, myLockName);
 				}
 			}
 
 			// reset my lock name upon success
 			myLockName = null;
+
+			// also make an attempt to clean-up the lock node path
+			// (but don't fail if we couldn't)
+			try {
+				if (CloudDebug.zooKeeperLockService) {
+					LOG.debug("Deleting lock node in ZooKeeper {}", lockNodePath);
+				}
+				keeper.delete(lockNodePath.toString(), -1);
+			} catch (final NoNodeException e) {
+				// node already gone
+				if (CloudDebug.zooKeeperLockService) {
+					LOG.debug("Lock node already gone {}", lockNodePath);
+				}
+			} catch (final NotEmptyException e) {
+				// node not empty (still other locks waiting)
+				if (CloudDebug.zooKeeperLockService) {
+					LOG.debug("Lock node not empty {}", lockNodePath);
+				}
+			}
 
 			// report success
 			return true;
