@@ -80,11 +80,13 @@ public class LogbackConfigurator {
 
 		// ensure log directory exists
 		final IPath instanceLogfileDirectory = getLogfileDir();
-		instanceLogfileDirectory.toFile().mkdirs();
+		if (null != instanceLogfileDirectory) {
+			instanceLogfileDirectory.toFile().mkdirs();
+		}
 
 		// prefer configuration file from workspace
 		final File configurationFile = getLogConfigurationFile();
-		if (configurationFile.exists() && configurationFile.isFile() && configurationFile.canRead()) {
+		if ((null != configurationFile) && configurationFile.isFile() && configurationFile.canRead()) {
 
 			sm.add(new InfoStatus(String.format("Loading configuration from '%s'.", configurationFile.getAbsolutePath()), lc));
 
@@ -94,7 +96,9 @@ public class LogbackConfigurator {
 				protected void addImplicitRules(final Interpreter interpreter) {
 					super.addImplicitRules(interpreter);
 					// set some properties for log file substitution
-					interpreter.getInterpretationContext().addSubstitutionProperty("gyrex.instance.area.logs", instanceLogfileDirectory.addTrailingSeparator().toOSString());
+					if (null != instanceLogfileDirectory) {
+						interpreter.getInterpretationContext().addSubstitutionProperty("gyrex.instance.area.logs", instanceLogfileDirectory.addTrailingSeparator().toOSString());
+					}
 				}
 			};
 			configurator.setContext(lc);
@@ -119,23 +123,18 @@ public class LogbackConfigurator {
 		lc.addListener(levelChangePropagator);
 		levelChangePropagator.start();
 
-		// add console logger in debug or dev mode
+		// add console logger
+		rootLogger.addAppender(createConsoleAppender(lc));
+
+		// add error logger
+		if (null != instanceLogfileDirectory) {
+			rootLogger.addAppender(createErrorLogAppender(lc, instanceLogfileDirectory));
+		}
+
+		// set log level
 		if (Platform.inDebugMode() || Platform.inDevelopmentMode()) {
-			final ConsoleAppender<ILoggingEvent> ca = new ConsoleAppender<ILoggingEvent>();
-			ca.setContext(lc);
-			ca.setName("console");
-			final PatternLayoutEncoder pl = new PatternLayoutEncoder();
-			pl.setContext(lc);
-			pl.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
-			pl.start();
-
-			ca.setEncoder(pl);
-			ca.start();
-
-			rootLogger.addAppender(ca);
-
+			rootLogger.setLevel(Level.DEBUG);
 		} else {
-			// increase level
 			rootLogger.setLevel(Level.INFO);
 		}
 
@@ -150,7 +149,24 @@ public class LogbackConfigurator {
 		lc.getLogger("org.eclipse.jetty").setLevel(Level.INFO);
 		lc.getLogger("org.quartz").setLevel(Level.INFO);
 
-		// add error logger
+		// print logback's internal status
+		StatusPrinter.printIfErrorsOccured(lc);
+	}
+
+	private static ConsoleAppender<ILoggingEvent> createConsoleAppender(final LoggerContext lc) {
+		final ConsoleAppender<ILoggingEvent> ca = new ConsoleAppender<ILoggingEvent>();
+		ca.setContext(lc);
+		ca.setName("console");
+		final PatternLayoutEncoder pl = new PatternLayoutEncoder();
+		pl.setContext(lc);
+		pl.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
+		pl.start();
+		ca.setEncoder(pl);
+		ca.start();
+		return ca;
+	}
+
+	private static RollingFileAppender<ILoggingEvent> createErrorLogAppender(final LoggerContext lc, final IPath instanceLogfileDirectory) {
 		final RollingFileAppender<ILoggingEvent> rfa = new RollingFileAppender<ILoggingEvent>();
 		rfa.setContext(lc);
 		rfa.setName("error-log");
@@ -179,11 +195,7 @@ public class LogbackConfigurator {
 		rfa.addFilter(tf);
 
 		rfa.start();
-
-		rootLogger.addAppender(rfa);
-
-		// print logback's internal status
-		StatusPrinter.printIfErrorsOccured(lc);
+		return rfa;
 	}
 
 	private static File getLogConfigurationFile() {
@@ -199,8 +211,13 @@ public class LogbackConfigurator {
 	}
 
 	private static IPath getLogfileDir() {
-		final Location instanceLocation = BootActivator.getInstance().getInstanceLocation();
-		return new Path(instanceLocation.getURL().getPath()).append("logs");
+		try {
+			final Location instanceLocation = BootActivator.getInstance().getInstanceLocation();
+			return new Path(instanceLocation.getURL().getPath()).append("logs");
+		} catch (final IllegalStateException e) {
+			// not available, fallback null (which means no log files will be written)
+			return null;
+		}
 	}
 
 	public static void reset() throws Exception {

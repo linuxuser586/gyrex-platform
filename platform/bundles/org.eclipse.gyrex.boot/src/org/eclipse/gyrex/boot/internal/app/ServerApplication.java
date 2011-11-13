@@ -29,7 +29,6 @@ import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 import org.eclipse.osgi.service.datalocation.Location;
 
 import org.osgi.framework.Bundle;
-import org.osgi.framework.ServiceRegistration;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.WordUtils;
@@ -148,9 +147,6 @@ public class ServerApplication extends BaseApplication {
 	/** optional shutdown reason */
 	private volatile Throwable shutdownReason;
 
-	/** framework log service */
-	private ServiceRegistration frameworkLogServiceRegistration;
-
 	/** the instance location */
 	private Location instanceLocation;
 
@@ -250,9 +246,6 @@ public class ServerApplication extends BaseApplication {
 		// check the instance location
 		checkInstanceLocation(instanceLocation);
 
-		// configure logging
-		loggingOn(args);
-
 		try {
 			// install shutdown hook
 			Runtime.getRuntime().addShutdownHook(shutdownHook);
@@ -274,9 +267,6 @@ public class ServerApplication extends BaseApplication {
 				LOG.debug("Platform start failed!", e);
 			}
 
-			// de-configure logging
-			loggingOff();
-
 			// TODO should evaluate and suggest solution to Ops
 			printError("Unable to start server. Please verify the installation is correct and all required components are available.", e);
 			throw new StartAbortedException();
@@ -294,9 +284,6 @@ public class ServerApplication extends BaseApplication {
 		} catch (final Exception ignore) {
 			// ignore
 		}
-
-		// de-configure logging
-		loggingOff();
 
 		// print error
 		final Throwable reason = shutdownReason;
@@ -373,52 +360,6 @@ public class ServerApplication extends BaseApplication {
 	@Override
 	protected Logger getLogger() {
 		return LOG;
-	}
-
-	private void loggingOff() {
-		// disable framework logging
-		if (frameworkLogServiceRegistration != null) {
-			frameworkLogServiceRegistration.unregister();
-			frameworkLogServiceRegistration = null;
-		}
-
-		// reset logback
-		try {
-			LogbackConfigurator.reset();
-		} catch (final ClassNotFoundException e) {
-			// logback not available
-		} catch (final NoClassDefFoundError e) {
-			// logback not available
-		} catch (final Exception e) {
-			// error (but do not fail)
-			LOG.warn("Error while de-configuring logback. Please re-configure logging manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
-			// however, at this point it might not be possible to use a logger, Logback might be in a broken state
-			// thus, we also print as much information to the console as possible
-			System.err.printf("Error while de-configuring logback. Please re-configure logging manually. %s", ExceptionUtils.getFullStackTrace(e));
-		}
-	}
-
-	private void loggingOn(final String[] arguments) {
-		// configure logback
-		try {
-			LogbackConfigurator.configureDefaultContext();
-		} catch (final ClassNotFoundException e) {
-			// logback not available
-			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
-		} catch (final LinkageError e) {
-			// logback not available
-			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
-		} catch (final Exception e) {
-			// error (but do not fail)
-			LOG.warn("Error while configuring logback. Please configure logging manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
-			// however, at this point it might not be possible to use a logger, Logback might be in a broken state
-			// thus, we also print as much information to the console as possible
-			System.err.printf("Error while configuring logback. Please configure logging manually. %s", ExceptionUtils.getFullStackTrace(e));
-		}
-
-		// hook FrameworkLog with SLF4J forwarder
-		// (note, we use strings here in order to not import those classes)
-		frameworkLogServiceRegistration = BootActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.equinox.logger"), "Eclipse Gyrex", "SLF4J Equinox Framework Logger", "org.slf4j.Logger-org.eclipse.equinox.logger", null);
 	}
 
 }

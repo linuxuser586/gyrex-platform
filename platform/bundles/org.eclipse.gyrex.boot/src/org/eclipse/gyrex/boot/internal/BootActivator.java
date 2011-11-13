@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.gyrex.boot.internal.app.LogbackConfigurator;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.server.Platform;
@@ -34,10 +35,12 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.application.ApplicationDescriptor;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,6 +91,7 @@ public class BootActivator extends BaseBundleActivator {
 	private ServiceTracker<PackageAdmin, PackageAdmin> bundleTracker;
 	private volatile IServiceProxy<Location> instanceLocationProxy;
 	private volatile IPath instanceLocationPath;
+	private ServiceRegistration frameworkLogServiceRegistration;
 
 	/**
 	 * The constructor
@@ -126,10 +130,14 @@ public class BootActivator extends BaseBundleActivator {
 			// error (but do not fail)
 			LOG.warn("Error while registering debug options command provider. ", e);
 		}
+
+		// initial logback configuration
+		loggingOn();
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
+		loggingOff();
 		sharedInstance = null;
 		this.context = null;
 		instanceLocationProxy = null;
@@ -217,7 +225,7 @@ public class BootActivator extends BaseBundleActivator {
 		}
 	}
 
-	public Location getInstanceLocation() {
+	public Location getInstanceLocation() throws IllegalStateException {
 		final IServiceProxy<Location> proxy = instanceLocationProxy;
 		if (null == proxy) {
 			throw createBundleInactiveException();
@@ -252,5 +260,51 @@ public class BootActivator extends BaseBundleActivator {
 			throw new IllegalArgumentException("bundle must not be null");
 		}
 		return getInstanceLocationPath().append(BUNDLE_STATE_LOCATION).append(bundle.getSymbolicName());
+	}
+
+	private void loggingOff() {
+		// disable framework logging
+		if (frameworkLogServiceRegistration != null) {
+			frameworkLogServiceRegistration.unregister();
+			frameworkLogServiceRegistration = null;
+		}
+
+		// reset logback
+		try {
+			LogbackConfigurator.reset();
+		} catch (final ClassNotFoundException e) {
+			// logback not available
+		} catch (final NoClassDefFoundError e) {
+			// logback not available
+		} catch (final Exception e) {
+			// error (but do not fail)
+			LOG.warn("Error while de-configuring logback. Please re-configure logging manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
+			// however, at this point it might not be possible to use a logger, Logback might be in a broken state
+			// thus, we also print as much information to the console as possible
+			System.err.printf("Error while de-configuring logback. Please re-configure logging manually. %s", ExceptionUtils.getFullStackTrace(e));
+		}
+	}
+
+	private void loggingOn() {
+		// configure logback
+		try {
+			LogbackConfigurator.configureDefaultContext();
+		} catch (final ClassNotFoundException e) {
+			// logback not available
+			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+		} catch (final LinkageError e) {
+			// logback not available
+			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
+		} catch (final Exception e) {
+			// error (but do not fail)
+			LOG.warn("Error while configuring logback. Please configure logging manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
+			// however, at this point it might not be possible to use a logger, Logback might be in a broken state
+			// thus, we also print as much information to the console as possible
+			System.err.printf("Error while configuring logback. Please configure logging manually. %s", ExceptionUtils.getFullStackTrace(e));
+		}
+
+		// hook FrameworkLog with SLF4J forwarder
+		// (note, we use strings here in order to not import those classes)
+		frameworkLogServiceRegistration = BootActivator.getInstance().getServiceHelper().registerService(Logger.class.getName(), LoggerFactory.getLogger("org.eclipse.equinox.logger"), "Eclipse Gyrex", "SLF4J Equinox Framework Logger", "org.slf4j.Logger-org.eclipse.equinox.logger", null);
 	}
 }
