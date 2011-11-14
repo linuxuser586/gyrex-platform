@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
@@ -27,7 +28,6 @@ import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
-import org.apache.commons.lang.math.RandomUtils;
 import org.apache.zookeeper.ZKTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -62,12 +62,12 @@ public class ZooKeeperPreferencesSimpleStressTests extends ZKTestCase {
 		root.node(getNodePath(10)).flush();
 		root.node(getNodePath(9)).flush();
 		root.node(getNodePath(8)).flush();
-		getNode(root, 7).flush();
+		root.node(getNodePath(7)).flush();
+		root.node(getNodePath(6)).flush();
 		root.flush();
 
-//		root.sync();
-
 		assertEquals(value, getNode(getNode(root, 6), 2).get(KEY, DEFAULT_VALUE));
+		assertNull(getNode(root, 11).get(KEY, null));
 	}
 
 	private Preferences getNode(final Preferences root, final int level) {
@@ -87,11 +87,6 @@ public class ZooKeeperPreferencesSimpleStressTests extends ZKTestCase {
 			path += "l" + i;
 		}
 		return path;
-	}
-
-	private Preferences getRandomNode(final TestablePreferences root) {
-		final int level = RandomUtils.nextInt(10);
-		return getNode(root, level);
 	}
 
 	@Before
@@ -121,7 +116,7 @@ public class ZooKeeperPreferencesSimpleStressTests extends ZKTestCase {
 	public void test01() throws Exception {
 		final TestablePreferences root = new TestablePreferences(preferencesRoot, testablePreferenceName, service);
 
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 30; i++) {
 			doTest01(root);
 		}
 
