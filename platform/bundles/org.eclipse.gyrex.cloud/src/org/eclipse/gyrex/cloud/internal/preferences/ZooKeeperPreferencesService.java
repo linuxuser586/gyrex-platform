@@ -14,8 +14,7 @@ package org.eclipse.gyrex.cloud.internal.preferences;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +30,6 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang.text.StrBuilder;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -130,9 +128,9 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				}
 
 				// get next event
-				Entry<String, boolean[]> entry;
+				String path;
 				try {
-					entry = events.next();
+					path = events.next();
 				} catch (final InterruptedException e) {
 					if (CloudDebug.zooKeeperPreferences) {
 						LOG.debug("Terminating ZooKeeper event processor thread {}.", processEventsThread);
@@ -146,42 +144,24 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				}
 
 				if (CloudDebug.zooKeeperPreferencesSync) {
-					LOG.debug("Processing event {} (path {})", PathEvents.toString(entry.getValue()), entry.getKey());
+					LOG.debug("Processing event for path {}.", path);
 				}
 
 				// handle event
-				final String path = entry.getKey();
-				if (entry.getValue()[PathEvents.CREATED] || entry.getValue()[PathEvents.DELETED]) {
-					final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
-					if (null != node) {
-						try {
-							// events are processed asynchronously so this might already be re-created or removed
-							final Stat stat = getVersionInfo(path);
-							if (null == stat) {
-								// remove the node
-								node.removeNode(true);
-							} else {
-								// load the node
-								loadNode(path, true);
-							}
-						} catch (final Exception e) {
-							LOG.error("Exception processing node event '{}': {} ", new Object[] { node, ExceptionUtils.getRootCauseMessage(e), e });
+				final ZooKeeperBasedPreferences node = activeNodesByPath.get(path);
+				if (null != node) {
+					try {
+						// events are processed asynchronously so this might already be re-created or removed
+						final Stat stat = getVersionInfo(path);
+						if (null == stat) {
+							// remove the node
+							node.removeNode(true);
+						} else {
+							// refresh the node
+							loadNode(path, true);
 						}
-					}
-
-				} else if (entry.getValue()[PathEvents.CHILDREN_CHANGED]) {
-					try {
-						// refresh children and notify listeners (but only if remote is newer)
-						refreshChildren(path, false);
 					} catch (final Exception e) {
-						LOG.error("Exception refreshing children of '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
-					}
-				} else if (entry.getValue()[PathEvents.RECORD_CHANGED]) {
-					try {
-						// refresh just properties and notify listeners (but only if remote is newer)
-						refreshProperties(path, false);
-					} catch (final Exception e) {
-						LOG.error("Exception refreshing properties stored at '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
+						LOG.error("Exception processing event '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
 					}
 				}
 			}
@@ -221,7 +201,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		protected Stat call(final ZooKeeper keeper) throws Exception {
 			checkClosed();
 
-			return keeper.exists(path, false);
+			return keeper.exists(path, monitor);
 		}
 	}
 
@@ -294,32 +274,10 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 */
 	static final class PathEvents {
 
-		static final int CREATED = 0;
-		static final int DELETED = 1;
-		static final int RECORD_CHANGED = 2;
-		static final int CHILDREN_CHANGED = 3;
-
-		public static String toString(final boolean[] event) {
-			final StrBuilder str = new StrBuilder();
-			if (event[CREATED]) {
-				str.append("CREATED");
-			}
-			if (event[DELETED]) {
-				str.appendSeparator('+').append("DELETED");
-			}
-			if (event[RECORD_CHANGED]) {
-				str.appendSeparator('+').append("RECORD_CHANGED");
-			}
-			if (event[CHILDREN_CHANGED]) {
-				str.appendSeparator('+').append("CHILDREN_CHANGED");
-			}
-			return str.toString();
-		}
-
-		private final LinkedHashMap<String, boolean[]> pathEvents = new LinkedHashMap<String, boolean[]>();
+		private final LinkedHashSet<String> pathEvents = new LinkedHashSet<String>();
 
 		public void childrenChanged(final String path) {
-			submitEvent(path, CHILDREN_CHANGED);
+			submitEvent(path);
 		}
 
 		public void clear() {
@@ -330,11 +288,11 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		}
 
 		public void created(final String path) {
-			submitEvent(path, CREATED);
+			submitEvent(path);
 		}
 
 		public void deleted(final String path) {
-			submitEvent(path, DELETED);
+			submitEvent(path);
 		}
 
 		/**
@@ -346,21 +304,20 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		 * @return the next entry
 		 * @throws InterruptedException
 		 */
-		public Entry<String, boolean[]> next() throws InterruptedException {
-			Entry<String, boolean[]> next = null;
+		public String next() throws InterruptedException {
+			String next = null;
 			while (next == null) {
 				// retrieve next event
 				synchronized (pathEvents) {
-					final Iterator<Entry<String, boolean[]>> iterator = pathEvents.entrySet().iterator();
+					final Iterator<String> iterator = pathEvents.iterator();
 					if (iterator.hasNext()) {
+						// remove next from map
+						// (we don't care if it's null because
+						// the while loop ensure that null is never returned)
 						next = iterator.next();
 						iterator.remove();
-					}
-				}
-
-				// wait if none is available
-				if (null == next) {
-					synchronized (pathEvents) {
+					} else {
+						// wait if none is available
 						pathEvents.wait();
 					}
 				}
@@ -370,21 +327,14 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		}
 
 		public void recordChanged(final String path) {
-			submitEvent(path, RECORD_CHANGED);
+			submitEvent(path);
 		}
 
-		private void submitEvent(final String path, final int event) {
+		private void submitEvent(final String path) {
 			// synchronize on pathEvents
 			synchronized (pathEvents) {
-				// ensure event array is created
-				boolean[] events = pathEvents.get(path);
-				if (null == events) {
-					events = new boolean[] { false, false, false, false };
-					pathEvents.put(path, events);
-				}
-
-				// set event flag
-				events[event] = true;
+				// add
+				pathEvents.add(path);
 
 				// notify waiting thread
 				pathEvents.notify();
@@ -535,16 +485,31 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			try {
 				bytes = keeper.getData(path, monitor, stat);
 
-				// don't load properties if version is in the past
-				if (!forceSyncWithRemoteVersion && (node.propertiesVersion >= stat.getVersion())) {
-					if (CloudDebug.zooKeeperPreferences) {
-						LOG.debug("Not updating properties of node {} - local version ({}) >= ZooKeeper version ({})", new Object[] { node, node.propertiesVersion, stat.getVersion() });
-					}
-					return false;
+				// we must acquire the properties modification lock when comparing the node version
+				// otherwise it may happen that we infere with ongoing flushes
+				boolean acquiredLock;
+				if (!forceSyncWithRemoteVersion && !node.propertiesModificationLock.tryLock(5, TimeUnit.MINUTES)) {
+					throw new IllegalStateException(String.format("lock timeout waiting for childrenModifyLock on node '%s'", node));
+				} else {
+					acquiredLock = true;
 				}
+				try {
 
-				// update node properties
-				node.loadProperties(bytes, stat.getVersion());
+					// don't load properties if version is in the past
+					if (!forceSyncWithRemoteVersion && (node.propertiesVersion >= stat.getVersion())) {
+						if (CloudDebug.zooKeeperPreferences) {
+							LOG.debug("Not updating properties of node {} - local version ({}) >= ZooKeeper version ({})", new Object[] { node, node.propertiesVersion, stat.getVersion() });
+						}
+						return false;
+					}
+
+					// update node properties
+					node.loadProperties(bytes, stat.getVersion());
+				} finally {
+					if (acquiredLock) {
+						node.propertiesModificationLock.unlock();
+					}
+				}
 			} catch (final NoNodeException e) {
 				// the node does not exist in ZooKeeper
 				if (!forceSyncWithRemoteVersion) {
@@ -662,7 +627,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 			// create node but only if it doesn't exists and no explicit version is requested
 			// (if version is specified and the node does not exists then it might have been removed meanwhile)
-			if ((propertiesVersion < 0) && (null == keeper.exists(path, false))) {
+			if ((propertiesVersion < 0) && (null == keeper.exists(path, monitor))) {
 				// create parents
 				ZooKeeperHelper.createParents(keeper, new Path(path));
 
@@ -671,7 +636,9 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				while (null == stat) {
 					try {
 						keeper.create(path, propertyBytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-						stat = keeper.exists(path, false);
+						// FIXME: there is a small time window between CREATE and EXISTS where data can be modified without any event
+						// (https://issues.apache.org/jira/browse/ZOOKEEPER-1297)
+						stat = keeper.exists(path, monitor);
 					} catch (final NodeExistsException e) {
 						// it has been created concurrently (this is bad luck)
 						// fail so that higher level API can react on those events
@@ -682,6 +649,9 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			}
 
 			// write data
+			// (note, we don't set a watch here; the assumption is that we already have
+			// a watch registered at this point which will trigger once we set data;
+			// this will call #loadNode logic which will re-install a watch)
 			return keeper.setData(path, propertyBytes, propertiesVersion).getVersion();
 		}
 	}
@@ -778,7 +748,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	@Override
 	protected void doClose() {
 		if (CloudDebug.zooKeeperPreferencesSync) {
-			LOG.debug("Closing preferences {}", this, new Exception("doClose"));
+			LOG.trace("Stack for doClose of service {}", this, new Exception("doClose"));
 		}
 
 		// set disconnected

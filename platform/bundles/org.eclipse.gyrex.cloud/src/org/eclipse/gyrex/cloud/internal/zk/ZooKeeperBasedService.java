@@ -207,9 +207,11 @@ public abstract class ZooKeeperBasedService {
 			try {
 				return operation.call();
 			} catch (final KeeperException.SessionExpiredException e) {
-				LOG.warn("ZooKeeper session expired for service {}. The service may be invalid now.", this);
+				// we rely on connectionMonitor to close the service
+				if (!isClosed()) {
+					LOG.warn("ZooKeeper session expired. Service {} may be invalid now.", this);
+				}
 				// propagate this exception
-				// (note, we rely on connectionMonitor to close the service)
 				throw e;
 			} catch (final KeeperException.ConnectionLossException e) {
 				if (exception == null) {
@@ -220,9 +222,11 @@ public abstract class ZooKeeperBasedService {
 				}
 				sleep(i);
 			} catch (final GateDownException e) {
-				LOG.warn("ZooKeeper gate DOWN for service {}. The service may be invalid now.", this);
+				// we rely on connectionMonitor to close the service
+				if (!isClosed()) {
+					LOG.warn("ZooKeeper gate is down. Service {} may be invalid now.", this);
+				}
 				// propagate this exception
-				// (note, we rely on connectionMonitor to close the service)
 				throw e;
 			}
 		}
