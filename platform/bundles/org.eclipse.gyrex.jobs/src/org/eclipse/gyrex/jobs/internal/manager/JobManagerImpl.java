@@ -673,7 +673,7 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 	}
 
-	private void setJobResult(final IJob job, final IStatus result, final long resultTimestamp, final IExclusiveLock lock) throws BackingStoreException {
+	private void setJobResult(final JobImpl job, final IStatus result, final long resultTimestamp, final IExclusiveLock lock) throws BackingStoreException {
 		if ((null == lock) || !lock.isValid()) {
 			throw new IllegalStateException(String.format("Unable to update job result of job %s due to missing or lost job lock!", job.getId()));
 		}
@@ -820,6 +820,9 @@ public class JobManagerImpl implements IJobManager {
 		try {
 			// get job modification lock
 			jobLock = acquireLock(job);
+
+			// refresh job info
+			syncJobNode(jobId);
 
 			try {
 				// set state
