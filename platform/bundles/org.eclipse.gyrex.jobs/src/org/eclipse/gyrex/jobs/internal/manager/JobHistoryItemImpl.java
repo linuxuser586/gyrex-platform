@@ -141,7 +141,7 @@ public class JobHistoryItemImpl implements IJobHistoryEntry {
 				break;
 		}
 		if (StringUtils.isNotBlank(result.getMessage())) {
-			builder.append(" ").append(StringUtils.replaceChars(CharSetUtils.delete(result.getMessage(), " \t\r\b"), '\n', '|'));
+			builder.append(" ").append(StringUtils.replaceChars(CharSetUtils.delete(result.getMessage(), "\t\r\b"), '\n', '|'));
 		}
 		return builder.toString();
 	}

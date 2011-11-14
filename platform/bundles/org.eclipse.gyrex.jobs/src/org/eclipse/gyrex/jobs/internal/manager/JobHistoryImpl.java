@@ -43,6 +43,17 @@ public class JobHistoryImpl implements IJobHistory {
 	private static final String KEY_CANCELLED_TRIGGER = "canceledTrigger";
 	private static final int MAX_HISTORY_SIZE = 120;
 
+	private static IStatus convertStatus(final IStatus status) {
+		// FIXME: implement better deserialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
+		// for now we just convert the message to not loose any important information
+		return new Status(status.getSeverity(), JobsActivator.SYMBOLIC_NAME, JobHistoryImpl.getFormattedMessage(status, 0));
+	}
+
+	private static IStatus deserializeStatus(final Preferences node) {
+		// FIXME: implement better deserialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
+		return new Status(node.getInt(KEY_RESULT_SEVERITY, IStatus.CANCEL), JobsActivator.SYMBOLIC_NAME, node.get(KEY_RESULT_MESSAGE, ""));
+	}
+
 	static String getFormattedMessage(final IStatus status, final int ident) {
 		final StrBuilder builder = new StrBuilder();
 		builder.appendPadding(ident, ' ');
@@ -76,12 +87,15 @@ public class JobHistoryImpl implements IJobHistory {
 
 	public static JobHistoryItemImpl readItem(final Preferences node) {
 		final long ts = node.getLong(KEY_TIMESTAMP, 0);
-		final String message = node.get(KEY_RESULT_MESSAGE, "");
-		final int severity = node.getInt(KEY_RESULT_SEVERITY, IStatus.CANCEL);
 		final String queuedTrigger = node.get(KEY_QUEUED_TRIGGER, StringUtils.EMPTY);
 		final String cancelledTrigger = node.get(KEY_CANCELLED_TRIGGER, null);
-		// FIXME: implement better deserialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
-		return new JobHistoryItemImpl(ts, new Status(severity, JobsActivator.SYMBOLIC_NAME, message), queuedTrigger, cancelledTrigger);
+		return new JobHistoryItemImpl(ts, deserializeStatus(node), queuedTrigger, cancelledTrigger);
+	}
+
+	private static void serializeStatus(final IStatus status, final Preferences node) {
+		// FIXME: implement better serialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
+		node.put(KEY_RESULT_MESSAGE, status.getMessage());
+		node.putInt(KEY_RESULT_SEVERITY, status.getSeverity());
 	}
 
 	private final String jobId;
@@ -113,7 +127,7 @@ public class JobHistoryImpl implements IJobHistory {
 			lastCanceledTrigger = null;
 		}
 
-		entries.add(new JobHistoryItemImpl(resultTimestamp, result, lastQueueTrigger, lastCanceledTrigger));
+		entries.add(new JobHistoryItemImpl(resultTimestamp, convertStatus(result), lastQueueTrigger, lastCanceledTrigger));
 	}
 
 	/**
@@ -171,9 +185,7 @@ public class JobHistoryImpl implements IJobHistory {
 
 			final Preferences node = historyNode.node(entryId);
 			node.putLong(KEY_TIMESTAMP, entry.getTimeStamp());
-			// FIXME: implement better serialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
-			node.put(KEY_RESULT_MESSAGE, JobHistoryImpl.getFormattedMessage(entry.getResult(), 0));
-			node.putInt(KEY_RESULT_SEVERITY, entry.getResult().getSeverity());
+			serializeStatus(entry.getResult(), node);
 
 			if (null != entry.getQueuedTrigger()) {
 				node.put(KEY_QUEUED_TRIGGER, entry.getQueuedTrigger());

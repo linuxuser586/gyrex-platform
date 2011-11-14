@@ -39,7 +39,6 @@ public class JobHistoryStore {
 	public static void flush(final String jobStorageKey, final JobHistoryImpl history) throws BackingStoreException {
 		final IEclipsePreferences historyNode = getHistoryNode(jobStorageKey);
 		history.save(historyNode);
-		historyNode.flush();
 	}
 
 	public static IEclipsePreferences getHistoryNode(final String jobStorageKey) throws BackingStoreException {
