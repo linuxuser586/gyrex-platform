@@ -43,8 +43,8 @@ public class JobHistoryStore {
 	}
 
 	static IEclipsePreferences getHistoryNode(final String jobStorageKey) throws BackingStoreException {
-		if (!getJobsHistoryNode().nodeExists(jobStorageKey)) {
-			// migrate old history (if necessary)
+		// migrate old history (if necessary)
+		if (getJobsNode().nodeExists(jobStorageKey + IPath.SEPARATOR + NODE_HISTORY)) {
 			migrateOldJobHistory(jobStorageKey);
 		}
 
@@ -67,9 +67,13 @@ public class JobHistoryStore {
 	 * @throws BackingStoreException
 	 */
 	private static void migrateOldJobHistory(final String jobStorageKey) throws BackingStoreException {
-		final long abortTime = System.currentTimeMillis() + 10000L;
-		while (getJobsNode().nodeExists(jobStorageKey + IPath.SEPARATOR + NODE_HISTORY)) {
-			Exception exception = null;
+		// try up to a minute migrating the history
+		final long abortTime = System.currentTimeMillis() + 60000L;
+		while (getJobsNode().nodeExists(jobStorageKey + IPath.SEPARATOR + NODE_HISTORY) && (abortTime > System.currentTimeMillis())) {
+			// ensure that the latest info is used
+			getJobsNode().node(jobStorageKey).sync();
+
+			// move from old to new
 			try {
 				final Preferences newHistory = getJobsHistoryNode().node(jobStorageKey);
 				final Preferences oldHistory = getJobsNode().node(jobStorageKey + IPath.SEPARATOR + NODE_HISTORY);
@@ -87,15 +91,7 @@ public class JobHistoryStore {
 				oldHistory.removeNode();
 				getJobsNode().node(jobStorageKey).flush();
 			} catch (final Exception e) {
-				// remember exception and retry
-				exception = e;
-			}
-			if (abortTime > System.currentTimeMillis()) {
-				if (null != exception) {
-					throw new BackingStoreException(String.format("Error migrating job history for job '%s'!", jobStorageKey), exception);
-				} else {
-					throw new BackingStoreException(String.format("Timout migrating job history for job '%s'!", jobStorageKey));
-				}
+				// ignore exception and retry
 			}
 		}
 	}
