@@ -487,11 +487,9 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 
 				// we must acquire the properties modification lock when comparing the node version
 				// otherwise it may happen that we infere with ongoing flushes
-				boolean acquiredLock;
-				if (!forceSyncWithRemoteVersion && !node.propertiesModificationLock.tryLock(5, TimeUnit.MINUTES)) {
+				final boolean needsLock = !forceSyncWithRemoteVersion;
+				if (needsLock && !node.propertiesModificationLock.tryLock(5, TimeUnit.MINUTES)) {
 					throw new IllegalStateException(String.format("lock timeout waiting for childrenModifyLock on node '%s'", node));
-				} else {
-					acquiredLock = true;
 				}
 				try {
 
@@ -506,7 +504,8 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 					// update node properties
 					node.loadProperties(bytes, stat.getVersion());
 				} finally {
-					if (acquiredLock) {
+					// only release if needs lock is true (which means we got it previously)
+					if (needsLock) {
 						node.propertiesModificationLock.unlock();
 					}
 				}
