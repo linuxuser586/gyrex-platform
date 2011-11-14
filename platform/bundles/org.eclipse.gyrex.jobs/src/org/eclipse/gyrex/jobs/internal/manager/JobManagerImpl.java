@@ -612,6 +612,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 		JobHungDetectionHelper.setInactive(toInternalId(jobId));
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(toInternalId(jobId));
+		jobNode.sync();
 		jobNode.remove(PROPERTY_ACTIVE);
 		jobNode.flush();
 	}
