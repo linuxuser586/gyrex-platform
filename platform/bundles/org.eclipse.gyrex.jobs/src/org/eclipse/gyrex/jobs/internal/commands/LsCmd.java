@@ -25,6 +25,8 @@ import org.eclipse.gyrex.common.console.Command;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.internal.manager.JobHistoryImpl;
+import org.eclipse.gyrex.jobs.internal.manager.JobHistoryItemImpl;
 import org.eclipse.gyrex.jobs.internal.manager.JobHistoryStore;
 import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
@@ -33,6 +35,8 @@ import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
+
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 import org.osgi.service.prefs.BackingStoreException;
 
@@ -98,7 +102,7 @@ public class LsCmd extends Command {
 		return jobIds;
 	}
 
-	private void printJob(final JobImpl job) {
+	private void printJob(final JobImpl job) throws Exception {
 		final StrBuilder info = new StrBuilder();
 		info.appendln(job.getId());
 		info.append("                    type: ").appendln(job.getTypeId());
@@ -106,6 +110,21 @@ public class LsCmd extends Command {
 		info.append("         last start time: ").appendln(job.getLastStart() > -1 ? DateFormatUtils.formatUTC(job.getLastStart(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
 		info.append(" last successfull finish: ").appendln(job.getLastSuccessfulFinish() > -1 ? DateFormatUtils.formatUTC(job.getLastSuccessfulFinish(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
 		info.append("             last result: ").appendln(job.getLastResult() != null ? job.getLastResult().getMessage() : "(not available)");
+
+		final IEclipsePreferences historyNode = JobHistoryStore.getJobsHistoryNode();
+		if (historyNode.nodeExists(job.getStorageKey())) {
+			final IEclipsePreferences jobHistory = JobHistoryStore.getHistoryNode(job.getStorageKey());
+			final String[] childrenNames = jobHistory.childrenNames();
+			final SortedSet<JobHistoryItemImpl> entries = new TreeSet<JobHistoryItemImpl>();
+			for (final String entryId : childrenNames) {
+				entries.add(JobHistoryImpl.readItem(jobHistory.node(entryId)));
+			}
+
+			info.appendNewLine();
+			for (final JobHistoryItemImpl entry : entries) {
+				info.appendln(entry.toString());
+			}
+		}
 
 		printf("%s", info.toString());
 	}

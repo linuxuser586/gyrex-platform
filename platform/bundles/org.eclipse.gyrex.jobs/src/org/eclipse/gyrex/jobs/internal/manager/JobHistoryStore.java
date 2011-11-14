@@ -42,7 +42,7 @@ public class JobHistoryStore {
 		historyNode.flush();
 	}
 
-	static IEclipsePreferences getHistoryNode(final String jobStorageKey) throws BackingStoreException {
+	public static IEclipsePreferences getHistoryNode(final String jobStorageKey) throws BackingStoreException {
 		// migrate old history (if necessary)
 		if (getJobsNode().nodeExists(jobStorageKey + IPath.SEPARATOR + NODE_HISTORY)) {
 			migrateOldJobHistory(jobStorageKey);
@@ -88,8 +88,10 @@ public class JobHistoryStore {
 					}
 				}
 				newHistory.flush();
+
+				final Preferences oldHistoryParent = oldHistory.parent();
 				oldHistory.removeNode();
-				getJobsNode().node(jobStorageKey).flush();
+				oldHistoryParent.flush();
 			} catch (final Exception e) {
 				// ignore exception and retry
 			}

@@ -34,7 +34,7 @@ import org.apache.commons.lang.text.StrBuilder;
 /**
  * Simple implementation of of a {@link IJobHistoryEntry}.
  */
-final class JobHistoryImpl implements IJobHistory {
+public class JobHistoryImpl implements IJobHistory {
 
 	private static final String KEY_RESULT_SEVERITY = "resultSeverity";
 	private static final String KEY_RESULT_MESSAGE = "resultMessage";
@@ -72,6 +72,16 @@ final class JobHistoryImpl implements IJobHistory {
 			}
 		}
 		return builder.toString();
+	}
+
+	public static JobHistoryItemImpl readItem(final Preferences node) {
+		final long ts = node.getLong(KEY_TIMESTAMP, 0);
+		final String message = node.get(KEY_RESULT_MESSAGE, "");
+		final int severity = node.getInt(KEY_RESULT_SEVERITY, IStatus.CANCEL);
+		final String queuedTrigger = node.get(KEY_QUEUED_TRIGGER, StringUtils.EMPTY);
+		final String cancelledTrigger = node.get(KEY_CANCELLED_TRIGGER, null);
+		// FIXME: implement better deserialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
+		return new JobHistoryItemImpl(ts, new Status(severity, JobsActivator.SYMBOLIC_NAME, message), queuedTrigger, cancelledTrigger);
 	}
 
 	private final String jobId;
@@ -141,16 +151,6 @@ final class JobHistoryImpl implements IJobHistory {
 		}
 
 		shrinkToSizeLimit();
-	}
-
-	private JobHistoryItemImpl readItem(final Preferences node) {
-		final long ts = node.getLong(KEY_TIMESTAMP, 0);
-		final String message = node.get(KEY_RESULT_MESSAGE, "");
-		final int severity = node.getInt(KEY_RESULT_SEVERITY, IStatus.CANCEL);
-		final String queuedTrigger = node.get(KEY_QUEUED_TRIGGER, StringUtils.EMPTY);
-		final String cancelledTrigger = node.get(KEY_CANCELLED_TRIGGER, null);
-		// FIXME: implement better deserialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
-		return new JobHistoryItemImpl(ts, new Status(severity, JobsActivator.SYMBOLIC_NAME, message), queuedTrigger, cancelledTrigger);
 	}
 
 	public void save(final IEclipsePreferences historyNode) throws BackingStoreException {

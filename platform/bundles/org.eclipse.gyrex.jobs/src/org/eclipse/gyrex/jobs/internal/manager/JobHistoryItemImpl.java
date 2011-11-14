@@ -15,13 +15,14 @@ import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
 
 import org.eclipse.core.runtime.IStatus;
 
+import org.apache.commons.lang.CharSetUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 
 /**
  * Simple implementation of of a {@link IJobHistoryEntry}
  */
-final class JobHistoryItemImpl implements IJobHistoryEntry {
+public class JobHistoryItemImpl implements IJobHistoryEntry {
 
 	private final IStatus result;
 	private final long timestamp;
@@ -116,8 +117,7 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
-		builder.append("JobHistoryItemImpl [");
-		builder.append(DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(timestamp)).append(", ");
+		builder.append(DateFormatUtils.SMTP_DATETIME_FORMAT.format(timestamp)).append(" ");
 		switch (result.getSeverity()) {
 			case IStatus.OK:
 				builder.append("OK");
@@ -141,9 +141,8 @@ final class JobHistoryItemImpl implements IJobHistoryEntry {
 				break;
 		}
 		if (StringUtils.isNotBlank(result.getMessage())) {
-			builder.append(", ").append(result.getMessage());
+			builder.append(" ").append(StringUtils.replaceChars(CharSetUtils.delete(result.getMessage(), " \t\r\b"), '\n', '|'));
 		}
-		builder.append("]");
 		return builder.toString();
 	}
 }
