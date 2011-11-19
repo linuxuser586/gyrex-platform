@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.history;
 
+import java.util.Map;
+
 import org.eclipse.gyrex.jobs.IJob;
 
 import org.eclipse.core.runtime.IStatus;
@@ -43,6 +45,18 @@ public interface IJobHistoryEntry extends Comparable<IJobHistoryEntry> {
 	 *         was cancelled)
 	 */
 	String getCancelledTrigger();
+
+	/**
+	 * Returns the parameter that were used for executing the job.
+	 * <p>
+	 * If no parameters are defined or if no parameters were recored in the
+	 * history, an empty map will be returned.
+	 * </p>
+	 * 
+	 * @return an unmodifiable map of parameter of the job execution (never
+	 *         <code>null</code>)
+	 */
+	Map<String, String> getParameter();
 
 	/**
 	 * Returns the trigger specified when the the job producing the result was

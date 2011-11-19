@@ -49,7 +49,7 @@ public class JobContext implements IJobContext {
 	}
 
 	@Override
-	public Map<String, String> getParameters() {
+	public Map<String, String> getParameter() {
 		return jobProperties;
 	}
 

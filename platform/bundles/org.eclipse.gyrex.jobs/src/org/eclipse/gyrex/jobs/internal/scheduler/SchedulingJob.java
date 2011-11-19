@@ -96,6 +96,7 @@ public class SchedulingJob implements Job {
 				return;
 			}
 
+			// get job manager
 			final IJobManager jobManager = runtimeContext.get(IJobManager.class);
 			if (!(jobManager instanceof JobManagerImpl)) {
 				LOG.error("Invalid job manager ({}). Please verify the system is setup properly.", jobManager);
@@ -103,14 +104,9 @@ public class SchedulingJob implements Job {
 			}
 			final JobManagerImpl jobManagerImpl = (JobManagerImpl) jobManager;
 
-			// (re-)create job if necessary
+			// create job if necessary
 			JobImpl job = jobManagerImpl.getJob(jobId);
 			if (job == null) {
-				job = jobManagerImpl.createJob(jobTypeId, jobId, parameter);
-			} else if (!job.getParameter().equals(parameter)) {
-				// parameter don't match, remove and re-create it
-				LOG.info("Re-creating job configuration parameter for job {} because they have been updated in the schedule.", job.getId());
-				jobManager.removeJob(jobId);
 				job = jobManagerImpl.createJob(jobTypeId, jobId, parameter);
 			}
 
@@ -128,7 +124,7 @@ public class SchedulingJob implements Job {
 			}
 
 			// queue job
-			jobManager.queueJob(jobId, queue.getId(), String.format("Schedule '%s' entry '%s'.", scheduleId, scheduleEntryId));
+			jobManager.queueJob(jobId, parameter, queue.getId(), String.format("Schedule '%s' entry '%s'.", scheduleId, scheduleEntryId));
 		} catch (final Exception e) {
 			throw new JobExecutionException(String.format("Error queuing job '%s'. %s", jobId, e.getMessage()), e);
 		} finally {

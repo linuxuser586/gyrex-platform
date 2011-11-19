@@ -11,6 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.manager;
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
 
 import org.eclipse.core.runtime.IStatus;
@@ -28,12 +31,14 @@ public class JobHistoryItemImpl implements IJobHistoryEntry {
 	private final long timestamp;
 	private final String queuedTrigger;
 	private final String cancelledTrigger;
+	private final Map<String, String> parameter;
 
-	JobHistoryItemImpl(final long timestamp, final IStatus result, final String queuedTrigger, final String cancelledTrigger) {
+	JobHistoryItemImpl(final long timestamp, final IStatus result, final String queuedTrigger, final String cancelledTrigger, final Map<String, String> parameter) {
 		this.timestamp = timestamp;
 		this.result = result;
 		this.queuedTrigger = queuedTrigger;
 		this.cancelledTrigger = cancelledTrigger;
+		this.parameter = parameter;
 	}
 
 	@Override
@@ -87,6 +92,15 @@ public class JobHistoryItemImpl implements IJobHistoryEntry {
 	@Override
 	public String getCancelledTrigger() {
 		return cancelledTrigger;
+	}
+
+	@Override
+	public Map<String, String> getParameter() {
+		final Map<String, String> map = parameter;
+		if (null == map) {
+			return Collections.emptyMap();
+		}
+		return Collections.unmodifiableMap(map);
 	}
 
 	@Override

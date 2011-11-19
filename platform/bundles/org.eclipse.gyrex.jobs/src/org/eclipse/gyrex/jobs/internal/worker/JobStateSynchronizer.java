@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.worker;
 
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
@@ -75,7 +76,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			}
 
 			// check if a lock should be acquired
-			final String lockId = jobContext.getParameters().get(IJobManager.LOCK_ID);
+			final String lockId = getJobParameter().get(IJobManager.LOCK_ID);
 			if (null != lockId) {
 				if (!acquireLock(lockId)) {
 					LOG.warn("Failed acquiring lock {} for job {}. Job execution will be delayed.", lockId, getJobId());
@@ -158,7 +159,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			updateJobState(null, JobState.NONE, null);
 
 			// update job with result
-			getJobManager().setResult(getJobId(), event.getResult(), System.currentTimeMillis());
+			getJobManager().setResult(getJobId(), getJobParameter(), event.getResult(), System.currentTimeMillis());
 		} catch (final Exception e) {
 			LOG.error("Error updating job {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
 		} finally {
@@ -173,6 +174,10 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	JobManagerImpl getJobManager() {
 		return (JobManagerImpl) getRuntimeContext().get(IJobManager.class);
+	}
+
+	private Map<String, String> getJobParameter() {
+		return jobContext.getParameter();
 	}
 
 	private ILockService getLockService() {

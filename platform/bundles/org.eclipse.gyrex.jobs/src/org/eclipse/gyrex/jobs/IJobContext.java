@@ -35,18 +35,18 @@ public interface IJobContext {
 	IRuntimeContext getContext();
 
 	/**
-	 * Returns the job id of the job.
+	 * Returns the identifier of the job.
 	 * 
 	 * @return the job id
 	 */
 	String getJobId();
 
 	/**
-	 * Returns {@link IJob#getParameter() the job parameters} for the current
+	 * Returns {@link IJob#getParameter() the job parameter} for the current
 	 * execution.
 	 * 
-	 * @return an unmodifiable map of job parameters (an empty map if none were
+	 * @return an unmodifiable map of job parameter (an empty map if none were
 	 *         defined).
 	 */
-	Map<String, String> getParameters();
+	Map<String, String> getParameter();
 }

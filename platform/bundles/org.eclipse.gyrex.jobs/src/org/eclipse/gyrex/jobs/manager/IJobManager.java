@@ -175,6 +175,37 @@ public interface IJobManager {
 	Collection<String> getJobsByState(JobState state) throws IllegalArgumentException;
 
 	/**
+	 * Queues a job to be executed by a worker engine using the specified set of
+	 * parameter.
+	 * <p>
+	 * This method allows to update the parameter of a job and queuing it in an
+	 * atomic way. The update of the job parameter will be done as specified in
+	 * {@link #setJobParameter(String, Map)}. The queuing of the job will be
+	 * done as specified in {@link #queueJob(String, String, String)}.
+	 * </p>
+	 * 
+	 * @param jobId
+	 *            the id of the job to queue
+	 * @param parameter
+	 *            the new job parameter to set prior to queuing the job
+	 * @param queueId
+	 *            the id of the queue to add the job to (may be
+	 *            <code>null</code> for {@link #DEFAULT_QUEUE})
+	 * @param trigger
+	 *            any free text that will be saved in the job history and
+	 *            describes who or what triggered queuing of the job (may be
+	 *            <code>null</code>)
+	 * @throws IllegalArgumentException
+	 *             if any of the arguments is invalid
+	 * @throws IllegalStateException
+	 *             if the job cannot be queued (either the job or the queue does
+	 *             not exists or any system service is missing or it is already
+	 *             running)
+	 * @see #queueJob(String, String, String)
+	 */
+	void queueJob(String jobId, Map<String, String> parameter, String queueId, String trigger) throws IllegalArgumentException, IllegalStateException;
+
+	/**
 	 * Queues a job to be executed by a worker engine.
 	 * <p>
 	 * The job will be added to the specified queue. If no queue id is provided,
@@ -233,4 +264,25 @@ public interface IJobManager {
 	 *             {@link JobState#NONE})
 	 */
 	void removeJob(String jobId) throws IllegalArgumentException, IllegalStateException;
+
+	/**
+	 * Sets the parameter of a {@link IJob job}.
+	 * <p>
+	 * Any currently stored parameter will be completely replaced by the
+	 * specified parameter.
+	 * </p>
+	 * 
+	 * @param jobId
+	 *            the job identifier
+	 * @param parameter
+	 *            the new job parameter to set
+	 * @throws IllegalStateException
+	 *             if a job with the given jobId does not exists or the
+	 *             {@link IJob#getState() job state} is not
+	 *             {@link JobState#NONE}
+	 * @throws IllegalArgumentException
+	 *             if any of the arguments is invalid
+	 * @see IdHelper#isValidId(String)
+	 */
+	void setJobParameter(String jobId, Map<String, String> parameter) throws IllegalStateException, IllegalArgumentException;
 }

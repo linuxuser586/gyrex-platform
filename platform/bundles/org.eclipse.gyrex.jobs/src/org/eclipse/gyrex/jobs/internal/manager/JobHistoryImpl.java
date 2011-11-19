@@ -13,6 +13,7 @@ package org.eclipse.gyrex.jobs.internal.manager;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -29,7 +30,10 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Simple implementation of of a {@link IJobHistoryEntry}.
@@ -42,6 +46,8 @@ public class JobHistoryImpl implements IJobHistory {
 	private static final String KEY_QUEUED_TRIGGER = "queuedTrigger";
 	private static final String KEY_CANCELLED_TRIGGER = "canceledTrigger";
 	private static final int MAX_HISTORY_SIZE = 120;
+
+	private static final Logger LOG = LoggerFactory.getLogger(JobHistoryImpl.class);
 
 	private static IStatus convertStatus(final IStatus status) {
 		// FIXME: implement better deserialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
@@ -89,7 +95,13 @@ public class JobHistoryImpl implements IJobHistory {
 		final long ts = node.getLong(KEY_TIMESTAMP, 0);
 		final String queuedTrigger = node.get(KEY_QUEUED_TRIGGER, StringUtils.EMPTY);
 		final String cancelledTrigger = node.get(KEY_CANCELLED_TRIGGER, null);
-		return new JobHistoryItemImpl(ts, deserializeStatus(node), queuedTrigger, cancelledTrigger);
+		Map<String, String> parameter = null;
+		try {
+			parameter = JobManagerImpl.readParameter(node);
+		} catch (final BackingStoreException e) {
+			LOG.warn("Failed to read parameter for job history {}. {}", new Object[] { node.absolutePath(), ExceptionUtils.getRootCauseMessage(e), e });
+		}
+		return new JobHistoryItemImpl(ts, deserializeStatus(node), queuedTrigger, cancelledTrigger, parameter);
 	}
 
 	private static void serializeStatus(final IStatus status, final Preferences node) {
@@ -115,7 +127,7 @@ public class JobHistoryImpl implements IJobHistory {
 		this.contextPath = contextPath;
 	}
 
-	public void createEntry(final long resultTimestamp, final IStatus result, final long lastQueuedTimestamp, String lastQueueTrigger, final long lastCanceledTimestamp, String lastCanceledTrigger) {
+	public void createEntry(final long resultTimestamp, final IStatus result, final long lastQueuedTimestamp, String lastQueueTrigger, final long lastCanceledTimestamp, String lastCanceledTrigger, final Map<String, String> parameter) {
 		// only pass queue trigger to history if it makes sense
 		if (lastQueuedTimestamp > resultTimestamp) {
 			lastQueueTrigger = String.format("Specified trigger is incorrect. Job already queued after receiving result. (%s)", lastQueueTrigger);
@@ -127,7 +139,7 @@ public class JobHistoryImpl implements IJobHistory {
 			lastCanceledTrigger = null;
 		}
 
-		entries.add(new JobHistoryItemImpl(resultTimestamp, convertStatus(result), lastQueueTrigger, lastCanceledTrigger));
+		entries.add(new JobHistoryItemImpl(resultTimestamp, convertStatus(result), lastQueueTrigger, lastCanceledTrigger, parameter));
 	}
 
 	/**
