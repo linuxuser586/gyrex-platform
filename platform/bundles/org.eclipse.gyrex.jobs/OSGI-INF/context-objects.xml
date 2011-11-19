@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.gyrex.jobs.component.contextobjects">
-   <implementation class="org.eclipse.gyrex.jobs.internal.components.JobContextObjectsComponent"/>
-   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
-   <property name="service.description" type="String" value="Contextual objects provided by the Gyrex Jobs API."/>
-   <service>
-      <provide interface="org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider"/>
-   </service>
-</scr:component>
