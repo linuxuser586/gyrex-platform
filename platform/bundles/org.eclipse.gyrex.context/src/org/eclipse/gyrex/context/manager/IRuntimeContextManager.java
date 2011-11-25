@@ -13,8 +13,6 @@ package org.eclipse.gyrex.context.manager;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 
-import org.osgi.framework.Filter;
-
 /**
  * A manager for configuring {@link IRuntimeContext contexts}.
  * <p>
@@ -40,6 +38,6 @@ public interface IRuntimeContextManager {
 	 * @param filter
 	 *            the filter to use when retrieving types
 	 */
-	void set(IRuntimeContext context, Class<?> type, Filter filter);
+	void set(IRuntimeContext context, Class<?> type, String filter);
 
 }

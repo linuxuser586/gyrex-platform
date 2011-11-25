@@ -29,8 +29,6 @@ import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
 
 import org.junit.After;
@@ -269,11 +267,7 @@ public class ContextualRuntimeBlackBoxTests {
 			assertFalse("The returned object was not provided by the expected provider (DummyObjectProvider 1)! Please verify that service ranking is taken into account when having multiple providers!", dummyObject1 instanceof DummyObject2);
 
 			// configure context
-			try {
-				contextManager.set(testContext, DummyObject.class, FrameworkUtil.createFilter("(service.pid=" + SERVICE_PID_DUMMY2 + ")"));
-			} catch (final InvalidSyntaxException e) {
-				fail("Please check test case implementation, invalid filter string: " + e.getFilter() + "; " + e.getMessage());
-			}
+			contextManager.set(testContext, DummyObject.class, "(service.pid=" + SERVICE_PID_DUMMY2 + ")");
 
 			// get object
 			// this must return the object from provider 2 because of the defined filter

@@ -20,9 +20,6 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
-import org.osgi.framework.Filter;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -50,14 +47,14 @@ public final class ContextConfiguration {
 	 * @param typeName
 	 *            the requested type name
 	 * @return the filter (maybe <code>null</code> if none is explicitly defined
-	 *         for the context
+	 *         for the context)
 	 */
-	public static Filter findFilter(IPath contextPath, final String typeName) {
+	public static String findFilter(IPath contextPath, final String typeName) {
 		// get preferences root node
 		final IEclipsePreferences rootNode = getRootNodeForContextPreferences();
 
 		// lookup filter in this context
-		Filter filter = readFilterFromPreferences(rootNode, contextPath, typeName);
+		String filter = readFilterFromPreferences(rootNode, contextPath, typeName);
 		if (null != filter) {
 			return filter;
 		}
@@ -92,7 +89,7 @@ public final class ContextConfiguration {
 	 *            the type name
 	 * @return
 	 */
-	private static Filter readFilterFromPreferences(final IEclipsePreferences root, final IPath contextPath, final String typeName) {
+	private static String readFilterFromPreferences(final IEclipsePreferences root, final IPath contextPath, final String typeName) {
 		// get the preferences
 		final String preferencesPath = getPreferencesPathForContextObjectFilterSetting(contextPath);
 		try {
@@ -110,13 +107,8 @@ public final class ContextConfiguration {
 			return null;
 		}
 
-		// create the filter
-		try {
-			return FrameworkUtil.createFilter(filterString);
-		} catch (final InvalidSyntaxException e) {
-			LOG.warn("Invalid syntax in context path \"{}\" key \"{}\": {} ", new Object[] { contextPath, typeName, e.getMessage() });
-			return null;
-		}
+		// return the filter
+		return filterString;
 	}
 
 	/**
@@ -129,7 +121,7 @@ public final class ContextConfiguration {
 	 * @return the filter (maybe <code>null</code> if none is explicitly defined
 	 *         for the context
 	 */
-	public static void setFilter(final IRuntimeContext context, final String typeName, final Filter filter) {
+	public static void setFilter(final IRuntimeContext context, final String typeName, final String filter) {
 		// the context path
 		final IPath contextPath = context.getContextPath();
 
@@ -146,7 +138,7 @@ public final class ContextConfiguration {
 		try {
 			final Preferences contextPreferences = rootNode.node(preferencesPath);
 			if (null != filter) {
-				contextPreferences.put(typeName, filter.toString());
+				contextPreferences.put(typeName, filter);
 			} else {
 				contextPreferences.remove(typeName);
 			}

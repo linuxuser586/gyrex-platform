@@ -26,6 +26,8 @@ import org.eclipse.gyrex.context.internal.provider.TypeRegistration;
 import org.eclipse.gyrex.context.internal.provider.TypeRegistration.TypeRegistrationReference;
 
 import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
@@ -157,7 +159,17 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 			}
 
 			// find the filter
-			final Filter filter = ContextConfiguration.findFilter(context.getContextPath(), typeName);
+			final String filterString = ContextConfiguration.findFilter(context.getContextPath(), typeName);
+
+			// create filter object
+			Filter filter = null;
+			if (null != filterString) {
+				try {
+					filter = FrameworkUtil.createFilter(filterString);
+				} catch (final InvalidSyntaxException e) {
+					throw new IllegalStateException(String.format("Unable to compute object for type '%s' due to invalid filter '%s' configured in context '%s'. %s", type.getName(), filterString, context.getContextPath(), e.getMessage()), e);
+				}
+			}
 
 			// get all matching provider
 			final ProviderRegistration[] providers = typeRegistration.getMatchingProviders(filter);

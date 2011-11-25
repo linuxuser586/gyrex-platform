@@ -18,8 +18,9 @@ import org.eclipse.gyrex.context.internal.configuration.ContextConfiguration;
 import org.eclipse.gyrex.context.services.IRuntimeContextServiceLocator;
 
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  *
@@ -28,7 +29,6 @@ public class GyrexContextServiceLocatorImpl implements IRuntimeContextServiceLoc
 
 	private final BundleServiceHelper serviceHelper;
 	private final GyrexContextImpl context;
-	private final BundleContext bundleContext;
 
 	/**
 	 * Creates a new instance.
@@ -38,7 +38,6 @@ public class GyrexContextServiceLocatorImpl implements IRuntimeContextServiceLoc
 	 */
 	public GyrexContextServiceLocatorImpl(final GyrexContextImpl context, final BundleContext bundleContext) {
 		this.context = context;
-		this.bundleContext = bundleContext;
 		serviceHelper = new BundleServiceHelper(bundleContext);
 	}
 
@@ -67,33 +66,28 @@ public class GyrexContextServiceLocatorImpl implements IRuntimeContextServiceLoc
 	 */
 	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface, final String additionalFilter) throws InvalidSyntaxException {
 		// parse additional filter
-		Filter filter = null;
-		if (null != additionalFilter) {
-			filter = bundleContext.createFilter(additionalFilter);
+		String filter = null;
+		if (StringUtils.isNotBlank(filter)) {
+			filter = additionalFilter;
 		}
 
 		// combine with context filter
-		final Filter contextFilter = ContextConfiguration.findFilter(context.getContextPath(), serviceInterface.getName());
+		final String contextFilter = ContextConfiguration.findFilter(context.getContextPath(), serviceInterface.getName());
 		if (null != contextFilter) {
 			if (null != filter) {
 				// combine with addition filter
-				filter = bundleContext.createFilter(String.format("(&(%s)(%s))", contextFilter.toString(), filter.toString()));
+				filter = String.format("(&(%s)(%s))", contextFilter.toString(), filter.toString());
 			} else {
 				// use as is
 				filter = contextFilter;
 			}
 		} else if (null != filter) {
 			// combine with object class condition
-			filter = bundleContext.createFilter(String.format("(&(objectClass=%s)(%s))", serviceInterface.getName(), filter.toString()));
+			filter = String.format("(&(objectClass=%s)(%s))", serviceInterface.getName(), filter.toString());
 		}
 
 		// track service
-		if (null != filter) {
-			return serviceHelper.trackService(serviceInterface, filter);
-		} else {
-			// don't use filter
-			// TODO: need to understand and implement behavior when filter is updated (current assumption is that a flush is necessary)
-			return serviceHelper.trackService(serviceInterface);
-		}
+		// TODO: need to understand and implement behavior when filter is updated (current assumption is that a flush is necessary)
+		return serviceHelper.trackService(serviceInterface, filter);
 	}
 }

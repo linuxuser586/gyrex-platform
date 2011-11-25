@@ -22,7 +22,6 @@ import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 
 import org.eclipse.core.runtime.preferences.IPreferencesService;
-import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.BundleContext;
@@ -58,7 +57,6 @@ public class CloudActivator extends BaseBundleActivator {
 		return instance;
 	}
 
-	private final AtomicReference<IServiceProxy<Location>> instanceLocationServiceRef = new AtomicReference<IServiceProxy<Location>>();
 	private final AtomicReference<IServiceProxy<IPreferencesService>> preferenceServiceRef = new AtomicReference<IServiceProxy<IPreferencesService>>();
 	private final AtomicReference<IServiceProxy<EventAdmin>> eventAdminRef = new AtomicReference<IServiceProxy<EventAdmin>>();
 
@@ -84,7 +82,6 @@ public class CloudActivator extends BaseBundleActivator {
 		LOG.info("Node id: {}", nodeId);
 
 		// track services
-		instanceLocationServiceRef.set(getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER)));
 		preferenceServiceRef.set(getServiceHelper().trackService(IPreferencesService.class));
 		eventAdminRef.set(getServiceHelper().trackService(EventAdmin.class));
 
@@ -107,7 +104,6 @@ public class CloudActivator extends BaseBundleActivator {
 		queueServiceRegistration = null;
 
 		instanceRef.set(null);
-		instanceLocationServiceRef.set(null);
 		preferenceServiceRef.set(null);
 		eventAdminRef.set(null);
 	}

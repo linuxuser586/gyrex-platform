@@ -32,7 +32,6 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
@@ -48,16 +47,16 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServiceProxy.class);
 
-	public static <T> void verifyFilterContainsServiceInterfaceCondition(final Class<T> serviceInterface, final Filter filter) {
+	public static <T> void verifyFilterContainsObjectClassConditionForServiceInterface(final Class<T> serviceInterface, final String filter) {
 		final String requiredObjectClassCondition = String.format("&(objectClass=%s)", serviceInterface.getName());
-		if (!filter.toString().contains(requiredObjectClassCondition)) {
-			throw new IllegalArgumentException(String.format("Filter '%s' does not match the service class condition '%s'!", filter.toString(), requiredObjectClassCondition));
+		if (!filter.contains(requiredObjectClassCondition)) {
+			throw new IllegalArgumentException(String.format("Filter '%s' does not match the service class condition '%s'!", filter, requiredObjectClassCondition));
 		}
 	}
 
 	private final BundleContext bundleContext;
 	private final Class<T> serviceInterface;
-	private final Filter filter;
+	private final String filter;
 	private final CopyOnWriteArraySet<IServiceProxyDisposalListener> disposalListeners = new CopyOnWriteArraySet<IServiceProxyDisposalListener>();
 	private final CopyOnWriteArraySet<IServiceProxyChangeListener> changeListeners = new CopyOnWriteArraySet<IServiceProxyChangeListener>();
 
@@ -79,8 +78,10 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	/** indicated if disposed */
 	private volatile boolean disposed;
 
-	private volatile boolean active;
+	/** the generated dynamic proxy */
 	private volatile T dynamicProxy;
+
+	/** a background thread for notifying listeners */
 	private final Job notifyServiceChangeListeners;
 
 	{
@@ -88,7 +89,7 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 			@Override
 			protected org.eclipse.core.runtime.IStatus run(final IProgressMonitor monitor) {
 				// check for disposal
-				if (disposed) {
+				if (disposed || monitor.isCanceled()) {
 					return Status.CANCEL_STATUS;
 				}
 
@@ -112,42 +113,52 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	/**
 	 * Creates a new service proxy instance which will track the specified
 	 * service.
-	 * 
-	 * @param bundleContext
-	 *            the bundle context against which the tracking is done
-	 * @param serviceInterface
-	 *            the service interface to track
-	 */
-	public ServiceProxy(final BundleContext bundleContext, final Class<T> serviceInterface) {
-		this.bundleContext = bundleContext;
-		this.serviceInterface = serviceInterface;
-		final String filterString = String.format("(objectClass=%s)", serviceInterface.getName());
-		try {
-			filter = bundleContext.createFilter(filterString);
-		} catch (final InvalidSyntaxException e) {
-			throw new IllegalStateException(String.format("The framework did not accept our generated filter '%s'. %s", filterString, e.getMessage()), e);
-		}
-	}
-
-	/**
-	 * Creates a new service proxy instance which will track the specified
-	 * service.
+	 * <p>
+	 * The service proxy will start tracking the service immediatly. This is
+	 * done in order to provide immediatly validation of the specified filter.
+	 * </p>
+	 * <p>
+	 * If no filter is specified, a default <code>objectClass</code> filter will
+	 * be generated an used.
+	 * </p>
 	 * 
 	 * @param bundleContext
 	 *            the bundle context against which the tracking is done
 	 * @param serviceInterface
 	 *            the service interface to track
 	 * @param filter
-	 *            the filter to use for the service tracker
+	 *            the filter to use for the service tracker (maybe
+	 *            <code>null</code>)
+	 * @throws IllegalArgumentException
+	 *             if any of the specified arguments is invalid
 	 */
-	public ServiceProxy(final BundleContext bundleContext, final Class<T> serviceInterface, final Filter filter) {
+	public ServiceProxy(final BundleContext bundleContext, final Class<T> serviceInterface, final String filter) throws IllegalArgumentException {
 		this.bundleContext = bundleContext;
 		this.serviceInterface = serviceInterface;
-		this.filter = filter;
-		if (null == filter) {
-			throw new IllegalArgumentException("Filter must not be null!");
+		if (null != filter) {
+			// verify filter
+			verifyFilterContainsObjectClassConditionForServiceInterface(serviceInterface, filter);
+
+			// set filter
+			this.filter = filter;
+
+			// open service
+			try {
+				open();
+			} catch (final InvalidSyntaxException e) {
+				// fail with IllegalArgumentException
+				throw new IllegalArgumentException(String.format("Invalid filter '%s'. %s", filter, e.getMessage()), e);
+			}
 		} else {
-			verifyFilterContainsServiceInterfaceCondition(serviceInterface, filter);
+			// generate a filter
+			this.filter = String.format("(objectClass=%s)", serviceInterface.getName());
+			try {
+				// open the service
+				open();
+			} catch (final InvalidSyntaxException e) {
+				// fail with IllegalStateException (per contract)
+				throw new IllegalStateException(String.format("The framework did not accept our generated filter '%s'. %s", this.filter, e.getMessage()), e);
+			}
 		}
 	}
 
@@ -225,9 +236,6 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	public T getService() throws ServiceNotAvailableException {
 		checkDisposed();
 
-		// ensure the listener is registered and initial services populated
-		open();
-
 		// return the first available service
 		final Iterator<T> iterator = services.iterator();
 		final T service = iterator.hasNext() ? iterator.next() : null;
@@ -241,9 +249,6 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	public List<T> getServices() throws IllegalStateException {
 		checkDisposed();
 
-		// ensure the listener is registered and initial services populated
-		open();
-
 		// each invocations returns a fresh read-only view
 		return Collections.unmodifiableList(services);
 	}
@@ -254,41 +259,28 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 		return method.invoke(getService(), args);
 	}
 
-	private void open() {
-		if (active) {
-			return;
-		}
+	/**
+	 * Called during construction to hook the service listener with the bundle
+	 * context
+	 * 
+	 * @throws InvalidSyntaxException
+	 *             in case the filter is invalid
+	 */
+	private void open() throws InvalidSyntaxException {
+		// add listener
+		bundleContext.addServiceListener(this, filter);
 
-		// protect for concurrent modifications during initial population
-		synchronized (serviceReferences) {
-			checkDisposed();
-
-			// check/set active
-			if (active) {
-				return;
-			} else {
-				active = true;
-			}
-
-			try {
-				// add listener
-				bundleContext.addServiceListener(this, filter.toString());
-
-				// populate initial list of services
-				final Collection<ServiceReference<T>> references = bundleContext.getServiceReferences(serviceInterface, filter.toString());
-				for (final ServiceReference<T> reference : references) {
-					final T service = bundleContext.getService(reference);
-					if (null != service) {
-						serviceReferences.put(reference, service);
-					}
-				}
-
-				// update services snapshot
-				doUpdateServices();
-			} catch (final InvalidSyntaxException e) {
-				throw new IllegalStateException(String.format("Invalid filter '%s'. %s", filter.toString(), e.getMessage()), e);
+		// populate initial list of services
+		final Collection<ServiceReference<T>> references = bundleContext.getServiceReferences(serviceInterface, filter.toString());
+		for (final ServiceReference<T> reference : references) {
+			final T service = bundleContext.getService(reference);
+			if (null != service) {
+				serviceReferences.put(reference, service);
 			}
 		}
+
+		// update services snapshot
+		doUpdateServices();
 	}
 
 	public void removeChangeListener(final IServiceProxyChangeListener listener) {

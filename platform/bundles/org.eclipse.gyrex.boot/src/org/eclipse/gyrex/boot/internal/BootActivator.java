@@ -106,7 +106,7 @@ public class BootActivator extends BaseBundleActivator {
 		this.context = context;
 
 		// track instance location
-		instanceLocationProxy = getServiceHelper().trackService(Location.class, context.createFilter(Location.INSTANCE_FILTER));
+		instanceLocationProxy = getServiceHelper().trackService(Location.class, Location.INSTANCE_FILTER);
 
 		// configure dev mode
 		final OpsMode opsMode = new OpsMode();

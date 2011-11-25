@@ -15,14 +15,13 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.gyrex.common.internal.services.ServiceProxy;
 import org.eclipse.gyrex.common.internal.services.ServiceProxyPool;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
-import org.osgi.framework.Filter;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 
@@ -271,9 +270,9 @@ public final class BundleServiceHelper {
 	/**
 	 * Tracks an OSGi service.
 	 * <p>
-	 * This is a convenience method which installs a {@link ServiceTracker} for
-	 * consuming an OSGi service. The tracker is kept open as long as the bundle
-	 * is not stopped.
+	 * This is a convenience method which works similar to
+	 * {@link ServiceTracker} for consuming an OSGi service. The tracker is kept
+	 * open as long as the bundle is not stopped.
 	 * </p>
 	 * <p>
 	 * The service tracker is made available to the caller through a service
@@ -286,14 +285,11 @@ public final class BundleServiceHelper {
 	 * @param serviceInterface
 	 *            the service interface class
 	 * @return the service proxy object
+	 * @throws IllegalArgumentException
+	 *             if the service interface is <code>null</code>
 	 */
-	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface) {
-		final BundleContext bundleContext = contextRef.get();
-		if (null == bundleContext) {
-			throw newInactiveException();
-		}
-
-		return serviceProxyPool.getOrCreate(serviceInterface);
+	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface) throws IllegalArgumentException {
+		return trackService(serviceInterface, null);
 	}
 
 	/**
@@ -304,10 +300,13 @@ public final class BundleServiceHelper {
 	 * is not stopped.
 	 * </p>
 	 * <p>
-	 * The filter allows to filter available services. However, the filter is
-	 * required to contain an objectClass condition for the service interface
-	 * name in the form '
-	 * <code>..&amp;(objectClass=&lt;serviceInterfaceName&gt;)..</code>'.
+	 * A filter can be specified to further limit the available services.
+	 * However, the filter is required to contain an objectClass condition for
+	 * the service interface name in the form '
+	 * <code>&amp;(objectClass=&lt;serviceInterfaceName&gt;)</code>'. An
+	 * {@link IllegalArgumentException} wrapping a
+	 * {@link InvalidSyntaxException} will be thrown in case the filter is
+	 * invalid.
 	 * </p>
 	 * <p>
 	 * The service tracker is made available to the caller through a service
@@ -321,16 +320,17 @@ public final class BundleServiceHelper {
 	 *            the service interface class
 	 * @param filter
 	 *            the filter for tracking the service (must contain an
-	 *            <code>objectClass</code> condition for the service interface)
+	 *            <code>objectClass</code> condition for the service interface
+	 *            if not <code>null</code>)
 	 * @return the service proxy object
+	 * @throws IllegalArgumentException
+	 *             if the service interface is <code>null</code> or the
+	 *             specified filter is invalid
 	 */
-	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface, final Filter filter) {
-		if (null == filter) {
-			return trackService(serviceInterface);
+	public <T> IServiceProxy<T> trackService(final Class<T> serviceInterface, final String filter) throws IllegalArgumentException {
+		if (null == serviceInterface) {
+			throw new IllegalArgumentException("serviceInterface must not be null");
 		}
-
-		// check for the condition
-		ServiceProxy.verifyFilterContainsServiceInterfaceCondition(serviceInterface, filter);
 
 		final BundleContext bundleContext = contextRef.get();
 		if (null == bundleContext) {
