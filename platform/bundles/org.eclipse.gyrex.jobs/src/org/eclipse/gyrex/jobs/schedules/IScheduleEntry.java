@@ -52,7 +52,7 @@ public interface IScheduleEntry {
 	/**
 	 * Returns the parameter for the {@link IJob job}.
 	 * 
-	 * @return the job parameter
+	 * @return an unmodifiable map of job parameter
 	 */
 	Map<String, String> getJobParameter();
 
@@ -64,8 +64,8 @@ public interface IScheduleEntry {
 	String getJobTypeId();
 
 	/**
-	 * Returns whether a job is created and queued at the next time the schedule entry
-	 * triggered for execution
+	 * Returns whether a job is created and queued at the next time the schedule
+	 * entry triggered for execution
 	 * 
 	 * @return the state of the schedule entry
 	 */

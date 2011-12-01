@@ -49,8 +49,11 @@ public interface IScheduleEntryWorkingCopy extends IScheduleEntry {
 	 * <p>
 	 * Changes take effect, when the schedule entry is triggered for execution
 	 * the next time.
+	 * </p>
 	 * 
 	 * @param parameter
+	 *            the parameter to set (maybe <code>null</code> to unset all
+	 *            parameter)
 	 */
 	void setJobParameter(Map<String, String> jobParameterMap);
 

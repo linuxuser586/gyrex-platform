@@ -22,10 +22,10 @@ import org.kohsuke.args4j.Option;
 
 public abstract class BaseScheduleStoreCmd extends Command {
 
-	@Argument(index = 0, usage = "specify the schedule storage key", required = true, metaVar = "SCHEDULE")
+	@Argument(index = 0, usage = "specify the schedule storage key", required = true, metaVar = "SCHEDULEKEY")
 	protected String scheduleStorageKey;
 
-	@Option(name = "--process-all", aliases = { "-all" }, usage = "process all matching schedules instead of only the specific one")
+	@Option(name = "--process-any-schedule", aliases = { "-any" }, usage = "process any matching schedule instead of only a specific one (will perform a substring matching of schedule storage key)")
 	protected boolean isFilter;
 
 	/**
@@ -37,21 +37,22 @@ public abstract class BaseScheduleStoreCmd extends Command {
 
 	@Override
 	protected void doExecute() throws Exception {
-		// process all matching once
-		if (isFilter) {
+		final boolean all = StringUtils.equals(scheduleStorageKey, "*");
+		if (all || isFilter) {
+			// process all matching schedules
 			final String[] schedules = ScheduleStore.getSchedules();
 			for (final String schedule : schedules) {
-				if (StringUtils.containsIgnoreCase(schedule, scheduleStorageKey)) {
+				if (all || StringUtils.containsIgnoreCase(schedule, scheduleStorageKey)) {
 					doExecute(schedule, ScheduleManagerImpl.getExternalId(schedule));
 				}
 			}
+		} else {
+			// just single one
+			if (!IdHelper.isValidId(scheduleStorageKey)) {
+				throw new IllegalArgumentException("invalid storage key");
+			}
+			doExecute(scheduleStorageKey, ScheduleManagerImpl.getExternalId(scheduleStorageKey));
 		}
-
-		// just single one
-		if (!IdHelper.isValidId(scheduleStorageKey)) {
-			throw new IllegalArgumentException("invalid storage key");
-		}
-		doExecute(scheduleStorageKey, ScheduleManagerImpl.getExternalId(scheduleStorageKey));
 	}
 
 	protected abstract void doExecute(String storageId, String scheduleId) throws Exception;

@@ -13,6 +13,7 @@
 package org.eclipse.gyrex.jobs.internal.commands;
 
 import org.eclipse.gyrex.common.console.BaseCommandProvider;
+import org.eclipse.gyrex.jobs.internal.JobsDebug;
 
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 
@@ -33,8 +34,9 @@ public class JobsConsoleCommands extends BaseCommandProvider {
 		registerCommand("enableSchedule", EnableScheduleCmd.class);
 		registerCommand("disableSchedule", DisableScheduleCmd.class);
 
-		registerCommand("addEntryToSchedule", AddEntryToScheduleCmd.class);
-		registerCommand("setEntryParam", UpdateEntryToScheduleCmd.class);
+		registerCommand("createEntry", CreateScheduleEntryCmd.class);
+		registerCommand("updateEntry", UpdateScheduleEntryCmd.class);
+		registerCommand("removeEntry", RemoveScheduleEntryCmd.class);
 
 		registerCommand("cleanup", CleanupCmd.class);
 
@@ -45,6 +47,7 @@ public class JobsConsoleCommands extends BaseCommandProvider {
 	}
 
 	public void _jobs(final CommandInterpreter ci) throws Exception {
+		printStackTraces = JobsDebug.debug;
 		execute(ci);
 	}
 

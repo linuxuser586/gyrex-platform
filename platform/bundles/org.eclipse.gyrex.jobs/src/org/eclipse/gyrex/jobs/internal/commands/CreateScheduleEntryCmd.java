@@ -11,32 +11,29 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.commands;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleEntryWorkingCopy;
 
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.args4j.Argument;
 
-public class UpdateEntryToScheduleCmd extends BaseScheduleStoreCmd {
+public class CreateScheduleEntryCmd extends BaseScheduleStoreCmd {
 
-	@Argument(index = 1, usage = "the entry id", required = true, metaVar = "ID")
+	@Argument(index = 1, usage = "the id for the entry to add", required = true, metaVar = "ID")
 	String entryId;
 
-	@Argument(index = 2, usage = "parameter key", required = true, metaVar = "STRING")
-	String jobParamKey;
+	@Argument(index = 2, usage = "a cron expression", required = true, metaVar = "EXPR")
+	String cronExpression;
 
-	@Argument(index = 3, usage = "parameter value", required = false, metaVar = "STRING")
-	String jobParamValue;
+	@Argument(index = 3, usage = "the job type identifier", required = true, metaVar = "JOBTYPE")
+	String jobTypeId;
 
 	/**
 	 * Creates a new instance.
 	 */
-	public UpdateEntryToScheduleCmd() {
-		super("<entryId> <jobParamKey> [<jobParamValue>] - Sets (or removes) an entry job paramater");
+	public CreateScheduleEntryCmd() {
+		super("<entryId> <cronExpression> <jobTypeId> - Creates a schedule entry");
 	}
 
 	@Override
@@ -48,19 +45,21 @@ public class UpdateEntryToScheduleCmd extends BaseScheduleStoreCmd {
 			return;
 		}
 
-		final IScheduleEntryWorkingCopy entry = schedule.getEntry(entryId);
-
-		final Map<String, String> parameter = new HashMap<String, String>(entry.getJobParameter());
-		if (StringUtils.isBlank(jobParamValue)) {
-			parameter.remove(jobParamKey);
-		} else {
-			parameter.put(jobParamKey, jobParamValue);
+		if (null == JobsActivator.getInstance().getJobProviderRegistry().getProvider(jobTypeId)) {
+			throw new IllegalArgumentException(String.format("no provider for job type %s found", jobTypeId));
 		}
 
-		entry.setJobParameter(parameter);
+		final IScheduleEntryWorkingCopy entry = schedule.createEntry(entryId);
+
+		entry.setJobTypeId(jobTypeId);
+		try {
+			entry.setCronExpression(cronExpression);
+		} catch (final Exception e) {
+			throw new IllegalArgumentException("invalid cron expression, please see http://en.wikipedia.org/wiki/Cron#CRON_expression", e);
+		}
 
 		ScheduleStore.flush(storageId, schedule);
-		printf("Updated schedule %s entry %s!", scheduleId, entryId);
+		printf("Entry added to schedule %s!", scheduleId);
 	}
 
 }

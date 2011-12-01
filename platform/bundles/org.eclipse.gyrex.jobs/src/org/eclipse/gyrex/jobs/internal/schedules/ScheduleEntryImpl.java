@@ -61,7 +61,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 			throw new IllegalArgumentException("invalid entry id");
 		}
 		this.id = id;
-		enabled = Boolean.TRUE;
+		enabled = true; // default is enabled (backwards compatibility)
 	}
 
 	@Override
@@ -101,7 +101,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		try {
 			setCronExpression(node.get(CRON_EXPRESSION, null));
 			setJobTypeId(node.get(JOB_TYPE_ID, null));
-			setEnabled(node.getBoolean(ENABLED, Boolean.TRUE));
+			setEnabled(node.getBoolean(ENABLED, true /* default true (backwards compatibility) */));
 			if (node.nodeExists(PARAMETER)) {
 				final Preferences paramNode = node.node(PARAMETER);
 				final String[] keys = paramNode.keys();
@@ -173,7 +173,8 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	@Override
 	public void setJobParameter(final Map<String, String> jobParameter) {
-		jobParamater = new HashMap<String, String>(jobParameter);
+		// wrap map (to create a clone)
+		jobParamater = null != jobParameter ? new HashMap<String, String>(jobParameter) : null;
 	}
 
 	@Override
