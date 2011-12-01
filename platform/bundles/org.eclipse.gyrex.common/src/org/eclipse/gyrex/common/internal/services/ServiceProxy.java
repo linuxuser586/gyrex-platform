@@ -167,6 +167,30 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 		changeListeners.add(listener);
 	}
 
+	/**
+	 * Adds a change lister.
+	 * <p>
+	 * The listener is notified immediatly if the current service does not match
+	 * the expected service.
+	 * </p>
+	 * 
+	 * @param listener
+	 * @param expectedService
+	 */
+	public void addChangeListener(final IServiceProxyChangeListener listener, final T expectedService) {
+		checkDisposed();
+		changeListeners.add(listener);
+
+		// trigger if service is different
+		if ((expectedService != null) && (expectedService != dynamicProxy)) {
+			final Iterator<T> iterator = services.iterator();
+			final T service = iterator.hasNext() ? iterator.next() : null;
+			if (service != expectedService) {
+				listener.serviceChanged(this);
+			}
+		}
+	}
+
 	public void addDisposalListener(final IServiceProxyDisposalListener listener) {
 		checkDisposed();
 		disposalListeners.add(listener);
