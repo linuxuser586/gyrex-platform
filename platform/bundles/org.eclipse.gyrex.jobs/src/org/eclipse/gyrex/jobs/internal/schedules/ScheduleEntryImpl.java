@@ -36,7 +36,6 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	private static final String PARAMETER = "parameter";
 
 	private static final String JOB_TYPE_ID = "jobTypeId";
-	private static final String JOB_ID = "jobId";
 	private static final String CRON_EXPRESSION = "cronExpression";
 	private static final String ENABLED = "enabled";
 
@@ -122,7 +121,6 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 		node.put(CRON_EXPRESSION, cronExpression);
 		node.put(JOB_TYPE_ID, jobTypeId);
-		node.put(JOB_ID, getJobId());
 		node.putBoolean(ENABLED, enabled);
 
 		if ((null != jobParamater) && !jobParamater.isEmpty()) {
