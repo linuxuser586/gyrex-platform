@@ -111,7 +111,7 @@ public class ProviderRegistration {
 		}
 
 		ProviderRegistrationReference[] references;
-		referencesLock.tryLock();
+		referencesLock.lock();
 		try {
 			references = contextReferences.toArray(new ProviderRegistrationReference[contextReferences.size()]);
 		} finally {
