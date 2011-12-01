@@ -14,13 +14,19 @@ package org.eclipse.gyrex.jobs.internal.commands;
 import org.eclipse.gyrex.common.console.Command;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
+import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.Option;
 
 public abstract class BaseScheduleStoreCmd extends Command {
 
 	@Argument(index = 0, usage = "specify the schedule storage key", required = true, metaVar = "SCHEDULE")
 	protected String scheduleStorageKey;
+
+	@Option(name = "--process-all", aliases = { "-all" }, usage = "process all matching schedules instead of only the specific one")
+	protected boolean isFilter;
 
 	/**
 	 * Creates a new instance.
@@ -31,11 +37,21 @@ public abstract class BaseScheduleStoreCmd extends Command {
 
 	@Override
 	protected void doExecute() throws Exception {
+		// process all matching once
+		if (isFilter) {
+			final String[] schedules = ScheduleStore.getSchedules();
+			for (final String schedule : schedules) {
+				if (StringUtils.containsIgnoreCase(schedule, scheduleStorageKey)) {
+					doExecute(schedule, ScheduleManagerImpl.getExternalId(schedule));
+				}
+			}
+		}
+
+		// just single one
 		if (!IdHelper.isValidId(scheduleStorageKey)) {
 			throw new IllegalArgumentException("invalid storage key");
 		}
-		final String externalId = ScheduleManagerImpl.getExternalId(scheduleStorageKey);
-		doExecute(scheduleStorageKey, externalId);
+		doExecute(scheduleStorageKey, ScheduleManagerImpl.getExternalId(scheduleStorageKey));
 	}
 
 	protected abstract void doExecute(String storageId, String scheduleId) throws Exception;

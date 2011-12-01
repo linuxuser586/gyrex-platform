@@ -16,7 +16,6 @@ import org.eclipse.gyrex.jobs.internal.schedules.ScheduleImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleEntryWorkingCopy;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.kohsuke.args4j.Argument;
 
 public class AddEntryToScheduleCmd extends BaseScheduleStoreCmd {
@@ -47,8 +46,7 @@ public class AddEntryToScheduleCmd extends BaseScheduleStoreCmd {
 		}
 
 		if (null == JobsActivator.getInstance().getJobProviderRegistry().getProvider(jobTypeId)) {
-			printf("ERROR: no provider for job type %s found", jobTypeId);
-			return;
+			throw new IllegalArgumentException(String.format("no provider for job type %s found", jobTypeId));
 		}
 
 		final IScheduleEntryWorkingCopy entry = schedule.createEntry(entryId);
@@ -57,9 +55,7 @@ public class AddEntryToScheduleCmd extends BaseScheduleStoreCmd {
 		try {
 			entry.setCronExpression(cronExpression);
 		} catch (final Exception e) {
-			printf("ERROR: invalid cron expression, please see http://en.wikipedia.org/wiki/Cron#CRON_expression");
-			printf("       %s", ExceptionUtils.getRootCauseMessage(e));
-			return;
+			throw new IllegalArgumentException("invalid cron expression, please see http://en.wikipedia.org/wiki/Cron#CRON_expression", e);
 		}
 
 		ScheduleStore.flush(storageId, schedule);
