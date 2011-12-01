@@ -74,7 +74,7 @@ public class ProviderRegistration {
 	 *            the reference to add
 	 */
 	public void addReference(final ProviderRegistrationReference reference) {
-		referencesLock.tryLock();
+		referencesLock.lock();
 		try {
 			contextReferences.add(reference);
 		} finally {
