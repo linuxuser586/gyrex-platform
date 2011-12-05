@@ -23,16 +23,16 @@ import org.osgi.framework.BundleContext;
 
 public class DerbyActivator extends BaseBundleActivator {
 
-	/** the plug-in id */
-	public static final String PLUGIN_ID = "org.eclipse.gyrex.persistence.derby";
+	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.persistence.derby";
 
+	private static final String DERBY_SYSTEM_HOME = "derby.system.home";
 	private static final String DERBY_EMBEDDED_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
 
 	/**
 	 * Creates a new instance.
 	 */
 	public DerbyActivator() {
-		super(PLUGIN_ID);
+		super(SYMBOLIC_NAME);
 	}
 
 	@Override
@@ -42,12 +42,12 @@ public class DerbyActivator extends BaseBundleActivator {
 		AccessController.doPrivileged(new PrivilegedAction<Object>() {
 			@Override
 			public Object run() {
-				if (null == System.getProperty("derby.system.home")) {
+				if (null == System.getProperty(DERBY_SYSTEM_HOME)) {
 					final IPath systemBase = Platform.getInstanceLocation().append("derby");
 					if (null == systemBase) {
 						throw new IllegalStateException("The framework must have file system support to use the Derby persistence type.");
 					}
-					System.setProperty("derby.system.home", systemBase.toOSString());
+					System.setProperty(DERBY_SYSTEM_HOME, systemBase.toOSString());
 				}
 				return null;
 			}
