@@ -11,6 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.persistence.derby.internal;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.server.Platform;
 
@@ -35,11 +38,20 @@ public class DerbyActivator extends BaseBundleActivator {
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
 		// set the derby system home to the workspace location
-		final IPath systemBase = Platform.getInstanceLocation().append("derby");
-		if (null == systemBase) {
-			throw new IllegalStateException("The framework must have file system support to use the Derby persistence type.");
-		}
-		System.setProperty("derby.system.home", systemBase.toOSString());
+		// (but only if it's not set externally)
+		AccessController.doPrivileged(new PrivilegedAction<Object>() {
+			@Override
+			public Object run() {
+				if (null == System.getProperty("derby.system.home")) {
+					final IPath systemBase = Platform.getInstanceLocation().append("derby");
+					if (null == systemBase) {
+						throw new IllegalStateException("The framework must have file system support to use the Derby persistence type.");
+					}
+					System.setProperty("derby.system.home", systemBase.toOSString());
+				}
+				return null;
+			}
+		});
 
 		// initialize database
 		try {
