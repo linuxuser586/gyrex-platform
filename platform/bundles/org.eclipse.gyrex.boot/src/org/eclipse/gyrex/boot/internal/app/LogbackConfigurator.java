@@ -145,7 +145,7 @@ public class LogbackConfigurator {
 		lc.getLogger("org.apache.http").setLevel(Level.WARN);
 		lc.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
 		lc.getLogger("org.apache.solr").setLevel(Level.WARN);
-		lc.getLogger("org.apache.sshd").setLevel(Level.WARN);
+		lc.getLogger("org.apache.sshd").setLevel(Level.INFO);
 		lc.getLogger("org.apache.mina").setLevel(Level.WARN);
 		lc.getLogger("org.mortbay.log").setLevel(Level.INFO);
 		lc.getLogger("org.eclipse.jetty").setLevel(Level.INFO);
