@@ -17,8 +17,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -28,9 +26,7 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jetty.http.MimeTypes;
-import org.eclipse.jetty.server.HttpConnection;
 import org.eclipse.jetty.util.ByteArrayISO8859Writer;
-import org.eclipse.jetty.util.log.Log;
 
 /**
  * A Gyrex error page.
@@ -128,29 +124,6 @@ public class ErrorPage {
 			default:
 				return "The platform configuration looks okay. Some hints/notes are available, though.";
 		}
-	}
-
-	private String getServerName(final HttpServletRequest request) {
-		String serverName = null;
-
-		// try the server name the connection is configured to
-		final HttpConnection httpConnection = HttpConnection.getCurrentConnection();
-		if (null != httpConnection) {
-			serverName = httpConnection.getConnector().getHost();
-		}
-
-		// try the local machine name if bound to 0.0.0.0
-		if ((null == serverName) || serverName.equals("0.0.0.0")) {
-			try {
-				serverName = InetAddress.getLocalHost().getHostName();
-			} catch (final UnknownHostException e) {
-				Log.ignore(e);
-
-				// try the host name provided in the request
-				serverName = request.getServerName();
-			}
-		}
-		return serverName;
 	}
 
 	private String getStatusImage(final IStatus status) {
@@ -293,7 +266,7 @@ public class ErrorPage {
 			writer.write("<div><img src=\"" + getOverallStatusImage(platformStatus) + "\" style=\"float:left;padding-right:1em;\">" + getOverallStatusMessage(platformStatus) + "<br><em>You might want to check the <a href=\"" + getAdminServerURL(request) + "\">server configuration</a>.</em></div>");
 			writer.write("<div style=\"clear:both;\"></div>");
 			writer.write("<p>Issues detected on <code>");
-			writer.write(getServerName(request));
+			writer.write(DefaultErrorHandler.getServerName(request));
 			writer.write("</code>:");
 			writeStatus(platformStatus, writer);
 			writer.write("</p>");

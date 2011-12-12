@@ -16,6 +16,8 @@ import java.util.Iterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.servlet.DispatcherType;
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
@@ -34,8 +36,6 @@ import org.eclipse.jetty.http.PathMap.Entry;
 import org.eclipse.jetty.io.EofException;
 import org.eclipse.jetty.io.RuntimeIOException;
 import org.eclipse.jetty.server.AsyncContinuation;
-import org.eclipse.jetty.server.Dispatcher;
-import org.eclipse.jetty.server.DispatcherType;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
@@ -253,9 +253,6 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 				}
 			}
 
-			// unwrap specific exceptions
-			ExceptionUtils.getRootCause(e);
-
 			// handle or log exception
 			if (e instanceof HttpException) {
 				throw (HttpException) e;
@@ -263,21 +260,22 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 				throw (RuntimeIOException) e;
 			} else if (e instanceof EofException) {
 				throw (EofException) e;
-			} else if (Platform.inDebugMode()) {
-				LOG.warn("Exception processing request: {}", request.getRequestURI(), e);
-				LOG.debug(request.toString());
-			} else if ((e instanceof IOException) || (e instanceof UnavailableException)) {
-				if (JettyDebug.debug) {
+			} else if ((e instanceof IOException) || (e instanceof UnavailableException) || (e instanceof IllegalStateException)) {
+				if (Platform.inDebugMode()) {
 					LOG.debug("Exception processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e));
+					LOG.debug(request.toString());
 				}
 			} else {
-				LOG.warn("Exception processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e));
+				LOG.error("Exception processing request {}: {}", new Object[] { request.getRequestURI(), ExceptionUtils.getRootCauseMessage(e), e });
+				if (Platform.inDebugMode()) {
+					LOG.debug(request.toString());
+				}
 			}
 
 			// send error response if possible
 			if (!response.isCommitted()) {
-				request.setAttribute(Dispatcher.ERROR_EXCEPTION_TYPE, e.getClass());
-				request.setAttribute(Dispatcher.ERROR_EXCEPTION, e);
+				request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE, e.getClass());
+				request.setAttribute(RequestDispatcher.ERROR_EXCEPTION, e);
 				if (e instanceof UnavailableException) {
 					final UnavailableException ue = (UnavailableException) e;
 					if (ue.isPermanent()) {
@@ -299,22 +297,25 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 		} catch (final Error e) {
 			metrics.getRequestsMetric().requestFailed();
 
+			// only handle some errors
+			if (!((e instanceof LinkageError) || (e instanceof AssertionError))) {
+				throw e;
+			}
+
 			final DispatcherType type = baseRequest.getDispatcherType();
 			if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type))) {
 				throw e;
 			}
 
+			LOG.error("Error processing request {}: {}", new Object[] { request.getRequestURI(), ExceptionUtils.getRootCauseMessage(e), e });
 			if (JettyDebug.debug) {
-				LOG.warn("Error processing request {}: {}", request.getRequestURI(), e);
 				LOG.debug(request.toString());
-			} else {
-				LOG.warn("Error processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e));
 			}
 
 			// TODO httpResponse.getHttpConnection().forceClose();
 			if (!response.isCommitted()) {
-				request.setAttribute(Dispatcher.ERROR_EXCEPTION_TYPE, e.getClass());
-				request.setAttribute(Dispatcher.ERROR_EXCEPTION, e);
+				request.setAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE, e.getClass());
+				request.setAttribute(RequestDispatcher.ERROR_EXCEPTION, e);
 				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
 			} else {
 				if (JettyDebug.debug) {

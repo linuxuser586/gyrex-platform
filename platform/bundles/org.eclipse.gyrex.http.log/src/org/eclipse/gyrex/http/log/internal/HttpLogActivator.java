@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2011 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
  *
@@ -33,7 +33,7 @@ public class HttpLogActivator implements BundleActivator {
 	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpLogActivator.class);
 	private static final WidlfireLogWriterFilter FILTER = new WidlfireLogWriterFilter();
 	private WildfireAppender wa;
-	private ServiceTracker tracker;
+	private ServiceTracker<HttpService, HttpService> tracker;
 
 	@Override
 	public void start(final BundleContext context) throws Exception {
@@ -53,10 +53,10 @@ public class HttpLogActivator implements BundleActivator {
 		rootLogger.addAppender(wa);
 
 		// register filter
-		tracker = new ServiceTracker(context, HttpService.class.getName(), null) {
+		tracker = new ServiceTracker<HttpService, HttpService>(context, HttpService.class.getName(), null) {
 			@Override
-			public Object addingService(final org.osgi.framework.ServiceReference reference) {
-				final HttpService service = (HttpService) super.addingService(reference);
+			public HttpService addingService(final org.osgi.framework.ServiceReference<HttpService> reference) {
+				final HttpService service = super.addingService(reference);
 				if ((null != service) && (service instanceof ExtendedHttpService)) {
 					try {
 						((ExtendedHttpService) service).registerFilter("/", FILTER, null, null);
@@ -72,7 +72,7 @@ public class HttpLogActivator implements BundleActivator {
 			};
 
 			@Override
-			public void removedService(final org.osgi.framework.ServiceReference reference, final Object service) {
+			public void removedService(final org.osgi.framework.ServiceReference<HttpService> reference, final HttpService service) {
 				if ((null != service) && (service instanceof ExtendedHttpService)) {
 					try {
 						((ExtendedHttpService) service).unregisterFilter(FILTER);

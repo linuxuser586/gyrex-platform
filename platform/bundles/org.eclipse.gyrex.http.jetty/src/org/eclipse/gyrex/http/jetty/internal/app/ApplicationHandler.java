@@ -14,8 +14,11 @@ package org.eclipse.gyrex.http.jetty.internal.app;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.EventListener;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
@@ -34,7 +37,6 @@ import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.jetty.http.PathMap;
 import org.eclipse.jetty.http.PathMap.Entry;
 import org.eclipse.jetty.security.SecurityHandler;
-import org.eclipse.jetty.server.DispatcherType;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.session.HashSessionManager;
@@ -63,6 +65,33 @@ public class ApplicationHandler extends ServletContextHandler {
 	 * {@link ServletContext} implementation used by {@link ApplicationHandler}.
 	 */
 	public class ApplicationServletContext extends Context {
+
+		private <T> T createAndInject(final Class<T> c) throws ServletException {
+			try {
+				return getApplication().getContext().getInjector().make(c);
+			} catch (final AssertionError e) {
+				throw new ServletException(String.format("Error injecting class '%s'. %s", c.getName(), e.getMessage()), e);
+			} catch (final LinkageError e) {
+				throw new ServletException(String.format("Error injecting class '%s'. %s", c.getName(), e.getMessage()), e);
+			} catch (final Exception e) {
+				throw new ServletException(String.format("Error injecting class '%s'. %s", c.getName(), e.getMessage()), e);
+			}
+		}
+
+		@Override
+		public <T extends Filter> T createFilter(final Class<T> c) throws ServletException {
+			return createAndInject(c);
+		}
+
+		@Override
+		public <T extends EventListener> T createListener(final Class<T> c) throws ServletException {
+			return createAndInject(c);
+		}
+
+		@Override
+		public <T extends Servlet> T createServlet(final Class<T> c) throws ServletException {
+			return createAndInject(c);
+		}
 
 		@Override
 		public ServletContext getContext(final String uripath) {
@@ -271,8 +300,16 @@ public class ApplicationHandler extends ServletContextHandler {
 			}
 
 			// next scope
-			// note, we don't inline here in order not to break when Jetty changes something
-			nextScope(target, baseRequest, request, response);
+			// start manual inline of nextScope(target,baseRequest,request,response);
+			if (never()) {
+				nextScope(target, baseRequest, request, response);
+			} else if (_nextScope != null) {
+				_nextScope.doScope(target, baseRequest, request, response);
+			} else if (_outerScope != null) {
+				_outerScope.doHandle(target, baseRequest, request, response);
+			} else {
+				doHandle(target, baseRequest, request, response);
+			} // end manual inline (pathetic attempt to reduce stack depth)
 		} finally {
 			if (newContext) {
 				// reset the context and servlet path

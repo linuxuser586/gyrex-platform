@@ -34,13 +34,12 @@ import org.eclipse.jetty.http.HttpHeaders;
 import org.eclipse.jetty.http.HttpMethods;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.server.AbstractHttpConnection;
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConnection;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.util.ByteArrayISO8859Writer;
-import org.eclipse.jetty.util.log.Log;
 
 /**
  * Some default processing for errors.
@@ -60,6 +59,27 @@ public class DefaultErrorHandler extends ErrorHandler {
 		methods.add(HttpMethods.HEAD);
 		methods.add(HttpMethods.DELETE);
 		handledMethods = Collections.unmodifiableSet(methods);
+	}
+
+	static String getServerName(final HttpServletRequest request) {
+		String serverName = null;
+
+		// try the server name the connection is configured to
+		final AbstractHttpConnection httpConnection = AbstractHttpConnection.getCurrentConnection();
+		if (null != httpConnection) {
+			serverName = httpConnection.getConnector().getHost();
+		}
+
+		// try the local machine name if bound to 0.0.0.0
+		if ((null == serverName) || serverName.equals("0.0.0.0")) {
+			try {
+				serverName = InetAddress.getLocalHost().getHostName();
+			} catch (final UnknownHostException e) {
+				// try the host name provided in the request
+				serverName = request.getServerName();
+			}
+		}
+		return serverName;
 	}
 
 	/**
@@ -104,6 +124,14 @@ public class DefaultErrorHandler extends ErrorHandler {
 		return "http://".concat(request.getServerName()).concat(":3110/");
 	}
 
+	private AbstractHttpConnection getCurrentConnection() {
+		final AbstractHttpConnection connection = AbstractHttpConnection.getCurrentConnection();
+		if (connection == null) {
+			throw new IllegalStateException("Called outside request thread! No connection available.");
+		}
+		return connection;
+	}
+
 	private Throwable getException(final HttpServletRequest request) {
 		return (Throwable) request.getAttribute("javax.servlet.error.exception");
 	}
@@ -122,29 +150,6 @@ public class DefaultErrorHandler extends ErrorHandler {
 		}
 	}
 
-	private String getServerName(final HttpServletRequest request) {
-		String serverName = null;
-
-		// try the server name the connection is configured to
-		final HttpConnection httpConnection = HttpConnection.getCurrentConnection();
-		if (null != httpConnection) {
-			serverName = httpConnection.getConnector().getHost();
-		}
-
-		// try the local machine name if bound to 0.0.0.0
-		if ((null == serverName) || serverName.equals("0.0.0.0")) {
-			try {
-				serverName = InetAddress.getLocalHost().getHostName();
-			} catch (final UnknownHostException e) {
-				Log.ignore(e);
-
-				// try the host name provided in the request
-				serverName = request.getServerName();
-			}
-		}
-		return serverName;
-	}
-
 	private String getStatusBullet(final IStatus status) {
 		switch (status.getSeverity()) {
 			case IStatus.CANCEL:
@@ -161,10 +166,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 	@Override
 	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException {
-		final HttpConnection connection = HttpConnection.getCurrentConnection();
-		if (connection == null) {
-			throw new IllegalStateException("Called outside request thread! No connection available.");
-		}
+		final AbstractHttpConnection connection = getCurrentConnection();
 
 		// mark handled
 		connection.getRequest().setHandled(true);
@@ -282,7 +284,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 	}
 
 	private void writeErrorPagePlain(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException {
-		HttpConnection.getCurrentConnection().getResponse().setContentType(MimeTypes.TEXT_PLAIN_8859_1);
+		AbstractHttpConnection.getCurrentConnection().getResponse().setContentType(MimeTypes.TEXT_PLAIN_8859_1);
 		writer.write("Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");

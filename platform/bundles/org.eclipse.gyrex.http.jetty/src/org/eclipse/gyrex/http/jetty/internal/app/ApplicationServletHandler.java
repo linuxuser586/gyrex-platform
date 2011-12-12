@@ -11,8 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.jetty.internal.app;
 
-import javax.servlet.Servlet;
-
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.servlet.ServletHandler;
@@ -48,18 +46,8 @@ public class ApplicationServletHandler extends ServletHandler {
 		return applicationHandler;
 	}
 
-	@Override
-	public ServletHolder newServletHolder() {
-		return new ApplicationServletHolder();
-	}
-
-	@Override
-	public ServletHolder newServletHolder(final Class<? extends Servlet> servlet) {
-		return new ApplicationServletHolder(servlet);
-	}
-
 	public void removeServlet(final ServletHolder holder) {
-		setServlets((ServletHolder[]) LazyList.removeFromArray(getServlets(), holder));
+		setServlets(LazyList.removeFromArray(getServlets(), holder));
 	}
 
 	@Override

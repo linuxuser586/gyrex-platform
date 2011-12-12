@@ -28,6 +28,7 @@ public class ResourceProviderHolder extends Holder {
 	private final String internalName;
 
 	ResourceProviderHolder(final String internalName, final IResourceProvider provider) {
+		super(Source.EMBEDDED);
 		this.internalName = internalName;
 		this.provider = provider;
 		setName(provider.getClass().getName() + "-" + super.hashCode());

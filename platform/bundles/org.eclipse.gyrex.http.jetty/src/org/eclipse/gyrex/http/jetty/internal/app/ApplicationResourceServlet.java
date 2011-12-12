@@ -17,7 +17,6 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.resource.Resource;
 
 /**
@@ -59,7 +58,6 @@ public class ApplicationResourceServlet extends DefaultServlet {
 		try {
 			return applicationHandler.getResource(pathInContext);
 		} catch (final MalformedURLException e) {
-			Log.ignore(e);
 			return null;
 		}
 	}

@@ -29,7 +29,6 @@ import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ScopedHandler;
 import org.eclipse.jetty.util.URIUtil;
-import org.eclipse.jetty.util.log.Log;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -121,7 +120,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 				final String message = StringUtils.defaultIfEmpty(status.getMessage(), "Application not ready.");
 				// we convert it into UnavailableException
 				if (Platform.inDebugMode()) {
-					Log.warn("Application '{}' returned a not-ok status: {}", new Object[] { application.getId(), status });
+					LOG.warn("Application '{}' returned a not-ok status: {}", new Object[] { application.getId(), status });
 					throw new UnavailableException(message, 5);
 				} else {
 					throw new UnavailableException(message, 30); // TODO make configurable
@@ -135,7 +134,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			application.handleRequest(request, response);
 		} catch (final IOException e) {
 			if (Platform.inDebugMode()) {
-				Log.warn("Caught IOException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
+				LOG.warn("Caught IOException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 			}
 			throw e;
 		} catch (final ApplicationException e) {
@@ -143,14 +142,14 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			if (e.getStatus() == HttpStatus.SERVICE_UNAVAILABLE_503) {
 				// we convert it into UnavailableException
 				if (Platform.inDebugMode()) {
-					Log.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
+					LOG.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 					throw new UnavailableException(e.getMessage(), 5);
 				} else {
 					throw new UnavailableException(e.getMessage(), 30); // TODO make configurable
 				}
 			} else {
 				if (Platform.inDebugMode()) {
-					Log.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
+					LOG.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 					response.sendError(e.getStatus(), e.getMessage());
 				} else {
 					response.sendError(e.getStatus());
@@ -160,14 +159,14 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			// IllegalStateException are typically used in Gyrex to indicate that something isn't ready
 			// we convert it into UnavailableException to allow recovering on a dynamic platform
 			if (Platform.inDebugMode()) {
-				Log.warn("Caught IllegalStateException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
+				LOG.warn("Caught IllegalStateException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 				throw new UnavailableException(e.getMessage(), 5);
 			} else {
 				throw new UnavailableException(e.getMessage(), 30); // TODO make configurable
 			}
 		} catch (final RuntimeException e) {
 			if (Platform.inDebugMode()) {
-				Log.warn("Caught RuntimeException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
+				LOG.warn("Caught RuntimeException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 			}
 			throw e;
 		} finally {

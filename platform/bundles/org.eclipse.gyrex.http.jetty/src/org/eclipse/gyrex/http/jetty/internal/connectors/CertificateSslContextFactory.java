@@ -11,12 +11,11 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.jetty.internal.connectors;
 
-import java.io.InputStream;
 import java.security.KeyStore;
 
 import org.eclipse.gyrex.http.jetty.admin.ICertificate;
 
-import org.eclipse.jetty.http.ssl.SslContextFactory;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 /**
  * Specialized {@link SslContextFactory} that uses {@link ICertificate} for
@@ -37,16 +36,16 @@ public class CertificateSslContextFactory extends SslContextFactory {
 		}
 		this.certificate = certificate;
 
-		// set to cheat Jetty to call #getKeyStore
-		setKeyStore("certificate:key:" + certificate.getId());
-		setTrustStore("certificate:trust:" + certificate.getId());
-
 		setKeyManagerPassword(new String(certificate.getKeyPassword()));
 	}
 
 	@Override
-	protected KeyStore getKeyStore(final InputStream storeStream, final String storePath, final String storeType, final String storeProvider, final String storePassword) throws Exception {
-		// no matter what, we always return the one from the certificate
+	protected KeyStore loadKeyStore() throws Exception {
+		return certificate.getKeyStore();
+	}
+
+	@Override
+	protected KeyStore loadTrustStore() throws Exception {
 		return certificate.getKeyStore();
 	}
 

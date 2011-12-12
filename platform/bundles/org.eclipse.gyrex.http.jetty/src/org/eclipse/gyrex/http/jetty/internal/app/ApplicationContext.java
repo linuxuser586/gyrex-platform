@@ -214,7 +214,7 @@ public class ApplicationContext implements IApplicationContext {
 			//addBundleResourceMonitor(filter);
 
 			// create holder
-			final ApplicationFilterHolder holder = new ApplicationFilterHolder(filter);
+			final FilterHolder holder = new FilterHolder(filter);
 			if (null != initparams) {
 				holder.setInitParameters(initparams);
 			}
@@ -281,7 +281,7 @@ public class ApplicationContext implements IApplicationContext {
 			addBundleResourceMonitor(alias, servletClass);
 
 			// create holder
-			final ApplicationServletHolder holder = new ApplicationServletHolder(servletClass);
+			final ServletHolder holder = new ServletHolder(servletClass);
 			if (null != initparams) {
 				holder.setInitParameters(initparams);
 			}
@@ -329,7 +329,7 @@ public class ApplicationContext implements IApplicationContext {
 			addBundleResourceMonitor(alias, servlet.getClass());
 
 			// create holder
-			final ApplicationServletHolder holder = new ApplicationServletHolder(servlet);
+			final ServletHolder holder = new ServletHolder(servlet);
 			if (null != initparams) {
 				holder.setInitParameters(initparams);
 			}
