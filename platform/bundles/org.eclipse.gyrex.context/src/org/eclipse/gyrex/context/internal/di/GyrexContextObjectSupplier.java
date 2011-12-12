@@ -11,8 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.di;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -39,6 +37,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServicePermission;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -160,33 +159,17 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 	}
 
 	private BundleContext getBundleContext(final IRequestor requestor) {
-		Bundle bundle = null;
-
-		final Object requestingObject = requestor.getRequestingObject();
-		if (null != requestingObject) {
-			bundle = FrameworkUtil.getBundle(requestingObject.getClass());
+		final Class<?> requestingObjectClass = requestor.getRequestingObjectClass();
+		if (null == requestingObjectClass) {
+			return null;
 		}
 
+		final Bundle bundle = FrameworkUtil.getBundle(requestingObjectClass);
 		if (null == bundle) {
-			// ConstructorRequestor
-			// FIXME: https://bugs.eclipse.org/357865
-			try {
-				final Field field = requestor.getClass().getDeclaredField("constructor");
-				if (!field.isAccessible()) {
-					field.setAccessible(true);
-				}
-				bundle = FrameworkUtil.getBundle(((Constructor<?>) field.get(requestor)).getDeclaringClass());
-			} catch (final Exception e) {
-				LOG.debug("exception accessing data in requestor {}", requestor, e);
-			}
+			return null;
 		}
 
-		if (null != bundle) {
-			return bundle.getBundleContext();
-		}
-
-		// give up
-		return null;
+		return bundle.getBundleContext();
 	}
 
 	private Class<?> getClass(final Type type) {
@@ -252,6 +235,17 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 
 		// detect OSGi service interface
 		final Class<?> serviceInterface = collectionOfServices ? getCollectionElementType(descriptor) : key;
+
+		// verify that the bundle requesting the service has the necessary permissions to use it
+		// (stack-based permission checks will only check the DI engine stack; thus we need
+		// to verify manually, similar to section 112.9.3 of DS spec with DCR)
+
+		if (!bundleContext.getBundle().hasPermission(new ServicePermission(serviceInterface.getName(), "get"))) {
+			if (ContextDebug.injection) {
+				LOG.debug("Bundle ({}) does not have permissions to get service ({}) for requestor ({}).", new Object[] { bundleContext.getBundle(), serviceInterface, requestor });
+			}
+			return null;
+		}
 
 		// track service
 		final IServiceProxy<?> proxy;
