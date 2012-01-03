@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 AGETO Service GmbH and others.
+ * Copyright (c) 2011, 2012 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
@@ -30,6 +31,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -380,18 +382,6 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("Reading children for node {} (cversion {}) from ZooKeeper {}", new Object[] { node, node.childrenVersion, path });
 			}
 
-			// sync with ZooKeeper if necessary (outside of any locks)
-			if (forceSyncWithRemoteVersion) {
-				// FIXME: implement sync wait
-//				keeper.sync(path, new VoidCallback() {
-//					@Override
-//					public void processResult(final int rc, final String path, final Object ctx) {
-//						// TODO Auto-generated method stub
-//
-//					}
-//				}, null);
-			}
-
 			// get list of children (and also set watcher)
 			final Stat stat = new Stat();
 
@@ -491,18 +481,6 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			// log message
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Reading properties for node {} (version {}) from ZooKeeper {}", new Object[] { node, node.propertiesVersion, path });
-			}
-
-			// sync with ZooKeeper if necessary (outside of any locks)
-			if (forceSyncWithRemoteVersion) {
-				// FIXME: implement sync wait
-//				keeper.sync(path, new VoidCallback() {
-//					@Override
-//					public void processResult(final int rc, final String path, final Object ctx) {
-//						// TODO Auto-generated method stub
-//
-//					}
-//				}, null);
 			}
 
 			// read record data (and set new watcher)
@@ -608,6 +586,61 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				}
 			}
 			return true;
+		}
+	}
+
+	/**
+	 * Callable implementation for
+	 * {@link ZooKeeperPreferencesService#sync(String))}.
+	 * 
+	 * @see ZooKeeperPreferencesService#sync(String))
+	 */
+	private final class Sync extends ZooKeeperCallable<Boolean> {
+
+		private final class WaitForFinishCallback implements VoidCallback {
+			private final CountDownLatch waitForSyncFinish = new CountDownLatch(1);
+
+			private WaitForFinishCallback() {
+			}
+
+			@Override
+			public void processResult(final int rc, final String path, final Object ctx) {
+				waitForSyncFinish.countDown();
+			}
+
+			public Boolean waitForFinish(final long timeout, final TimeUnit unit) {
+				try {
+					return waitForSyncFinish.await(timeout, unit);
+				} catch (final InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+				return waitForSyncFinish.getCount() == 0;
+			}
+		}
+
+		private final String path;
+
+		/**
+		 * Creates a new instance.
+		 * 
+		 * @param path
+		 */
+		private Sync(final String path) {
+			this.path = path;
+		}
+
+		@Override
+		protected Boolean call(final ZooKeeper keeper) throws Exception {
+			checkClosed();
+
+			// the callback to simulate a synchronous wait
+			final WaitForFinishCallback waitForSync = new WaitForFinishCallback();
+
+			// sync with ZooKeeper
+			keeper.sync(path, waitForSync, null);
+
+			// wait for the sync to finish
+			return waitForSync.waitForFinish(5L, TimeUnit.MINUTES);
 		}
 	}
 
@@ -1023,6 +1056,19 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 	 */
 	public final void shutdown() {
 		close();
+	}
+
+	/**
+	 * Synchronized the ZooKeeper client with the ZooKeeper leader service.
+	 * 
+	 * @param path
+	 *            the ZooKeeper path of the preference node to sync
+	 * @throws Exception
+	 */
+	public void sync(final String path) throws Exception {
+		checkClosed();
+
+		execute(new Sync(path));
 	}
 
 	/**

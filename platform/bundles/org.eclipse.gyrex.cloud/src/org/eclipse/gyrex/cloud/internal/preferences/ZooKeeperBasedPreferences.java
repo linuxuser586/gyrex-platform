@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2011 AGETO Service GmbH and others.
+ * Copyright (c) 2010, 2012 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -1332,6 +1332,18 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 
 	@Override
 	public void sync() throws BackingStoreException {
+		// sync the ZooKeeper client with the leader
+		// (note, we do this here and not in #syncTree because ZooKeeper implements this recursively already)
+		try {
+			checkRemoved();
+			if (CloudDebug.zooKeeperPreferences) {
+				LOG.debug("Syncing ZooKeeper client with leader for node {}", new Object[] { this });
+			}
+			service.sync(zkPath);
+		} catch (final Exception e) {
+			createBackingStoreException("synchronizing ZooKeeper client", e);
+		}
+
 		// sync tree
 		syncTree();
 
@@ -1340,7 +1352,7 @@ public abstract class ZooKeeperBasedPreferences implements IEclipsePreferences {
 	}
 
 	/**
-	 * This is the acutal sync implementation.
+	 * This is the actual sync implementation.
 	 * <p>
 	 * It's called by {@link #sync()} in order to sync the whole tree first
 	 * before flushing any content.
