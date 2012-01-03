@@ -200,8 +200,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		@Override
 		protected Stat call(final ZooKeeper keeper) throws Exception {
 			checkClosed();
-
-			return keeper.exists(path, monitor);
+			return keeper.exists(path, false);
 		}
 	}
 
@@ -237,7 +236,9 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("Loading node {} at {}.", new Object[] { node, path });
 			}
 
-			// check if path exists
+			// check if path exists 
+			// (also set monitor to wait for its creation or deletion)
+			// TODO: we might need to make this configurable per requests to prevent exist watches for properly propagated deletes
 			if (null == keeper.exists(path, monitor)) {
 				if (CloudDebug.zooKeeperPreferences) {
 					LOG.debug("Node {} at {} does not exists in ZooKeeper. Nothing to load.", node, path);
@@ -379,6 +380,18 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("Reading children for node {} (cversion {}) from ZooKeeper {}", new Object[] { node, node.childrenVersion, path });
 			}
 
+			// sync with ZooKeeper if necessary (outside of any locks)
+			if (forceSyncWithRemoteVersion) {
+				// FIXME: implement sync wait
+//				keeper.sync(path, new VoidCallback() {
+//					@Override
+//					public void processResult(final int rc, final String path, final Object ctx) {
+//						// TODO Auto-generated method stub
+//
+//					}
+//				}, null);
+			}
+
 			// get list of children (and also set watcher)
 			final Stat stat = new Stat();
 
@@ -394,6 +407,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				throw new IllegalStateException(String.format("lock timeout waiting for childrenModifyLock on node '%s'", node));
 			}
 			try {
+				// get children
 				final Collection<String> childrenNames = keeper.getChildren(path, monitor, stat);
 
 				// don't load children if version is in the past
@@ -477,6 +491,18 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			// log message
 			if (CloudDebug.zooKeeperPreferences) {
 				LOG.debug("Reading properties for node {} (version {}) from ZooKeeper {}", new Object[] { node, node.propertiesVersion, path });
+			}
+
+			// sync with ZooKeeper if necessary (outside of any locks)
+			if (forceSyncWithRemoteVersion) {
+				// FIXME: implement sync wait
+//				keeper.sync(path, new VoidCallback() {
+//					@Override
+//					public void processResult(final int rc, final String path, final Object ctx) {
+//						// TODO Auto-generated method stub
+//
+//					}
+//				}, null);
 			}
 
 			// read record data (and set new watcher)
@@ -624,33 +650,37 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("Writing properties for node {} (version {}) to ZooKeeper {}", new Object[] { node, node.propertiesVersion, path });
 			}
 
+			//
+			// ---> ZooKeeper WATCHES <---
+			//
+			// As a general rule no watches are set on WRITE calls!
+			// The policy is that any call which *loads* data will register watches which 
+			// will be triggered when data is written and thus set again by refresh/load calls 
+			// (which happens because of the trigger-fresh-cycle).
+			//
+
 			// create node but only if it doesn't exists and no explicit version is requested
 			// (if version is specified and the node does not exists then it might have been removed meanwhile)
-			if ((propertiesVersion < 0) && (null == keeper.exists(path, monitor))) {
+			if ((propertiesVersion < 0) && (null == keeper.exists(path, false))) {
 				// create parents
 				ZooKeeperHelper.createParents(keeper, new Path(path));
 
 				// create path
-				Stat stat = null;
-				while (null == stat) {
-					try {
-						keeper.create(path, propertyBytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-						// FIXME: there is a small time window between CREATE and EXISTS where data can be modified without any event
-						// (https://issues.apache.org/jira/browse/ZOOKEEPER-1297)
-						stat = keeper.exists(path, monitor);
-					} catch (final NodeExistsException e) {
-						// it has been created concurrently (this is bad luck)
-						// fail so that higher level API can react on those events
-						throw e;
-					}
+				try {
+					keeper.create(path, propertyBytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+				} catch (final NodeExistsException e) {
+					// it has been created concurrently (this is bad luck)
+					// fail so that higher level API can react on those events
+					throw e;
 				}
-				return stat.getVersion();
+
+				// FIXME: there is a small time window between CREATE and EXISTS where data can be modified without any event
+				// (https://issues.apache.org/jira/browse/ZOOKEEPER-1297)
+				// in order to properly detect this we avoid the EXISTS call and assume version "0" for a successful CREATE
+				return 0;
 			}
 
 			// write data
-			// (note, we don't set a watch here; the assumption is that we already have
-			// a watch registered at this point which will trigger once we set data;
-			// this will call #loadNode logic which will re-install a watch)
 			return keeper.setData(path, propertyBytes, propertiesVersion).getVersion();
 		}
 	}
