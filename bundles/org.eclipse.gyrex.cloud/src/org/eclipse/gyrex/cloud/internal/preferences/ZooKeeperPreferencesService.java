@@ -162,6 +162,9 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 							// refresh the node
 							loadNode(path, true);
 						}
+					} catch (final IllegalStateException e) {
+						// this may be the result of a shutdown
+						LOG.warn("System is not able to properly process event '{}' at this time: {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
 					} catch (final Exception e) {
 						LOG.error("Exception processing event '{}': {} ", new Object[] { path, ExceptionUtils.getRootCauseMessage(e), e });
 					}
