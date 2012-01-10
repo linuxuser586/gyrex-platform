@@ -159,7 +159,11 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 		try {
 			doClose();
 		} finally {
-			metricsRegistration.unregister();
+			try {
+				metricsRegistration.unregister();
+			} catch (final IllegalStateException ignored) {
+				// already unregistered
+			}
 			metricsRegistration = null;
 		}
 	}
