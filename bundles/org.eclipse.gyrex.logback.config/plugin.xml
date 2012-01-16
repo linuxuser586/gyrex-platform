@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="org.eclipse.gyrex.logback.config.application"
+         name="Logback Configurator Application"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="false">
+         <run
+               class="org.eclipse.gyrex.logback.config.internal.LogbackConfigApplication">
+         </run>
+      </application>
+   </extension>
+   <extension
+         point="org.eclipse.gyrex.server.roles">
+      <role
+            id="org.eclipse.gyrex.logback.config.role"
+            name="Logback Configurator">
+         <requireApplication
+               applicationId="org.eclipse.gyrex.logback.config.application">
+         </requireApplication>
+      </role>
+   </extension>
+   <extension
+         point="org.eclipse.gyrex.server.roles">
+      <defaultStart
+            mode="any"
+            roleId="org.eclipse.gyrex.logback.config.role"
+            trigger="onCloudConnect">
+      </defaultStart>
+   </extension>
+
+</plugin>
