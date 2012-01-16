@@ -40,7 +40,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	private static final String ENABLED = "enabled";
 
 	private final String id;
-	private final String scheduleId;
+	private final ScheduleImpl schedule;
 
 	private boolean enabled;
 
@@ -52,10 +52,10 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	 * Creates a new instance.
 	 * 
 	 * @param id
-	 * @param scheduleId
+	 * @param schedule
 	 */
-	public ScheduleEntryImpl(final String id, final String scheduleId) {
-		this.scheduleId = scheduleId;
+	public ScheduleEntryImpl(final String id, final ScheduleImpl schedule) {
+		this.schedule = schedule;
 		if (!IdHelper.isValidId(id)) {
 			throw new IllegalArgumentException("invalid entry id");
 		}
@@ -75,7 +75,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	@Override
 	public String getJobId() {
-		return scheduleId.concat("__entry__").concat(id);
+		return schedule.getId().concat("__entry__").concat(id);
 	}
 
 	@Override
@@ -89,6 +89,10 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	@Override
 	public String getJobTypeId() {
 		return jobTypeId;
+	}
+
+	public ScheduleImpl getSchedule() {
+		return schedule;
 	}
 
 	@Override
