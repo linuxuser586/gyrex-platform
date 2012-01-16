@@ -97,20 +97,37 @@ public class GyrexContextPreferencesImpl implements IRuntimeContextPreferences {
 	 *            the context
 	 * @return the preferences node for the context.
 	 */
-	public static Preferences getNode(final String qualifier, final String key, final IRuntimeContext context) {
-		if (context == null) {
-			throw new IllegalStateException("context had been disposed");
-		}
-
+	public static Preferences getNode(final String qualifier, final String key, final IPath contextPath) {
 		final String pathToPreferencesKey = getPathToPreferencesKey(qualifier, key);
 		final Preferences node = ContextConfiguration.getRootNodeForContextPreferences();
-		final IPath contextPath = context.getContextPath();
 		if (!contextPath.isEmpty() && !contextPath.isRoot()) {
 			return node.node(getPreferencesPathToSettings(contextPath, pathToPreferencesKey));
 		}
 
 		// fallback to root
 		return node.node(getPreferencesPathToSettings(Path.ROOT, pathToPreferencesKey));
+	}
+
+	/**
+	 * Convenience method for {@link #getNode(String, String, IPath)} which
+	 * obtains the path from a specified {@link IRuntimeContext}.
+	 * 
+	 * @param qualifier
+	 *            a namespace qualifier for the preference (eg. typically the
+	 *            symbolic name of the bundle defining the preference)
+	 * @param key
+	 *            the name of the preference (optionally including its path)
+	 * @param context
+	 *            the context
+	 * @return the preferences node for the context.
+	 */
+	public static Preferences getNode(final String qualifier, final String key, final IRuntimeContext context) {
+		if (context == null) {
+			throw new IllegalStateException("context had been disposed");
+		}
+		final IPath contextPath = context.getContextPath();
+
+		return getNode(qualifier, key, contextPath);
 	}
 
 	/**
