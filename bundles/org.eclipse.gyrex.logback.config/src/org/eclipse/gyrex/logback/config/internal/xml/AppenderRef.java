@@ -22,7 +22,14 @@ import javax.xml.bind.annotation.XmlTransient;
 public class AppenderRef extends ConfigElement {
 
 	@XmlTransient
-	private final Appender appender;
+	private Appender appender;
+
+	/**
+	 * Creates a new instance.
+	 */
+	public AppenderRef() {
+		// empty
+	}
 
 	/**
 	 * Creates a new instance.
@@ -30,15 +37,19 @@ public class AppenderRef extends ConfigElement {
 	 * @param appender
 	 */
 	public AppenderRef(final Appender appender) {
-		this.appender = appender;
+		setAppender(appender);
 	}
 
-	@XmlAttribute(name = "ref")
+	@XmlAttribute(name = "ref", required = true)
 	public String getRef() {
 		if (null == appender) {
 			return null;
 		}
 		return appender.name;
+	}
+
+	private void setAppender(final Appender appender) {
+		this.appender = appender;
 	}
 
 }

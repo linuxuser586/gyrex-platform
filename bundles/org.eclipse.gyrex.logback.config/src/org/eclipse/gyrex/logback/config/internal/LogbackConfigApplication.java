@@ -5,6 +5,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+
 import org.eclipse.equinox.app.IApplication;
 
 import org.eclipse.gyrex.boot.internal.app.LogbackConfigurator;
@@ -71,8 +74,13 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 
 		// save file
 		final File configFile = new File(parentFolder, String.format("%s.xml", DateFormatUtils.format(getLastModified(), "yyyyMMdd-HHmmssSSS")));
-//		JAXB.marshal(config, configFile);
-//		JAXBContext.newInstance(null)
+		try {
+			final JAXBContext context = JAXBContext.newInstance(RootLogger.class);
+			context.createMarshaller().marshal(context, configFile);
+		} catch (final JAXBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		// cleanup directory
 		removeOldFiles(parentFolder);
