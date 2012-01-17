@@ -218,7 +218,7 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 	}
 
 	@Override
-	public IRepositoryDefinition getRepositoryDefinition(final String repositoryId) {
+	public RepositoryDefinition getRepositoryDefinition(final String repositoryId) {
 		if (null == repositoryId) {
 			throw new IllegalArgumentException("repository id must not be null");
 		}
