@@ -16,8 +16,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.internal.locking.ZooKeeperLockService;
 import org.eclipse.gyrex.cloud.internal.queue.ZooKeeperQueueService;
+import org.eclipse.gyrex.cloud.internal.state.ZooKeeperNodeStateService;
 import org.eclipse.gyrex.cloud.services.locking.ILockService;
 import org.eclipse.gyrex.cloud.services.queue.IQueueService;
+import org.eclipse.gyrex.cloud.services.state.query.INodeStateQueryService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 
@@ -66,6 +68,10 @@ public class CloudActivator extends BaseBundleActivator {
 
 	private ServiceRegistration<ILockService> lockServiceRegistration;
 
+	private ServiceRegistration<INodeStateQueryService> nodeStateServiceRegistration;
+
+	private ZooKeeperNodeStateService nodeStateService;
+
 	/**
 	 * Creates a new instance.
 	 */
@@ -98,10 +104,11 @@ public class CloudActivator extends BaseBundleActivator {
 		// unregister node with cloud
 		CloudState.unregisterNode();
 
+		// ensure all is properly stopped
+		stopCloudServices();
+
 		// unset all other
 		nodeEnvironment = null;
-		lockServiceRegistration = null;
-		queueServiceRegistration = null;
 
 		instanceRef.set(null);
 		preferenceServiceRef.set(null);
@@ -144,6 +151,10 @@ public class CloudActivator extends BaseBundleActivator {
 		}
 		lockServiceRegistration = getServiceHelper().registerService(ILockService.class, new ZooKeeperLockService(), "Eclipse Gyrex", "ZooKeeper base lock service.", null, null);
 		queueServiceRegistration = getServiceHelper().registerService(IQueueService.class, new ZooKeeperQueueService(), "Eclipse Gyrex", "ZooKeeper base queue service.", null, null);
+
+		nodeStateService = new ZooKeeperNodeStateService(getBundle().getBundleContext(), nodeEnvironment.getNodeId());
+		nodeStateServiceRegistration = getServiceHelper().registerService(INodeStateQueryService.class, nodeStateService, "Eclipse Gyrex", "ZooKeeper base queue service.", null, null);
+		nodeStateService.open();
 	}
 
 	void stopCloudServices() {
@@ -159,6 +170,16 @@ public class CloudActivator extends BaseBundleActivator {
 		if (queueServiceRegistration != null) {
 			queueServiceRegistration.unregister();
 			this.queueServiceRegistration = null;
+		}
+		final ServiceRegistration<INodeStateQueryService> nodeStateServiceRegistration = this.nodeStateServiceRegistration;
+		if (nodeStateServiceRegistration != null) {
+			nodeStateServiceRegistration.unregister();
+			this.nodeStateServiceRegistration = null;
+		}
+		final ZooKeeperNodeStateService nodeStateService = this.nodeStateService;
+		if (nodeStateService != null) {
+			nodeStateService.close();
+			this.nodeStateService = null;
 		}
 	}
 }
