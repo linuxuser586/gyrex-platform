@@ -14,6 +14,7 @@ package org.eclipse.gyrex.persistence.storage;
 import java.text.MessageFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
@@ -87,13 +88,13 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	private final RepositoryProvider repositoryProvider;
 
 	/** indicates if the repository has been closed */
-	private volatile boolean closed;
+	private final AtomicBoolean closed = new AtomicBoolean();
 
 	/** the repository metrics */
 	private final MetricSet metrics;
 
 	/** the repository metrics registration */
-	private volatile ServiceRegistration metricsRegistration;
+	private volatile ServiceRegistration<?> metricsRegistration;
 
 	/** the content type support */
 	private volatile RepositoryContentTypeSupport repositoryContentTypeSupport;
@@ -139,7 +140,7 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 		this.repositoryProvider = repositoryProvider;
 		this.metrics = metrics;
 
-		// register the metrics (this is the last call)
+		// register the services (this is the last call)
 		registerMetrics();
 	}
 
@@ -155,10 +156,14 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	public final void close() {
-		closed = true;
+		if (!closed.compareAndSet(false, true)) {
+			return;
+		}
+
 		try {
 			doClose();
 		} finally {
+			// unregister metrics
 			try {
 				metricsRegistration.unregister();
 			} catch (final IllegalStateException ignored) {
@@ -180,6 +185,16 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	 */
 	protected void doClose() {
 		// empty
+	}
+
+	private BundleContext getBundleContext() {
+		// TODO: we might need to wrap this into a privileged call
+		final Bundle bundle = FrameworkUtil.getBundle(getClass());
+		final BundleContext bundleContext = null != bundle ? bundle.getBundleContext() : null;
+		if (null == bundleContext) {
+			throw new IllegalStateException("Unable to determin bundle context for class '" + getClass().getName() + "'. Please ensure that this class was loaded by a bundle which is either STARTING, ACTIVE or STOPPING.");
+		}
+		return bundleContext;
 	}
 
 	/**
@@ -301,7 +316,7 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	 *         otherwise
 	 */
 	public final boolean isClosed() {
-		return closed;
+		return closed.get();
 	}
 
 	/**
@@ -315,29 +330,24 @@ public abstract class Repository extends PlatformObject implements IRepositoryCo
 	 */
 	private void registerMetrics() throws IllegalArgumentException, IllegalStateException {
 		// get bundle context
-		// TODO: we might need to wrap this into a privileged call
-		final Bundle bundle = FrameworkUtil.getBundle(getClass());
-		final BundleContext bundleContext = null != bundle ? bundle.getBundleContext() : null;
-		if (null == bundleContext) {
-			throw new IllegalStateException("Unable to determin bundle context for class '" + getClass().getName() + "'. Please ensure that this class was loaded by a bundle which is either STARTING, ACTIVE or STOPPING.");
-		}
+		final BundleContext bundleContext = getBundleContext();
 
-		// create properties
-		final Dictionary<String, Object> properties = new Hashtable<String, Object>(2);
-		properties.put(Constants.SERVICE_VENDOR, getName() + "[" + getRepositoryId() + "]");
-		properties.put(Constants.SERVICE_DESCRIPTION, "Metrics for repository '" + getRepositoryId() + "'.");
-		properties.put(SERVICE_PROPERTY_REPOSITORY_ID, getRepositoryId());
+		// create metrics properties
+		final Dictionary<String, Object> metricsProps = new Hashtable<String, Object>(4);
+		metricsProps.put(Constants.SERVICE_VENDOR, getName() + "[" + getRepositoryId() + "]");
+		metricsProps.put(Constants.SERVICE_DESCRIPTION, "Metrics for repository '" + getRepositoryId() + "'.");
+		metricsProps.put(SERVICE_PROPERTY_REPOSITORY_ID, getRepositoryId());
 		try {
 			final String description = getDescription();
 			if (StringUtils.isNotBlank(description)) {
-				properties.put(SERVICE_PROPERTY_REPOSITORY_DESCRIPTION, description);
+				metricsProps.put(SERVICE_PROPERTY_REPOSITORY_DESCRIPTION, description);
 			}
 		} catch (final Exception e) {
 			// registerMetrics is called during object construction, therefore #getDescription might not be ready yet.
 		}
 
-		// register service
-		metricsRegistration = bundleContext.registerService(MetricSet.SERVICE_NAME, metrics, properties);
+		// register metrics
+		metricsRegistration = bundleContext.registerService(MetricSet.SERVICE_NAME, metrics, metricsProps);
 	}
 
 	/**
