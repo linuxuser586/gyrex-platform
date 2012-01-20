@@ -26,17 +26,20 @@ import org.junit.Test;
  */
 public class RepositoryRegistryTests {
 
+	private RepositoryRegistry registry;
+
 	@Before
 	public void setUp() throws Exception {
+		registry = new RepositoryRegistry(Activator.context);
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		registry.stop();
 	}
 
 	@Test
 	public void testDefineRepository() {
-		final RepositoryRegistry registry = new RepositoryRegistry();
 		registry.createRepository("test", "blah");
 		final IRepositoryDefinition definition = registry.getRepositoryDefinition("test");
 		assertNotNull(definition);

@@ -16,6 +16,7 @@ package org.eclipse.gyrex.persistence.internal.storage;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.cloud.services.state.INodeState;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.Repository;
@@ -35,6 +37,10 @@ import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.INodeChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.NodeChangeEvent;
 
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceRegistration;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -44,6 +50,11 @@ import org.slf4j.LoggerFactory;
  * The platform repository manager stores repository information.
  */
 public class RepositoryRegistry implements IRepositoryRegistry {
+
+	/** ACTIVE */
+	private static final String STATE_ACTIVE = "active";
+	public static final String STATE_REPOSITORY_PREFIX = "repository:";
+	public static final String REPOSITORY_STATE_SERVICE_PID = "org.eclipse.gyrex.persistence.storage.registry.state";
 
 	private static final Logger LOG = LoggerFactory.getLogger(RepositoryRegistry.class);
 
@@ -72,6 +83,26 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 	private final ConcurrentMap<String, Repository> repositoryCache = new ConcurrentHashMap<String, Repository>(4);
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 
+	private volatile ServiceRegistration<INodeState> registryStateRegistration;
+	private final Hashtable<String, String> registryState;
+
+	/**
+	 * Creates a new instance.
+	 * 
+	 * @param context
+	 */
+	public RepositoryRegistry(final BundleContext context) {
+
+		// initialize repository state
+		registryState = new Hashtable<String, String>(4);
+		registryState.put(Constants.SERVICE_VENDOR, "Eclipse Gyrex");
+		registryState.put(Constants.SERVICE_DESCRIPTION, "Repository Registry State");
+		registryState.put(Constants.SERVICE_PID, REPOSITORY_STATE_SERVICE_PID);
+
+		// publish initial state
+		registryStateRegistration = context.registerService(INodeState.class, INodeState.INSTANCE, registryState);
+	}
+
 	public void close(final String repositoryId) {
 		if (!repositoryCache.containsKey(repositoryId)) {
 			return;
@@ -88,9 +119,11 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 			// remove cached instance
 			repository = repositoryCache.remove(repositoryId);
 
+			// remove from state map
+			registryState.remove(STATE_REPOSITORY_PREFIX.concat(repositoryId));
+
 			// remove lock
 			locksByRepositoryId.remove(repositoryId);
-
 		} finally {
 			if (lock != null) {
 				lock.unlock();
@@ -106,6 +139,8 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 			}
 		}
 
+		// publish new state
+		updateRepositoryState();
 	}
 
 	/**
@@ -209,12 +244,18 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 
 			// put the repository instance in the cache
 			repositoryCache.put(repositoryId, repository);
-
-			// return the repository
-			return repository;
 		} finally {
 			repositoryCreationLock.unlock();
 		}
+
+		// register repository in state map
+		registryState.put(STATE_REPOSITORY_PREFIX.concat(repositoryId), STATE_ACTIVE);
+
+		// update the repository state (outside lock)
+		updateRepositoryState();
+
+		// return the repository
+		return repository;
 	}
 
 	@Override
@@ -256,6 +297,18 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 			return;
 		}
 
+		// un-publish state
+		final ServiceRegistration<INodeState> registration = registryStateRegistration;
+		if (null != registration) {
+			try {
+				registration.unregister();
+			} catch (final IllegalStateException e) {
+				// ignore
+			}
+		}
+		registryStateRegistration = null;
+		registryState.clear();
+
 		// remove listener
 		RepositoryDefinitionsStore.getRepositoriesNode().removeNodeChangeListener(repositoryModifcationListener);
 
@@ -266,6 +319,20 @@ public class RepositoryRegistry implements IRepositoryRegistry {
 				close(repoId);
 			}
 		}
+	}
+
+	private void updateRepositoryState() {
+		final ServiceRegistration<INodeState> stateRegistration = registryStateRegistration;
+		if (null != stateRegistration) {
+			try {
+				stateRegistration.setProperties(registryState);
+			} catch (final IllegalStateException e) {
+				// ignore
+			} catch (final Exception e) {
+				LOG.error("Error updating repository state. {}", ExceptionUtils.getRootCauseMessage(e), e);
+			}
+		}
+
 	}
 
 }

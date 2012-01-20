@@ -81,7 +81,7 @@ public class PersistenceActivator extends BaseBundleActivator {
 		repositoryProviderRegistry.start(context);
 
 		// start the repository registry
-		repositoryRegistry = new RepositoryRegistry();
+		repositoryRegistry = new RepositoryRegistry(context);
 		repositoryRegistryRegistration = getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "Gyrex Repository Registry", null, null);
 	}
 
