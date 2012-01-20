@@ -38,11 +38,17 @@ import org.osgi.framework.Constants;
  * Any service property will be converted to a String value.
  * </p>
  * <p>
- * This interface must be implemented by clients providing node state.
+ * This interface may be implemented by clients providing node state. However,
+ * it's recommended to use the {@link #INSTANCE singleton instance} provided by
+ * this interface.
  * </p>
  */
 public interface INodeState {
 
 	/** the service name */
 	String SERVICE_NAME = "org.eclipse.gyrex.cloud.environment.NodeState";
+
+	/** INSTANCE */
+	INodeState INSTANCE = new INodeState() {
+	};
 }
