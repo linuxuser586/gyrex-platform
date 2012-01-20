@@ -13,10 +13,8 @@ package org.eclipse.gyrex.cloud.internal.state;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -144,13 +142,13 @@ public class ZooKeeperNodeStatePublisher extends ZooKeeperBasedService {
 		}
 	}
 
-	private static final Set<String> KEYS_TO_IGNORE = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(Constants.OBJECTCLASS, Constants.SERVICE_ID, Constants.SERVICE_PID, Constants.SERVICE_RANKING)));
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperNodeStatePublisher.class);
 
 	static Properties getStateData(final ServiceReference<INodeState> reference) {
 		final Properties props = new SortedProperties();
 		for (final String key : reference.getPropertyKeys()) {
-			if (KEYS_TO_IGNORE.contains(key)) {
+			// skip unwanted service properties
+			if (key.equals(Constants.OBJECTCLASS) || key.startsWith("service.")) {
 				continue;
 			}
 			final Object value = reference.getProperty(key);
