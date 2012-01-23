@@ -45,7 +45,7 @@ public class EclipseLinkRepositoryMetrics extends MetricSet {
 	private final ErrorMetric errorMetric;
 
 	EclipseLinkRepositoryMetrics(final String id, final String repositoryId, final RepositoryProvider repositoryProvider, final String initialStatus, final String initialStatusReason) {
-		super(id, String.format("Repository metrics for EclipseLink repository '%s'", repositoryId), createProperties(repositoryId, repositoryProvider), createMetrics(id, repositoryId));
+		super(id, String.format("Repository metrics for EclipseLink repository '%s'", repositoryId), createProperties(repositoryId, repositoryProvider), createMetrics(initialStatus, initialStatusReason));
 		statusMetric = getMetric(0, StatusMetric.class);
 		errorMetric = getMetric(1, ErrorMetric.class);
 	}
