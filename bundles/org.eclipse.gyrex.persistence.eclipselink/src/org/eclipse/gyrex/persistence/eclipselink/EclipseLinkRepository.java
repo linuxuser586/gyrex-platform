@@ -57,7 +57,7 @@ public abstract class EclipseLinkRepository extends Repository {
 	 * </p>
 	 * <p>
 	 * If the system is not able to create an {@link EntityManagerFactory}
-	 * instance due to missing service dependencies and
+	 * instance due to missing service dependencies an
 	 * {@link IllegalStateException} will be thrown.
 	 * </p>
 	 * 
