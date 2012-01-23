@@ -20,6 +20,17 @@ import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 
 /**
  * A repository which uses EclipseLink for persisting objects into databases.
+ * <p>
+ * Note, this API depends on the EclipseLink and JPA API. Thus, it is bound to
+ * the evolution of external API which might not follow the Gyrex <a
+ * href="http://wiki.eclipse.org/Evolving_Java-based_APIs" target="_blank">API
+ * evolution</a> and <a href="http://wiki.eclipse.org/Version_Numbering"
+ * target="_blank">versioning</a> guidelines.
+ * </p>
+ * <p>
+ * This class must not be subclassed or instantiated by clients. The platform
+ * provides an implementation which will be injected.
+ * </p>
  * 
  * @noextend This class is not intended to be subclassed by clients.
  */
