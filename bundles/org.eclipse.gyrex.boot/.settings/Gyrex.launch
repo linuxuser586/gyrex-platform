@@ -27,9 +27,9 @@
 <stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl}&#13;&#10;-console&#13;&#10;-consoleLog"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-XX:+UseParallelGC -XX:MaxPermSize=128m&#13;&#10;-Dequinox.ds.print=true&#13;&#10;-Dequinox.ds.block_timeout=300000&#13;&#10;-Declipse.rap.registerWithHttpService=false&#13;&#10;-Dorg.eclipse.rap.http.defaultServiceFilter=(!(other.info=org.eclipse.gyrex.admin.ui.http))&#13;&#10;-Dosgi.framework.extensions=org.eclipse.gyrex.frameworklogadapter,org.eclipse.gemini.jpa.weaving&#13;&#10;-Dosgi.console.ssh=2402&#13;&#10;-Dssh.server.authorized_keys=T:\projects\columbus\temp\authorized_keys"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dorg.eclipse.equinox.http.jetty.autostart=false&#13;&#10;-XX:+UseParallelGC -XX:MaxPermSize=128m&#13;&#10;-Dequinox.ds.print=true&#13;&#10;-Dequinox.ds.block_timeout=300000&#13;&#10;-Declipse.rap.registerWithHttpService=false&#13;&#10;-Dorg.eclipse.rap.http.defaultServiceFilter=(!(other.info=org.eclipse.gyrex.admin.ui.http))&#13;&#10;-Dosgi.framework.extensions=org.eclipse.gyrex.frameworklogadapter,org.eclipse.gemini.jpa.weaving&#13;&#10;-Dosgi.console.ssh=2402&#13;&#10;-Dssh.server.authorized_keys=T:\projects\columbus\temp\authorized_keys&#13;&#10;-D__osgi.noShutdown=true"/>
 <stringAttribute key="pde.version" value="3.3"/>
-<stringAttribute key="product" value="org.eclipse.gyrex.examples.bugsearch.product"/>
+<stringAttribute key="product" value=""/>
 <booleanAttribute key="restart" value="true"/>
 <stringAttribute key="selectedPlugin" value="org.eclipse.gyrex.preferences"/>
 <setAttribute key="selected_features">

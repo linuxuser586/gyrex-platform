@@ -15,16 +15,17 @@ import java.text.MessageFormat;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.persistence.storage.provider.RepositoryProvider;
 
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
-
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The repository type registry.
@@ -35,9 +36,51 @@ import org.osgi.util.tracker.ServiceTracker;
  */
 public final class RepositoryProviderRegistry {
 
+	public static class RepositoryProviderRegistration {
+
+		private final RepositoryProvider provider;
+		private final String providerInfo;
+
+		/**
+		 * Creates a new instance.
+		 */
+		public RepositoryProviderRegistration(final RepositoryProvider provider, final String providerInfo) {
+			this.provider = provider;
+			this.providerInfo = providerInfo;
+		}
+
+		/**
+		 * Returns the provider.
+		 * 
+		 * @return the provider
+		 */
+		public RepositoryProvider getProvider() {
+			return provider;
+		}
+
+		/**
+		 * Returns the providerInfo.
+		 * 
+		 * @return the providerInfo
+		 */
+		public String getProviderInfo() {
+			return providerInfo;
+		}
+
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder();
+			builder.append("RepositoryProviderRegistration [provider=").append(provider).append(", providerInfo=").append(providerInfo).append("]");
+			return builder.toString();
+		}
+
+	}
+
 	/** the map with registered repository types by their id */
-	private final ConcurrentMap<String, RepositoryProvider> registeredRepositoryTypesById = new ConcurrentHashMap<String, RepositoryProvider>(5);
+	private final ConcurrentMap<String, RepositoryProviderRegistration> registeredRepositoryTypesById = new ConcurrentHashMap<String, RepositoryProviderRegistration>(5);
 	private ServiceTracker<RepositoryProvider, RepositoryProvider> serviceTracker;
+
+	private static final Logger LOG = LoggerFactory.getLogger(RepositoryProviderRegistry.class);
 
 	public void close() {
 		serviceTracker.close();
@@ -50,38 +93,34 @@ public final class RepositoryProviderRegistry {
 			throw new IllegalArgumentException("repository type id must not be null");
 		}
 
-		final RepositoryProvider repositoryType = registeredRepositoryTypesById.get(repositoryProviderId);
-		if (null == repositoryType) {
-			throw new IllegalStateException(MessageFormat.format("repository type \"{0}\" not available", repositoryProviderId));
+		final RepositoryProviderRegistration registration = registeredRepositoryTypesById.get(repositoryProviderId);
+		if (null == registration) {
+			throw new IllegalStateException(MessageFormat.format("repository provider \"{0}\" not available", repositoryProviderId));
 		}
 
-		return repositoryType;
+		return registration.getProvider();
 	}
 
-	/**
-	 * Registers a repository type under the specified repository type id.
-	 * 
-	 * @param repositoryProviderId
-	 *            the repository type id (may not be <code>null</code>)
-	 * @param type
-	 *            the repository type (may not be <code>null</code>)
-	 * @throws RegistrationException
-	 *             if the repository type could not be registered (usually
-	 *             because a repository type is already registered for the
-	 *             repository type id)
-	 */
-	// TODO: add support for multiple versions of the same provider
-	public void registerRepositoryProvider(final String repositoryProviderId, final RepositoryProvider type) throws CoreException {
+	public String getRepositoryProviderInfo(final String repositoryProviderId) {
 		if (null == repositoryProviderId) {
-			throw new IllegalArgumentException("repository type identifier must not be null");
-		}
-		if (null == type) {
-			throw new IllegalArgumentException("repository type must not be null");
+			throw new IllegalArgumentException("repository type id must not be null");
 		}
 
-		final RepositoryProvider existing = registeredRepositoryTypesById.putIfAbsent(repositoryProviderId, type);
-		if ((null != existing) && (existing != type)) {
-			throw new CoreException(new Status(IStatus.ERROR, PersistenceActivator.SYMBOLIC_NAME, IStatus.ERROR, MessageFormat.format("A repository type with id \"{0}\" is already registered!", repositoryProviderId), null));
+		final RepositoryProviderRegistration registration = registeredRepositoryTypesById.get(repositoryProviderId);
+		if (null == registration) {
+			throw new IllegalStateException(MessageFormat.format("repository provider \"{0}\" not available", repositoryProviderId));
+		}
+
+		return registration.getProviderInfo();
+	}
+
+	public void registerRepositoryProvider(final String providerId, final RepositoryProvider repositoryProvider, final String providerInfo) throws IllegalArgumentException, IllegalStateException {
+		if (!IdHelper.isValidId(providerId)) {
+			throw new IllegalArgumentException(String.format("Invalid repository provider id '%s'.", providerId));
+		}
+		final RepositoryProviderRegistration existing = registeredRepositoryTypesById.putIfAbsent(providerId, new RepositoryProviderRegistration(repositoryProvider, providerInfo));
+		if ((null != existing) && (existing.getProvider() != repositoryProvider)) {
+			throw new IllegalStateException(String.format("A repository provider with id \"%s\" is already registered!", providerId));
 		}
 	}
 
@@ -90,16 +129,15 @@ public final class RepositoryProviderRegistry {
 
 			@Override
 			public RepositoryProvider addingService(final ServiceReference<RepositoryProvider> reference) {
-				final RepositoryProvider repositoryType = super.addingService(reference);
-				if (null != repositoryType) {
+				final RepositoryProvider repositoryProvider = super.addingService(reference);
+				if (null != repositoryProvider) {
 					try {
-						registerRepositoryProvider(repositoryType.getProviderId(), repositoryType);
-					} catch (final CoreException e) {
-						// TODO log error
-						e.printStackTrace();
+						registerRepositoryProvider(repositoryProvider.getProviderId(), repositoryProvider, (String) reference.getProperty(Constants.SERVICE_DESCRIPTION));
+					} catch (final Exception e) {
+						LOG.error("Unable to register repository provider ({}). {}", new Object[] { reference, ExceptionUtils.getRootCauseMessage(e), e });
 					}
 				}
-				return repositoryType;
+				return repositoryProvider;
 			}
 
 			@Override
@@ -125,4 +163,5 @@ public final class RepositoryProviderRegistry {
 
 		registeredRepositoryTypesById.remove(repositoryProviderId);
 	}
+
 }
