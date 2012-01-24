@@ -26,6 +26,7 @@ public class RepositoryConsoleCommands extends BaseCommandProvider {
 	 */
 	public RepositoryConsoleCommands() {
 		registerCommand("ls", LsRepos.class);
+		registerCommand("providers", LsProviders.class);
 	}
 
 	public void _repos(final CommandInterpreter ci) throws Exception {
