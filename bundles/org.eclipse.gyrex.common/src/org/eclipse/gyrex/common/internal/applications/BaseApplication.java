@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 AGETO Service GmbH and others.
+ * Copyright (c) 2011, 2012 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -292,7 +292,11 @@ public abstract class BaseApplication implements IApplication {
 		// check if started
 		final CountDownLatch signal = unsetStopSignal();
 		if (null == signal) {
-			throw new IllegalStateException(String.format("%s not started!", getName()));
+			// don't fail may already stopped in parallel by regular shutdown
+			if (debug) {
+				getLogger().debug("{} not started. Ignoring stop request!", getName());
+			}
+			return;
 		}
 
 		// shutdown and wait
