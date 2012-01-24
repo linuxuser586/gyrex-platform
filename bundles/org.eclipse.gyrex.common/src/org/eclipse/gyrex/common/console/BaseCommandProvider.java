@@ -13,7 +13,7 @@ package org.eclipse.gyrex.common.console;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.eclipse.osgi.framework.console.CommandInterpreter;
@@ -30,7 +30,7 @@ import org.kohsuke.args4j.CmdLineParser;
  */
 public abstract class BaseCommandProvider implements CommandProvider {
 
-	final private Map<String, Class<? extends Command>> commands = new TreeMap<String, Class<? extends Command>>();
+	final private TreeMap<String, Class<? extends Command>> commands = new TreeMap<String, Class<? extends Command>>();
 
 	/**
 	 * allows to enable or disable printing of stack traces (default is
@@ -63,7 +63,7 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			return;
 		}
 
-		final Class<? extends Command> cmdClass = commands.get(command);
+		final Class<? extends Command> cmdClass = findCommandClass(command);
 		if (cmdClass == null) {
 			ci.println("ERROR: Command not found!");
 			ci.println(getHelp());
@@ -110,6 +110,29 @@ public abstract class BaseCommandProvider implements CommandProvider {
 				ci.printStackTrace(e);
 			}
 		}
+	}
+
+	private Class<? extends Command> findCommandClass(final String command) {
+		// direct match first
+		Class<? extends Command> cmdClass = commands.get(command);
+		if (null != cmdClass) {
+			return cmdClass;
+		}
+
+		// try sub-string match
+		for (final Entry<String, Class<? extends Command>> e : commands.entrySet()) {
+			if (e.getKey().startsWith(command)) {
+				if (null != cmdClass) {
+					// ambiguous command, don't find one
+					return null;
+				}
+				cmdClass = e.getValue();
+				// continue searching to discover ambiguous commands
+			}
+		}
+
+		// not found
+		return null;
 	}
 
 	/**
