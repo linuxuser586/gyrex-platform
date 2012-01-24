@@ -18,6 +18,7 @@ import org.eclipse.gyrex.persistence.storage.settings.IRepositoryPreferences;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 
 /**
@@ -28,13 +29,27 @@ public class LsRepos extends BaseRepoSelectingCommand {
 	@Option(name = "-v", aliases = { "--verbose" }, usage = "prints detailed configuration information")
 	protected boolean verbose = false;
 
+	@Argument(index = 0, metaVar = "ID-SUB-STRING", usage = "repository sub-string id filter")
+	protected String repositoryIdFilterArg;
+
 	/**
 	 * Creates a new instance.
 	 * 
 	 * @param description
 	 */
 	public LsRepos() {
-		super("- lists available repositories");
+		super("<repoIdFilter> - lists available repositories");
+	}
+
+	@Override
+	protected String getRepositoryIdFilter() {
+		// allow specifying filter as argument
+		if (null != repositoryIdFilterArg) {
+			return repositoryIdFilterArg;
+		}
+
+		// fallback to option
+		return super.getRepositoryIdFilter();
 	}
 
 	@Override

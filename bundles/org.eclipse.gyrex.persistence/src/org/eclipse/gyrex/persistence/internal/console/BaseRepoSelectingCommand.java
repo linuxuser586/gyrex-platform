@@ -38,17 +38,18 @@ public abstract class BaseRepoSelectingCommand extends Command {
 	 * @param description
 	 */
 	public BaseRepoSelectingCommand(final String description) {
-		super("-r <repoIdFilter> " + description);
+		super(description);
 	}
 
 	@Override
 	protected void doExecute() throws Exception {
 		final IRepositoryRegistry registry = getRegistry();
 
+		final String filter = getRepositoryIdFilter();
 		final Collection<String> filteredRepoIds = new TreeSet<String>();
 		final Collection<String> repositoryIds = registry.getRepositoryIds();
 		for (final String repoId : repositoryIds) {
-			if ((null == repositoryIdFilter) || StringUtils.contains(repoId, repositoryIdFilter)) {
+			if ((null == filter) || StringUtils.contains(repoId, filter)) {
 				filteredRepoIds.add(repoId);
 			}
 		}
@@ -67,6 +68,10 @@ public abstract class BaseRepoSelectingCommand extends Command {
 			return repositoryRegistry;
 		}
 		return repositoryRegistry = PersistenceActivator.getInstance().getRepositoriesManager();
+	}
+
+	protected String getRepositoryIdFilter() {
+		return repositoryIdFilter;
 	}
 
 	protected abstract void processRepository(final String repositoryId) throws Exception;
