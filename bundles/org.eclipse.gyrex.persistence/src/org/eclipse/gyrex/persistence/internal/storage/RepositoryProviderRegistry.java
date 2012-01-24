@@ -12,6 +12,9 @@
 package org.eclipse.gyrex.persistence.internal.storage;
 
 import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -58,6 +61,10 @@ public final class RepositoryProviderRegistry {
 			return provider;
 		}
 
+		public String getProviderId() {
+			return provider.getProviderId();
+		}
+
 		/**
 		 * Returns the providerInfo.
 		 * 
@@ -86,6 +93,12 @@ public final class RepositoryProviderRegistry {
 		serviceTracker.close();
 		serviceTracker = null;
 		registeredRepositoryTypesById.clear();
+	}
+
+	public List<RepositoryProviderRegistration> getAllProviderRegistrations() {
+		final Collection<RepositoryProviderRegistration> values = registeredRepositoryTypesById.values();
+		return Arrays.asList(values.toArray(new RepositoryProviderRegistration[values.size()]));
+
 	}
 
 	public RepositoryProvider getRepositoryProvider(final String repositoryProviderId) {
