@@ -131,8 +131,8 @@ public abstract class BaseCommandProvider implements CommandProvider {
 			}
 		}
 
-		// not found
-		return null;
+		// return what we have
+		return cmdClass;
 	}
 
 	/**
