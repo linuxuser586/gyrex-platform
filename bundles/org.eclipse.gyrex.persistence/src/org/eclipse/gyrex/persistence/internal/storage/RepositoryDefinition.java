@@ -122,6 +122,7 @@ public class RepositoryDefinition extends PlatformObject implements IRepositoryD
 
 	private void setTags(final Collection<String> tags) {
 		try {
+			storage.sync();
 			if (!tags.isEmpty()) {
 				storage.put(KEY_TAGS, StringUtils.join(tags, ' '));
 			} else {

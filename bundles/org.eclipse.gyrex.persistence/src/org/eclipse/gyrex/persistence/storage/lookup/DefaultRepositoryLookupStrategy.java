@@ -213,6 +213,9 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		final String contextPreferenceKey = context.getContextPath().toString();
 		final Preferences contentTypeAssignments = assignmentsNode.node(contentType.getMediaTypeType()).node(contentType.getMediaTypeSubType());
 
+		// refresh assignments
+		contentTypeAssignments.sync();
+
 		// update assignment
 		if (null != repositoryId) {
 			contentTypeAssignments.put(contextPreferenceKey, repositoryId);
