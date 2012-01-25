@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 AGETO Service GmbH and others.
+ * Copyright (c) 2011, 2012 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -11,21 +11,20 @@
  *******************************************************************************/
 package org.eclipse.gyrex.common.console;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * Base class for commands which contain other commands.
  */
 public abstract class SubCommand extends Command {
+
+	String parentCommandName;
+	boolean printErrorDetails;
 
 	final Map<String, Class<? extends Command>> commands = new TreeMap<String, Class<? extends Command>>();
 
@@ -66,43 +65,7 @@ public abstract class SubCommand extends Command {
 			return;
 		}
 
-		Command cmd;
-		try {
-			cmd = cmdClass.newInstance();
-		} catch (final Exception e) {
-			ci.println("ERROR: " + ExceptionUtils.getRootCauseMessage(e));
-			return;
-		}
-
-		boolean printHelp = false;
-		final List<String> args = new ArrayList<String>();
-		for (String arg = ci.nextArgument(); arg != null; arg = ci.nextArgument()) {
-			if (CommandUtil.isHelpOption(arg)) {
-				printHelp = true;
-				break;
-			}
-			args.add(arg);
-		}
-
-		final CmdLineParser parser = new CmdLineParser(cmd);
-		if (printHelp) {
-			CommandUtil.printCommandHelp(ci, getCommandName(), command, parser);
-			return;
-		}
-
-		try {
-			parser.parseArgument(args.toArray(new String[args.size()]));
-		} catch (final CmdLineException e) {
-			ci.println("ERROR: " + e.getMessage());
-			CommandUtil.printCommandHelp(ci, getCommandName(), command, parser);
-			return;
-		}
-
-		try {
-			cmd.execute(ci);
-		} catch (final Exception e) {
-			ci.println("ERROR: " + ExceptionUtils.getRootCauseMessage(e));
-		}
+		CommandUtil.executeCommand(ci, cmdClass, command, null != parentCommandName ? String.format("%s %s", parentCommandName, getCommandName()) : getCommandName(), printErrorDetails);
 	}
 
 	/**
@@ -124,8 +87,12 @@ public abstract class SubCommand extends Command {
 	 */
 	public String getHelp() {
 		final StrBuilder help = new StrBuilder(512);
-		help.append("---").append(getClass().getSimpleName()).appendln("---");
-		help.append("\t").append(getCommandName()).appendln(" <cmd> [args]");
+		if (null == parentCommandName) {
+			help.append("---").append(getClass().getSimpleName()).appendln("---");
+			help.append("\t").append(getCommandName()).appendln(" <cmd> [args]");
+		} else {
+			help.append("\t").append(parentCommandName).append(' ').append(getCommandName()).appendln(" <cmd> [args]");
+		}
 		for (final String name : commands.keySet()) {
 			try {
 				help.append("\t\t").append(name);
