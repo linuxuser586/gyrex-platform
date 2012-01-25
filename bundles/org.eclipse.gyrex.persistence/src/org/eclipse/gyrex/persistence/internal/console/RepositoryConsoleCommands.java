@@ -26,6 +26,8 @@ public class RepositoryConsoleCommands extends BaseCommandProvider {
 	 */
 	public RepositoryConsoleCommands() {
 		registerCommand("ls", LsRepos.class);
+		registerCommand("create", CreateRepo.class);
+		registerCommand("config", ConfigRepo.class);
 		registerCommand("providers", LsProviders.class);
 	}
 
