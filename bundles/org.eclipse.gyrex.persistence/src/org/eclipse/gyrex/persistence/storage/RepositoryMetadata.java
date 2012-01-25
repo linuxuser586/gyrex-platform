@@ -141,4 +141,24 @@ public abstract class RepositoryMetadata {
 	 */
 	public abstract void remove(String key) throws IllegalArgumentException;
 
+	/**
+	 * Ensures that future reads from this metadata reflect any changes that
+	 * were committed to the persistent store (from any VM) prior to the
+	 * {@code sync} invocation.
+	 * <p>
+	 * As a side-effect, forces any changes in the contents of this node and its
+	 * descendants to the persistent store, as if the {@code flush} method had
+	 * been invoked on this node.
+	 * </p>
+	 * 
+	 * @throws BackingStoreException
+	 *             if this operation cannot be completed due to a failure in the
+	 *             backing store, or inability to communicate with it.
+	 * @throws IllegalStateException
+	 *             if this node (or an ancestor) has been removed with the
+	 *             {@link #removeNode()} method.
+	 * @see #flush()
+	 */
+	public abstract void sync() throws BackingStoreException;
+
 }

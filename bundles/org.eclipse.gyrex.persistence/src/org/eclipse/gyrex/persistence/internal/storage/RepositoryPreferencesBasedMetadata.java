@@ -127,6 +127,11 @@ public final class RepositoryPreferencesBasedMetadata extends RepositoryMetadata
 	}
 
 	@Override
+	public void sync() throws BackingStoreException {
+		preferences.sync();
+	}
+
+	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
 		builder.append("RepositoryPreferencesBasedMetadata [metadataId=").append(metadataId).append(", repositoryId=").append(repositoryId).append("]");
