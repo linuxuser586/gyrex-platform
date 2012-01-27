@@ -214,7 +214,8 @@ public class JobManagerImpl implements IJobManager {
 
 	public static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
 		// ensure the node is current (bug 360402)
-		// (note, this is really expensive, we don't perform it here but moved it to CleanupJob)
+		// (note, this is really expensive, we don't perform it here)
+		// (instead callers should call #syncJobNode where appropriate)
 		//node.sync();
 
 		// create job
