@@ -140,14 +140,19 @@ public class Schedule implements IPreferenceChangeListener {
 	@Override
 	public void preferenceChange(final PreferenceChangeEvent event) {
 		if (ScheduleImpl.ENABLED.equals(event.getKey())) {
+			final boolean activate = StringUtils.equals(Boolean.toString(Boolean.TRUE), (String) event.getNewValue());
 			try {
-				if (StringUtils.equals(Boolean.toString(Boolean.TRUE), (String) event.getNewValue())) {
+				if (activate) {
 					activateEngine();
 				} else {
 					deactivateEngine();
 				}
 			} catch (final Exception e) {
-				LOG.error("Unable to update entry {}. {}", event.getNode().name(), ExceptionUtils.getRootCauseMessage(e));
+				if (activate) {
+					LOG.error("Error activating schedule '{}'. {}", new Object[] { event.getNode().name(), ExceptionUtils.getRootCauseMessage(e), e });
+				} else {
+					LOG.error("Error deactivating schedule '{}'. {}", new Object[] { event.getNode().name(), ExceptionUtils.getRootCauseMessage(e), e });
+				}
 				quietShutdown();
 			}
 		}
