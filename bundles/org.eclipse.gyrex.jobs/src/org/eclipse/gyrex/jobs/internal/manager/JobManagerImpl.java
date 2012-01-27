@@ -415,7 +415,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private void doQueueJob(final String jobId, final Map<String, String> parameter, final String queueId, final String trigger) {
+	private void doQueueJob(final String jobId, Map<String, String> parameter, final String queueId, final String trigger) {
 		JobImpl job = getJob(jobId);
 		if (null == job) {
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
@@ -455,16 +455,20 @@ public class JobManagerImpl implements IJobManager {
 			}
 
 			try {
-				// update job parameter
+				// determine job parameter to use
 				if (null != parameter) {
+					// update job definition with parameter
 					setJobParameter(job, parameter, jobLock);
+				} else {
+					// use parameter from job definition
+					parameter = job.getParameter();
 				}
 
 				// set job state
 				setJobState(job, JobState.WAITING, jobLock);
 
 				// add to queue
-				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), job.getParameter())));
+				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), parameter)));
 
 				// set queued time
 				try {
