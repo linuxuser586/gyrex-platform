@@ -171,6 +171,10 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	}
 
 	public ScheduleImpl load() throws BackingStoreException {
+		// ensure the schedule node is current
+		node.sync();
+
+		// load data
 		queueId = node.get(QUEUE_ID, null);
 		enabled = node.getBoolean(ENABLED, false);
 		if (null != node.get(CONTEXT_PATH, null)) {
