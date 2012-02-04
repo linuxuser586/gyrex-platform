@@ -22,6 +22,9 @@ import java.util.Set;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
 
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,8 +119,59 @@ public final class RepositoryContentTypeAssignments {
 		return contentTypes;
 	}
 
+	/**
+	 * Returns a list of content types assigned to a repository for a specified
+	 * context path.
+	 * <p>
+	 * Note, the returned list may be modifiable. Modifications to the list will
+	 * not be reflected into the persistent assignments.
+	 * </p>
+	 * 
+	 * @param unresolvedContentTypes
+	 *            a set that will be filled with unresolved content types, i.e.
+	 *            content types which are assigned to the repository but with a
+	 *            missing content type provider in the current system
+	 * @return a list of content types
+	 */
+	public List<RepositoryContentType> getContentTypes(final IPath contextPath, final Set<String> unresolvedContentTypes) throws IllegalStateException {
+		final List<RepositoryContentType> contentTypes = new ArrayList<RepositoryContentType>();
+		final Set<String> assignedMediaTypes = assignments.get(contextPath.toString());
+		if (null != assignedMediaTypes) {
+			for (final String assignedMediaType : assignedMediaTypes) {
+				final Collection<RepositoryContentType> types = getContentTypes(assignedMediaType);
+				if (types.isEmpty()) {
+					unresolvedContentTypes.add(assignedMediaType);
+					continue;
+				}
+				for (final RepositoryContentType contentType : types) {
+					if (!contentTypes.contains(contentType)) {
+						contentTypes.add(contentType);
+					}
+				}
+			}
+		}
+		return contentTypes;
+	}
+
 	private Collection<RepositoryContentType> getContentTypes(final String mediaType) {
 		return PersistenceActivator.getInstance().getContentTypeTracker().getContentTypes(mediaType);
+	}
+
+	/**
+	 * Returns a list of context paths the repository is assigned to.
+	 * <p>
+	 * Note, the returned list may be modifiable. Modifications to the list will
+	 * not be reflected into the persistent assignments.
+	 * </p>
+	 * 
+	 * @return an list of context paths
+	 */
+	public List<IPath> getContextPaths() {
+		final List<IPath> paths = new ArrayList<IPath>(assignments.size());
+		for (final String path : assignments.keySet()) {
+			paths.add(new Path(path));
+		}
+		return paths;
 	}
 
 	/**
