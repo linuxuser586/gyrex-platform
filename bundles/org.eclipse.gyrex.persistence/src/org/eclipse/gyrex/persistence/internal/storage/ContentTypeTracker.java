@@ -35,12 +35,14 @@ public class ContentTypeTracker extends ServiceTracker<IRepositoryContentTypePro
 	public Collection<RepositoryContentType> getContentTypes(final String mediaType) {
 		final List<RepositoryContentType> types = new ArrayList<RepositoryContentType>(2);
 		final Object[] providers = getServices();
-		for (int i = 0; i < providers.length; i++) {
-			final IRepositoryContentTypeProvider provider = (IRepositoryContentTypeProvider) providers[i];
-			final Collection<RepositoryContentType> contentTypes = provider.getContentTypes();
-			for (final RepositoryContentType type : contentTypes) {
-				if ((null == mediaType) || StringUtils.equals(type.getMediaType(), mediaType)) {
-					types.add(type);
+		if (null != providers) {
+			for (int i = 0; i < providers.length; i++) {
+				final IRepositoryContentTypeProvider provider = (IRepositoryContentTypeProvider) providers[i];
+				final Collection<RepositoryContentType> contentTypes = provider.getContentTypes();
+				for (final RepositoryContentType type : contentTypes) {
+					if ((null == mediaType) || StringUtils.equals(type.getMediaType(), mediaType)) {
+						types.add(type);
+					}
 				}
 			}
 		}
