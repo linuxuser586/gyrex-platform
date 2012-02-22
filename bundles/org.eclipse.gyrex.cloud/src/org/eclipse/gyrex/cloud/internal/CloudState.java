@@ -91,8 +91,10 @@ public class CloudState implements ZooKeeperGateListener {
 		@Override
 		protected IStatus run(final IProgressMonitor monitor) {
 			try {
-				ZooKeeperNodeInfo.approve(nodeInfo.getNodeId(), null, nodeInfo.getLocation());
-				LOG.info("Node {} approved automatically. Welcome to your local cloud!", nodeInfo.getNodeId());
+				if (getNodeEnvironment().inStandaloneMode()) {
+					ZooKeeperNodeInfo.approve(nodeInfo.getNodeId(), null, nodeInfo.getLocation());
+					LOG.info("Node {} approved automatically. Welcome to your local cloud!", nodeInfo.getNodeId());
+				}
 				return Status.OK_STATUS;
 			} catch (final Exception e) {
 				LOG.error("Unable to automatically approve node {}. Please check server logs. {}", new Object[] { nodeInfo.getNodeId(), ExceptionUtils.getRootCauseMessage(e), e });
@@ -162,6 +164,10 @@ public class CloudState implements ZooKeeperGateListener {
 
 	private static final Logger LOG = LoggerFactory.getLogger(CloudState.class);
 	private static final AtomicReference<CloudState> instanceRef = new AtomicReference<CloudState>();
+
+	static INodeEnvironment getNodeEnvironment() {
+		return CloudActivator.getInstance().getNodeEnvironment();
+	}
 
 	/**
 	 * Returns the node info for this node.
@@ -234,6 +240,7 @@ public class CloudState implements ZooKeeperGateListener {
 	private final AtomicReference<State> state = new AtomicReference<State>(State.DISCONNECTED);
 	private final AtomicReference<NodeInfo> myInfo = new AtomicReference<NodeInfo>();
 	private final AtomicReference<List<String>> myRoles = new AtomicReference<List<String>>();
+
 	private final ZooKeeperMonitor monitor = new ZooKeeperMonitor() {
 		@Override
 		protected void pathCreated(final String path) {
@@ -336,7 +343,7 @@ public class CloudState implements ZooKeeperGateListener {
 	 * Creates a new instance.
 	 */
 	private CloudState() {
-	}
+	};
 
 	/**
 	 * Creates the ephemeral ALL node record which indicates that the node is
@@ -381,7 +388,7 @@ public class CloudState implements ZooKeeperGateListener {
 			final String existingEntry = ZooKeeperGate.get().readRecord(nodePath, (String) null, null);
 			throw new IllegalStateException(String.format("Node id %s (path %s) already in use (reference %s)! This may be a result of an unclean previous shutdown. Please retry and/or investigate if the problem still exists in a few seconds (depending on ZooKeeper session timeout).", info.getNodeId(), parentPath.lastSegment(), existingEntry));
 		}
-	};
+	}
 
 	@Override
 	public void gateDown(final ZooKeeperGate gate) {
@@ -425,7 +432,7 @@ public class CloudState implements ZooKeeperGateListener {
 		final List<ServerRoleDefaultStartOption> startOptions = ServerRolesRegistry.getDefault().getAllDefaultStartOptions(Trigger.ON_CLOUD_CONNECT);
 
 		// filter based on node filter
-		final INodeEnvironment nodeEnvironment = CloudActivator.getInstance().getNodeEnvironment();
+		final INodeEnvironment nodeEnvironment = getNodeEnvironment();
 		for (final Iterator stream = startOptions.iterator(); stream.hasNext();) {
 			final ServerRoleDefaultStartOption startOption = (ServerRoleDefaultStartOption) stream.next();
 			final String nodeFilter = startOption.getNodeFilter();
@@ -658,7 +665,7 @@ public class CloudState implements ZooKeeperGateListener {
 			try {
 				if (nodeInfo.isApproved()) {
 					setNodeOnline(nodeInfo);
-				} else if (Platform.inDevelopmentMode() && new NodeEnvironmentImpl().inStandaloneMode()) {
+				} else if (Platform.inDevelopmentMode() && getNodeEnvironment().inStandaloneMode()) {
 					// auto-approve in standalone mode
 					// this needs to be async because approval triggers ZK events on which we react
 					LOG.info("Attempting automatic approval of node {} in standalong development system.", nodeInfo);
