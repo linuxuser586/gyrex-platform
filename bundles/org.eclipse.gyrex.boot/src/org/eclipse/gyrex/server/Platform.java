@@ -58,6 +58,33 @@ public final class Platform {
 	}
 
 	/**
+	 * Translates the specified port into an instance specific port.
+	 * <p>
+	 * Gyrex allows to configure a global port offset. If configured it will be
+	 * added to the specified port. If no offset is configured, the specified
+	 * port will be returned as is.
+	 * </p>
+	 * 
+	 * @param port
+	 *            the port to translate
+	 * @return the translated port
+	 * @throws IllegalArgumentException
+	 *             if the translated port will be out of the allowed port range
+	 */
+	public static int getInstancePort(final int port) throws IllegalArgumentException {
+		final int portOffset = BootActivator.getPortOffset();
+		if (portOffset <= 0) {
+			return port;
+		}
+
+		final int translatedPort = port + portOffset;
+		if ((translatedPort < 0) || (translatedPort > 65535)) {
+			throw new IllegalArgumentException("Instance port out of allowed TCP port range. Please consider lowering port offset.");
+		}
+		return translatedPort;
+	}
+
+	/**
 	 * Returns the location in the local file system of the state area for the
 	 * specified bundle.
 	 * <p>

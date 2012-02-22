@@ -40,6 +40,7 @@ import org.osgi.service.application.ApplicationDescriptor;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.osgi.util.tracker.ServiceTracker;
 
+import org.apache.commons.lang.UnhandledException;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,7 @@ public class BootActivator extends BaseBundleActivator {
 
 	private static final AtomicReference<OpsMode> opsModeRef = new AtomicReference<OpsMode>();
 	private static final AtomicBoolean debugModeRef = new AtomicBoolean();
+	private static int portOffset;
 
 	/**
 	 * Returns the shared instance
@@ -73,6 +75,15 @@ public class BootActivator extends BaseBundleActivator {
 
 	public static OpsMode getOpsMode() {
 		return opsModeRef.get();
+	}
+
+	/**
+	 * Returns the portOffset.
+	 * 
+	 * @return the portOffset
+	 */
+	public static int getPortOffset() {
+		return portOffset;
 	}
 
 	public static boolean isDebugMode() {
@@ -133,6 +144,21 @@ public class BootActivator extends BaseBundleActivator {
 
 		// initial logback configuration
 		loggingOn();
+
+		// get port offset
+		final String portOffset = context.getProperty("gyrex.portOffset");
+		if (portOffset != null) {
+			int offset;
+			try {
+				offset = Integer.parseInt(portOffset);
+			} catch (final Exception e) {
+				throw new UnhandledException("Invalid port offset. ", e);
+			}
+			if (offset < 0) {
+				throw new IllegalStateException("Negativ port offset not allowed!");
+			}
+			BootActivator.portOffset = offset;
+		}
 	}
 
 	@Override
