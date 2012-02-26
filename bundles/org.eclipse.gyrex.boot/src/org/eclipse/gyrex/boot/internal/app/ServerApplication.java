@@ -22,13 +22,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.boot.internal.BootActivator;
 import org.eclipse.gyrex.boot.internal.BootDebug;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
+import org.eclipse.gyrex.server.Platform;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
 import org.eclipse.gyrex.server.internal.roles.ServerRoleDefaultStartOption;
 import org.eclipse.gyrex.server.internal.roles.ServerRolesRegistry;
 
 import org.eclipse.osgi.service.datalocation.Location;
+import org.eclipse.osgi.service.environment.EnvironmentInfo;
 
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.WordUtils;
@@ -41,10 +44,10 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerApplication extends BaseApplication {
 
-	/** LOG */
+	private static final String BSN_EQUINOX_CONSOLE_SSH = "org.eclipse.equinox.console.ssh";
+	private static final String BSN_EQUINOX_DS = "org.eclipse.equinox.ds";
 	private static final Logger LOG = LoggerFactory.getLogger(ServerApplication.class);
 
-	/** shutdown hook */
 	private static final Thread shutdownHook = new Thread("Shutdown Hook") {
 		@Override
 		public void run() {
@@ -162,14 +165,8 @@ public class ServerApplication extends BaseApplication {
 			LOG.debug("Bootstrapping platform.");
 		}
 
-		// make sure that the declarative services are initialized (if available)
-		final Bundle dsImplBundle = BootActivator.getInstance().getBundle("org.eclipse.equinox.ds");
-		if (null != dsImplBundle) {
-			dsImplBundle.start(Bundle.START_TRANSIENT);
-		} else {
-			printError("Bundle 'org.eclipse.equinox.ds' not available but may be required by parts of the system. Your system will not function properly.", null);
-			throw new StartAbortedException();
-		}
+		// make sure that the declarative services are initialized
+		startBundle(BSN_EQUINOX_DS, true);
 	}
 
 	private void checkInstanceLocation(final Location instanceLocation) {
@@ -252,6 +249,28 @@ public class ServerApplication extends BaseApplication {
 
 			// bootstrap the platform
 			bootstrap();
+
+			// start the Equinox SSH Console if available
+			if (isConsoleEnabled()) {
+				// TODO: might want to use ConfigAdmin?
+				final EnvironmentInfo environmentInfo = getEnvironmentInfo();
+				if (null == environmentInfo.getProperty("osgi.console.ssh")) {
+					environmentInfo.setProperty("osgi.console.ssh", String.valueOf(Platform.getInstancePort(3122)));
+				}
+				if (startBundle(BSN_EQUINOX_CONSOLE_SSH, false)) {
+					try {
+						final Object authenticator = BootActivator.getInstance().getBundle().loadClass("org.eclipse.gyrex.boot.internal.ssh.InstanceLocationAuthorizedKeysFileAuthenticator").newInstance();
+						BootActivator.getInstance().getServiceHelper().registerService("org.apache.sshd.server.PublickeyAuthenticator", authenticator, "Eclipse Gyrex", "Equionx SSH Console authorized_keys support for Gyrex.", null, Integer.MAX_VALUE);
+					} catch (final ClassNotFoundException e) {
+						// ignore
+					} catch (final LinkageError e) {
+						// ignore
+					} catch (final Exception e) {
+						// error (but do not fail)
+						LOG.warn("Unable to register authorized_keys file support for Equinox SSH Console. ", e);
+					}
+				}
+			}
 
 			// set the platform running state early to allow server roles
 			// use Platform#isRunning in their activation logic
@@ -357,9 +376,40 @@ public class ServerApplication extends BaseApplication {
 
 	}
 
+	private EnvironmentInfo getEnvironmentInfo() {
+		return BootActivator.getInstance().getServiceHelper().trackService(EnvironmentInfo.class).getService();
+	}
+
 	@Override
 	protected Logger getLogger() {
 		return LOG;
+	}
+
+	private boolean isConsoleEnabled() {
+		// check framework arguments
+		final String[] args = getEnvironmentInfo().getFrameworkArgs();
+		for (int i = 0; i < args.length; i++) {
+			if (args[i].equals("-console")) {
+				if (((i + 1) < args.length) && args[i + 1].equals("none")) {
+					return false;
+				} else {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private boolean startBundle(final String symbolicName, final boolean required) throws BundleException {
+		final Bundle bundle = BootActivator.getInstance().getBundle(symbolicName);
+		if (null != bundle) {
+			bundle.start(Bundle.START_TRANSIENT);
+			return true;
+		} else if (required) {
+			printError(String.format("Required bundle '%s' not available. Your system will not function properly.", symbolicName), null);
+			throw new StartAbortedException();
+		}
+		return false;
 	}
 
 }

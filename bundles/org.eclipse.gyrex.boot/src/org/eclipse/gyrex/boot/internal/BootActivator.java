@@ -131,7 +131,7 @@ public class BootActivator extends BaseBundleActivator {
 
 		// allow switching debugging at runtime
 		try {
-			final Object consoleCommands = context.getBundle().loadClass("org.eclipse.gyrex.boot.internal.console.DebugConsoleCommands").newInstance();
+			final Object consoleCommands = getBundle().loadClass("org.eclipse.gyrex.boot.internal.console.DebugConsoleCommands").newInstance();
 			getServiceHelper().registerService("org.eclipse.osgi.framework.console.CommandProvider", consoleCommands, "Eclipse Gyrex", "Console commands for configuring debug options at runtime", null, null);
 		} catch (final ClassNotFoundException e) {
 			// ignore
