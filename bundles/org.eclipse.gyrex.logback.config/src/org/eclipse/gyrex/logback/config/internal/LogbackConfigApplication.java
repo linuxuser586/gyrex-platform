@@ -10,7 +10,7 @@ import javax.xml.bind.JAXBException;
 
 import org.eclipse.equinox.app.IApplication;
 
-import org.eclipse.gyrex.boot.internal.app.LogbackConfigurator;
+import org.eclipse.gyrex.boot.internal.logback.LogbackConfigurator;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 import org.eclipse.gyrex.logback.config.internal.xml.AppenderRef;
 import org.eclipse.gyrex.logback.config.internal.xml.ConsoleAppender;

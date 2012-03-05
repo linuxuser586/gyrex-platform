@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.boot.internal.app;
+package org.eclipse.gyrex.boot.internal.logback;
 
 import java.io.File;
 import java.nio.charset.Charset;

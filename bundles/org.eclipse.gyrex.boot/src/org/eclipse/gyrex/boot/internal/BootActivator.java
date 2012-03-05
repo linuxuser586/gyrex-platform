@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.gyrex.boot.internal.app.LogbackConfigurator;
+import org.eclipse.gyrex.boot.internal.logback.LogbackConfigurator;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.server.Platform;
