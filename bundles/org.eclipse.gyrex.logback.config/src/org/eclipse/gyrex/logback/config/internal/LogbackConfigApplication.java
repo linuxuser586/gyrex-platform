@@ -1,40 +1,33 @@
 package org.eclipse.gyrex.logback.config.internal;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Map;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
 
 import org.eclipse.equinox.app.IApplication;
 
 import org.eclipse.gyrex.boot.internal.logback.LogbackConfigurator;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
-import org.eclipse.gyrex.logback.config.internal.xml.AppenderRef;
-import org.eclipse.gyrex.logback.config.internal.xml.ConsoleAppender;
-import org.eclipse.gyrex.logback.config.internal.xml.Level;
-import org.eclipse.gyrex.logback.config.internal.xml.LevelChangePropagator;
-import org.eclipse.gyrex.logback.config.internal.xml.LogbackConfig;
-import org.eclipse.gyrex.logback.config.internal.xml.RootLogger;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang.time.DateFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Application which (when started) hooks a listener with the preferences and
+ * updates the instance logback configuration based on a generated logback
+ * configuration file.
+ */
 public class LogbackConfigApplication extends BaseApplication implements IApplication, IPreferenceChangeListener {
 
-	private static final String PREF_LAST_MODIFIED = "lastModified";
 	private static final Logger LOG = LoggerFactory.getLogger(LogbackConfigApplication.class);
+
+	private static final String PREF_LAST_MODIFIED = "lastModified";
 
 	@Override
 	protected void doStart(final Map arguments) throws Exception {
@@ -56,37 +49,7 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 	}
 
 	private File generateConfig() {
-		// build config
-		final LogbackConfig config = new LogbackConfig();
-		config.elements.add(new LevelChangePropagator());
-		final ConsoleAppender consoleAppender = new ConsoleAppender();
-		config.elements.add(consoleAppender);
-		final RootLogger rootLogger = new RootLogger();
-		rootLogger.level = Level.WARN;
-		rootLogger.appenders.add(new AppenderRef(consoleAppender));
-		config.elements.add(rootLogger);
-
-		// get state location
-		final File parentFolder = Platform.getStateLocation(LogbackConfigActivator.getInstance().getBundle()).append("logback.xml").toFile();
-		if (!parentFolder.isDirectory() && !parentFolder.mkdirs()) {
-			throw new IllegalStateException(String.format("Unable to create configs directory (%s).", parentFolder));
-		}
-
-		// save file
-		final File configFile = new File(parentFolder, String.format("%s.xml", DateFormatUtils.format(getLastModified(), "yyyyMMdd-HHmmssSSS")));
-		try {
-			final JAXBContext context = JAXBContext.newInstance(RootLogger.class);
-			context.createMarshaller().marshal(context, configFile);
-		} catch (final JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		// cleanup directory
-		removeOldFiles(parentFolder);
-
-		// TODO Auto-generated method stub
-		return configFile;
+		return new LogbackConfigGenerator(getLastModified(), Platform.getStateLocation(LogbackConfigActivator.getInstance().getBundle()).append("logback.xml").toFile()).generateConfig();
 	}
 
 	private long getLastModified() {
@@ -139,37 +102,6 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 				} catch (final Exception resetException) {
 					System.err.println("Error resetting Logback configuration. Logging won't work as expected. ");
 					resetException.printStackTrace(System.err);
-				}
-			}
-		}
-	}
-
-	private void removeOldFiles(final File parentFolder) {
-		// only keep last 5 files
-		File[] files = parentFolder.listFiles();
-		if (null != files) {
-			// remove any directories
-			for (final File file : files) {
-				if (file.isDirectory()) {
-					FileUtils.deleteQuietly(file);
-				}
-			}
-
-			// refresh
-			files = parentFolder.listFiles();
-
-			// remove old files
-			if ((null != files) && (files.length > 5)) {
-				// sort based on file name (reverse order)
-				Arrays.sort(files, new Comparator<File>() {
-					@Override
-					public int compare(final File o1, final File o2) {
-						return o2.getName().compareTo(o1.getName());
-					}
-				});
-
-				for (int i = 5; i < files.length; i++) {
-					FileUtils.deleteQuietly(files[i]);
 				}
 			}
 		}
