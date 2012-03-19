@@ -103,7 +103,7 @@ public class LogbackConfig {
 			appender.toXml(writer);
 		}
 		for (final Logger logger : loggers) {
-			writeLogger(writer, logger);
+			logger.toXml(writer);
 		}
 
 		writer.writeEndElement();
@@ -128,11 +128,6 @@ public class LogbackConfig {
 			writer.writeEndElement();
 		}
 		writer.writeEndElement();
-	}
-
-	private void writeLogger(final XMLStreamWriter writer, final Logger logger) throws XMLStreamException {
-		// TODO Auto-generated method stub
-
 	}
 
 }
