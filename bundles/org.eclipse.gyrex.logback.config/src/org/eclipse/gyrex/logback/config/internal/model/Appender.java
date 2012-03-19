@@ -108,6 +108,16 @@ public abstract class Appender {
 	}
 
 	/**
+	 * Indicates if the appender prefers a short pattern.
+	 * 
+	 * @return <code>true</code> if the short pattern is prefered,
+	 *         <code>false</code> otherwise
+	 */
+	protected boolean preferShortPattern() {
+		return false;
+	}
+
+	/**
 	 * Sets the name.
 	 * 
 	 * @param name
@@ -215,7 +225,7 @@ public abstract class Appender {
 		writer.writeStartElement("pattern");
 		String text = getPattern();
 		if (StringUtils.isBlank(text)) {
-			text = "${PATTERN_LONG}";
+			text = preferShortPattern() ? "${PATTERN_SHORT}" : "${PATTERN_LONG}";
 		} else if (StringUtils.containsIgnoreCase(text, "PATTERN_LONG")) {
 			text = "${PATTERN_LONG}";
 		} else if (StringUtils.containsIgnoreCase(text, "PATTERN_SHORT")) {

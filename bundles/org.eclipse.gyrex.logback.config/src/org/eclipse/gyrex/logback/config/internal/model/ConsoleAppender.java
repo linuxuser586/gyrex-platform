@@ -27,4 +27,9 @@ public class ConsoleAppender extends Appender {
 	public String getAppenderClassName() {
 		return ch.qos.logback.core.ConsoleAppender.class.getName();
 	}
+
+	@Override
+	protected boolean preferShortPattern() {
+		return true;
+	}
 }
