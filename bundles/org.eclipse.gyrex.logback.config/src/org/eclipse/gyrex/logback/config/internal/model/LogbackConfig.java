@@ -99,7 +99,7 @@ public class LogbackConfig {
 	}
 
 	private String getLongPattern() {
-		return addExceptionPattern("%date{ISO8601} %30.30(%thread.%property{HOSTNAME})] %-5level %logger{36} %mdc{gyrex.contextPath, '[CTX:', '] '}%mdc{gyrex.applicationId, '[APP:', '] '}%mdc{gyrex.jobId, '[JOB:', '] '}- %msg%n");
+		return addExceptionPattern("%date{ISO8601} %30.60(%thread.%property{HOSTNAME})] %-5level %logger{36} %mdc{gyrex.contextPath, '[CTX:', '] '}%mdc{gyrex.applicationId, '[APP:', '] '}%mdc{gyrex.jobId, '[JOB:', '] '}- %msg%n");
 	}
 
 	private String getShortPattern() {
