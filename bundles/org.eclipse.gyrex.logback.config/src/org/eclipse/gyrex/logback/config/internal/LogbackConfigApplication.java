@@ -97,6 +97,12 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 	}
 
 	private void reloadConfig() {
+		// sanity check
+		if (getLastModified() == 0) {
+			LOG.debug("No Logback configuration ever saved. Nothing to load.");
+			return;
+		}
+
 		// generate new configuration file
 		File configFile;
 		try {
