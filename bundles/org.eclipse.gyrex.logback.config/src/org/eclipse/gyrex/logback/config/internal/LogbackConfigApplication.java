@@ -22,6 +22,10 @@ import org.eclipse.gyrex.logback.config.internal.model.LogbackConfig;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
@@ -92,11 +96,20 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 	@Override
 	public void preferenceChange(final PreferenceChangeEvent event) {
 		if (StringUtils.equals(event.getKey(), PREF_LAST_MODIFIED)) {
-			reloadConfig();
+			// reload asynchronously to prevent from in-flight preference changes
+			final Job reloadJob = new Job("Reload Logback Config") {
+
+				@Override
+				protected IStatus run(final IProgressMonitor monitor) {
+					reloadConfig();
+					return Status.OK_STATUS;
+				}
+			};
+			reloadJob.schedule(2000L);
 		}
 	}
 
-	private void reloadConfig() {
+	void reloadConfig() {
 		// sanity check
 		if (getLastModified() == 0) {
 			LOG.debug("No Logback configuration ever saved. Nothing to load.");
