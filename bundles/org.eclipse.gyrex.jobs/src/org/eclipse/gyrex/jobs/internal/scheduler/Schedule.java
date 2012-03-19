@@ -196,7 +196,10 @@ public class Schedule implements IPreferenceChangeListener {
 		}
 
 		// populate with configured jobs
-		final List<IScheduleEntry> entries = ensureScheduleData(Boolean.TRUE).getEntries();
+		// (note, it's important that we pass false here in order to prevent the #sync call on the preference node)
+		// (otherwise a in-flight preference change event will be reverted)
+		// FIXME: this is another case where the preference store is problematic
+		final List<IScheduleEntry> entries = ensureScheduleData(Boolean.FALSE).getEntries();
 		for (final IScheduleEntry entry : entries) {
 			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
 			// put all parameter
