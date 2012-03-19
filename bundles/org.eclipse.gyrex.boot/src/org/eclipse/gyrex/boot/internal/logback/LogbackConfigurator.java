@@ -47,7 +47,7 @@ import ch.qos.logback.core.util.StatusPrinter;
 public class LogbackConfigurator {
 
 	// default pattern (note, this is also emulated by GyrexSlf4jForwarder)
-	private static final String DEFAULT_PATTERN = "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n";
+	public static final String DEFAULT_PATTERN = "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n";
 
 	private static File logConfigurationFile;
 
