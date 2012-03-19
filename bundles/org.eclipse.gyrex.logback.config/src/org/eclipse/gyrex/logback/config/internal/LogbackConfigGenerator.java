@@ -59,6 +59,13 @@ public class LogbackConfigGenerator {
 			outputStream = new BufferedOutputStream(FileUtils.openOutputStream(configFile));
 			final XMLOutputFactory outputFactory = XMLOutputFactory.newInstance();
 			xmlStreamWriter = outputFactory.createXMLStreamWriter(outputStream, CharEncoding.UTF_8);
+			// try to format the output
+			try {
+				final Class<?> clazz = getClass().getClassLoader().loadClass("com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter");
+				xmlStreamWriter = (XMLStreamWriter) clazz.getConstructor(XMLStreamWriter.class).newInstance(xmlStreamWriter);
+			} catch (final Exception e) {
+				// ignore
+			}
 			config.toXml(xmlStreamWriter);
 			xmlStreamWriter.flush();
 		} catch (final IOException e) {
