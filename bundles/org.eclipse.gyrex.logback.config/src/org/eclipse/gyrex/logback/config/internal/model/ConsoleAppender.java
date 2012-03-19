@@ -21,7 +21,10 @@ public class ConsoleAppender extends Appender {
 	 */
 	public ConsoleAppender() {
 		setName("console");
-		setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
 	}
 
+	@Override
+	public String getAppenderClassName() {
+		return ch.qos.logback.core.ConsoleAppender.class.getName();
+	}
 }

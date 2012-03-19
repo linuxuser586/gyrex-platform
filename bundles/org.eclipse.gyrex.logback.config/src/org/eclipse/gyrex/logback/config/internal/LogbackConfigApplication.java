@@ -7,11 +7,15 @@ import org.eclipse.equinox.app.IApplication;
 
 import org.eclipse.gyrex.boot.internal.logback.LogbackConfigurator;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
+import org.eclipse.gyrex.logback.config.internal.model.LogbackConfig;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
+
+import org.osgi.service.prefs.BackingStoreException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -28,6 +32,7 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 	private static final Logger LOG = LoggerFactory.getLogger(LogbackConfigApplication.class);
 
 	private static final String PREF_LAST_MODIFIED = "lastModified";
+	private static final String PREF_NODE_CONFIG = "config";
 
 	@Override
 	protected void doStart(final Map arguments) throws Exception {
@@ -48,8 +53,16 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 		return EXIT_OK;
 	}
 
-	private File generateConfig() {
-		return new LogbackConfigGenerator(getLastModified(), Platform.getStateLocation(LogbackConfigActivator.getInstance().getBundle()).append("logback.xml").toFile()).generateConfig();
+	private File generateConfig(final LogbackConfig config) {
+		return new LogbackConfigGenerator(getLastModified(), getParentFolder(), config).generateConfig();
+	}
+
+	private LogbackConfig getConfig() throws BackingStoreException {
+		final IEclipsePreferences node = CloudScope.INSTANCE.getNode(LogbackConfigActivator.SYMBOLIC_NAME);
+		if (node.nodeExists(PREF_NODE_CONFIG)) {
+			return new PreferenceBasedLogbackConfigStore().loadConfig(node.node(PREF_NODE_CONFIG));
+		}
+		return null;
 	}
 
 	private long getLastModified() {
@@ -59,6 +72,10 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 	@Override
 	protected Logger getLogger() {
 		return LOG;
+	}
+
+	private File getParentFolder() {
+		return Platform.getStateLocation(LogbackConfigActivator.getInstance().getBundle()).append("logback.xml").toFile();
 	}
 
 	@Override
@@ -72,7 +89,12 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 		// generate new configuration file
 		File configFile;
 		try {
-			configFile = generateConfig();
+			final LogbackConfig config = getConfig();
+			if (null == config) {
+				LOG.debug("No Logback configuration available. Nothing to load.");
+				return;
+			}
+			configFile = generateConfig(config);
 		} catch (final Exception e) {
 			LOG.error("Exception while generating new Logback configuration. Aborting re-configuration. {}", ExceptionUtils.getRootCause(e), e);
 			return;

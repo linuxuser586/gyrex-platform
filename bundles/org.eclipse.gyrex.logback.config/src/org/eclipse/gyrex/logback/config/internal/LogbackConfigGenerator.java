@@ -37,10 +37,12 @@ public class LogbackConfigGenerator {
 
 	private final long lastModified;
 	private final File parentFolder;
+	private final LogbackConfig config;
 
-	public LogbackConfigGenerator(final long lastModified, final File parentFolder) {
+	public LogbackConfigGenerator(final long lastModified, final File parentFolder, final LogbackConfig config) {
 		this.lastModified = lastModified;
 		this.parentFolder = parentFolder;
+		this.config = config;
 	}
 
 	public File generateConfig() {
@@ -55,7 +57,6 @@ public class LogbackConfigGenerator {
 		XMLStreamWriter xmlStreamWriter = null;
 		try {
 			outputStream = new BufferedOutputStream(FileUtils.openOutputStream(configFile));
-			final LogbackConfig config = new LogbackConfig();
 			final XMLOutputFactory outputFactory = XMLOutputFactory.newInstance();
 			xmlStreamWriter = outputFactory.createXMLStreamWriter(outputStream, CharEncoding.UTF_8);
 			config.toXml(xmlStreamWriter);

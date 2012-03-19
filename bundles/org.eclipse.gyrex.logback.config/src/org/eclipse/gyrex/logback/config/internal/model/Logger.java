@@ -14,6 +14,8 @@ package org.eclipse.gyrex.logback.config.internal.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import ch.qos.logback.classic.Level;
+
 public class Logger {
 
 	private String name;
@@ -67,7 +69,7 @@ public class Logger {
 	 *            the appenders to set
 	 */
 	public void setAppenderReferences(final List<String> appenders) {
-		this.appenderReferences = appenders;
+		appenderReferences = appenders;
 	}
 
 	/**

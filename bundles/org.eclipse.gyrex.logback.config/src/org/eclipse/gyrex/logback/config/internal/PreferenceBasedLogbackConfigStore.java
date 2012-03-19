@@ -9,8 +9,24 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.logback.config.internal.model;
+package org.eclipse.gyrex.logback.config.internal;
 
-public enum Level {
-	ALL, TRACE, DEBUG, INFO, WARN, ERROR;
+import org.eclipse.gyrex.logback.config.internal.model.LogbackConfig;
+
+import org.osgi.service.prefs.Preferences;
+
+/**
+ *
+ */
+public class PreferenceBasedLogbackConfigStore {
+
+	/**
+	 * @param node
+	 * @return
+	 */
+	public LogbackConfig loadConfig(final Preferences node) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
