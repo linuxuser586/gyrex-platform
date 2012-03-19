@@ -124,7 +124,13 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 				LOG.debug("No Logback configuration available. Nothing to load.");
 				return;
 			}
-			configFile = generateConfig(config);
+			if (!config.getAppenders().isEmpty()) {
+				LOG.debug("Generating Logback configuration file.");
+				configFile = generateConfig(config);
+			} else {
+				LOG.debug("Disabling cloud Logback configuration due to missing appenders.");
+				configFile = null;
+			}
 		} catch (final Exception e) {
 			LOG.error("Exception while generating new Logback configuration. Aborting re-configuration. {}", ExceptionUtils.getRootCause(e), e);
 			return;
