@@ -62,12 +62,12 @@ public class PreferenceBasedLogbackConfigStore {
 
 		final String[] appenders = node.node(APPENDERS).childrenNames();
 		for (final String appender : appenders) {
-			config.getAppenders().add(loadAppender(appender, node.node(APPENDERS).node(appender)));
+			config.addAppender(loadAppender(appender, node.node(APPENDERS).node(appender)));
 		}
 
 		final String[] loggers = node.node(LOGGERS).childrenNames();
 		for (final String logger : loggers) {
-			config.getLoggers().add(loadLogger(logger, node.node(LOGGERS).node(logger)));
+			config.addLogger(loadLogger(logger, node.node(LOGGERS).node(logger)));
 		}
 
 		return config;

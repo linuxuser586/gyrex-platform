@@ -12,12 +12,16 @@
 package org.eclipse.gyrex.logback.config.internal.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.eclipse.gyrex.boot.internal.logback.LogbackConfigurator;
+
+import org.apache.commons.lang.StringUtils;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.jul.LevelChangePropagator;
@@ -33,11 +37,18 @@ public class LogbackConfig {
 		writer.writeAttribute("value", value);
 	}
 
-	private List<Appender> appenders;
-	private List<Logger> loggers;
+	private Map<String, Appender> appenders;
+	private Map<String, Logger> loggers;
 	private boolean shortenStackTraces;
 	private Level defaultLevel;
 	private List<String> defaultAppenders;
+
+	public void addAppender(final Appender appender) {
+		if (StringUtils.isBlank(appender.getName())) {
+			throw new IllegalArgumentException("appender name must not be blank");
+		}
+		getAppenders().put(appender.getName(), appender);
+	}
 
 	private String addExceptionPattern(final String pattern) {
 		if (isShortenStackTraces()) {
@@ -47,9 +58,16 @@ public class LogbackConfig {
 		}
 	}
 
-	public List<Appender> getAppenders() {
+	public void addLogger(final org.eclipse.gyrex.logback.config.internal.model.Logger logger) {
+		if (StringUtils.isBlank(logger.getName())) {
+			throw new IllegalArgumentException("logger name must not be blank");
+		}
+		getLoggers().put(logger.getName(), logger);
+	}
+
+	public Map<String, Appender> getAppenders() {
 		if (null == appenders) {
-			appenders = new ArrayList<Appender>();
+			appenders = new LinkedHashMap<String, Appender>();
 		}
 		return appenders;
 	}
@@ -73,9 +91,9 @@ public class LogbackConfig {
 		return defaultLevel;
 	}
 
-	public List<Logger> getLoggers() {
+	public Map<String, Logger> getLoggers() {
 		if (null == loggers) {
-			loggers = new ArrayList<Logger>();
+			loggers = new LinkedHashMap<String, Logger>();
 		}
 		return loggers;
 	}
@@ -92,10 +110,6 @@ public class LogbackConfig {
 		return shortenStackTraces;
 	}
 
-	public void setAppenders(final List<Appender> appenders) {
-		this.appenders = appenders;
-	}
-
 	public void setDefaultAppenders(final List<String> defaultAppenders) {
 		this.defaultAppenders = defaultAppenders;
 	}
@@ -108,10 +122,6 @@ public class LogbackConfig {
 	 */
 	public void setDefaultLevel(final Level defaultLevel) {
 		this.defaultLevel = defaultLevel;
-	}
-
-	public void setLoggers(final List<Logger> loggers) {
-		this.loggers = loggers;
 	}
 
 	public void setShortenStackTraces(final boolean shortenStackTraces) {
@@ -134,10 +144,10 @@ public class LogbackConfig {
 		writeCommonProperties(writer);
 		writeJulLevelChangePropagator(writer);
 
-		for (final Appender appender : appenders) {
+		for (final Appender appender : appenders.values()) {
 			appender.toXml(writer);
 		}
-		for (final Logger logger : loggers) {
+		for (final Logger logger : loggers.values()) {
 			logger.toXml(writer);
 		}
 
