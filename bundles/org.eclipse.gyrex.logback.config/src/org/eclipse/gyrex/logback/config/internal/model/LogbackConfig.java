@@ -144,10 +144,10 @@ public class LogbackConfig {
 		writeCommonProperties(writer);
 		writeJulLevelChangePropagator(writer);
 
-		for (final Appender appender : appenders.values()) {
+		for (final Appender appender : getAppenders().values()) {
 			appender.toXml(writer);
 		}
-		for (final Logger logger : loggers.values()) {
+		for (final Logger logger : getLoggers().values()) {
 			logger.toXml(writer);
 		}
 
