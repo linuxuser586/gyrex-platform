@@ -19,6 +19,7 @@ import javax.xml.stream.XMLStreamWriter;
 
 import org.eclipse.gyrex.boot.internal.logback.LogbackConfigurator;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.jul.LevelChangePropagator;
 
 /**
@@ -34,8 +35,9 @@ public class LogbackConfig {
 
 	private List<Appender> appenders;
 	private List<Logger> loggers;
-
 	private boolean shortenStackTraces;
+	private Level defaultLevel;
+	private List<String> defaultAppenders;
 
 	private String addExceptionPattern(final String pattern) {
 		if (isShortenStackTraces()) {
@@ -50,6 +52,25 @@ public class LogbackConfig {
 			appenders = new ArrayList<Appender>();
 		}
 		return appenders;
+	}
+
+	public List<String> getDefaultAppenders() {
+		if (null == defaultAppenders) {
+			defaultAppenders = new ArrayList<String>();
+		}
+		return defaultAppenders;
+	}
+
+	/**
+	 * Returns the defaultLevel.
+	 * 
+	 * @return the defaultLevel
+	 */
+	public Level getDefaultLevel() {
+		if (null == defaultLevel) {
+			return Level.INFO;
+		}
+		return defaultLevel;
 	}
 
 	public List<Logger> getLoggers() {
@@ -73,6 +94,20 @@ public class LogbackConfig {
 
 	public void setAppenders(final List<Appender> appenders) {
 		this.appenders = appenders;
+	}
+
+	public void setDefaultAppenders(final List<String> defaultAppenders) {
+		this.defaultAppenders = defaultAppenders;
+	}
+
+	/**
+	 * Sets the defaultLevel.
+	 * 
+	 * @param defaultLevel
+	 *            the defaultLevel to set
+	 */
+	public void setDefaultLevel(final Level defaultLevel) {
+		this.defaultLevel = defaultLevel;
 	}
 
 	public void setLoggers(final List<Logger> loggers) {
@@ -106,6 +141,8 @@ public class LogbackConfig {
 			logger.toXml(writer);
 		}
 
+		writeRootLogger(writer);
+
 		writer.writeEndElement();
 
 		writer.writeEndDocument();
@@ -126,6 +163,16 @@ public class LogbackConfig {
 			writer.writeStartElement("resetJUL");
 			writer.writeCData("true");
 			writer.writeEndElement();
+		}
+		writer.writeEndElement();
+	}
+
+	private void writeRootLogger(final XMLStreamWriter writer) throws XMLStreamException {
+		writer.writeStartElement("root");
+		writer.writeAttribute("level", getDefaultLevel().toString());
+		for (final String appenderRef : getDefaultAppenders()) {
+			writer.writeEmptyElement("appender-ref");
+			writer.writeAttribute("ref", appenderRef);
 		}
 		writer.writeEndElement();
 	}
