@@ -46,6 +46,9 @@ import ch.qos.logback.core.util.StatusPrinter;
 
 public class LogbackConfigurator {
 
+	// default pattern (note, this is also emulated by GyrexSlf4jForwarder)
+	private static final String DEFAULT_PATTERN = "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n";
+
 	private static File logConfigurationFile;
 
 	public static void configureDefaultContext() throws Exception {
@@ -161,7 +164,7 @@ public class LogbackConfigurator {
 		ca.setName("console");
 		final PatternLayoutEncoder pl = new PatternLayoutEncoder();
 		pl.setContext(lc);
-		pl.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
+		pl.setPattern(DEFAULT_PATTERN);
 		pl.start();
 		ca.setEncoder(pl);
 		ca.start();
@@ -185,7 +188,7 @@ public class LogbackConfigurator {
 
 		final PatternLayoutEncoder pl = new PatternLayoutEncoder();
 		pl.setContext(lc);
-		pl.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
+		pl.setPattern(DEFAULT_PATTERN);
 		pl.setCharset(Charset.forName("UTF-8"));
 		pl.start();
 		rfa.setEncoder(pl);
