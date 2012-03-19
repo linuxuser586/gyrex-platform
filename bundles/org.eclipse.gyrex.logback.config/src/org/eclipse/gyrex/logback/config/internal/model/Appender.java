@@ -27,6 +27,10 @@ public abstract class Appender {
 	private String pattern;
 	private Level threshold;
 
+	private String siftingMdcPropertyName;
+
+	private String siftingMdcPropertyDefaultValue;
+
 	/**
 	 * Indicates if the appender can be wrapped into a sifting appender.
 	 * 
@@ -69,7 +73,7 @@ public abstract class Appender {
 	 * @return a default value
 	 */
 	public String getSiftingMdcPropertyDefaultValue() {
-		return "";
+		return siftingMdcPropertyDefaultValue;
 	}
 
 	/**
@@ -80,7 +84,7 @@ public abstract class Appender {
 	 * @return the name of the property (may be <code>null</code>)
 	 */
 	public String getSiftingMdcPropertyName() {
-		return "gyrex.contextPath";
+		return siftingMdcPropertyName;
 	}
 
 	/**
@@ -100,7 +104,7 @@ public abstract class Appender {
 	 *         <code>false</code> otherwise
 	 */
 	public boolean isSeparateLogOutputsPerMdcProperty() {
-		return false; /*false by default */
+		return (null != getSiftingMdcPropertyName()) && (null != getSiftingMdcPropertyDefaultValue());
 	}
 
 	/**
@@ -121,6 +125,26 @@ public abstract class Appender {
 	 */
 	public void setPattern(final String pattern) {
 		this.pattern = pattern;
+	}
+
+	/**
+	 * Sets the siftingMdcPropertyDefaultValue.
+	 * 
+	 * @param siftingMdcPropertyDefaultValue
+	 *            the siftingMdcPropertyDefaultValue to set
+	 */
+	public void setSiftingMdcPropertyDefaultValue(final String siftingMdcPropertyDefaultValue) {
+		this.siftingMdcPropertyDefaultValue = siftingMdcPropertyDefaultValue;
+	}
+
+	/**
+	 * Sets the siftingMdcPropertyName.
+	 * 
+	 * @param siftingMdcPropertyName
+	 *            the siftingMdcPropertyName to set
+	 */
+	public void setSiftingMdcPropertyName(final String siftingMdcPropertyName) {
+		this.siftingMdcPropertyName = siftingMdcPropertyName;
 	}
 
 	/**
