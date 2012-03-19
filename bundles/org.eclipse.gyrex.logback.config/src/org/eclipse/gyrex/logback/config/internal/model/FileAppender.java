@@ -127,6 +127,9 @@ public class FileAppender extends Appender {
 				writer.writeCharacters(".");
 				writer.writeCharacters(extension);
 			}
+			if (isCompressRotatedLogs()) {
+				writer.writeCharacters(".gz");
+			}
 			writer.writeEndElement();
 
 			writer.writeStartElement("minIndex");
@@ -175,6 +178,9 @@ public class FileAppender extends Appender {
 			if (StringUtils.isNotBlank(extension)) {
 				writer.writeCharacters(".");
 				writer.writeCharacters(extension);
+			}
+			if (isCompressRotatedLogs()) {
+				writer.writeCharacters(".gz");
 			}
 			writer.writeEndElement();
 
