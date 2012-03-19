@@ -114,7 +114,7 @@ public class Logger {
 		}
 		writer.writeAttribute("name", getName());
 		writer.writeAttribute("level", getLevel().toString());
-		if (isInheritOtherAppenders()) {
+		if (!isInheritOtherAppenders()) {
 			writer.writeAttribute("additivity", Boolean.FALSE.toString());
 		}
 		for (final String appenderRef : appenderRefs) {
