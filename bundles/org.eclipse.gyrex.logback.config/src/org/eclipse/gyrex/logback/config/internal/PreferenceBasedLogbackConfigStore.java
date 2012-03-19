@@ -159,6 +159,8 @@ public class PreferenceBasedLogbackConfigStore {
 	public void saveConfig(final LogbackConfig config, final Preferences node) throws BackingStoreException {
 		if (config.getDefaultLevel() != Level.INFO) {
 			node.put(DEFAULT_LEVEL, config.getDefaultLevel().toString());
+		} else {
+			node.remove(DEFAULT_LEVEL);
 		}
 
 		saveAppenderRefs(config.getDefaultAppenders(), node.node(DEFAULT_APPENDER_REFS));
