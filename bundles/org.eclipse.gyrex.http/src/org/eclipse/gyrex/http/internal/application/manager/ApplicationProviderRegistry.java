@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
+import org.eclipse.gyrex.http.internal.HttpDebug;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -56,28 +57,24 @@ public class ApplicationProviderRegistry extends ServiceTracker<ApplicationProvi
 	public ApplicationProvider addingService(final ServiceReference<ApplicationProvider> reference) {
 		// get service
 		final ApplicationProvider provider = super.addingService(reference);
-		if (LOG.isDebugEnabled()) {
+		if (HttpDebug.applicationLifecycle)
 			LOG.debug("Registering new ApplicationProvider: {}", provider);
-		}
 
 		// create registration
 		final ApplicationProviderRegistration registration = new ApplicationProviderRegistration(reference, provider);
 		final ApplicationProviderRegistration existingRegistration = providersById.putIfAbsent(provider.getId(), registration);
-		if (null != existingRegistration) {
+		if (null != existingRegistration)
 			// log at least an error so that we can track this
 			LOG.error("Unable to add provider ({}) using id '{}' due to conflict with existing registration ({}). Please open a bug and ask for supporting multiple providers for the same id in different versions.");
-		} else {
+		else
 			// inform listeners
-			for (final ProviderListener l : providerListeners) {
+			for (final ProviderListener l : providerListeners)
 				try {
 					l.providerAdded(registration);
 				} catch (final Exception e) {
-					if (LOG.isDebugEnabled()) {
+					if (HttpDebug.debug)
 						LOG.debug("Ignored exception in listener ({})", l, e);
-					}
 				}
-			}
-		}
 
 		return provider;
 	}
@@ -105,9 +102,8 @@ public class ApplicationProviderRegistry extends ServiceTracker<ApplicationProvi
 
 	@Override
 	public void removedService(final ServiceReference<ApplicationProvider> reference, final ApplicationProvider provider) {
-		if (LOG.isDebugEnabled()) {
+		if (HttpDebug.applicationLifecycle)
 			LOG.debug("Unregistering ApplicationProvider: {}", provider);
-		}
 
 		// remove provider registration
 		final ApplicationProviderRegistration providerRegistration = providersById.remove(provider.getId());
@@ -116,15 +112,13 @@ public class ApplicationProviderRegistry extends ServiceTracker<ApplicationProvi
 			providerRegistration.destroy();
 
 			// inform listeners
-			for (final ProviderListener l : providerListeners) {
+			for (final ProviderListener l : providerListeners)
 				try {
 					l.providerRemoved(providerRegistration);
 				} catch (final Exception e) {
-					if (LOG.isDebugEnabled()) {
+					if (HttpDebug.debug)
 						LOG.debug("Ignored exception in listener ({})", l, e);
-					}
 				}
-			}
 		}
 
 		// unget the service
