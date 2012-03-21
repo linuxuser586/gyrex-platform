@@ -304,7 +304,11 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 		if (HttpDebug.gatewayBinding) {
 			LOG.debug("Mounting url {} for application {} at {}", new Object[] { url, applicationId, gateway });
 		}
-		gateway.getUrlRegistry(this).registerIfAbsent(url, applicationId);
+		final String existingRegistration = gateway.getUrlRegistry(this).registerIfAbsent(url, applicationId);
+		if ((null != existingRegistration) && !existingRegistration.equals(applicationId)) {
+			// log an error if the existing registration is different
+			LOG.error("Unable to register application ({}). Url ({}) already registered to application ({}).", new Object[] { applicationId, url, existingRegistration });
+		}
 	}
 
 	@Override
