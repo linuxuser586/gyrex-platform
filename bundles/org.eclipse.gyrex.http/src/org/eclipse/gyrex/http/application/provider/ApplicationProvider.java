@@ -116,4 +116,12 @@ public abstract class ApplicationProvider {
 		}
 		this.id = id.intern();
 	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append(getClass().getSimpleName()).append(" [id=").append(id).append("]");
+		return builder.toString();
+	}
+
 }
