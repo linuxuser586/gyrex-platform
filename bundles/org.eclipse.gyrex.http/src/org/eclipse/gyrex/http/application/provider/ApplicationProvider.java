@@ -15,8 +15,6 @@ import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 
-import org.eclipse.core.runtime.CoreException;
-
 /**
  * A provider for {@link Application application instances}.
  * <p>
@@ -79,8 +77,10 @@ public abstract class ApplicationProvider {
 	 * @param context
 	 *            the context the application will operate in
 	 * @return a new application instance
+	 * @throws Exception
+	 *             in case of errors creating the application
 	 */
-	public abstract Application createApplication(String applicationId, IRuntimeContext context) throws CoreException;
+	public abstract Application createApplication(String applicationId, IRuntimeContext context) throws Exception;
 
 	/**
 	 * Returns the provider id.

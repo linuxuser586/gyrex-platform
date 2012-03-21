@@ -18,8 +18,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 
-import org.eclipse.core.runtime.CoreException;
-
 import org.osgi.framework.Bundle;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
@@ -62,9 +60,9 @@ public class ApplicationProviderRegistration {
 	 * @param applicationRegistration
 	 * @return a new application instance or <code>null</code> if the provider
 	 *         has been destroyed
-	 * @throws CoreException
+	 * @throws Exception
 	 */
-	Application createApplication(final ApplicationRegistration applicationRegistration) throws CoreException {
+	Application createApplication(final ApplicationRegistration applicationRegistration) throws Exception {
 		final ApplicationProvider provider = this.provider.get();
 		if (null == provider) {
 			// destroyed

@@ -24,8 +24,6 @@ import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.internal.HttpActivator;
 import org.eclipse.gyrex.http.internal.HttpDebug;
 
-import org.eclipse.core.runtime.CoreException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +123,7 @@ public class ApplicationRegistration {
 	 *            the application context
 	 * @return an application instance
 	 */
-	public ApplicationInstance getApplication(final IApplicationContext applicationContext) throws CoreException {
+	public ApplicationInstance getApplication(final IApplicationContext applicationContext) throws Exception {
 		// get application
 		ApplicationInstance instance = activeApplications.get(applicationContext);
 		if (null != instance) {
