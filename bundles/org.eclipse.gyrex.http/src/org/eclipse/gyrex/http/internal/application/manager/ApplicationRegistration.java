@@ -12,9 +12,11 @@
 package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -32,6 +34,10 @@ import org.slf4j.LoggerFactory;
  */
 public class ApplicationRegistration {
 
+	public static interface DestroyListener {
+		void applicationDestroyed(ApplicationRegistration registration);
+	}
+
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationRegistration.class);
 	private static final Map<String, String> NO_INIT_PROPERTIES = Collections.emptyMap();
 
@@ -42,6 +48,8 @@ public class ApplicationRegistration {
 
 	private final Lock applicationCreationLock = new ReentrantLock();
 	private final ApplicationManager manager;
+
+	private final List<DestroyListener> destoryListeners = new CopyOnWriteArrayList<ApplicationRegistration.DestroyListener>();
 
 	/**
 	 * Creates a new instance.
@@ -56,6 +64,10 @@ public class ApplicationRegistration {
 		this.providerId = providerId;
 		this.context = context;
 		this.manager = manager;
+	}
+
+	public void addDestroyListener(final DestroyListener listener) {
+		destoryListeners.add(listener);
 	}
 
 	/**
@@ -74,6 +86,15 @@ public class ApplicationRegistration {
 			instance.destroy();
 		}
 		activeApplications.clear();
+
+		for (final DestroyListener l : destoryListeners) {
+			try {
+				l.applicationDestroyed(this);
+			} catch (final Exception e) {
+				// ignore
+			}
+		}
+		destoryListeners.clear();
 	}
 
 	/**
@@ -208,6 +229,10 @@ public class ApplicationRegistration {
 	 */
 	public String getProviderId() {
 		return providerId;
+	}
+
+	public void removeDestroyListener(final DestroyListener listener) {
+		destoryListeners.remove(listener);
 	}
 
 	@Override
