@@ -38,7 +38,7 @@ public class HttpLifecycleComponent implements EventHandler {
 		applicationManager = new ApplicationManager();
 		appManagerServiceRegistration = HttpActivator.getInstance().getServiceHelper().registerService(IApplicationManager.class, applicationManager, "Eclipse Gyrex", "Gyrex Web Application Management Service", null, null);
 
-		gatewayBinding = new HttpGatewayBinding(HttpActivator.getInstance().getBundle().getBundleContext(), applicationManager);
+		gatewayBinding = new HttpGatewayBinding(HttpActivator.getInstance().getBundle().getBundleContext(), applicationManager, HttpActivator.getInstance().getProviderRegistry());
 		gatewayBinding.open();
 	}
 

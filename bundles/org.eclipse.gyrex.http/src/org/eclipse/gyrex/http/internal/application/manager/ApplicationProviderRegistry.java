@@ -12,15 +12,20 @@
 package org.eclipse.gyrex.http.internal.application.manager;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.gyrex.http.application.provider.ApplicationProvider;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A registry for tracking application providers.
@@ -29,7 +34,16 @@ import org.osgi.util.tracker.ServiceTracker;
  */
 public class ApplicationProviderRegistry extends ServiceTracker<ApplicationProvider, ApplicationProvider> {
 
+	public static interface ProviderListener {
+		void providerAdded(ApplicationProviderRegistration registration);
+
+		void providerRemoved(ApplicationProviderRegistration providerRegistration);
+	}
+
+	private static final Logger LOG = LoggerFactory.getLogger(ApplicationProviderRegistry.class);
+
 	private final ConcurrentMap<String, ApplicationProviderRegistration> providersById = new ConcurrentHashMap<String, ApplicationProviderRegistration>(1);
+	private final List<ProviderListener> providerListeners = new CopyOnWriteArrayList<ApplicationProviderRegistry.ProviderListener>();
 
 	/**
 	 * Creates a new instance.
@@ -42,12 +56,34 @@ public class ApplicationProviderRegistry extends ServiceTracker<ApplicationProvi
 	public ApplicationProvider addingService(final ServiceReference<ApplicationProvider> reference) {
 		// get service
 		final ApplicationProvider provider = super.addingService(reference);
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Registering new ApplicationProvider: {}", provider);
+		}
 
 		// create registration
 		final ApplicationProviderRegistration registration = new ApplicationProviderRegistration(reference, provider);
-		providersById.putIfAbsent(provider.getId(), registration);
+		final ApplicationProviderRegistration existingRegistration = providersById.putIfAbsent(provider.getId(), registration);
+		if (null != existingRegistration) {
+			// log at least an error so that we can track this
+			LOG.error("Unable to add provider ({}) using id '{}' due to conflict with existing registration ({}). Please open a bug and ask for supporting multiple providers for the same id in different versions.");
+		} else {
+			// inform listeners
+			for (final ProviderListener l : providerListeners) {
+				try {
+					l.providerAdded(registration);
+				} catch (final Exception e) {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("Ignored exception in listener ({})", l, e);
+					}
+				}
+			}
+		}
 
 		return provider;
+	}
+
+	public void addProviderListener(final ProviderListener listener) {
+		providerListeners.add(listener);
 	}
 
 	/**
@@ -69,14 +105,33 @@ public class ApplicationProviderRegistry extends ServiceTracker<ApplicationProvi
 
 	@Override
 	public void removedService(final ServiceReference<ApplicationProvider> reference, final ApplicationProvider provider) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Unregistering ApplicationProvider: {}", provider);
+		}
+
 		// remove provider registration
 		final ApplicationProviderRegistration providerRegistration = providersById.remove(provider.getId());
 		if (null != providerRegistration) {
 			// unmount and destroy all applications bound to the provider
 			providerRegistration.destroy();
+
+			// inform listeners
+			for (final ProviderListener l : providerListeners) {
+				try {
+					l.providerRemoved(providerRegistration);
+				} catch (final Exception e) {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("Ignored exception in listener ({})", l, e);
+					}
+				}
+			}
 		}
 
 		// unget the service
 		super.removedService(reference, provider);
+	}
+
+	public void removeProviderListener(final ProviderListener listener) {
+		providerListeners.remove(listener);
 	}
 }

@@ -18,6 +18,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.gyrex.http.internal.HttpDebug;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistration;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistry;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistry.ProviderListener;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -149,15 +152,33 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	};
 
 	final ApplicationManager applicationManager;
+	final ApplicationProviderRegistry providerRegistry;
+
+	final ProviderListener providerListener = new ProviderListener() {
+
+		@Override
+		public void providerAdded(final ApplicationProviderRegistration registration) {
+			final Object[] services = getServices();
+			for (final Object service : services) {
+				refreshRegistrations((IHttpGateway) service);
+			}
+		}
+
+		@Override
+		public void providerRemoved(final ApplicationProviderRegistration providerRegistration) {
+			// not used
+		}
+	};
 
 	/**
 	 * Creates a new instance.
 	 * 
 	 * @param context
 	 */
-	public HttpGatewayBinding(final BundleContext context, final ApplicationManager applicationManager) {
+	public HttpGatewayBinding(final BundleContext context, final ApplicationManager applicationManager, final ApplicationProviderRegistry providerRegistry) {
 		super(context, IHttpGateway.class, null);
 		this.applicationManager = applicationManager;
+		this.providerRegistry = providerRegistry;
 	}
 
 	@Override
@@ -169,30 +190,16 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 		}
 
 		// register all existing applications
-		try {
-			final IEclipsePreferences applicationsNode = ApplicationManager.getAppsNode();
-			final String[] names = applicationsNode.childrenNames();
-			for (final String applicationId : names) {
-				final IEclipsePreferences appNode = (IEclipsePreferences) applicationsNode.node(applicationId);
-
-				// register listener
-				appNode.addPreferenceChangeListener(applicationActiveListener);
-
-				// register if active
-				if (appNode.getBoolean(ApplicationManager.KEY_ACTIVE, ApplicationManager.DEFAULT_ACTIVE)) {
-					mountAppAtGatway(applicationId, gateway);
-				}
-			}
-		} catch (final BackingStoreException e) {
-			// TODO make this a background job that retries periodically if failed
-			LOG.error("Unable to read existing applications. {}", ExceptionUtils.getRootCauseMessage(e), e);
-		}
+		refreshRegistrations(gateway);
 
 		return gateway;
 	}
 
 	@Override
 	public void close() {
+		// unregister from provider registry
+		providerRegistry.removeProviderListener(providerListener);
+
 		// close
 		super.close();
 
@@ -316,8 +323,32 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 		ApplicationManager.getAppsNode().addNodeChangeListener(applicationsListener);
 		ApplicationManager.getUrlsNode().addPreferenceChangeListener(urlMountListener);
 
+		// hook with provider registry to get informed about coming and leaving providers
+		providerRegistry.addProviderListener(providerListener);
+
 		// open tracker
 		super.open();
+	}
+
+	private void refreshRegistrations(final IHttpGateway gateway) {
+		try {
+			final IEclipsePreferences applicationsNode = ApplicationManager.getAppsNode();
+			final String[] names = applicationsNode.childrenNames();
+			for (final String applicationId : names) {
+				final IEclipsePreferences appNode = (IEclipsePreferences) applicationsNode.node(applicationId);
+
+				// register listener
+				appNode.addPreferenceChangeListener(applicationActiveListener);
+
+				// register if active
+				if (appNode.getBoolean(ApplicationManager.KEY_ACTIVE, ApplicationManager.DEFAULT_ACTIVE)) {
+					mountAppAtGatway(applicationId, gateway);
+				}
+			}
+		} catch (final BackingStoreException e) {
+			// TODO make this a background job that retries periodically if failed
+			LOG.error("Unable to read existing applications. {}", ExceptionUtils.getRootCauseMessage(e), e);
+		}
 	}
 
 	@Override
