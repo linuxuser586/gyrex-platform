@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.application.provider;
 
+import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 
@@ -29,19 +30,34 @@ import org.eclipse.core.runtime.CoreException;
  */
 public abstract class ApplicationProvider {
 
-	private final String id;
+	private String id;
 
 	/**
-	 * Creates a new provider instance.
+	 * Creates a new provider instance allowing extenders to initialize the by
+	 * there one.
+	 * <p>
+	 * When this constructor is used callers must ensure that
+	 * {@link #setId(String)} is called within object creation at some point
+	 * before the provider is made available as an OSGi service to the Gyrex
+	 * runtime.
+	 * </p>
+	 */
+	protected ApplicationProvider() {
+	}
+
+	/**
+	 * Creates a new provider instance using the specified id.
+	 * <p>
+	 * Invoking this constructor initialized the id using {@link #setId(String)}
+	 * with the specified id.
+	 * </p>
 	 * 
 	 * @param id
 	 *            the provider id
+	 * @see #setId(String)
 	 */
 	protected ApplicationProvider(final String id) {
-		if (null == id) {
-			throw new IllegalArgumentException("id must not be null");
-		}
-		this.id = id.intern();
+		setId(id);
 	}
 
 	/**
@@ -72,6 +88,32 @@ public abstract class ApplicationProvider {
 	 * @return the id
 	 */
 	public final String getId() {
+		if (null == id) {
+			throw new IllegalStateException(String.format("provider id has not been initialized (%s)", getClass().getName()));
+		}
 		return id;
+	}
+
+	/**
+	 * Sets the provider id.
+	 * <p>
+	 * The provider id must be set before it can be used. It must only be set
+	 * once and cannot be changed thereafter.
+	 * </p>
+	 * 
+	 * @param id
+	 *            the provider id (will be {@link IdHelper#isValidId(String)
+	 *            validated}
+	 * @throws IllegalArgumentException
+	 *             if the specified id is invalid
+	 * @throws IllegalStateException
+	 *             the the id has already been set
+	 * @see IdHelper#isValidId(String)
+	 */
+	protected final void setId(final String id) throws IllegalArgumentException, IllegalStateException {
+		if (!IdHelper.isValidId(id)) {
+			throw new IllegalArgumentException("invalid id; please use only ASCII chars a..z (lower and/or upper case), number 0..9 and/or dot, dash and underscore (.-_)");
+		}
+		this.id = id.intern();
 	}
 }
