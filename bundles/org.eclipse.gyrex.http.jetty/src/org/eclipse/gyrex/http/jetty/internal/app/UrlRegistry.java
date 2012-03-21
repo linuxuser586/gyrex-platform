@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.eclipse.gyrex.http.internal.application.gateway.HttpGatewayBinding;
 import org.eclipse.gyrex.http.internal.application.gateway.IUrlRegistry;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration.DestroyListener;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.server.Handler;
@@ -92,7 +93,15 @@ public class UrlRegistry implements IUrlRegistry {
 			if (null == applicationRegistration) {
 				throw new IllegalStateException(NLS.bind("Application \"{0}\" could not be retreived from the registry!", applicationId));
 			}
-			appHandlerByAppId.putIfAbsent(applicationId, jettyGateway.customize(new ApplicationHandler(applicationRegistration)));
+			if (null == appHandlerByAppId.putIfAbsent(applicationId, jettyGateway.customize(new ApplicationHandler(applicationRegistration)))) {
+				applicationRegistration.addDestroyListener(new DestroyListener() {
+					@Override
+					public void applicationDestroyed(final ApplicationRegistration registration) {
+						// handle as application unregistered
+						applicationUnregistered(applicationRegistration.getApplicationId());
+					}
+				});
+			}
 			applicationContextHandler = appHandlerByAppId.get(applicationId);
 		}
 		return applicationContextHandler;
