@@ -273,8 +273,10 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 
 		GyrexContextServiceLocatorImpl serviceLocator = serviceLocators.get(bundleContext.getBundle());
 		if (null == serviceLocator) {
-			serviceLocators.putIfAbsent(bundleContext.getBundle(), new GyrexContextServiceLocatorImpl(this, bundleContext));
-			serviceLocator = serviceLocators.get(bundleContext.getBundle());
+			serviceLocator = serviceLocators.putIfAbsent(bundleContext.getBundle(), new GyrexContextServiceLocatorImpl(this, bundleContext));
+			if (null == serviceLocator) {
+				serviceLocator = serviceLocators.get(bundleContext.getBundle());
+			}
 
 			// TODO revisit later, there might be a race condition here (bundle being stopped while this method is called)
 			if (null == serviceLocator) {
