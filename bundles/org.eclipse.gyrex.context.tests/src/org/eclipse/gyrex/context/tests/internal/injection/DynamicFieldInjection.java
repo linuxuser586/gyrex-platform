@@ -17,8 +17,8 @@ import java.util.Collection;
 
 import javax.inject.Inject;
 
+import org.eclipse.gyrex.common.services.annotations.DynamicService;
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.di.annotations.DynamicService;
 
 public class DynamicFieldInjection {
 

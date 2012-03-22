@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.context.di.annotations;
+package org.eclipse.gyrex.common.services.annotations;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

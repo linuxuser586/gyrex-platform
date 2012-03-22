@@ -15,7 +15,7 @@ import static junit.framework.Assert.assertNotNull;
 
 import javax.inject.Inject;
 
-import org.eclipse.gyrex.context.di.annotations.DynamicService;
+import org.eclipse.gyrex.common.services.annotations.DynamicService;
 
 public class ConstructorInjectionWithOsgiService {
 	final ISampleService service;

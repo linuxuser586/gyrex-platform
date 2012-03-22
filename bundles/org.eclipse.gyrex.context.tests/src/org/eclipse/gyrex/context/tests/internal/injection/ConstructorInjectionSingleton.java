@@ -16,8 +16,8 @@ import static junit.framework.Assert.assertNotNull;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.eclipse.gyrex.common.services.annotations.DynamicService;
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.di.annotations.DynamicService;
 
 @Singleton
 public class ConstructorInjectionSingleton {
