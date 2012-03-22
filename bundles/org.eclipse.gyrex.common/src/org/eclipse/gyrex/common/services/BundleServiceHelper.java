@@ -48,8 +48,10 @@ import org.osgi.util.tracker.ServiceTracker;
  * behavior.
  * </p>
  * <p>
- * This class may be instantiated directly by clients. However, the use through
- * {@link BaseBundleActivator} is encouraged.
+ * This class may be instantiated directly by clients. In such a case they must
+ * ensure that {@link #dispose()} is called when the instantiated service helper
+ * is no longer used. However, the use through {@link BaseBundleActivator} is
+ * encouraged.
  * </p>
  * 
  * @noextend This class is not intended to be subclassed by clients.
@@ -64,13 +66,13 @@ public final class BundleServiceHelper {
 	 * Creates a new instance.
 	 * <p>
 	 * Note, this method is typically called by the framework during bundle
-	 * start. Clients must not call it directly.
+	 * start. Clients which call it directly because that want to instantiate a
+	 * service helper directly must properly {@link #dispose()} it when no
+	 * longer needed.
 	 * </p>
 	 * 
 	 * @param context
 	 *            the bundle context
-	 * @noreference This constructor is not intended to be referenced by
-	 *              clients.
 	 */
 	public BundleServiceHelper(final BundleContext context) {
 		contextRef.set(context);
@@ -93,10 +95,9 @@ public final class BundleServiceHelper {
 	 * </p>
 	 * <p>
 	 * Note, this method is typically called by the framework during bundle
-	 * shutdown. Clients must not call it directly.
+	 * shutdown. Clients which instantiated their own service helper directly
+	 * must also call it to properly dispose the instance.
 	 * </p>
-	 * 
-	 * @noreference This method is not intended to be referenced by clients.
 	 */
 	public void dispose() {
 		// unset the context
