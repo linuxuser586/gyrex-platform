@@ -16,10 +16,10 @@ package org.eclipse.gyrex.context.services;
  * way.
  * <p>
  * Easily put, this is a centrally implemented context specific service ranking
- * or filtering mechanism. The called just wants an OSGi service. However,
- * multiple implementations might be available at runtime. Not all contexts
- * might be privileged to access all services. The service locator makes this
- * <em>configurable</em> at runtime.
+ * or filtering mechanism. A caller typically just wants an OSGi service.
+ * However, multiple implementations might be available at runtime. Not all
+ * contexts might be privileged to access all services. The service locator
+ * makes this <em>configurable</em> at runtime.
  * </p>
  * 
  * @noextend This interface is not intended to be extended by clients.
