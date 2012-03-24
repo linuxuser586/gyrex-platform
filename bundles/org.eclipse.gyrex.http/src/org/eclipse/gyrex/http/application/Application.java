@@ -37,6 +37,8 @@ import org.eclipse.core.runtime.Status;
 import org.osgi.service.http.HttpContext;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A Gyrex HTTP application instance.
@@ -92,6 +94,20 @@ import org.apache.commons.lang.exception.ExceptionUtils;
  */
 public abstract class Application extends PlatformObject {
 
+	private static final Logger LOG = LoggerFactory.getLogger(Application.class);
+
+	private static String toFormattedDuration(final long duration) {
+		if (duration < 1000L) {
+			return String.format("%dms", duration);
+		}
+		if (duration < 60000L) {
+			return String.format("%ds", duration / 1000L);
+		}
+
+		// this is likely too long
+		return String.format("%dm", duration / 60000L);
+	}
+
 	/** the application id */
 	private final String id;
 
@@ -103,9 +119,9 @@ public abstract class Application extends PlatformObject {
 
 	/** the application status */
 	private final AtomicReference<IStatus> status = new AtomicReference<IStatus>();
-
 	/** deferred initialization */
 	private final AtomicLong initTimestamp = new AtomicLong();
+
 	private final Lock initLock = new ReentrantLock();
 
 	/** the destroyed state */
@@ -169,6 +185,8 @@ public abstract class Application extends PlatformObject {
 	public final void destroy() {
 		// set status
 		destroyed.set(true);
+
+		LOG.info("Stopping HTTP application {}...", getId());
 
 		try {
 			// destroy
@@ -414,23 +432,35 @@ public abstract class Application extends PlatformObject {
 	 * 
 	 * @param applicationContext
 	 *            the application context.
+	 * @throws Exception
+	 *             in case of unrecoverable initialization failures
 	 * @noreference This method is not intended to be referenced by clients.
 	 */
-	public final void initialize(final IApplicationContext applicationContext) throws CoreException {
+	public final void initialize(final IApplicationContext applicationContext) throws Exception {
 		if (null == applicationContext) {
 			throw new IllegalArgumentException("application context must not be null");
 		}
 		this.applicationContext.set(applicationContext);
 
 		try {
+			LOG.info("Starting HTTP application {}...", getId());
+			final long started = System.currentTimeMillis();
 			doInit();
-			initTimestamp.set(System.currentTimeMillis());
-		} catch (final CoreException e) {
-			throw e;
+			final long finished = System.currentTimeMillis();
+			initTimestamp.set(finished);
+			LOG.info("Finished starting HTTP application {} (in {}).", getId(), toFormattedDuration(finished - started));
 		} catch (final IllegalStateException e) {
-			// deferred initialization
+			// log a warning
+			LOG.warn("Unable to initialize application {} at this time ({}). Will retry at next opportunity.", new Object[] { getId(), e.getMessage(), e });
+			// and deferred initialization
 			initTimestamp.set(0);
 		} catch (final Exception e) {
+			// log error
+			LOG.error("Unable to initialize application {} due to unrecoverable error. {}", new Object[] { getId(), ExceptionUtils.getRootCauseMessage(e), e });
+			// and re-throw (wrapped into a core exception)
+			if (e instanceof CoreException) {
+				throw e;
+			}
 			throw new CoreException(new Status(IStatus.ERROR, HttpActivator.SYMBOLIC_NAME, String.format("Error while initializing applicaion %s. %s", id, ExceptionUtils.getRootCauseMessage(e)), e));
 		}
 	}
