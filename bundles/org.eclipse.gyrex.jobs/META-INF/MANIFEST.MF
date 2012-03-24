@@ -34,8 +34,8 @@ Require-Bundle: org.eclipse.gyrex.cloud;bundle-version="[1.0.0,2.0.0)",
  org.eclipse.core.jobs;bundle-version="[3.5.100,4.0.0)",
  org.eclipse.equinox.registry;bundle-version="[3.5.100,4.0.0)",
  org.eclipse.equinox.app;bundle-version="[1.3.100,2.0.0)"
-Export-Package: org.eclipse.gyrex.jobs;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.history;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
+Export-Package: org.eclipse.gyrex.jobs;version="1.0.0",
+ org.eclipse.gyrex.jobs.history;version="1.0.0",
  org.eclipse.gyrex.jobs.internal;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.commands;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.components;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
@@ -44,10 +44,10 @@ Export-Package: org.eclipse.gyrex.jobs;version="1.0.0";x-friends:="org.eclipse.g
  org.eclipse.gyrex.jobs.internal.scheduler;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.schedules;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
  org.eclipse.gyrex.jobs.internal.worker;x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.manager;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.provider;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.schedules;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.schedules.manager;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.schedules.service;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests",
- org.eclipse.gyrex.jobs.service;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.jobs,org.eclipse.gyrex.jobs.tests"
+ org.eclipse.gyrex.jobs.manager;version="1.0.0",
+ org.eclipse.gyrex.jobs.provider;version="1.0.0",
+ org.eclipse.gyrex.jobs.schedules;version="1.0.0",
+ org.eclipse.gyrex.jobs.schedules.manager;version="1.0.0",
+ org.eclipse.gyrex.jobs.schedules.service;version="1.0.0",
+ org.eclipse.gyrex.jobs.service;version="1.0.0"
 Service-Component: OSGI-INF/console-commands.xml, OSGI-INF/context-objects.xml, OSGI-INF/job-service.xml, OSGI-INF/schedule-service.xml
