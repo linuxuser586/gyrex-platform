@@ -24,6 +24,7 @@ import org.eclipse.osgi.service.datalocation.Location;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -55,6 +56,11 @@ public class LogbackConfigurator {
 		// reset JUL (this should disable the default JUL console output)
 		LogManager.getLogManager().reset();
 
+		// install SLF4J Bridge
+		if (!SLF4JBridgeHandler.isInstalled()) {
+			SLF4JBridgeHandler.install();
+		}
+
 		// don't perform any further configuration if a config file is specified
 		if (StringUtils.isNotBlank(System.getProperty("logback.configurationFile"))) {
 			return;
@@ -63,6 +69,11 @@ public class LogbackConfigurator {
 		// reset LoggerContext
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 		lc.reset();
+
+		// install SLF4J Bridge
+		if (!SLF4JBridgeHandler.isInstalled()) {
+			SLF4JBridgeHandler.install();
+		}
 
 		// configure status manager
 		if (lc.getStatusManager() == null) {

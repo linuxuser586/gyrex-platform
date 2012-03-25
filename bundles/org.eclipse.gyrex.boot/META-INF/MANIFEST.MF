@@ -52,7 +52,8 @@ Import-Package: ch.qos.logback.classic;version="[1.0.0,2.0.0)";resolution:=optio
  org.osgi.service.application;version="[1.1.0,2.0.0)",
  org.osgi.service.packageadmin;version="[1.2.0,2.0.0)",
  org.osgi.util.tracker;version="[1.3.3,2.0.0)",
- org.slf4j;version="[1.6.4,2.0.0)"
+ org.slf4j;version="[1.6.4,2.0.0)",
+ org.slf4j.bridge;version="[1.6.4,2.0.0)";resolution:=optional
 Export-Package: org.eclipse.gyrex.boot.internal;x-internal:=true,
  org.eclipse.gyrex.boot.internal.app;
   x-friends:="org.eclipse.gyrex.admin.ui,
