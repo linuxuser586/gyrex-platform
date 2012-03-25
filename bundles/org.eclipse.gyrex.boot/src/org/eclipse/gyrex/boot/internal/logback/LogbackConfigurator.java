@@ -154,14 +154,14 @@ public class LogbackConfigurator {
 
 		// some of our components are very communicative
 		// we apply some "smart" defaults for those known 3rdParty libs
-		lc.getLogger("org.apache.commons.httpclient").setLevel(Level.WARN);
+		lc.getLogger("org.apache.commons").setLevel(Level.WARN);
 		lc.getLogger("httpclient.wire").setLevel(Level.WARN);
 		lc.getLogger("org.apache.http").setLevel(Level.WARN);
 		lc.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
 		lc.getLogger("org.apache.solr").setLevel(Level.WARN);
-		lc.getLogger("org.apache.sshd").setLevel(Level.INFO);
+		lc.getLogger("org.apache.sshd").setLevel(Level.WARN);
 		lc.getLogger("org.apache.mina").setLevel(Level.WARN);
-		lc.getLogger("org.mortbay.log").setLevel(Level.INFO);
+		lc.getLogger("org.mortbay.log").setLevel(Level.WARN);
 		lc.getLogger("org.eclipse.jetty").setLevel(Level.INFO);
 		lc.getLogger("org.quartz").setLevel(Level.INFO);
 
