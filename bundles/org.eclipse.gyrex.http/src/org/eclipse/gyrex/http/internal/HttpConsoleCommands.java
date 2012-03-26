@@ -27,6 +27,7 @@ import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationManager;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistration;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationProviderRegistry;
+import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -79,12 +80,13 @@ public class HttpConsoleCommands implements CommandProvider {
 				if (StringUtils.startsWith("applications", what) || StringUtils.startsWith("apps", what)) {
 					final SortedSet<String> registeredApplications = new TreeSet<String>(manager.getRegisteredApplications());
 					for (final String applicationId : registeredApplications) {
-						ci.println(manager.getApplicationRegistration(applicationId));
+						final ApplicationRegistration applicationRegistration = manager.getApplicationRegistration(applicationId);
+						ci.println(String.format("%s (%s) [%s]", applicationRegistration.getApplicationId(), applicationRegistration.getProviderId(), applicationRegistration.getContext().getContextPath().toString()));
 					}
 				} else if (StringUtils.startsWith("providers", what)) {
 					final SortedMap<String, ApplicationProviderRegistration> providers = new TreeMap<String, ApplicationProviderRegistration>(registry.getRegisteredProviders());
 					for (final ApplicationProviderRegistration provider : providers.values()) {
-						ci.println(provider);
+						ci.println(String.format("%s (%s) [%s]", provider.getProviderId(), provider.getProviderInfo(), provider.getContributorInfo()));
 					}
 				} else if (StringUtils.startsWith("urls", what)) {
 					final IEclipsePreferences urlsNode = ApplicationManager.getUrlsNode();
