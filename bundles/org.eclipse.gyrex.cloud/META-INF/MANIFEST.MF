@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Gyrex Cloud Intelligence (Incubation)
+Bundle-Name: Gyrex Cloud Intelligence
 Bundle-SymbolicName: org.eclipse.gyrex.cloud;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: org.eclipse.gyrex.cloud.internal.CloudActivator
