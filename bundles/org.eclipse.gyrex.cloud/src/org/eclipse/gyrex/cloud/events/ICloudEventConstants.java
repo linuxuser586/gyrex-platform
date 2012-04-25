@@ -57,8 +57,9 @@ public interface ICloudEventConstants {
 	 * <code>org/eclipse/gyrex/cloud/node/online</code>).
 	 * <p>
 	 * Note, this event may be triggered multiple times while online. There is
-	 * also no guarantee that an {@link #TOPIC_NODE_OFFLINE OFFLINE} event is
-	 * preceeding each {@link #TOPIC_NODE_ONLINE ONLINE} event.
+	 * also no guarantee that an {@link #TOPIC_NODE_OFFLINE OFFLINE} event or an
+	 * {@link #TOPIC_NODE_INTERRUPTED INTERRUPTED} event is preceeding each
+	 * {@link #TOPIC_NODE_ONLINE ONLINE} event.
 	 * </p>
 	 */
 	String TOPIC_NODE_ONLINE = "org/eclipse/gyrex/cloud/node/online";
@@ -69,8 +70,9 @@ public interface ICloudEventConstants {
 	 * <code>org/eclipse/gyrex/cloud/node/interrupted</code>).
 	 * <p>
 	 * Note, this event may be triggered multiple times while interrupted. There
-	 * is also no guarantee that an {@link #TOPIC_NODE_ONLINE ONLINE} event is
-	 * preceeding each {@link #TOPIC_NODE_INTERRUPTED INTERRUPTED} event.
+	 * is also no guarantee that an {@link #TOPIC_NODE_ONLINE ONLINE} event or
+	 * an {@link #TOPIC_NODE_OFFLINE OFFLINE} event is preceeding each
+	 * {@link #TOPIC_NODE_INTERRUPTED INTERRUPTED} event.
 	 * </p>
 	 */
 	String TOPIC_NODE_INTERRUPTED = "org/eclipse/gyrex/cloud/node/interrupted";
@@ -80,8 +82,9 @@ public interface ICloudEventConstants {
 	 * offline (value <code>org/eclipse/gyrex/cloud/node/offline</code>).
 	 * <p>
 	 * Note, this event may be triggered multiple times while offline. There is
-	 * also no guarantee that an {@link #TOPIC_NODE_ONLINE ONLINE} event is
-	 * preceeding an {@link #TOPIC_NODE_OFFLINE OFFLINE} event.
+	 * also no guarantee that an {@link #TOPIC_NODE_ONLINE ONLINE} event or an
+	 * {@link #TOPIC_NODE_INTERRUPTED INTERRUPTED} event is preceeding an
+	 * {@link #TOPIC_NODE_OFFLINE OFFLINE} event.
 	 * </p>
 	 */
 	String TOPIC_NODE_OFFLINE = "org/eclipse/gyrex/cloud/node/offline";
