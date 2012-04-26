@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.cloud.admin;
 
 import java.util.Collection;
+import java.util.Set;
 
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 
@@ -57,7 +58,18 @@ public interface ICloudManager {
 	 */
 	INodeConfigurer getNodeConfigurer(String nodeId);
 
-	Collection<String> getOnlineNodes();
+	/**
+	 * A set of node id which are online in the system.
+	 * <p>
+	 * Note, the returned set may be modifiable. However, modifications do not
+	 * reflect back into the system. The returned set is a snapshot at the time
+	 * of invoking this method. It may already be invalid when this method
+	 * returns.
+	 * </p>
+	 * 
+	 * @return a set of node ids (never <code>null</code>)
+	 */
+	Set<String> getOnlineNodes();
 
 	Collection<INodeDescriptor> getPendingNodes();
 

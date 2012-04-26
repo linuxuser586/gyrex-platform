@@ -14,7 +14,9 @@ package org.eclipse.gyrex.cloud.internal.admin;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.gyrex.cloud.admin.ICloudManager;
 import org.eclipse.gyrex.cloud.admin.INodeConfigurer;
@@ -116,16 +118,16 @@ public class CloudManagerImpl implements ICloudManager {
 	}
 
 	@Override
-	public Collection<String> getOnlineNodes() {
+	public Set<String> getOnlineNodes() {
 		try {
 			final ZooKeeperGate zk = ZooKeeperGate.get();
-			final Collection<String> names = zk.readChildrenNames(IZooKeeperLayout.PATH_NODES_ONLINE, null);
+			final List<String> names = zk.readChildrenNames(IZooKeeperLayout.PATH_NODES_ONLINE, null);
 			if (names == null) {
-				return Collections.emptyList();
+				return Collections.emptySet();
 			}
-			return names;
+			return new HashSet<String>(names);
 		} catch (final NoNodeException e) {
-			return Collections.emptyList();
+			return Collections.emptySet();
 		} catch (final Exception e) {
 			throw new RuntimeException("Error reading list of nodes. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
