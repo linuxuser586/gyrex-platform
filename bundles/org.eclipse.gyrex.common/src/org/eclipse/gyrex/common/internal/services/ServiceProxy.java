@@ -81,6 +81,7 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 
 	/** the generated dynamic proxy */
 	private volatile T dynamicProxy;
+	private final Object dynamicProxyCreationLock = new Object();
 
 	/** a background thread for notifying listeners */
 	private final Job notifyServiceChangeListeners;
@@ -250,11 +251,20 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 
 	@Override
 	public T getProxy() {
-		checkDisposed();
-		if (null != dynamicProxy) {
-			return dynamicProxy;
+		T proxy = dynamicProxy;
+		if (null != proxy) {
+			return proxy;
 		}
-		return dynamicProxy = createProxy();
+
+		// ensure that at most one proxy is created
+		synchronized (dynamicProxyCreationLock) {
+			proxy = dynamicProxy;
+			if (null != proxy) {
+				return proxy;
+			}
+
+			return dynamicProxy = createProxy();
+		}
 	}
 
 	@Override

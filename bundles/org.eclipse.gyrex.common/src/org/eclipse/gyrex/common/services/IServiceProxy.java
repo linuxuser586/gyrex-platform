@@ -43,6 +43,14 @@ public interface IServiceProxy<T> {
 	/**
 	 * Returns a dynamic proxy implementing the service interface for
 	 * transparent access to the service object.
+	 * <p>
+	 * The returned proxy may be used in collections. It's
+	 * {@link Object#equals(Object) equals} and {@link Object#hashCode()
+	 * hashCode} will implement exact identity comparison using the returned
+	 * proxy object instance. Implementations will also ensure that at most one
+	 * proxy instance is created and subsequent invocations will return the same
+	 * proxy instance as long as the service proxy is not disposed.
+	 * </p>
 	 * 
 	 * @return a dynamic proxy implementing the service interface
 	 */
