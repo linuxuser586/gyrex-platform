@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -280,6 +281,16 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	@Override
 	public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
 		checkDisposed();
+
+		// need to handle hashCode and equals within the proxy (for proper usage in collections)
+		if (method.getName().equals("hashCode") && ((null == args) || (args.length == 0))) {
+			return System.identityHashCode(proxy); // rely entirely on identity
+		} else if (method.getName().equals("equals") && (null != args) && (args.length == 1)) {
+			return proxy == args[0]; // rely entirely on identity
+		} else if (method.getName().equals("toString") && ((null == args) || (args.length == 0))) {
+			return toString(); // use ServiceProxy implementation
+		}
+
 		return method.invoke(getService(), args);
 	}
 
@@ -374,6 +385,12 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 		builder.append("ServiceProxy [").append(serviceInterface.getName()).append("]");
 		if (disposed) {
 			builder.append(" DISPOSED");
+		} else {
+			try {
+				builder.append(" USING ").append(serviceReferences.firstKey());
+			} catch (final NoSuchElementException e) {
+				builder.append(" NO-SERVICE");
+			}
 		}
 		return builder.toString();
 	};
