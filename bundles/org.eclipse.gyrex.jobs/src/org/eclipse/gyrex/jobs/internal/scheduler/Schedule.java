@@ -68,7 +68,7 @@ public class Schedule implements IPreferenceChangeListener {
 		this.scheduleStoreStorageKey = scheduleStoreStorageKey;
 	}
 
-	void activateEngine() {
+	synchronized void activateEngine() {
 		if (JobsDebug.schedulerEngine) {
 			LOG.debug("Activating schedule {}...", getScheduleStoreStorageKey());
 		}
@@ -109,7 +109,7 @@ public class Schedule implements IPreferenceChangeListener {
 
 	}
 
-	void deactivateEngine() {
+	synchronized void deactivateEngine() {
 		if (JobsDebug.schedulerEngine) {
 			LOG.debug("Deactivating Quartz engine {}...", getScheduleStoreStorageKey());
 		}
@@ -158,7 +158,7 @@ public class Schedule implements IPreferenceChangeListener {
 		}
 	}
 
-	private void quietShutdown() {
+	private synchronized void quietShutdown() {
 		if (null != quartzScheduler) {
 			try {
 				quartzScheduler.shutdown();
@@ -180,7 +180,7 @@ public class Schedule implements IPreferenceChangeListener {
 		}
 	}
 
-	private void refreshSchedule() throws SchedulerException {
+	private synchronized void refreshSchedule() throws SchedulerException {
 
 		// delete all existing jobs
 		final String[] jobGroupNames = quartzScheduler.getJobGroupNames();
@@ -251,13 +251,7 @@ public class Schedule implements IPreferenceChangeListener {
 		node.addPreferenceChangeListener(this);
 
 		// check if enabled
-		if (!node.getBoolean(ScheduleImpl.ENABLED, false)) {
-			if (JobsDebug.schedulerEngine) {
-				LOG.debug("Schedule {} is disabled.", getScheduleStoreStorageKey());
-			}
-			return;
-		}
-
+		// (note, use ensureScheduleData to populate with fresh data)
 		if (ensureScheduleData(Boolean.TRUE).isEnabled()) {
 			activateEngine();
 		} else {
