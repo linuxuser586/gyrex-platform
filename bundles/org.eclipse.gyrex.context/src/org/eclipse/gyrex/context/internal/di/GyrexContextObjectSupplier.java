@@ -309,7 +309,7 @@ public class GyrexContextObjectSupplier extends PrimaryObjectSupplier {
 	}
 
 	@Override
-	public void resumeRecoding() {
+	public void resumeRecording() {
 		// no-op
 	}
 
