@@ -390,7 +390,7 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 	private ContextDefinition getRootDefinition() {
 		final ContextDefinition rootDefinition = new ContextDefinition(Path.ROOT);
-		rootDefinition.setName("ROOT");
+		rootDefinition.setName("ROOT (/)");
 		return rootDefinition;
 	}
 
