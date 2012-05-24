@@ -88,7 +88,7 @@ public class CloudManagerImpl implements ICloudManager {
 			ZooKeeperNodeInfo.approve(nodeId, null, null);
 			return Status.OK_STATUS;
 		} catch (final Exception e) {
-			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, "Error approving node. " + ExceptionUtils.getRootCauseMessage(e), e);
+			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, String.format("Error approving node %s. %s", nodeId, ExceptionUtils.getRootCauseMessage(e)), e);
 		}
 	};
 
@@ -183,7 +183,7 @@ public class CloudManagerImpl implements ICloudManager {
 
 			return Status.OK_STATUS;
 		} catch (final Exception e) {
-			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, "Error approving node. " + ExceptionUtils.getRootCauseMessage(e), e);
+			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, String.format("Error retiring node %s. %s", nodeId, ExceptionUtils.getRootCauseMessage(e)), e);
 		}
 	}
 }
