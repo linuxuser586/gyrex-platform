@@ -24,9 +24,9 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.pde.internal.junit.runtime.RemotePluginTestRunner;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +34,16 @@ import org.slf4j.LoggerFactory;
 public class ServerTestApplication extends ServerApplication implements IApplication {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerTestApplication.class);
+
+	private boolean looksLikeTychoSurefireEnvironment(final String[] applicationArguments) {
+		// quick check for '-testproperties' argument
+		for (final String arg : applicationArguments) {
+			if (StringUtils.equalsIgnoreCase("-testproperties", arg)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	@Override
 	protected void onApplicationStarted(final Map arguments) {
@@ -59,7 +69,7 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 
 					// execute tests
 					LOG.info("Executing tests...");
-					RemotePluginTestRunner.main(getApplicationArguments(arguments));
+					runTests(getApplicationArguments(arguments));
 					LOG.info("Finished executing tests.");
 
 					// shutdown
@@ -86,6 +96,27 @@ public class ServerTestApplication extends ServerApplication implements IApplica
 		final File stateArea = Platform.getInstanceLocation().append(".metadata/.plugins").toFile();
 		if (stateArea.isDirectory()) {
 			FileUtils.deleteDirectory(stateArea);
+		}
+	}
+
+	void runTests(final String[] args) {
+		// note, we use reflection here in order to avoid compile-time dependencies as well
+		if (looksLikeTychoSurefireEnvironment(args)) {
+			LOG.info("Running in Tycho OSGi Surefire environment.");
+			try {
+				final Class<?> osgiSurefireBooterClass = Activator.getInstance().getBundle().loadClass("org.eclipse.tycho.surefire.osgibooter.OsgiSurefireBooter");
+				osgiSurefireBooterClass.getMethod("run", String[].class).invoke(null, new Object[] { args });
+			} catch (final Exception e) {
+				throw new IllegalStateException("Unable to execute tests using Tycho OSGi Surefire booter. Please verify bundle 'org.eclipse.tycho.surefire.osgibooter' is available!", e);
+			}
+		} else {
+			LOG.info("Running in PDE JUnit Plug-in Test environment.");
+			try {
+				final Class<?> pdeJunitRunnerClass = Activator.getInstance().getBundle().loadClass("org.eclipse.pde.internal.junit.runtime.RemotePluginTestRunner");
+				pdeJunitRunnerClass.getMethod("main", String[].class).invoke(null, new Object[] { args });
+			} catch (final Exception e) {
+				throw new IllegalStateException("Unable to execute tests using PDE JUnit Plug-in Test runner. Please verify bundle 'org.eclipse.pde.junit.runtime' is available!", e);
+			}
 		}
 	}
 }
