@@ -233,17 +233,11 @@ public class Schedule implements IPreferenceChangeListener {
 		final List<IScheduleEntry> entries = ensureScheduleData(Boolean.FALSE).getEntries();
 		for (final IScheduleEntry entry : entries) {
 			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
-			// put all parameter
 			detail.getJobDataMap().putAll(entry.getJobParameter());
-			// put type id
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_TYPE_ID, entry.getJobTypeId());
-			// put job id
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_ID, entry.getJobId());
-			// put state
 			detail.getJobDataMap().put(SchedulingJob.PROP_ENABLED, entry.isEnabled());
-			// put context path
 			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_CONTEXT_PATH, ensureScheduleData(Boolean.FALSE).getContextPath().toString());
-			// put schedule details
 			detail.getJobDataMap().put(SchedulingJob.PROP_SCHEDULE_ID, ensureScheduleData(Boolean.FALSE).getId());
 			detail.getJobDataMap().put(SchedulingJob.PROP_SCHEDULE_ENTRY_ID, entry.getId());
 
@@ -254,6 +248,7 @@ public class Schedule implements IPreferenceChangeListener {
 				trigger.setCronExpression(asQuartzCronExpression(cronExpression));
 			} catch (final ParseException e) {
 				LOG.error("Unable to schedule entry {}. Invalid cron expression. {}", entry, ExceptionUtils.getRootCauseMessage(e));
+				continue;
 			}
 
 			if (JobsDebug.schedulerEngine) {
