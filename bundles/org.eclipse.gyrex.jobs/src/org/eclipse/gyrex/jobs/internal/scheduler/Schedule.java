@@ -21,6 +21,10 @@ import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
@@ -45,13 +49,46 @@ import org.slf4j.LoggerFactory;
  */
 public class Schedule implements IPreferenceChangeListener {
 
+	private class DeferredActivationJob extends Job {
+
+		public DeferredActivationJob() {
+			super("Deferred activation for schedule " + getScheduleStoreStorageKey());
+			setSystem(true);
+		}
+
+		@Override
+		protected IStatus run(final IProgressMonitor monitor) {
+			try {
+				// Force re-load of schedule data
+				final ScheduleImpl schedule = ensureScheduleData(Boolean.TRUE);
+				if (schedule.isEnabled()) {
+					if (monitor.isCanceled()) {
+						return Status.CANCEL_STATUS;
+					}
+					activateEngine();
+				} else {
+					deactivateEngine();
+				}
+				return Status.OK_STATUS;
+			} catch (final RuntimeException e) {
+				LOG.error("Error activating schedule {}: {}", new Object[] { getScheduleStoreStorageKey(), e.getMessage(), e });
+				quietShutdown();
+				return Status.CANCEL_STATUS;
+			}
+		}
+
+	}
+
 	private static final Logger LOG = LoggerFactory.getLogger(Schedule.class);
+	private static final long DEFERRED_ACTIVATION_DELAY = 10000L; // 10 seconds
 
 	public static String asQuartzCronExpression(final String cronExpression) {
 		// quartz allows for seconds but Unix cron does not support this
 		// thus, we always force the second to be '0'
 		return "0 " + cronExpression;
 	}
+
+	private final DeferredActivationJob deferredActivationJob = new DeferredActivationJob();
 
 	private final String scheduleStoreStorageKey;
 	private ScheduleImpl scheduleData;
@@ -161,11 +198,14 @@ public class Schedule implements IPreferenceChangeListener {
 
 	@Override
 	public void preferenceChange(final PreferenceChangeEvent event) {
+		// cancel any ongoing activation
+		deferredActivationJob.cancel();
+
 		if (ScheduleImpl.ENABLED.equals(event.getKey())) {
 			final boolean activate = StringUtils.equals(Boolean.toString(Boolean.TRUE), (String) event.getNewValue());
 			try {
-				if (activate && !isActive()) {
-					activateEngine();
+				if (activate) {
+					deferredActivationJob.schedule(DEFERRED_ACTIVATION_DELAY);
 				} else {
 					deactivateEngine();
 				}
@@ -179,14 +219,10 @@ public class Schedule implements IPreferenceChangeListener {
 			}
 		} else {
 			// a schedule might have been incomplete previously and not activated properly;
-			// check if now is a good time to activate it
+			// check if now is a good time to activate it and try to activate it
 			if (!isActive()) {
 				try {
-					// (note: do NOT reload schedule data in cace more changes are in flight)
-					final ScheduleImpl schedule = ensureScheduleData(Boolean.FALSE);
-					if (schedule.isEnabled()) {
-						activateEngine();
-					}
+					deferredActivationJob.schedule(DEFERRED_ACTIVATION_DELAY);
 				} catch (final Exception e) {
 					// ignore; still not ready
 					quietShutdown();
@@ -196,6 +232,9 @@ public class Schedule implements IPreferenceChangeListener {
 	}
 
 	private synchronized void quietShutdown() {
+		// cancel any ongoing activation
+		deferredActivationJob.cancel();
+
 		// make sure that there is no Quartz schedule left in the Quartz scheduler repo
 		final SchedulerRepository repository = SchedulerRepository.getInstance();
 		if (null == quartzScheduler) {
