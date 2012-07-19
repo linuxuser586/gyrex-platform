@@ -151,12 +151,20 @@ public class Schedule implements IPreferenceChangeListener {
 		return scheduleStoreStorageKey;
 	}
 
+	synchronized boolean isActive() {
+		try {
+			return (null != quartzScheduler) && quartzScheduler.isStarted();
+		} catch (final SchedulerException e) {
+			return false;
+		}
+	}
+
 	@Override
 	public void preferenceChange(final PreferenceChangeEvent event) {
 		if (ScheduleImpl.ENABLED.equals(event.getKey())) {
 			final boolean activate = StringUtils.equals(Boolean.toString(Boolean.TRUE), (String) event.getNewValue());
 			try {
-				if (activate) {
+				if (activate && !isActive()) {
 					activateEngine();
 				} else {
 					deactivateEngine();
@@ -168,6 +176,21 @@ public class Schedule implements IPreferenceChangeListener {
 					LOG.error("Error deactivating schedule '{}'. {}", new Object[] { event.getNode().name(), ExceptionUtils.getRootCauseMessage(e), e });
 				}
 				quietShutdown();
+			}
+		} else {
+			// a schedule might have been incomplete previously and not activated properly;
+			// check if now is a good time to activate it
+			if (!isActive()) {
+				try {
+					// (note: do NOT reload schedule data in cace more changes are in flight)
+					final ScheduleImpl schedule = ensureScheduleData(Boolean.FALSE);
+					if (schedule.isEnabled()) {
+						activateEngine();
+					}
+				} catch (final Exception e) {
+					// ignore; still not ready
+					quietShutdown();
+				}
 			}
 		}
 	}
@@ -276,9 +299,22 @@ public class Schedule implements IPreferenceChangeListener {
 		// add listener
 		node.addPreferenceChangeListener(this);
 
-		// check if enabled
+		// load the schedule
 		// (note, use ensureScheduleData to populate with fresh data)
-		if (ensureScheduleData(Boolean.TRUE).isEnabled()) {
+		ScheduleImpl schedule;
+		try {
+			schedule = ensureScheduleData(Boolean.TRUE);
+		} catch (final IllegalStateException e) {
+			// the schedule might be in an incomplete "in-creation" phase
+			// don't activate the engine right now and wait for the complete creation
+			if (JobsDebug.schedulerEngine) {
+				LOG.debug("Schedule {} will not be activated due to loading errors. It looks like its creation is still in progress.", scheduleStoreStorageKey, e);
+			}
+			return;
+		}
+
+		// check if enabled
+		if (schedule.isEnabled()) {
 			activateEngine();
 		} else {
 			if (JobsDebug.schedulerEngine) {
