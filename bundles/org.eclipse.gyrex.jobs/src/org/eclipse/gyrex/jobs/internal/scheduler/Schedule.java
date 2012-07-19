@@ -70,7 +70,7 @@ public class Schedule implements IPreferenceChangeListener {
 
 	synchronized void activateEngine() {
 		if (JobsDebug.schedulerEngine) {
-			LOG.debug("Activating schedule {}...", getScheduleStoreStorageKey());
+			LOG.debug("Activating schedule {}...", scheduleStoreStorageKey);
 		}
 		if (null != quartzScheduler) {
 			return;
@@ -80,14 +80,28 @@ public class Schedule implements IPreferenceChangeListener {
 			// make sure that Quartz does not check for updates
 			System.setProperty("org.terracotta.quartz.skipUpdateCheck", "true");
 
-			// create scheduler
+			// prepare scheduler 
 			final DirectSchedulerFactory factory = DirectSchedulerFactory.getInstance();
 			final SimpleThreadPool threadPool = new SimpleThreadPool(1, Thread.NORM_PRIORITY);
-			threadPool.setInstanceId(getScheduleStoreStorageKey());
-			threadPool.setInstanceName(getScheduleStoreStorageKey());
+			threadPool.setInstanceId(scheduleStoreStorageKey);
+			threadPool.setInstanceName(scheduleStoreStorageKey);
 			final JobStore jobStore = new RAMJobStore();
-			factory.createScheduler(getScheduleStoreStorageKey(), getScheduleStoreStorageKey(), threadPool, jobStore);
-			quartzScheduler = factory.getScheduler(getScheduleStoreStorageKey());
+
+			// create scheduler
+			// (make sure that only a single thread manipulates the SchedulerRepository)
+			final SchedulerRepository repository = SchedulerRepository.getInstance();
+			synchronized (repository) {
+				factory.createScheduler(scheduleStoreStorageKey, scheduleStoreStorageKey, threadPool, jobStore);
+				quartzScheduler = factory.getScheduler(scheduleStoreStorageKey);
+				if (null == quartzScheduler) {
+					quartzScheduler = repository.lookup(scheduleStoreStorageKey);
+				}
+			}
+
+			// double check to ensure that Quartz did not fail
+			if (null == quartzScheduler) {
+				throw new SchedulerException("Unabled to retrieve created scheduler from Quartz SchedulerRepository. It looks like the creation failed but the Quartz framework did not report it as such!");
+			}
 
 			// TODO add support for calendars (we likely should support global calendars)
 
@@ -159,22 +173,39 @@ public class Schedule implements IPreferenceChangeListener {
 	}
 
 	private synchronized void quietShutdown() {
+		// make sure that there is no Quartz schedule left in the Quartz scheduler repo
+		final SchedulerRepository repository = SchedulerRepository.getInstance();
+		if (null == quartzScheduler) {
+			synchronized (repository) {
+				quartzScheduler = repository.lookup(scheduleStoreStorageKey);
+			}
+		}
+
+		// shutdown Quartz scheduler
 		if (null != quartzScheduler) {
 			try {
-				quartzScheduler.shutdown();
-
-				// log success message
-				LOG.info("Deactivated schedule {}.", getScheduleStoreStorageKey());
-			} catch (final Exception ignored) {
-				// ignore
-			}
-			try {
-				SchedulerRepository.getInstance().remove(getScheduleStoreStorageKey());
-				if (JobsDebug.schedulerEngine) {
-					LOG.debug("Successful removal of Quartz engine {} from scheduler repo.", getScheduleStoreStorageKey());
+				// remove from SchedulerRepository
+				boolean removed;
+				synchronized (repository) {
+					removed = repository.remove(scheduleStoreStorageKey);
+				}
+				if (!removed) {
+					LOG.error("Quartz eninge for schedule {} could not be removed from the Quartz scheduler repository. Please monitor the process memory and scheduling closely for anomalies. A restart of the node may be necessary.", scheduleStoreStorageKey);
+				} else if (JobsDebug.schedulerEngine) {
+					LOG.debug("Successful removal of Quartz engine {} from scheduler repo.", scheduleStoreStorageKey);
 				}
 			} catch (final Exception ignored) {
 				// ignore
+			} finally {
+				try {
+					// shutdown
+					quartzScheduler.shutdown();
+
+					// log success message
+					LOG.info("Deactivated schedule {}.", scheduleStoreStorageKey);
+				} catch (final Exception ignored) {
+					// ignore
+				}
 			}
 			quartzScheduler = null;
 		}
