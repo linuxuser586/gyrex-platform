@@ -493,9 +493,20 @@ public class ApplicationHandler extends ServletContextHandler {
 
 	@Override
 	public boolean isProtectedTarget(String target) {
+		// support custom protected targets
+		if (super.isProtectedTarget(target)) {
+			return true;
+		}
+
+		if (null == target) {
+			return false;
+		}
+
 		while (target.startsWith("//")) {
 			target = URIUtil.compactPath(target);
 		}
+
+		// protect certain OSGi constructs
 		return StringUtil.startsWithIgnoreCase(target, "/web-inf") || StringUtil.startsWithIgnoreCase(target, "/meta-inf") || StringUtil.startsWithIgnoreCase(target, "/osgi-inf") || StringUtil.startsWithIgnoreCase(target, "/osgi-opt");
 	}
 
