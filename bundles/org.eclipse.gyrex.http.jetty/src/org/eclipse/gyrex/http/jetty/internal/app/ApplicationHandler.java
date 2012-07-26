@@ -492,7 +492,7 @@ public class ApplicationHandler extends ServletContextHandler {
 	}
 
 	@Override
-	protected boolean isProtectedTarget(String target) {
+	public boolean isProtectedTarget(String target) {
 		while (target.startsWith("//")) {
 			target = URIUtil.compactPath(target);
 		}
