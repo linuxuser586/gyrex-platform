@@ -70,6 +70,9 @@ public class LogbackConfigurator {
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 		lc.reset();
 
+		// turn of packaging data calculation in production (http://jira.qos.ch/browse/LOGBACK-730)
+		lc.setPackagingDataEnabled(Platform.inDevelopmentMode());
+
 		// install SLF4J Bridge
 		if (!SLF4JBridgeHandler.isInstalled()) {
 			SLF4JBridgeHandler.install();
