@@ -13,11 +13,15 @@ package org.eclipse.gyrex.cloud.internal.zk;
 
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base class for Gyrex ZooKeeper event handlers
  */
 public class ZooKeeperMonitor implements Watcher {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperMonitor.class);
 
 	/**
 	 * A child has been created or removed for the specified path.
@@ -48,11 +52,24 @@ public class ZooKeeperMonitor implements Watcher {
 
 	@Override
 	public void process(final WatchedEvent event) {
-		if (event.getType() == Event.EventType.None) {
-			// state of the connection changed
-			// TODO: how to handle/consume this event here?
-			// our prefered way of working with ZK connect/disconnect/expired events
-			// is using the ZKGate which has it's own connect listener (integrated into ZKBasedService)
+		switch (event.getType()) {
+			case NodeChildrenChanged:
+				childrenChanged(event.getPath());
+				break;
+			case NodeCreated:
+				pathCreated(event.getPath());
+				break;
+			case NodeDeleted:
+				pathDeleted(event.getPath());
+				break;
+			case NodeDataChanged:
+				recordChanged(event.getPath());
+				break;
+			case None:
+				// state of the connection changed
+				// TODO: how to handle/consume this event here?
+				// our prefered way of working with ZK connect/disconnect/expired events
+				// is using the ZKGate which has it's own connect listener (integrated into ZKBasedService)
 //			switch (event.getState()) {
 //				case SyncConnected:
 //					// connection established, nothing to do because watches
@@ -68,24 +85,10 @@ public class ZooKeeperMonitor implements Watcher {
 //					expired();
 //					break;
 //			}
-		} else {
-			final String path = event.getPath();
-			if (path != null) {
-				switch (event.getType()) {
-					case NodeChildrenChanged:
-						childrenChanged(path);
-						break;
-					case NodeCreated:
-						pathCreated(path);
-						break;
-					case NodeDeleted:
-						pathDeleted(path);
-						break;
-					case NodeDataChanged:
-						recordChanged(path);
-						break;
-				}
-			}
+				break;
+			default:
+				LOG.warn("Unhandled event ({}) in ({})", new Object[] { event, this });
+				break;
 		}
 	}
 
