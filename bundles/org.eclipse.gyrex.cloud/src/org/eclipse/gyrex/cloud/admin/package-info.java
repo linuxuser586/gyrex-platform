@@ -11,7 +11,7 @@
  *******************************************************************************/
 
 /**
- * This package defines API for a administrating the cloud.
+ * This package defines API for a administrating a Gyrex cloud.
  * <p>
  * It's exposed as API in order to allow external management of cloud nodes.
  * However, some limitations apply. This package represents an administration
@@ -22,7 +22,7 @@
  * </p>
  * <p>
  * Clients using this API should inform the Gyrex development team through it's
- * preferred channels (eg. development mailing). They should also define a more
+ * preferred channels (eg. development mailing list). They should also define a more
  * strict package version range (eg. <code>[1.0.0,1.1.0)</code>) when importing
  * this package (or any other sub-package).
  * </p>

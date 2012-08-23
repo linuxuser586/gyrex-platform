@@ -14,6 +14,7 @@ package org.eclipse.gyrex.cloud.admin;
 import java.util.Collection;
 import java.util.Set;
 
+import org.eclipse.gyrex.cloud.admin.node.INodeManager;
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 
 import org.eclipse.core.runtime.IStatus;
@@ -57,6 +58,16 @@ public interface ICloudManager {
 	 * @return the node configurer
 	 */
 	INodeConfigurer getNodeConfigurer(String nodeId);
+
+	/**
+	 * Returns a node specific interface for managing the node with the
+	 * specified id
+	 * 
+	 * @param nodeId
+	 *            the node id
+	 * @return the node manager
+	 */
+	INodeManager getNodeManager(String nodeId);
 
 	/**
 	 * A set of node id which are online in the system.

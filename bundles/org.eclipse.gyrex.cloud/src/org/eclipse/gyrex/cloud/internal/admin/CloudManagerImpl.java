@@ -22,6 +22,7 @@ import org.eclipse.gyrex.cloud.admin.ICloudManager;
 import org.eclipse.gyrex.cloud.admin.INodeConfigurer;
 import org.eclipse.gyrex.cloud.admin.INodeDescriptor;
 import org.eclipse.gyrex.cloud.admin.INodeListener;
+import org.eclipse.gyrex.cloud.admin.node.INodeManager;
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
@@ -115,6 +116,12 @@ public class CloudManagerImpl implements ICloudManager {
 	@Override
 	public INodeConfigurer getNodeConfigurer(final String nodeId) {
 		return new NodeConfigurer(nodeId);
+	}
+
+	@Override
+	public INodeManager getNodeManager(final String nodeId) {
+		return new INodeManager() {
+		};
 	}
 
 	@Override
