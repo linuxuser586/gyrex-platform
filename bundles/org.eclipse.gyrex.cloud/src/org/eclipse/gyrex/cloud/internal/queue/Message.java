@@ -20,6 +20,7 @@ import java.util.NoSuchElementException;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.zookeeper.KeeperException;
@@ -246,11 +247,15 @@ public class Message implements IMessage {
 	public byte[] toByteArray() throws IOException {
 		final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		final DataOutputStream dos = new DataOutputStream(bos);
-		dos.writeInt(1); // serialized format version
-		dos.writeLong(invisibleTimeoutTS); // invisible timeout
-		dos.writeInt(body.length); // body size
-		dos.write(body); // body
-		return bos.toByteArray();
+		try {
+			dos.writeInt(1); // serialized format version
+			dos.writeLong(invisibleTimeoutTS); // invisible timeout
+			dos.writeInt(body.length); // body size
+			dos.write(body); // body
+			return bos.toByteArray();
+		} finally {
+			IOUtils.closeQuietly(dos);
+		}
 	}
 
 	@Override
