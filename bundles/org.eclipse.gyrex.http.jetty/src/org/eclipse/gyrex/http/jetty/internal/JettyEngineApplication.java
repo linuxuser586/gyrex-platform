@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.jetty.internal;
 
+import java.lang.management.ManagementFactory;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,12 +36,14 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.http.HttpSchemes;
+import org.eclipse.jetty.jmx.MBeanContainer;
 import org.eclipse.jetty.server.AbstractConnector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.bio.SocketConnector;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.server.ssl.SslSocketConnector;
+import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import org.osgi.framework.Filter;
@@ -282,6 +285,14 @@ public class JettyEngineApplication implements IApplication {
 
 			// initialize (but do not start) the Jetty server
 			final Server server = new Server();
+
+			// enable Jetty JMX support
+			final MBeanContainer mbContainer = new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
+			server.getContainer().addEventListener(mbContainer);
+			server.addBean(mbContainer);
+
+			// register Jetty loggers as MBeans
+			mbContainer.addBean(Log.getRootLogger());
 
 			// create gateway
 			JettyGateway gateway = new JettyGateway(server);
