@@ -28,6 +28,9 @@ import org.slf4j.LoggerFactory;
  */
 public class JettyJmxConnector {
 
+	private static final String PROPERTY_HOST = "gyrex.jmxrmihost";
+	private static final String PROPERTY_PORT = "gyrex.jmxrmiport";
+
 	private static final Logger LOG = LoggerFactory.getLogger(JettyJmxConnector.class);
 
 	private static ConnectorServer connectorServer;
@@ -37,9 +40,9 @@ public class JettyJmxConnector {
 			throw new IllegalStateException("already started");
 		}
 
-		// check if disabled
+		// do not start if running in production mode and not explicitly set
 		final EnvironmentInfo info = BootActivator.getEnvironmentInfo();
-		if (info.getProperty("gyrex.jmxrmioff") != null) {
+		if (info.getProperty("gyrex.jmxrmiskip") != null) {
 			return;
 		}
 
@@ -48,15 +51,15 @@ public class JettyJmxConnector {
 		int port = Platform.getInstancePort(1099);
 
 		// allow port and host override through arguments
-		if (info.getProperty("gyrex.jmxrmiport") != null) {
+		if (info.getProperty(PROPERTY_PORT) != null) {
 			try {
-				port = Integer.parseInt(info.getProperty("gyrex.jmxrmiport"));
+				port = Integer.parseInt(info.getProperty(PROPERTY_PORT));
 			} catch (final Exception e) {
-				throw new IllegalArgumentException(String.format("Invalid JMX port (%s).", info.getProperty("gyrex.jmxrmiport")), e);
+				throw new IllegalArgumentException(String.format("Invalid JMX port (%s).", info.getProperty(PROPERTY_PORT)), e);
 			}
 		}
-		if (info.getProperty("gyrex.jmxrmihost") != null) {
-			host = info.getProperty("gyrex.jmxrmihost");
+		if (info.getProperty(PROPERTY_HOST) != null) {
+			host = info.getProperty(PROPERTY_HOST);
 		}
 
 		// TODO: may want to support protected access using <instance-location>/etc/jmx/... files
