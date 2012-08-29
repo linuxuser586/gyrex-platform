@@ -35,6 +35,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleException;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.UnhandledException;
 import org.apache.commons.lang.WordUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -88,12 +89,16 @@ public class ServerApplication extends BaseApplication {
 		System.err.println();
 		if (cause != null) {
 			System.err.println("Reported error:");
-			System.err.println(WordUtils.wrap(cause.getMessage(), 72));
-			final Throwable root = ExceptionUtils.getRootCause(cause);
-			if (root != null) {
+			System.err.print("  ");
+			System.err.println(WordUtils.wrap(cause.getMessage(), 70, String.format("%n  "), false));
+			final List throwables = ExceptionUtils.getThrowableList(cause);
+			if (throwables.size() > 1) {
 				System.err.println();
 				System.err.println("Caused by:");
-				System.err.println(WordUtils.wrap(ExceptionUtils.getMessage(root), 72));
+				for (int i = 1; i < throwables.size(); i++) {
+					System.err.print("  ");
+					System.err.println(WordUtils.wrap(ExceptionUtils.getMessage((Throwable) throwables.get(i)), 70, String.format("%n  "), false));
+				}
 			}
 			System.err.println();
 		}
@@ -406,7 +411,7 @@ public class ServerApplication extends BaseApplication {
 		} catch (final LinkageError e) {
 			LOG.warn("Jetty JMX is not available. Please configure JMX support manually. ({})", e.getMessage());
 		} catch (final Exception e) {
-			LOG.error("Error while starting Jetty JMX. Please configure JMX support manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
+			throw new UnhandledException("An error occured while starting the embedded JMX server. Please verify the port/host configuration is correct and no other server is running. JMX can also be disabled by setting system property 'gyrex.jmxrmi.skip'.", e);
 		}
 	}
 
