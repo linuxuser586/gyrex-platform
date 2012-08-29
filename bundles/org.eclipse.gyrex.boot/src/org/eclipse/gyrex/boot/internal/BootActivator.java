@@ -29,6 +29,7 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.framework.log.FrameworkLog;
 import org.eclipse.osgi.service.datalocation.Location;
+import org.eclipse.osgi.service.environment.EnvironmentInfo;
 import org.eclipse.osgi.util.NLS;
 
 import org.osgi.framework.Bundle;
@@ -63,6 +64,10 @@ public class BootActivator extends BaseBundleActivator {
 	private static final AtomicReference<OpsMode> opsModeRef = new AtomicReference<OpsMode>();
 	private static final AtomicBoolean debugModeRef = new AtomicBoolean();
 	private static int portOffset;
+
+	public static EnvironmentInfo getEnvironmentInfo() {
+		return getInstance().getServiceHelper().trackService(EnvironmentInfo.class).getService();
+	}
 
 	/**
 	 * Returns the shared instance
@@ -102,6 +107,7 @@ public class BootActivator extends BaseBundleActivator {
 	private ServiceTracker<PackageAdmin, PackageAdmin> bundleTracker;
 	private volatile IServiceProxy<Location> instanceLocationProxy;
 	private volatile IPath instanceLocationPath;
+
 	private ServiceRegistration frameworkLogServiceRegistration;
 
 	/**

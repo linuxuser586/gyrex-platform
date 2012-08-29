@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.boot.internal.BootActivator;
 import org.eclipse.gyrex.boot.internal.BootDebug;
+import org.eclipse.gyrex.boot.internal.jmx.JettyJmxConnector;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
 import org.eclipse.gyrex.server.Platform;
 import org.eclipse.gyrex.server.internal.roles.LocalRolesManager;
@@ -250,26 +251,12 @@ public class ServerApplication extends BaseApplication {
 			// bootstrap the platform
 			bootstrap();
 
+			// enable jxm
+			jmxOn();
+
 			// start the Equinox SSH Console if available
 			if (isConsoleEnabled()) {
-				// TODO: might want to use ConfigAdmin?
-				final EnvironmentInfo environmentInfo = getEnvironmentInfo();
-				if (null == environmentInfo.getProperty("osgi.console.ssh")) {
-					environmentInfo.setProperty("osgi.console.ssh", String.valueOf(Platform.getInstancePort(3122)));
-				}
-				if (startBundle(BSN_EQUINOX_CONSOLE_SSH, false)) {
-					try {
-						final Object authenticator = BootActivator.getInstance().getBundle().loadClass("org.eclipse.gyrex.boot.internal.ssh.InstanceLocationAuthorizedKeysFileAuthenticator").newInstance();
-						BootActivator.getInstance().getServiceHelper().registerService("org.apache.sshd.server.PublickeyAuthenticator", authenticator, "Eclipse Gyrex", "Equionx SSH Console authorized_keys support for Gyrex.", null, Integer.MAX_VALUE);
-					} catch (final ClassNotFoundException e) {
-						// ignore
-					} catch (final LinkageError e) {
-						// ignore
-					} catch (final Exception e) {
-						// error (but do not fail)
-						LOG.warn("Unable to register authorized_keys file support for Equinox SSH Console. ", e);
-					}
-				}
+				startConsole();
 			}
 
 			// set the platform running state early to allow server roles
@@ -303,6 +290,9 @@ public class ServerApplication extends BaseApplication {
 		} catch (final Exception ignore) {
 			// ignore
 		}
+
+		// shutdown JMX connector
+		jmxOff();
 
 		// print error
 		final Throwable reason = shutdownReason;
@@ -376,10 +366,6 @@ public class ServerApplication extends BaseApplication {
 
 	}
 
-	private EnvironmentInfo getEnvironmentInfo() {
-		return BootActivator.getInstance().getServiceHelper().trackService(EnvironmentInfo.class).getService();
-	}
-
 	@Override
 	protected Logger getLogger() {
 		return LOG;
@@ -387,7 +373,7 @@ public class ServerApplication extends BaseApplication {
 
 	private boolean isConsoleEnabled() {
 		// check framework arguments
-		final String[] args = getEnvironmentInfo().getFrameworkArgs();
+		final String[] args = BootActivator.getEnvironmentInfo().getFrameworkArgs();
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-console")) {
 				if (((i + 1) < args.length) && args[i + 1].equals("none")) {
@@ -400,6 +386,30 @@ public class ServerApplication extends BaseApplication {
 		return false;
 	}
 
+	private void jmxOff() {
+		try {
+			JettyJmxConnector.stop();
+		} catch (final ClassNotFoundException e) {
+			LOG.debug("Jetty JMX is not available. Ignoring error during shutdown. ({})", e.getMessage());
+		} catch (final LinkageError e) {
+			LOG.debug("Jetty JMX is not available. Ignoring error during shutdown. ({})", e.getMessage());
+		} catch (final Exception e) {
+			LOG.warn("Error while stopping Jetty JMX. {}", ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
+	private void jmxOn() {
+		try {
+			JettyJmxConnector.start();
+		} catch (final ClassNotFoundException e) {
+			LOG.warn("Jetty JMX is not available. Please configure JMX support manually. ({})", e.getMessage());
+		} catch (final LinkageError e) {
+			LOG.warn("Jetty JMX is not available. Please configure JMX support manually. ({})", e.getMessage());
+		} catch (final Exception e) {
+			LOG.error("Error while starting Jetty JMX. Please configure JMX support manually. {}", ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
 	private boolean startBundle(final String symbolicName, final boolean required) throws BundleException {
 		final Bundle bundle = BootActivator.getInstance().getBundle(symbolicName);
 		if (null != bundle) {
@@ -410,6 +420,28 @@ public class ServerApplication extends BaseApplication {
 			throw new StartAbortedException();
 		}
 		return false;
+	}
+
+	private void startConsole() throws BundleException {
+		// enable SSH console
+		// TODO: might want to use ConfigAdmin?
+		final EnvironmentInfo environmentInfo = BootActivator.getEnvironmentInfo();
+		if (null == environmentInfo.getProperty("osgi.console.ssh")) {
+			environmentInfo.setProperty("osgi.console.ssh", String.valueOf(Platform.getInstancePort(3122)));
+		}
+		if (startBundle(BSN_EQUINOX_CONSOLE_SSH, false)) {
+			try {
+				final Object authenticator = BootActivator.getInstance().getBundle().loadClass("org.eclipse.gyrex.boot.internal.ssh.InstanceLocationAuthorizedKeysFileAuthenticator").newInstance();
+				BootActivator.getInstance().getServiceHelper().registerService("org.apache.sshd.server.PublickeyAuthenticator", authenticator, "Eclipse Gyrex", "Equionx SSH Console authorized_keys support for Gyrex.", null, Integer.MAX_VALUE);
+			} catch (final ClassNotFoundException e) {
+				// ignore
+			} catch (final LinkageError e) {
+				// ignore
+			} catch (final Exception e) {
+				// error (but do not fail)
+				LOG.warn("Unable to register authorized_keys file support for Equinox SSH Console. ", e);
+			}
+		}
 	}
 
 }

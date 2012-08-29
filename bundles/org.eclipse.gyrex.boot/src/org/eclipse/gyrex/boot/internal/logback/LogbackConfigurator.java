@@ -167,6 +167,7 @@ public class LogbackConfigurator {
 		lc.getLogger("org.mortbay.log").setLevel(Level.WARN);
 		lc.getLogger("org.eclipse.jetty").setLevel(Level.INFO);
 		lc.getLogger("org.quartz").setLevel(Level.INFO);
+		lc.getLogger("sun").setLevel(Level.INFO);
 
 		// print logback's internal status
 		StatusPrinter.printIfErrorsOccured(lc);
