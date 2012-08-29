@@ -28,8 +28,8 @@ import org.slf4j.LoggerFactory;
  */
 public class JettyJmxConnector {
 
-	private static final String PROPERTY_HOST = "gyrex.jmxrmihost";
-	private static final String PROPERTY_PORT = "gyrex.jmxrmiport";
+	private static final String PROPERTY_HOST = "gyrex.jmxrmi.host";
+	private static final String PROPERTY_PORT = "gyrex.jmxrmi.port";
 
 	private static final Logger LOG = LoggerFactory.getLogger(JettyJmxConnector.class);
 
@@ -42,7 +42,7 @@ public class JettyJmxConnector {
 
 		// do not start if running in production mode and not explicitly set
 		final EnvironmentInfo info = BootActivator.getEnvironmentInfo();
-		if (info.getProperty("gyrex.jmxrmiskip") != null) {
+		if (info.getProperty("gyrex.jmxrmi.skip") != null) {
 			return;
 		}
 
