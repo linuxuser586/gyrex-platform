@@ -223,7 +223,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 					metrics.getRequestsMetric().requestFailed();
 					metrics.error(status, ((Response) response).getReason());
 				} else {
-					metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
+					metrics.getRequestsMetric().requestFinished(((Response) response).getContentCount(), System.currentTimeMillis() - requestStart);
 				}
 			} else {
 				metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
