@@ -84,6 +84,7 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 
 	@Override
 	public void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
+		// FIXME: wird zweimal aufgerufen...
 		final ThroughputMetric requestsMetric = metrics.getRequestsMetric();
 		final long requestStart = requestsMetric.requestStarted();
 		try {
@@ -94,10 +95,10 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 					metrics.getRequestsMetric().requestFailed();
 					metrics.error(status, ((Response) response).getReason());
 				} else {
-					metrics.getRequestsMetric().requestFinished(((Response) response).getContentCount(), System.currentTimeMillis() - requestStart);
+					metrics.getRequestsMetric().requestFinished(((Response) response).getContentCount(), System.nanoTime() - requestStart);
 				}
 			} else {
-				metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
+				metrics.getRequestsMetric().requestFinished(0, System.nanoTime() - requestStart);
 			}
 		} catch (final IOException e) {
 			metrics.getRequestsMetric().requestFailed();

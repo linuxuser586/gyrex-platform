@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.jetty.internal.app;
 
+import java.util.concurrent.TimeUnit;
+
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 import org.eclipse.gyrex.monitoring.metrics.ErrorMetric;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
@@ -33,7 +35,7 @@ public class ApplicationHandlerMetrics extends MetricSet {
 	 * Creates a new instance.
 	 */
 	protected ApplicationHandlerMetrics(final String applicationId) {
-		super(String.format(HttpJettyActivator.SYMBOLIC_NAME + ".handler.application.%s.metric", applicationId), String.format("Metrics for Jetty Server requests handled by Gyrex application '%s'.", applicationId), new StatusMetric("status", "created", "not initialized"), new ThroughputMetric("requests"), new ErrorMetric("errors", 5));
+		super(String.format(HttpJettyActivator.SYMBOLIC_NAME + ".handler.application.%s.metric", applicationId), String.format("Metrics for Jetty Server requests handled by Gyrex application '%s'.", applicationId), new StatusMetric("status", "created", "not initialized"), new ThroughputMetric("requests", TimeUnit.NANOSECONDS), new ErrorMetric("errors", 5));
 		statusMetric = getMetric(0, StatusMetric.class);
 		requestsMetric = getMetric(1, ThroughputMetric.class);
 		errorsMetric = getMetric(2, ErrorMetric.class);
