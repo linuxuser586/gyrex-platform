@@ -26,6 +26,7 @@ import javax.management.InvalidAttributeValueException;
 import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanNotificationInfo;
+import javax.management.MBeanOperationInfo;
 import javax.management.ReflectionException;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -53,6 +54,7 @@ import org.apache.commons.lang.StringUtils;
  */
 public class MetricSetMBean implements DynamicMBean {
 
+	private static final String RESET_STATS = "resetStats";
 	private static final String PROPERTIES = "properties";
 	private static final String DESCRIPTION = "description";
 	private static final String ID = "id";
@@ -198,7 +200,7 @@ public class MetricSetMBean implements DynamicMBean {
 	private void initialize() {
 		final List<OpenMBeanAttributeInfoSupport> attributes = new ArrayList<OpenMBeanAttributeInfoSupport>();
 		final OpenMBeanConstructorInfoSupport[] constructors = new OpenMBeanConstructorInfoSupport[0];
-		final OpenMBeanOperationInfoSupport[] operations = new OpenMBeanOperationInfoSupport[0];
+		final List<OpenMBeanOperationInfoSupport> operations = new ArrayList<OpenMBeanOperationInfoSupport>(1);
 		final MBeanNotificationInfo[] notifications = new MBeanNotificationInfo[0];
 
 		// common attribute
@@ -249,13 +251,18 @@ public class MetricSetMBean implements DynamicMBean {
 			}
 		}
 
+		// reset operation for metric
+		operations.add(new OpenMBeanOperationInfoSupport(RESET_STATS, "reset the metric statistics", null, SimpleType.VOID, MBeanOperationInfo.ACTION));
+
 		// build the info
-		beanInfo = new OpenMBeanInfoSupport(this.getClass().getName(), metricSet.getDescription(), attributes.toArray(new OpenMBeanAttributeInfoSupport[attributes.size()]), constructors, operations, notifications);
+		beanInfo = new OpenMBeanInfoSupport(this.getClass().getName(), metricSet.getDescription(), attributes.toArray(new OpenMBeanAttributeInfoSupport[attributes.size()]), constructors, operations.toArray(new OpenMBeanOperationInfoSupport[operations.size()]), notifications);
 	}
 
 	@Override
 	public Object invoke(final String actionName, final Object[] params, final String[] signature) throws MBeanException, ReflectionException {
-		// not supported
+		if (RESET_STATS.equals(actionName)) {
+			metricSet.resetStats();
+		}
 		return null;
 	}
 
