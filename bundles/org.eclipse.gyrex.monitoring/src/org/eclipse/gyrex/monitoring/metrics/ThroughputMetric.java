@@ -13,6 +13,7 @@ package org.eclipse.gyrex.monitoring.metrics;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -113,14 +114,33 @@ public class ThroughputMetric extends BaseMetric {
 	 */
 	private volatile long requestsStatsProcessingTimeVariance100;
 
+	private final TimeUnit timeUnit;
+
 	/**
-	 * Creates a new throughput metric instance.
+	 * Creates a new throughput metric instance using time unit
+	 * {@link TimeUnit#MILLISECONDS}.
 	 * 
 	 * @param id
 	 *            the metric id
 	 */
 	public ThroughputMetric(final String id) {
+		this(id, TimeUnit.MILLISECONDS);
+	}
+
+	/**
+	 * Creates a new throughput metric instance.
+	 * 
+	 * @param id
+	 *            the metric id
+	 * @param timeUnit
+	 *            the time unit used in the metric
+	 */
+	public ThroughputMetric(final String id, final TimeUnit timeUnit) {
 		super(id);
+		if (timeUnit == null) {
+			throw new IllegalArgumentException("no time unit specified");
+		}
+		this.timeUnit = timeUnit;
 	}
 
 	/**
@@ -383,6 +403,15 @@ public class ThroughputMetric extends BaseMetric {
 		return requestsStatsSizeAverage;
 	}
 
+	/**
+	 * Returns the metric time unit.
+	 * 
+	 * @return the metric time unit
+	 */
+	public TimeUnit getTimeUnit() {
+		return timeUnit;
+	}
+
 	@Override
 	void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
@@ -401,6 +430,7 @@ public class ThroughputMetric extends BaseMetric {
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeHigh", "the highest number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeLow", "the lowest number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeStandardDeviation", "the standard deviation for the total number of time consumed processing requests (excluding failed requests) since the last statistics reset", Double.class));
+		attributes.add(new MetricAttribute("timeUnit", "the time unit used in the metric", String.class));
 	}
 
 	@Override
@@ -421,6 +451,7 @@ public class ThroughputMetric extends BaseMetric {
 		values.put("requestsStatsProcessingTimeHigh", getRequestsStatsProcessingTimeHigh());
 		values.put("requestsStatsProcessingTimeLow", getRequestsStatsProcessingTimeLow());
 		values.put("requestsStatsProcessingTimeStandardDeviation", getRequestsStatsProcessingTimeStandardDeviation());
+		values.put("timeUnit", getTimeUnit().toString());
 	}
 
 	/**
@@ -493,7 +524,10 @@ public class ThroughputMetric extends BaseMetric {
 	 * request finished.
 	 * </p>
 	 * 
-	 * @return <code>System.currentTimeMillis()</code> for convenience
+	 * @return request start time converted to {@link #getTimeUnit() the metric
+	 *         time unit} for convenience (based on {@link System#nanoTime()} if
+	 *         the precision is microseconds or nanoseconds, otherwise
+	 *         {@link System#currentTimeMillis()})
 	 */
 	public long requestStarted() {
 		final Lock writeLock = getWriteLock();
@@ -508,7 +542,17 @@ public class ThroughputMetric extends BaseMetric {
 		} finally {
 			writeLock.unlock();
 		}
-		return System.currentTimeMillis();
+
+		switch (timeUnit) {
+			case NANOSECONDS:
+				return System.nanoTime();
+			case MICROSECONDS:
+				return TimeUnit.NANOSECONDS.toMicros(System.nanoTime());
+			case MILLISECONDS:
+				return System.currentTimeMillis();
+			default:
+				return getTimeUnit().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+		}
 	}
 
 	private void updateFailureRate() {
