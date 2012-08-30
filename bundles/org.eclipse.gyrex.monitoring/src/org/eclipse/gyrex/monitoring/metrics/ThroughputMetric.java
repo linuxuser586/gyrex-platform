@@ -95,6 +95,12 @@ public class ThroughputMetric extends BaseMetric {
 	private volatile long requestsStatsProcessingTimeAverage;
 
 	/**
+	 * the total square number of time consumed processing requests (excluding
+	 * failed requests) since the last statistics reset
+	 */
+	private volatile long requestsStatsProcessingTimeSquare;
+
+	/**
 	 * Creates a new throughput metric instance.
 	 * 
 	 * @param id
@@ -132,6 +138,7 @@ public class ThroughputMetric extends BaseMetric {
 		requestsStatsSizeAverage = 0;
 		requestsStatsProcessingTime = 0;
 		requestsStatsProcessingTimeAverage = 0;
+		requestsStatsProcessingTimeSquare = 0;
 	}
 
 	@Override
@@ -283,6 +290,23 @@ public class ThroughputMetric extends BaseMetric {
 	}
 
 	/**
+	 * Returns the total square number of time consumed processing requests
+	 * since the last statistics reset.
+	 * <p>
+	 * In contrast to {@link #getRequestsStatsProcessingTime() the total number}
+	 * the total square number gives more weight on longer requests. This number
+	 * is provided as an alternative for an average calculation based on square
+	 * numbers.
+	 * </p>
+	 * 
+	 * @return the total square number of time consumed processing requests
+	 *         since the last statistics reset
+	 */
+	public long getRequestsStatsProcessingTimeSquare() {
+		return requestsStatsProcessingTimeSquare;
+	}
+
+	/**
 	 * Returns the total number of size units processed by requests since the
 	 * last statistics reset.
 	 * 
@@ -319,6 +343,7 @@ public class ThroughputMetric extends BaseMetric {
 		attributes.add(new MetricAttribute("requestsStatsSizeAverage", "the average number of size units processed by a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTime", "the total number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeAverage", "the average number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsProcessingTimeSquare", "the total square number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
 	}
 
 	@Override
@@ -336,6 +361,7 @@ public class ThroughputMetric extends BaseMetric {
 		values.put("requestsStatsSizeAverage", getRequestsStatsSizeAverage());
 		values.put("requestsStatsProcessingTime", getRequestsStatsProcessingTime());
 		values.put("requestsStatsProcessingTimeAverage", getRequestsStatsProcessingTimeAverage());
+		values.put("requestsStatsProcessingTimeSquare", getRequestsStatsProcessingTimeSquare());
 	}
 
 	/**
@@ -383,6 +409,7 @@ public class ThroughputMetric extends BaseMetric {
 			requestsStatsSizeAverage = requestsStatsSize / requestsStatsProcessed;
 			requestsStatsProcessingTime += processingTime;
 			requestsStatsProcessingTimeAverage = requestsStatsProcessingTime / requestsStatsProcessed;
+			requestsStatsProcessingTimeSquare += (processingTime * processingTime);
 			updateHitRate();
 			updateFailureRate();
 		} finally {
