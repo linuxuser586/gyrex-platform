@@ -143,7 +143,7 @@ public class ThroughputMetric extends BaseMetric {
 
 	@Override
 	Object[] dumpMetrics() {
-		return new Object[] { "active|high|processed|rate|size|size average|time|time average", getRequestsActive(), getRequestsStatsHigh(), getRequestsStatsProcessed(), getRequestsStatsHitRatePerMinute(), getRequestsStatsSize(), getRequestsStatsSizeAverage(), getRequestsStatsProcessingTime(), getRequestsStatsProcessingTimeAverage() };
+		return new Object[] { "active|high|processed|rate|size|size average|time|time average|time square", getRequestsActive(), getRequestsStatsHigh(), getRequestsStatsProcessed(), getRequestsStatsHitRatePerMinute(), getRequestsStatsSize(), getRequestsStatsSizeAverage(), getRequestsStatsProcessingTime(), getRequestsStatsProcessingTimeAverage(), getRequestsStatsProcessingTimeSquare() };
 	}
 
 	/**
