@@ -12,7 +12,6 @@
 package org.eclipse.gyrex.http.jetty.internal.app;
 
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
-import org.eclipse.gyrex.monitoring.metrics.CapacityMetric;
 import org.eclipse.gyrex.monitoring.metrics.ErrorMetric;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.monitoring.metrics.StatusMetric;
@@ -22,24 +21,22 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
- * Metrics for {@link ApplicationHandlerCollection}
+ * Metrics for {@link ApplicationHandler}
  */
-public class ApplicationHandlerCollectionMetrics extends MetricSet {
+public class ApplicationHandlerMetrics extends MetricSet {
 
 	private final StatusMetric statusMetric;
 	private final ThroughputMetric requestsMetric;
 	private final ErrorMetric errorsMetric;
-	private final CapacityMetric applicationsMetric;
 
 	/**
 	 * Creates a new instance.
 	 */
-	protected ApplicationHandlerCollectionMetrics() {
-		super(HttpJettyActivator.SYMBOLIC_NAME + ".handler.applications.metric", "Metrics for Jetty Server requests handled by Gyrex applications.", new StatusMetric("status", "created", "not initialized"), new ThroughputMetric("requests"), new ErrorMetric("errors", 5), new CapacityMetric("applications", -1));
+	protected ApplicationHandlerMetrics(final String applicationId) {
+		super(String.format(HttpJettyActivator.SYMBOLIC_NAME + ".handler.application.%s.metric", applicationId), String.format("Metrics for Jetty Server requests handled by Gyrex application '%s'.", applicationId), new StatusMetric("status", "created", "not initialized"), new ThroughputMetric("requests"), new ErrorMetric("errors", 5));
 		statusMetric = getMetric(0, StatusMetric.class);
 		requestsMetric = getMetric(1, ThroughputMetric.class);
 		errorsMetric = getMetric(2, ErrorMetric.class);
-		applicationsMetric = getMetric(3, CapacityMetric.class);
 	}
 
 	public void error(final int status, final String reason) {
@@ -50,15 +47,6 @@ public class ApplicationHandlerCollectionMetrics extends MetricSet {
 		errorsMetric.setLastError(message, ExceptionUtils.getFullStackTrace(t));
 	}
 
-	public CapacityMetric getApplicationsMetric() {
-		return applicationsMetric;
-	}
-
-	/**
-	 * Returns the requestsMetric.
-	 * 
-	 * @return the requestsMetric
-	 */
 	public ThroughputMetric getRequestsMetric() {
 		return requestsMetric;
 	}

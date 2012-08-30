@@ -89,11 +89,11 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 
 	@Override
 	public void destroy() {
-		// super
-		super.destroy();
-
-		// unregister metrics
-		JettyEngineApplication.unregisterMetrics(metrics);
+		try {
+			super.destroy();
+		} finally {
+			JettyEngineApplication.unregisterMetrics(metrics);
+		}
 	}
 
 	private void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException { // check async requests

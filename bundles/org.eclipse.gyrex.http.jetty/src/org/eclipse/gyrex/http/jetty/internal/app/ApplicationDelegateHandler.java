@@ -22,11 +22,13 @@ import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
+import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.handler.ScopedHandler;
 import org.eclipse.jetty.util.URIUtil;
 
@@ -56,12 +58,14 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationDelegateHandler.class);
 
 	private final ApplicationHandler applicationHandler;
+	private final ApplicationHandlerMetrics metrics;
 
 	/**
 	 * Creates a new instance.
 	 */
 	public ApplicationDelegateHandler(final ApplicationHandler applicationHandler) {
 		this.applicationHandler = applicationHandler;
+		metrics = applicationHandler.getMetrics();
 	}
 
 	private void clearMdc() {
@@ -80,7 +84,34 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 
 	@Override
 	public void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
-		nextHandle(target, baseRequest, request, response);
+		final ThroughputMetric requestsMetric = metrics.getRequestsMetric();
+		final long requestStart = requestsMetric.requestStarted();
+		try {
+			nextHandle(target, baseRequest, request, response);
+			if (response instanceof Response) {
+				final int status = ((Response) response).getStatus();
+				if (HttpStatus.isServerError(status)) {
+					metrics.getRequestsMetric().requestFailed();
+					metrics.error(status, ((Response) response).getReason());
+				} else {
+					metrics.getRequestsMetric().requestFinished(((Response) response).getContentCount(), System.currentTimeMillis() - requestStart);
+				}
+			} else {
+				metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
+			}
+		} catch (final IOException e) {
+			metrics.getRequestsMetric().requestFailed();
+			throw e;
+		} catch (final ServletException e) {
+			metrics.getRequestsMetric().requestFailed();
+			throw e;
+		} catch (final RuntimeException e) {
+			metrics.getRequestsMetric().requestFailed();
+			throw e;
+		} catch (final Error e) {
+			metrics.getRequestsMetric().requestFailed();
+			throw e;
+		}
 	}
 
 	@Override

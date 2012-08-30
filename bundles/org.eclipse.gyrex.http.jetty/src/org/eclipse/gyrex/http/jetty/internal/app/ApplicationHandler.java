@@ -31,6 +31,7 @@ import org.eclipse.gyrex.http.application.context.IApplicationContext;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationInstance;
 import org.eclipse.gyrex.http.internal.application.manager.ApplicationRegistration;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
+import org.eclipse.gyrex.http.jetty.internal.JettyEngineApplication;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.FileLocator;
@@ -141,6 +142,7 @@ public class ApplicationHandler extends ServletContextHandler {
 	private final CopyOnWriteArraySet<String> urls = new CopyOnWriteArraySet<String>();
 	private final PathMap resourcesMap = new PathMap();
 	private final boolean showDebugInfo = Platform.inDebugMode() || Platform.inDevelopmentMode();
+	private final ApplicationHandlerMetrics metrics;
 
 	private ApplicationContext applicationContext;
 	private volatile ApplicationInstance applicationInstance;
@@ -158,6 +160,9 @@ public class ApplicationHandler extends ServletContextHandler {
 		if (null == applicationRegistration) {
 			throw new IllegalArgumentException("application registration must not be null");
 		}
+
+		metrics = new ApplicationHandlerMetrics(applicationRegistration.getApplicationId());
+		JettyEngineApplication.registerMetrics(metrics);
 
 		// use "slash" as default context path
 		setContextPath(URIUtil.SLASH);
@@ -195,6 +200,15 @@ public class ApplicationHandler extends ServletContextHandler {
 		final HashSessionManager sessionManager = new HashSessionManager();
 		sessionManager.setMaxInactiveInterval(NumberUtils.toInt(getInitParameter("session.maxInactiveInterval"), 1800));
 		return new SessionHandler(sessionManager);
+	}
+
+	@Override
+	public void destroy() {
+		try {
+			super.destroy();
+		} finally {
+			JettyEngineApplication.unregisterMetrics(metrics);
+		}
 	}
 
 	@Override
@@ -324,10 +338,25 @@ public class ApplicationHandler extends ServletContextHandler {
 	}
 
 	@Override
+	protected void doStart() throws Exception {
+		try {
+			super.doStart();
+			metrics.setStatus("started", "Handler has been started by Jetty");
+		} catch (final Exception e) {
+			metrics.setStatus("error", ExceptionUtils.getMessage(e));
+			throw e;
+		}
+	}
+
+	@Override
 	protected void doStop() throws Exception {
 		try {
 			// stop all the Jetty stuff
 			super.doStop();
+			metrics.setStatus("stopped", "Handler has been stopped by Jetty");
+		} catch (final Exception e) {
+			metrics.setStatus("error", ExceptionUtils.getMessage(e));
+			throw e;
 		} finally {
 			// destroy the application instance
 			final ApplicationContext context = applicationContext;
@@ -411,6 +440,10 @@ public class ApplicationHandler extends ServletContextHandler {
 	 */
 	public ApplicationDelegateHandler getDelegateHandler() {
 		return applicationDelegateHandler;
+	}
+
+	public ApplicationHandlerMetrics getMetrics() {
+		return metrics;
 	}
 
 	/**
