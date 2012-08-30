@@ -95,6 +95,18 @@ public class ThroughputMetric extends BaseMetric {
 	private volatile long requestsStatsProcessingTimeAverage;
 
 	/**
+	 * the highest number of time consumed processing a request (excluding
+	 * failed requests) since the last statistics reset
+	 */
+	private volatile long requestsStatsProcessingTimeHigh;
+
+	/**
+	 * the lowest number of time consumed processing a request (excluding failed
+	 * requests) since the last statistics reset
+	 */
+	private volatile long requestsStatsProcessingTimeLow;
+
+	/**
 	 * the total square number of time consumed processing requests (excluding
 	 * failed requests) since the last statistics reset
 	 */
@@ -138,12 +150,14 @@ public class ThroughputMetric extends BaseMetric {
 		requestsStatsSizeAverage = 0;
 		requestsStatsProcessingTime = 0;
 		requestsStatsProcessingTimeAverage = 0;
+		requestsStatsProcessingTimeHigh = 0;
+		requestsStatsProcessingTimeLow = 0;
 		requestsStatsProcessingTimeSquare = 0;
 	}
 
 	@Override
 	Object[] dumpMetrics() {
-		return new Object[] { "active|high|processed|rate|size|size average|time|time average|time square", getRequestsActive(), getRequestsStatsHigh(), getRequestsStatsProcessed(), getRequestsStatsHitRatePerMinute(), getRequestsStatsSize(), getRequestsStatsSizeAverage(), getRequestsStatsProcessingTime(), getRequestsStatsProcessingTimeAverage(), getRequestsStatsProcessingTimeSquare() };
+		return new Object[] { "active|high|processed|rate|size|size average|time|time average|time high|time low|time square", getRequestsActive(), getRequestsStatsHigh(), getRequestsStatsProcessed(), getRequestsStatsHitRatePerMinute(), getRequestsStatsSize(), getRequestsStatsSizeAverage(), getRequestsStatsProcessingTime(), getRequestsStatsProcessingTimeAverage(), getRequestsStatsProcessingTimeHigh(), getRequestsStatsProcessingTimeLow(), getRequestsStatsProcessingTimeSquare() };
 	}
 
 	/**
@@ -290,6 +304,28 @@ public class ThroughputMetric extends BaseMetric {
 	}
 
 	/**
+	 * Returns the highest number of time consumed processing a request since
+	 * the last statistics reset.
+	 * 
+	 * @return the highest number of time consumed processing a request since
+	 *         the last statistics reset
+	 */
+	public long getRequestsStatsProcessingTimeHigh() {
+		return requestsStatsProcessingTimeHigh;
+	}
+
+	/**
+	 * Returns the lowest number of time consumed processing a request since the
+	 * last statistics reset.
+	 * 
+	 * @return the lowest number of time consumed processing a request since the
+	 *         last statistics reset
+	 */
+	public long getRequestsStatsProcessingTimeLow() {
+		return requestsStatsProcessingTimeLow;
+	}
+
+	/**
 	 * Returns the total square number of time consumed processing requests
 	 * since the last statistics reset.
 	 * <p>
@@ -343,6 +379,8 @@ public class ThroughputMetric extends BaseMetric {
 		attributes.add(new MetricAttribute("requestsStatsSizeAverage", "the average number of size units processed by a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTime", "the total number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeAverage", "the average number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsProcessingTimeHigh", "the highest number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsProcessingTimeLow", "the lowest number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeSquare", "the total square number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
 	}
 
@@ -361,6 +399,8 @@ public class ThroughputMetric extends BaseMetric {
 		values.put("requestsStatsSizeAverage", getRequestsStatsSizeAverage());
 		values.put("requestsStatsProcessingTime", getRequestsStatsProcessingTime());
 		values.put("requestsStatsProcessingTimeAverage", getRequestsStatsProcessingTimeAverage());
+		values.put("requestsStatsProcessingTimeHigh", getRequestsStatsProcessingTimeHigh());
+		values.put("requestsStatsProcessingTimeLow", getRequestsStatsProcessingTimeLow());
 		values.put("requestsStatsProcessingTimeSquare", getRequestsStatsProcessingTimeSquare());
 	}
 
@@ -409,6 +449,8 @@ public class ThroughputMetric extends BaseMetric {
 			requestsStatsSizeAverage = requestsStatsSize / requestsStatsProcessed;
 			requestsStatsProcessingTime += processingTime;
 			requestsStatsProcessingTimeAverage = requestsStatsProcessingTime / requestsStatsProcessed;
+			requestsStatsProcessingTimeHigh = requestsStatsProcessed > 1 ? Math.max(processingTime, requestsStatsProcessingTimeHigh) : processingTime;
+			requestsStatsProcessingTimeLow = requestsStatsProcessed > 1 ? Math.min(processingTime, requestsStatsProcessingTimeLow) : processingTime;
 			requestsStatsProcessingTimeSquare += (processingTime * processingTime);
 			updateHitRate();
 			updateFailureRate();
