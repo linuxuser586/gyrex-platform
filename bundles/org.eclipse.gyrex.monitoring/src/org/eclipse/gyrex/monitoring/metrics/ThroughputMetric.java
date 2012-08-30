@@ -107,10 +107,11 @@ public class ThroughputMetric extends BaseMetric {
 	private volatile long requestsStatsProcessingTimeLow;
 
 	/**
-	 * the total square number of time consumed processing requests (excluding
-	 * failed requests) since the last statistics reset
+	 * base value for calculating variance and standard deviation of time
+	 * consumed processing requests (excluding failed requests) since the last
+	 * statistics reset
 	 */
-	private volatile long requestsStatsProcessingTimeSquare;
+	private volatile long requestsStatsProcessingTimeVariance100;
 
 	/**
 	 * Creates a new throughput metric instance.
@@ -152,12 +153,12 @@ public class ThroughputMetric extends BaseMetric {
 		requestsStatsProcessingTimeAverage = 0;
 		requestsStatsProcessingTimeHigh = 0;
 		requestsStatsProcessingTimeLow = 0;
-		requestsStatsProcessingTimeSquare = 0;
+		requestsStatsProcessingTimeVariance100 = 0;
 	}
 
 	@Override
 	Object[] dumpMetrics() {
-		return new Object[] { "active|high|processed|rate|size|size average|time|time average|time high|time low|time square", getRequestsActive(), getRequestsStatsHigh(), getRequestsStatsProcessed(), getRequestsStatsHitRatePerMinute(), getRequestsStatsSize(), getRequestsStatsSizeAverage(), getRequestsStatsProcessingTime(), getRequestsStatsProcessingTimeAverage(), getRequestsStatsProcessingTimeHigh(), getRequestsStatsProcessingTimeLow(), getRequestsStatsProcessingTimeSquare() };
+		return new Object[] { "active|high|processed|rate|size|size average|time|time average|time high|time low|time stddev", getRequestsActive(), getRequestsStatsHigh(), getRequestsStatsProcessed(), getRequestsStatsHitRatePerMinute(), getRequestsStatsSize(), getRequestsStatsSizeAverage(), getRequestsStatsProcessingTime(), getRequestsStatsProcessingTimeAverage(), getRequestsStatsProcessingTimeHigh(), getRequestsStatsProcessingTimeLow(), getRequestsStatsProcessingTimeStandardDeviation() };
 	}
 
 	/**
@@ -326,20 +327,38 @@ public class ThroughputMetric extends BaseMetric {
 	}
 
 	/**
-	 * Returns the total square number of time consumed processing requests
-	 * since the last statistics reset.
-	 * <p>
-	 * In contrast to {@link #getRequestsStatsProcessingTime() the total number}
-	 * the total square number gives more weight on longer requests. This number
-	 * is provided as an alternative for an average calculation based on square
-	 * numbers.
-	 * </p>
+	 * Returns the standard deviation for the total number of time consumed
+	 * processing requests since the last statistics reset.
 	 * 
-	 * @return the total square number of time consumed processing requests
-	 *         since the last statistics reset
+	 * @return the standard deviation for the total number of time consumed
+	 *         processing requests since the last statistics reset
 	 */
-	public long getRequestsStatsProcessingTimeSquare() {
-		return requestsStatsProcessingTimeSquare;
+	public double getRequestsStatsProcessingTimeStandardDeviation() {
+		return Math.sqrt(getRequestsStatsProcessingTimeVariance());
+	}
+
+	/**
+	 * Returns the variance for the total number of time consumed processing
+	 * requests since the last statistics reset.
+	 * 
+	 * @return the variance for the total number of time consumed processing
+	 *         requests since the last statistics reset
+	 */
+	public double getRequestsStatsProcessingTimeVariance() {
+		final long requestsStatsProcessingTimeVariance100;
+		final long requestsStatsProcessed;
+		final Lock lock = getReadLock();
+		lock.lock();
+		try {
+			requestsStatsProcessingTimeVariance100 = this.requestsStatsProcessingTimeVariance100;
+			requestsStatsProcessed = this.requestsStatsProcessed;
+		} finally {
+			lock.unlock();
+		}
+		if (requestsStatsProcessed > 1) {
+			return (requestsStatsProcessingTimeVariance100) / 100.0 / (requestsStatsProcessed - 1);
+		}
+		return 0.0D;
 	}
 
 	/**
@@ -381,7 +400,7 @@ public class ThroughputMetric extends BaseMetric {
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeAverage", "the average number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeHigh", "the highest number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("requestsStatsProcessingTimeLow", "the lowest number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
-		attributes.add(new MetricAttribute("requestsStatsProcessingTimeSquare", "the total square number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("requestsStatsProcessingTimeStandardDeviation", "the standard deviation for the total number of time consumed processing requests (excluding failed requests) since the last statistics reset", Double.class));
 	}
 
 	@Override
@@ -401,7 +420,7 @@ public class ThroughputMetric extends BaseMetric {
 		values.put("requestsStatsProcessingTimeAverage", getRequestsStatsProcessingTimeAverage());
 		values.put("requestsStatsProcessingTimeHigh", getRequestsStatsProcessingTimeHigh());
 		values.put("requestsStatsProcessingTimeLow", getRequestsStatsProcessingTimeLow());
-		values.put("requestsStatsProcessingTimeSquare", getRequestsStatsProcessingTimeSquare());
+		values.put("requestsStatsProcessingTimeStandardDeviation", getRequestsStatsProcessingTimeStandardDeviation());
 	}
 
 	/**
@@ -449,9 +468,16 @@ public class ThroughputMetric extends BaseMetric {
 			requestsStatsSizeAverage = requestsStatsSize / requestsStatsProcessed;
 			requestsStatsProcessingTime += processingTime;
 			requestsStatsProcessingTimeAverage = requestsStatsProcessingTime / requestsStatsProcessed;
-			requestsStatsProcessingTimeHigh = requestsStatsProcessed > 1 ? Math.max(processingTime, requestsStatsProcessingTimeHigh) : processingTime;
-			requestsStatsProcessingTimeLow = requestsStatsProcessed > 1 ? Math.min(processingTime, requestsStatsProcessingTimeLow) : processingTime;
-			requestsStatsProcessingTimeSquare += (processingTime * processingTime);
+			if (requestsStatsProcessed > 1) {
+				requestsStatsProcessingTimeHigh = Math.max(processingTime, requestsStatsProcessingTimeHigh);
+				requestsStatsProcessingTimeLow = Math.min(processingTime, requestsStatsProcessingTimeLow);
+				final long delta10 = (processingTime * 10) - ((requestsStatsProcessingTime * 10) / requestsStatsProcessed);
+				requestsStatsProcessingTimeVariance100 += (delta10 * delta10);
+			} else {
+				requestsStatsProcessingTimeHigh = processingTime;
+				requestsStatsProcessingTimeLow = processingTime;
+				requestsStatsProcessingTimeVariance100 = 0;
+			}
 			updateHitRate();
 			updateFailureRate();
 		} finally {
