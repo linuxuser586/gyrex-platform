@@ -2,9 +2,9 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: %bundle.name
 Bundle-SymbolicName: org.eclipse.gyrex.persistence.nondurable.map
-Bundle-Version: 1.0.0.qualifier
+Bundle-Version: 1.2.0.qualifier
 Bundle-Vendor: %provider.name
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-Localization: plugin
 Export-Package: org.eclipse.gyrex.persistence.nondurable.map;uses:="org.eclipse.gyrex.monitoring.metrics,org.eclipse.gyrex.persistence.storage,org.eclipse.gyrex.persistence.storage.type",
  org.eclipse.gyrex.persistence.nondurable.map.internal;x-internal:=true

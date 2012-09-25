@@ -2,10 +2,10 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Jobs Tests
 Bundle-SymbolicName: org.eclipse.gyrex.jobs.tests
-Bundle-Version: 1.0.0.qualifier
+Bundle-Version: 1.2.0.qualifier
 Bundle-Activator: org.eclipse.gyrex.jobs.tests.internal.JobsTestsActivator
 Bundle-Vendor: Eclipse Gyrex
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Import-Package: junit.framework;version="4.8.2",
  org.junit;version="4.8.2",
  org.junit.runner;version="4.8.2",

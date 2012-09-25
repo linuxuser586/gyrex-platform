@@ -2,8 +2,8 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: FrameworkLog Adapter
 Bundle-SymbolicName: org.eclipse.gyrex.frameworklogadapter
-Bundle-Version: 1.0.0.qualifier
+Bundle-Version: 1.2.0.qualifier
 Bundle-Vendor: Eclipse Gyrex
 Fragment-Host: org.eclipse.osgi;bundle-version="3.6.0"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Export-Package: org.eclipse.gyrex.frameworklogadapter.internal;x-internal:=true

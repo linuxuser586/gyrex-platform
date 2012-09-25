@@ -2,10 +2,10 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Boot Tests
 Bundle-SymbolicName: org.eclipse.gyrex.boot.tests;singleton:=true
-Bundle-Version: 1.0.100.qualifier
+Bundle-Version: 1.2.0.qualifier
 Bundle-Activator: org.eclipse.gyrex.boot.tests.internal.Activator
 Bundle-Vendor: Eclipse Gyrex
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Import-Package: org.apache.commons.io;version="2.0.1",
  org.apache.commons.lang.exception;version="2.4.0",
  org.junit.runners;version="4.8.2",

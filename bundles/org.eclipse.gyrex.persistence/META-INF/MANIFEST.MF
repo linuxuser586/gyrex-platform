@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.eclipse.gyrex.persistence
-Bundle-Version: 1.0.100.qualifier
+Bundle-Version: 1.2.0.qualifier
 Bundle-Activator: org.eclipse.gyrex.persistence.internal.PersistenceActivator
 Bundle-Name: %bundle.name
 Bundle-Vendor: %provider.name
@@ -36,5 +36,5 @@ Export-Package: org.eclipse.gyrex.persistence;version="1.0.0",
  org.eclipse.gyrex.persistence.storage.registry;version="1.0.0",
  org.eclipse.gyrex.persistence.storage.settings;version="1.0.0"
 equiredExecutionEnvironment: JavaSE-1.6
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Service-Component: OSGI-INF/console-commands.xml
