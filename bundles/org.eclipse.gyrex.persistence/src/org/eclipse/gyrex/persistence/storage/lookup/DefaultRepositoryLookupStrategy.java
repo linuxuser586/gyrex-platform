@@ -156,6 +156,8 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 			return null;
 		final Preferences contentTypeAssignments = assignmentsNode.node(contentType.getMediaTypeType()).node(contentType.getMediaTypeSubType());
 
+		// TODO: we may be able to support multi-version assignments here; however, that's not supported right now
+
 		// check assignment for specified context path
 		IPath path = context.getContextPath();
 		String repositoryId = contentTypeAssignments.get(path.toString(), null);
