@@ -11,14 +11,18 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.tests.internal.locking;
 
+import org.eclipse.gyrex.junit.GyrexServerResource;
+
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-/**
- *
- */
 @RunWith(Suite.class)
 @SuiteClasses({ ZooKeeperLockTests.class, ExclusiveLockTests.class, DurableLockTests.class })
 public class ZooKeeperLockTestSuite {
+
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
+
 }

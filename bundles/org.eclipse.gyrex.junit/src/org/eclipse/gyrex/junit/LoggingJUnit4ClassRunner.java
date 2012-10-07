@@ -9,11 +9,12 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.boot.tests.junit;
+package org.eclipse.gyrex.junit;
 
 import java.lang.reflect.Method;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -22,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link BlockJUnit4ClassRunner} that logs a message when executing tests.
+ * A {@link BlockJUnit4ClassRunner} that logs a message when executing tests.
  */
 public class LoggingJUnit4ClassRunner extends BlockJUnit4ClassRunner {
 

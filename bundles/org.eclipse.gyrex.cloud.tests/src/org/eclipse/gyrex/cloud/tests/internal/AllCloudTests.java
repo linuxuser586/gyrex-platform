@@ -14,16 +14,18 @@ package org.eclipse.gyrex.cloud.tests.internal;
 import org.eclipse.gyrex.cloud.tests.internal.locking.ZooKeeperLockTestSuite;
 import org.eclipse.gyrex.cloud.tests.internal.queue.ZooKeeperQueueTests;
 import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.AllZooKeeperPreferencesNonEnsembleTests;
+import org.eclipse.gyrex.junit.GyrexServerResource;
 
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-/**
- *
- */
 @RunWith(Suite.class)
 @SuiteClasses({ ZooKeeperQueueTests.class, ZooKeeperLockTestSuite.class, AllZooKeeperPreferencesNonEnsembleTests.class })
 public class AllCloudTests {
+
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 }

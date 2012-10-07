@@ -11,15 +11,17 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences;
 
+import org.eclipse.gyrex.junit.GyrexServerResource;
+
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-/**
- *
- */
 @RunWith(Suite.class)
 @SuiteClasses({ ZooKeeperPreferencesTests.class, ZooKeeperPreferencesSimpleStressTests.class })
 public class AllZooKeeperPreferencesNonEnsembleTests {
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 }

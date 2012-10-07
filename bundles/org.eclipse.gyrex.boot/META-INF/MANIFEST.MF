@@ -33,6 +33,7 @@ Import-Package: ch.qos.logback.classic;version="[1.0.0,2.0.0)";resolution:=optio
  ch.qos.logback.core.spi;version="[1.0.0,2.0.0)";resolution:=optional,
  ch.qos.logback.core.status;version="[1.0.0,2.0.0)";resolution:=optional,
  ch.qos.logback.core.util;version="[1.0.0,2.0.0)";resolution:=optional,
+ javax.management.remote,
  org.apache.commons.io;version="[1.4.0,3.0.0)",
  org.apache.commons.lang;version="[2.4.0,3.0.0)",
  org.apache.commons.lang.exception;version="[2.4.0,3.0.0)",

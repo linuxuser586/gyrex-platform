@@ -27,18 +27,21 @@ import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
+import org.eclipse.gyrex.junit.GyrexServerResource;
 
 import org.eclipse.core.runtime.IPath;
 
 import org.apache.zookeeper.CreateMode;
+
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
-/**
- *
- */
 public class ZooKeeperQueueTests {
+
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 	/** TEST */
 	private static final String QUEUE_ID = "test";
@@ -56,9 +59,8 @@ public class ZooKeeperQueueTests {
 			try {
 				zk = ZooKeeperGate.get();
 			} catch (final IllegalStateException e) {
-				if (count <= 0) {
+				if (count <= 0)
 					throw e;
-				}
 				count--;
 				Thread.sleep(250);
 			}

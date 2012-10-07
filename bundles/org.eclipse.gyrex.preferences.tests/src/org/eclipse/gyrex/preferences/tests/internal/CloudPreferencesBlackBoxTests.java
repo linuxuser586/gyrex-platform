@@ -15,8 +15,8 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.fail;
 
-import org.eclipse.gyrex.boot.tests.junit.LoggingJUnit4ClassRunner;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.junit.LoggingJUnit4ClassRunner;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.preferences.internal.PreferencesDebug;
 
