@@ -56,9 +56,8 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 * @return the shared instance
 	 */
 	public static DefaultRepositoryLookupStrategy getDefault() {
-		if (null == sharedInstance) {
+		if (null == sharedInstance)
 			return sharedInstance = new DefaultRepositoryLookupStrategy();
-		}
 		return sharedInstance;
 	}
 
@@ -83,9 +82,8 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 *         changes)
 	 */
 	public RepositoryContentTypeAssignments getContentTypeAssignments(final String repositoryId) {
-		if (!IdHelper.isValidId(repositoryId)) {
+		if (!IdHelper.isValidId(repositoryId))
 			throw new IllegalArgumentException("repositoryId is invalid");
-		}
 
 		/*
 		 * this lookup is really expensive, we need to walk through all assignments
@@ -114,12 +112,10 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 
 	@Override
 	public Repository getRepository(final IRuntimeContext context, final RepositoryContentType contentType) throws IllegalStateException {
-		if (null == context) {
+		if (null == context)
 			throw new IllegalArgumentException("context must not be null");
-		}
-		if (null == contentType) {
+		if (null == contentType)
 			throw new IllegalArgumentException("contentType must not be null");
-		}
 
 		// get the repository id
 		final String repositoryId;
@@ -130,21 +126,18 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		}
 
 		// fail if we don't have an id
-		if (null == repositoryId) {
+		if (null == repositoryId)
 			throw new IllegalStateException(String.format("No repository available for storing content of type '%s' in context '%s'.", contentType.getMediaType(), context.getContextPath()));
-		}
 
 		// get the repository
 		final Repository repository = getRepository(repositoryId);
-		if (null == repository) {
+		if (null == repository)
 			throw new IllegalStateException(String.format("Failed creating repository '%s' in context '%s' for content of type '%s'.", repositoryId, contentType.getMediaType(), context.getContextPath()));
-		}
 
 		// check that the repository can handle the content type
 		final RepositoryContentTypeSupport contentTypeSupport = repository.getContentTypeSupport();
-		if ((null == contentTypeSupport) || !contentTypeSupport.isSupported(contentType)) {
+		if ((null == contentTypeSupport) || !contentTypeSupport.isSupported(contentType))
 			throw new IllegalStateException(String.format("The repository '%s' in context '%s' of type '%s' does not support content of type '%s'.", repositoryId, context.getContextPath(), repository.getRepositoryProvider().getRepositoryTypeName(), contentType));
-		}
 
 		// return the repository
 		return repository;
@@ -159,15 +152,15 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		 * the lookup is simple, we simply walk up the context path until a matching key is found
 		 */
 		final Preferences assignmentsNode = getAssignmentsNode();
-		if (!assignmentsNode.nodeExists(contentType.getMediaType())) {
+		if (!assignmentsNode.nodeExists(contentType.getMediaType()))
 			return null;
-		}
 		final Preferences contentTypeAssignments = assignmentsNode.node(contentType.getMediaTypeType()).node(contentType.getMediaTypeSubType());
 
+		// check assignment for specified context path
 		IPath path = context.getContextPath();
 		String repositoryId = contentTypeAssignments.get(path.toString(), null);
 
-		// walk up the path
+		// walk up the path (while no assignment is available)
 		while ((repositoryId == null) && (path.segmentCount() > 0)) {
 			path = path.removeLastSegments(1);
 			repositoryId = contentTypeAssignments.get(path.toString(), null);
@@ -192,15 +185,12 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 *             {@link IRuntimeContextPreferences#flush(String)}
 	 */
 	public void setRepository(final IRuntimeContext context, final RepositoryContentType contentType, final String repositoryId) throws BackingStoreException {
-		if (context == null) {
+		if (context == null)
 			throw new IllegalArgumentException("context must not be null");
-		}
-		if (contentType == null) {
+		if (contentType == null)
 			throw new IllegalArgumentException("contentType must not be null");
-		}
-		if ((null != repositoryId) && !IdHelper.isValidId(repositoryId)) {
+		if ((null != repositoryId) && !IdHelper.isValidId(repositoryId))
 			throw new IllegalArgumentException("repositoryId is invalid");
-		}
 
 		/*
 		 * the assignments are stored in preferences using the following structure
