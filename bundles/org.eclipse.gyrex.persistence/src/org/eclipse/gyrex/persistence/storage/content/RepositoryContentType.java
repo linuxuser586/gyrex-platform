@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.persistence.storage.content;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -58,8 +59,9 @@ import org.osgi.framework.Version;
  * not limited to this media type.
  * </p>
  * <p>
- * Every content type must be made available to the system using
- * {@link IRepositoryContentTypeProvider}.
+ * Every content type must be made available to the system using a
+ * {@link IRepositoryContentTypeProvider} or by registering it directly using
+ * {@link #SERVICE_NAME}.
  * </p>
  * 
  * @see #getMediaType()
@@ -90,30 +92,26 @@ public final class RepositoryContentType extends PlatformObject {
 	}
 
 	private static final String checkRepositoryTypeId(final String repositoryTypeId) {
-		if (null == repositoryTypeId) {
+		if (null == repositoryTypeId)
 			throw new IllegalArgumentException("repository type name must not be null");
-		}
-		if (!IdHelper.isValidId(repositoryTypeId)) {
+		if (!IdHelper.isValidId(repositoryTypeId))
 			throw new IllegalArgumentException(MessageFormat.format("repository type name \"{0}\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", repositoryTypeId));
-		}
 		return repositoryTypeId;
 	}
 
 	private static void checkToken(final String token, final String description) {
-		if (null == token) {
+		if (null == token)
 			throw new IllegalArgumentException(String.format("invalid %s; must not be null, see RFC 2045 section 5.1", description));
-		}
 		final char[] cs = token.toCharArray();
 		for (final char c : cs) {
-			if (!isUsAsciiChar(c)) {
+			if (!isUsAsciiChar(c))
 				throw new IllegalArgumentException(String.format("invalid %s; only US-ASCII chars allowed, see RFC 2045 section 5.1", description));
-			} else if (isControlChar(c)) {
+			else if (isControlChar(c))
 				throw new IllegalArgumentException(String.format("invalid %s; control characters not allowed, see RFC 2045 section 5.1", description));
-			} else if (isWhitespace(c)) {
+			else if (isWhitespace(c))
 				throw new IllegalArgumentException(String.format("invalid %s; whitespace not allowed, see RFC 2045 section 5.1", description));
-			} else if (isSpecialChar(c)) {
+			else if (isSpecialChar(c))
 				throw new IllegalArgumentException(String.format("invalid %s; character '%c' not allowed, see RFC 2045 section 5.1", description, c));
-			}
 		}
 	}
 
@@ -189,7 +187,7 @@ public final class RepositoryContentType extends PlatformObject {
 	private final String repositoryTypeName;
 
 	private final Version version;
-	private int cachedHashCode;
+	private final int hashCode;
 
 	private final Map<String, String> parameters;
 
@@ -237,58 +235,80 @@ public final class RepositoryContentType extends PlatformObject {
 		this.mediaTypeSubType = checkMediaTypeSubType(mediaTypeSubType);
 		this.repositoryTypeName = checkRepositoryTypeId(repositoryTypeName);
 		this.version = Version.parseVersion(version);
-		this.parameters = null != parameters ? new LinkedHashMap<String, String>(checkParameters(parameters)) : null;
+
+		// wrap parameters into unmodifiable, insertion order preserving map
+		this.parameters = null != parameters ? Collections.unmodifiableMap(new LinkedHashMap<String, String>(checkParameters(parameters))) : null;
+
+		// content type is immutable so calculate hash code now
+		hashCode = calculateHashCode();
 	}
 
+	private int calculateHashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = (prime * result) + ((mediaTypeType == null) ? 0 : mediaTypeType.toLowerCase(Locale.US).hashCode());
+		result = (prime * result) + ((mediaTypeSubType == null) ? 0 : mediaTypeSubType.toLowerCase(Locale.US).hashCode());
+		result = (prime * result) + ((repositoryTypeName == null) ? 0 : repositoryTypeName.hashCode());
+		result = (prime * result) + ((version == null) ? 0 : version.hashCode());
+		return result;
+	}
+
+	/**
+	 * Indicates if this content type is equal to another content type.
+	 * <p>
+	 * Returns <code>true</code> if
+	 * <ul>
+	 * <li>the specified object is an instance of {@link RepositoryContentType}
+	 * and</li>
+	 * <li>both {@link #getMediaTypeType() ASCII lower case media type type}
+	 * (RFC 2045 section 5.1) are equal and</li>
+	 * <li>both {@link #getMediaTypeSubType() ASCII lower case media type sub
+	 * type} (RFC 2045 section 5.1) are equal and</li>
+	 * <li>both {@link #getRepositoryTypeName() type names} are equal and</li>
+	 * <li>both {@linkplain #getVersion() versions } are equal and</li>
+	 * <li>both parameter maps are equal</li>
+	 * </ul>
+	 * </p>
+	 * 
+	 * @param obj
+	 *            the object to check
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public final boolean equals(final Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		// only rely on RepositoryContentType for equality check
+		if (!RepositoryContentType.class.isInstance(obj))
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
 		final RepositoryContentType other = (RepositoryContentType) obj;
 		// note, media type and subtype matching is ALWAYS case-insensitive (RFC 2045 section 5.1)
 		if (mediaTypeType == null) {
-			if (other.mediaTypeType != null) {
+			if (other.mediaTypeType != null)
 				return false;
-			}
-		} else if ((null == other.mediaTypeType) || !mediaTypeType.toLowerCase(Locale.US).equals(other.mediaTypeType.toLowerCase(Locale.US))) {
+		} else if ((null == other.mediaTypeType) || !mediaTypeType.toLowerCase(Locale.US).equals(other.mediaTypeType.toLowerCase(Locale.US)))
 			return false;
-		}
 		if (mediaTypeSubType == null) {
-			if (other.mediaTypeSubType != null) {
+			if (other.mediaTypeSubType != null)
 				return false;
-			}
-		} else if ((null == other.mediaTypeSubType) || !mediaTypeSubType.toLowerCase(Locale.US).equals(other.mediaTypeSubType.toLowerCase(Locale.US))) {
+		} else if ((null == other.mediaTypeSubType) || !mediaTypeSubType.toLowerCase(Locale.US).equals(other.mediaTypeSubType.toLowerCase(Locale.US)))
 			return false;
-		}
 		if (repositoryTypeName == null) {
-			if (other.repositoryTypeName != null) {
+			if (other.repositoryTypeName != null)
 				return false;
-			}
-		} else if (!repositoryTypeName.equals(other.repositoryTypeName)) {
+		} else if (!repositoryTypeName.equals(other.repositoryTypeName))
 			return false;
-		}
 		if (version == null) {
-			if (other.version != null) {
+			if (other.version != null)
 				return false;
-			}
-		} else if (!version.equals(other.version)) {
+		} else if (!version.equals(other.version))
 			return false;
-		}
 		if (parameters == null) {
-			if (other.parameters != null) {
+			if (other.parameters != null)
 				return false;
-			}
-		} else if ((null == other.parameters) || !parameters.equals(other.parameters)) {
-			// our implementation is LinkedHashMap so #equals works
+		} else if ((null == other.parameters) || !parameters.equals(other.parameters))
+			// our implementation is LinkedHashMap wrapped into an unmodifiable map so #equals works
 			return false;
-		}
 		return true;
 	}
 
@@ -312,7 +332,7 @@ public final class RepositoryContentType extends PlatformObject {
 	 * @return the subtype of the media type
 	 * @see http://en.wikipedia.org/wiki/Internet_media_type
 	 */
-	public String getMediaTypeSubType() {
+	public final String getMediaTypeSubType() {
 		return mediaTypeSubType;
 	}
 
@@ -324,7 +344,7 @@ public final class RepositoryContentType extends PlatformObject {
 	 * @return the type of the media type
 	 * @see http://en.wikipedia.org/wiki/Internet_media_type
 	 */
-	public String getMediaTypeType() {
+	public final String getMediaTypeType() {
 		return mediaTypeType;
 	}
 
@@ -404,18 +424,8 @@ public final class RepositoryContentType extends PlatformObject {
 
 	@Override
 	public final int hashCode() {
-		// content type is immutable so use a cached hash code
-		if (cachedHashCode != 0) {
-			return cachedHashCode;
-		}
-
-		final int prime = 31;
-		int result = 1;
-		result = (prime * result) + ((mediaTypeType == null) ? 0 : mediaTypeType.toLowerCase(Locale.US).hashCode());
-		result = (prime * result) + ((mediaTypeSubType == null) ? 0 : mediaTypeSubType.toLowerCase(Locale.US).hashCode());
-		result = (prime * result) + ((repositoryTypeName == null) ? 0 : repositoryTypeName.hashCode());
-		result = (prime * result) + ((version == null) ? 0 : version.hashCode());
-		return cachedHashCode = result;
+		// content type is immutable so use a calculated hash code
+		return hashCode;
 	}
 
 	/**
