@@ -66,6 +66,19 @@ import org.osgi.framework.BundleContext;
 public interface IRuntimeContext extends IAdaptable {
 
 	/**
+	 * Creates a new modifiable working copy of this context.
+	 * <p>
+	 * Please have a look at {@link IModifiableRuntimeContext} for further
+	 * information regarding requirements and restrictions on working copies.
+	 * </p>
+	 * 
+	 * @return a new modifiable working copy
+	 * @see IModifiableRuntimeContext
+	 * @since 1.2
+	 */
+	IModifiableRuntimeContext createWorkingCopy();
+
+	/**
 	 * Indicates if a context is equal to another context.
 	 * <p>
 	 * Contexts are considered equal if they represent the same context path,
@@ -77,7 +90,7 @@ public interface IRuntimeContext extends IAdaptable {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj);
+	boolean equals(Object obj);
 
 	/**
 	 * Returns a context object associated with the given type.
@@ -121,7 +134,7 @@ public interface IRuntimeContext extends IAdaptable {
 	/**
 	 * Returns the {@link IRuntimeContextInjector injector} of a context.
 	 * <p>
-	 * The injector can be used to inject a context content into custom objects.
+	 * The injector can be used to inject context content into custom objects.
 	 * </p>
 	 * <p>
 	 * Note, clients must be aware that they run in a dynamic system. Therefore
@@ -182,7 +195,7 @@ public interface IRuntimeContext extends IAdaptable {
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
-	public int hashCode();
+	int hashCode();
 
 	/**
 	 * Returns a human readable string representation of the context.

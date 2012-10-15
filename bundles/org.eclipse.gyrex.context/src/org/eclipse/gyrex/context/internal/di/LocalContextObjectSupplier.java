@@ -13,25 +13,23 @@ package org.eclipse.gyrex.context.internal.di;
 
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.internal.GyrexContextImpl;
 import org.eclipse.gyrex.context.internal.IContextDisposalListener;
+import org.eclipse.gyrex.context.internal.LocalContext;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 
-import org.apache.commons.lang.StringUtils;
+public class LocalContextObjectSupplier extends BaseContextObjectSupplier {
 
-public class GyrexContextObjectSupplier extends BaseContextObjectSupplier {
+	private final LocalContext context;
 
-	private final GyrexContextImpl contextImpl;
-
-	public GyrexContextObjectSupplier(final GyrexContextImpl contextImpl) {
-		this.contextImpl = contextImpl;
+	public LocalContextObjectSupplier(final LocalContext context) {
+		this.context = context;
 	}
 
 	@Override
 	protected void addDisposable(final IContextDisposalListener listener) {
-		contextImpl.addDisposable(listener);
+		// not supported for local contexts
 	}
 
 	@Override
@@ -40,18 +38,17 @@ public class GyrexContextObjectSupplier extends BaseContextObjectSupplier {
 			return null;
 
 		if (IRuntimeContext.class.equals(key))
-			// inject handle to the context
-			return contextImpl.getHandle();
+			// inject the local context to the underlying context
+			return context;
 
-		// find a context object
-		return contextImpl.get(key);
+		// find a local context object
+		return context.getLocal(key);
 	}
 
 	@Override
 	protected IServiceProxy<?> trackService(final BundleContext bundleContext, final Class<?> serviceInterface, final String filter) throws InvalidSyntaxException {
-		if (StringUtils.isNotBlank(filter))
-			return contextImpl.getServiceLocator(bundleContext).trackService(serviceInterface, filter);
-
-		return contextImpl.getServiceLocator(bundleContext).trackService(serviceInterface);
+		// not support for local contexts
+		return null;
 	}
+
 }

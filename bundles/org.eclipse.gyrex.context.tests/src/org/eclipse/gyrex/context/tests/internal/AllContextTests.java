@@ -12,7 +12,9 @@
 package org.eclipse.gyrex.context.tests.internal;
 
 import org.eclipse.gyrex.context.tests.internal.injection.ContextInjectionTests;
+import org.eclipse.gyrex.junit.GyrexServerResource;
 
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -22,5 +24,8 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({ ContextRegistryTests.class, ContextualRuntimeBlackBoxTests.class, PreferencesBlackBoxTests.class, ContextInjectionTests.class })
 public class AllContextTests {
+
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 }

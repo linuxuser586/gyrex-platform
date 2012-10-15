@@ -13,29 +13,31 @@ package org.eclipse.gyrex.context.internal.di;
 
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
+import org.eclipse.gyrex.context.internal.LocalContext;
 
 import org.eclipse.e4.core.di.IInjector;
 import org.eclipse.e4.core.di.InjectionException;
 import org.eclipse.e4.core.di.InjectorFactory;
 
+/**
+ * The injector implementation.
+ */
 @SuppressWarnings("restriction")
-public class GyrexContextInjectorImpl implements IRuntimeContextInjector {
+public class LocalContextInjectorImpl implements IRuntimeContextInjector {
 
 	// the injector
 	private final IInjector injector = InjectorFactory.makeInjector();
 	private final GyrexContextObjectSupplier objectSupplier;
+	private final BaseContextObjectSupplier localObjectSupplier;
 
-	public GyrexContextInjectorImpl(final GyrexContextImpl context) {
-		objectSupplier = new GyrexContextObjectSupplier(context);
-	}
-
-	public GyrexContextObjectSupplier getObjectSupplier() {
-		return objectSupplier;
+	public LocalContextInjectorImpl(final GyrexContextImpl context, final LocalContext localContext) {
+		objectSupplier = context.getInjector().getObjectSupplier();
+		localObjectSupplier = new LocalContextObjectSupplier(localContext);
 	}
 
 	@Override
 	public <T> T make(final Class<T> clazz) throws InjectionException {
-		return injector.make(clazz, objectSupplier);
+		return injector.make(clazz, objectSupplier, localObjectSupplier);
 	}
 
 	@Override

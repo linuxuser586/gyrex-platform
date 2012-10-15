@@ -28,23 +28,6 @@ import org.eclipse.e4.core.di.InjectionException;
 public interface IRuntimeContextInjector {
 
 	/**
-	 * Injects the context into a domain object. See the class comment for
-	 * details on the injection algorithm that is used.
-	 * <p>
-	 * <em>Please be aware!</em> The specified object will be tracked within the
-	 * injector. Changes to the context will result in updates to the object. In
-	 * order to <strong>release</strong> the object from the injector it must be
-	 * explicitly {@link #uninject(Object) un-injected}.
-	 * </p>
-	 * 
-	 * @param object
-	 *            The object to perform injection on
-	 * @throws InjectionException
-	 *             if an exception occurred while performing this operation
-	 */
-	void inject(Object object) throws InjectionException;
-
-	/**
 	 * Obtain an instance of the specified class and inject it with the context.
 	 * <p>
 	 * Class'es scope dictates if a new instance of the class will be created,

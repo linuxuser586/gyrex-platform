@@ -19,8 +19,8 @@ import static junit.framework.Assert.fail;
 import java.util.Collection;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.context.internal.BaseContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
-import org.eclipse.gyrex.context.internal.GyrexContextHandle;
 import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 
@@ -40,7 +40,7 @@ public class ContextRegistryTests {
 	private ContextRegistryImpl contextRegistry;
 
 	private void assertDefined(final IPath path) {
-		final GyrexContextHandle handle = contextRegistry.get(path);
+		final BaseContext handle = contextRegistry.get(path);
 		if (null == handle) {
 			fail(String.format("context %s was added but no context returned!", path.toString()));
 		}

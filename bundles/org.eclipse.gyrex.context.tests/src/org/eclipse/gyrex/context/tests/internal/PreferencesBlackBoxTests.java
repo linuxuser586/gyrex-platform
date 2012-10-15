@@ -16,14 +16,12 @@ import static junit.framework.Assert.assertNotNull;
 
 import java.util.UUID;
 
-import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
 import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
-import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -44,7 +42,6 @@ public class PreferencesBlackBoxTests {
 
 	private static final Logger LOG = LoggerFactory.getLogger(PreferencesBlackBoxTests.class);
 
-	private IServiceProxy<IRuntimeContextRegistry> contextRegistryProxy;
 	private ContextRegistryImpl contextRegistry;
 
 	private GyrexContextHandle assertContextDefined(final IPath path) {

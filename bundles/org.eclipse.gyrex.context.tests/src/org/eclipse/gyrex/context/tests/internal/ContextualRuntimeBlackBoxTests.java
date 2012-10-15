@@ -14,10 +14,14 @@ package org.eclipse.gyrex.context.tests.internal;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNotSame;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
 import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.context.IModifiableRuntimeContext;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
@@ -35,9 +39,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-/**
- *
- */
 public class ContextualRuntimeBlackBoxTests {
 
 	public static class DummyObject {
@@ -69,15 +70,14 @@ public class ContextualRuntimeBlackBoxTests {
 	public static class DummyObjectProvider extends RuntimeContextObjectProvider {
 
 		@Override
-		public Object getObject(final Class type, final IRuntimeContext context) {
-			if (type.equals(DummyObject.class)) {
-				return new DummyObject(context);
-			}
+		public <T> T getObject(final Class<T> type, final IRuntimeContext context) {
+			if (type.equals(DummyObject.class))
+				return type.cast(new DummyObject(context));
 			return null;
 		}
 
 		@Override
-		public Class[] getObjectTypes() {
+		public Class<?>[] getObjectTypes() {
 			return new Class<?>[] { DummyObject.class };
 		}
 
@@ -92,10 +92,9 @@ public class ContextualRuntimeBlackBoxTests {
 	public static class DummyObjectProvider2 extends DummyObjectProvider {
 
 		@Override
-		public Object getObject(final Class type, final IRuntimeContext context) {
-			if (type.equals(DummyObject.class)) {
-				return new DummyObject2(context);
-			}
+		public <T> T getObject(final Class<T> type, final IRuntimeContext context) {
+			if (type.equals(DummyObject.class))
+				return type.cast(new DummyObject2(context));
 			return null;
 		}
 	}
@@ -285,6 +284,49 @@ public class ContextualRuntimeBlackBoxTests {
 		} finally {
 			safeUnregister(serviceRegistration);
 			safeUnregister(serviceRegistration2);
+		}
+	}
+
+	/**
+	 * This test tests local context override.
+	 */
+	@Test
+	public void testContextualObjectScenario004() {
+		// register our provider
+		final ServiceRegistration serviceRegistration = Activator.getActivator().getServiceHelper().registerService(RuntimeContextObjectProvider.class.getName(), new DummyObjectProvider(), "Eclipse.org Gyrex", "Dummy object provider.", null, null);
+
+		try {
+			final IRuntimeContext root = contextRegistry.get(Path.ROOT);
+			assertNotNull("root context may never be null", root);
+
+			final DummyObject originalObject = root.get(DummyObject.class);
+			assertNotNull("The dummy object from the root context must not be null!", originalObject);
+			assertEquals("The context of the dummy object does not match!", root, originalObject.context);
+
+			final IModifiableRuntimeContext wc = root.createWorkingCopy();
+			assertNotNull("Working copy must never be null!", wc);
+			assertSame("Object from working copy must be the same as original context!", originalObject, wc.get(DummyObject.class));
+
+			// override object in local context
+			wc.setLocal(DummyObject.class, new DummyObject(wc));
+			assertNotSame("Object from working copy must be different now!", originalObject, wc.get(DummyObject.class));
+			assertSame("Original context must still return original object!", originalObject, root.get(DummyObject.class));
+
+			// test child returns not modified object
+			final IRuntimeContext child = assertContextDefined(SOME_CONTEXT_PATH);
+			assertNotSame("Object from child must not match working copy!", wc.get(DummyObject.class), child.get(DummyObject.class));
+
+			// now override with "null"
+			wc.setLocal(DummyObject.class, null);
+			assertNull("Working copy must return null now!", wc.get(DummyObject.class));
+			assertNotNull("Root must not return null!", root.get(DummyObject.class));
+			assertNotNull("Child must not return null!", child.get(DummyObject.class));
+
+			// dispose
+			wc.dispose();
+		} finally {
+			// cleanup
+			safeUnregister(serviceRegistration);
 		}
 	}
 

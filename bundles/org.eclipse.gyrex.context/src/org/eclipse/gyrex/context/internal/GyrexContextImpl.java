@@ -20,7 +20,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.di.GyrexContextInjectorImpl;
 import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
@@ -36,6 +35,7 @@ import org.osgi.framework.BundleListener;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,12 +86,10 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	 * @param contextPath
 	 */
 	public GyrexContextImpl(final IPath contextPath, final ContextRegistryImpl contextRegistry) {
-		if (null == contextPath) {
+		if (null == contextPath)
 			throw new IllegalArgumentException("context path may not be null");
-		}
-		if (null == contextRegistry) {
+		if (null == contextRegistry)
 			throw new IllegalArgumentException("context registry may not be null");
-		}
 		this.contextPath = contextPath;
 		this.contextRegistry = contextRegistry;
 		injector = new GyrexContextInjectorImpl(this);
@@ -123,9 +121,8 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	}
 
 	private void checkDisposed() throws IllegalStateException {
-		if (disposed.get()) {
+		if (disposed.get())
 			throw new IllegalStateException("context is disposed");
-		}
 	}
 
 	/**
@@ -133,9 +130,8 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	 */
 	public void dispose() {
 		// don't do anything if already disposed; if not mark disposed
-		if (disposed.getAndSet(true)) {
+		if (disposed.getAndSet(true))
 			return;
-		}
 
 		// notify disposables
 		try {
@@ -144,9 +140,6 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 			}
 		} finally {
 			disposables.clear();
-
-			// dispose injector
-			injector.dispose();
 
 			// dispose service locators
 			try {
@@ -193,9 +186,8 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 		GyrexContextObject contextObject = computedObjects.get(type);
 		if (null == contextObject) {
 			// check if would be possible to compute an object
-			if (null == getContextRegistry().getObjectProviderRegistry().getType(type.getName())) {
+			if (null == getContextRegistry().getObjectProviderRegistry().getType(type.getName()))
 				return null;
-			}
 
 			// compute object
 			computedObjects.putIfAbsent(type, new GyrexContextObject(this, type));
@@ -236,7 +228,7 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	/**
 	 * @see IRuntimeContext#getInjector()
 	 */
-	public IRuntimeContextInjector getInjector() {
+	public GyrexContextInjectorImpl getInjector() {
 		checkDisposed();
 		trackAccess();
 
@@ -279,9 +271,8 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 			}
 
 			// TODO revisit later, there might be a race condition here (bundle being stopped while this method is called)
-			if (null == serviceLocator) {
+			if (null == serviceLocator)
 				throw new IllegalStateException("unable to create service locator; is the bundle stopped concurrently?");
-			}
 		}
 		return serviceLocator;
 	}
@@ -304,9 +295,8 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 
 	@Override
 	public String toString() {
-		if (isDisposed()) {
+		if (isDisposed())
 			return String.format("Gyrex Context [DISPOSED (%s)]", contextPath);
-		}
 
 		// look for a context name
 		String name;
