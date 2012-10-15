@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.di;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -174,6 +175,14 @@ public abstract class BaseContextObjectSupplier extends PrimaryObjectSupplier {
 				value = getService(key, descriptor, requestor, initial, track, group);
 			}
 
+			// try extended resolution
+			if ((null == value) && (null != descriptor.getQualifiers())) {
+				final Annotation[] qualifiers = descriptor.getQualifiers();
+				for (int j = 0; (null == value) && (j < qualifiers.length); j++) {
+					value = getQualifiedObjected(key, qualifiers[j]);
+				}
+			}
+
 			// use what we have (if not null)
 			if (null != value) {
 				actualValues[i] = value;
@@ -236,6 +245,8 @@ public abstract class BaseContextObjectSupplier extends PrimaryObjectSupplier {
 	final Class<?> getKey(final IObjectDescriptor descriptor) {
 		return getClass(descriptor.getDesiredType());
 	}
+
+	protected abstract Object getQualifiedObjected(Class<?> type, Annotation annotation);
 
 	private Object getService(final Class<?> key, final IObjectDescriptor descriptor, final IRequestor requestor, final boolean initial, final boolean track, final boolean group) {
 		// look for @Service annotation

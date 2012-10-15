@@ -11,13 +11,19 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.di;
 
+import java.lang.annotation.Annotation;
+import java.util.Collection;
+
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
 import org.eclipse.gyrex.context.internal.IContextDisposalListener;
+import org.eclipse.gyrex.context.provider.di.ExtendedObjectResolver;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -45,6 +51,37 @@ public class GyrexContextObjectSupplier extends BaseContextObjectSupplier {
 
 		// find a context object
 		return contextImpl.get(key);
+	}
+
+	@Override
+	protected Object getQualifiedObjected(final Class<?> type, final Annotation annotation) {
+		if (!(annotation.annotationType() instanceof Class<?>))
+			// ignore unknown annotation types
+			return null;
+
+		final BundleContext bundleContext = ContextActivator.getInstance().getBundle().getBundleContext();
+		final String filter = '(' + ExtendedObjectResolver.ANNOTATION_PROPERTY + '=' + annotation.annotationType().getName() + ')';
+		try {
+			final Collection<ServiceReference<ExtendedObjectResolver>> refs = bundleContext.getServiceReferences(ExtendedObjectResolver.class, filter);
+			if (!refs.isEmpty()) {
+				for (final ServiceReference<ExtendedObjectResolver> ref : refs) {
+					final ExtendedObjectResolver resolver = bundleContext.getService(ref);
+					if (resolver != null) {
+						try {
+							// FIXME: we should look at supporting dynamic behavior
+							final Object result = resolver.get(type, contextImpl.getHandle(), annotation);
+							if (result != null)
+								return result;
+						} finally {
+							bundleContext.ungetService(ref);
+						}
+					}
+				}
+			}
+		} catch (final InvalidSyntaxException e) {
+			throw new IllegalStateException(String.format("Error computing filter expression (%s) for annotation (%s). Please report Gyrex bug! (%s)", filter, annotation, e.getMessage()));
+		}
+		return null;
 	}
 
 	@Override

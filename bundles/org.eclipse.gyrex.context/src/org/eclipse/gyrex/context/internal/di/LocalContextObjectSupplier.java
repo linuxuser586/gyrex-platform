@@ -11,6 +11,8 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.di;
 
+import java.lang.annotation.Annotation;
+
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.IContextDisposalListener;
@@ -43,6 +45,12 @@ public class LocalContextObjectSupplier extends BaseContextObjectSupplier {
 
 		// find a local context object
 		return context.getLocal(key);
+	}
+
+	@Override
+	protected Object getQualifiedObjected(final Class<?> key, final Annotation annotation) {
+		// not support for local contexts
+		return null;
 	}
 
 	@Override

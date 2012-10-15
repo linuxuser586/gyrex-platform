@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.gyrex.persistence.storage.repositoryObjectResolverByContentType.component">
+   <implementation class="org.eclipse.gyrex.persistence.internal.storage.RepositoryObjectResolverByContentTypeComponent"/>
+   <service>
+      <provide interface="org.eclipse.gyrex.context.provider.di.ExtendedObjectResolver"/>
+   </service>
+   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="service.description" type="String" value="Extended object resolver for repository injection using @RequiredContentType annotation."/>
+   <property name="dependency.injection.annotation" type="String" value="org.eclipse.gyrex.persistence.storage.di.RequiredContentType"/>
+</scr:component>

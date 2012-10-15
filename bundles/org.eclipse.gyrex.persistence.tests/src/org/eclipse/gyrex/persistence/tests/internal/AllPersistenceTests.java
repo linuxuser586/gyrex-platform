@@ -11,15 +11,18 @@
  */
 package org.eclipse.gyrex.persistence.tests.internal;
 
+import org.eclipse.gyrex.junit.GyrexServerResource;
+
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-/**
- *
- */
 @RunWith(Suite.class)
-@SuiteClasses({ RepositoryRegistryTests.class })
+@SuiteClasses({ RepositoryRegistryTests.class, RepositoryInjectionTest.class })
 public class AllPersistenceTests {
+
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 }

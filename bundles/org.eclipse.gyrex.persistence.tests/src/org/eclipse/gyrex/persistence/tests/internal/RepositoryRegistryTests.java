@@ -30,7 +30,7 @@ public class RepositoryRegistryTests {
 
 	@Before
 	public void setUp() throws Exception {
-		registry = new RepositoryRegistry(Activator.context);
+		registry = new RepositoryRegistry(PersistenceTestsActivator.getContext());
 	}
 
 	@After
