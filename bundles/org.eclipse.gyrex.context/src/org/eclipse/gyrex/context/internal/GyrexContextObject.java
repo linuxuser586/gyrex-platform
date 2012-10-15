@@ -31,6 +31,7 @@ import org.osgi.framework.InvalidSyntaxException;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,17 +66,15 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 	 * Releases the computed object.
 	 */
 	private void clearComputedObject() {
-		if (!isComputed) {
+		if (!isComputed)
 			return;
-		}
 
 		Object object;
 		ProviderRegistration provider;
 		objectCreationLock.tryLock();
 		try {
-			if (!isComputed) {
+			if (!isComputed)
 				return;
-			}
 
 			// get object and its provider
 			isComputed = false;
@@ -127,9 +126,8 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 
 		// lock to ensure that at most one object per context is created
 		try {
-			if (!objectCreationLock.tryLock(2, TimeUnit.SECONDS)) {
+			if (!objectCreationLock.tryLock(2, TimeUnit.SECONDS))
 				throw new IllegalStateException(String.format("Timout waiting for computation lock (%s) in context %s for type %s", objectCreationLock, context.getContextPath(), type.getName()));
-			}
 		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new IllegalStateException(String.format("Interrupted while waiting for computation lock (%s) in context %s for type %s", objectCreationLock, context.getContextPath(), type.getName()));
@@ -154,9 +152,8 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 			// check that there is a type registration
 			final String typeName = type.getName();
 			final TypeRegistration typeRegistration = context.getContextRegistry().getObjectProviderRegistry().getType(typeName);
-			if (null == typeRegistration) {
+			if (null == typeRegistration)
 				return null;
-			}
 
 			// find the filter
 			final String filterString = ContextConfiguration.findFilter(context.getContextPath(), typeName);
@@ -173,20 +170,15 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 
 			// get all matching provider
 			final ProviderRegistration[] providers = typeRegistration.getMatchingProviders(filter);
-			if (null == providers) {
+			if (null == providers)
 				return null;
-			}
 
 			// iterate and use the first compatible one
 			for (int i = 0; (i < providers.length) && (null == object); i++) {
 				provider = providers[i];
 				try {
 					object = provider.getProvider().getObject(type, context.getHandle());
-				} catch (final LinkageError e) {
-					LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider, ExceptionUtils.getRootCauseMessage(e), e });
-					errors.add(e);
-					object = null;
-				} catch (final Exception e) {
+				} catch (final AssertionError | LinkageError | Exception e) {
 					LOG.warn("Error during object computation in context {} with in provider {}: {}", new Object[] { context.getContextPath(), provider, ExceptionUtils.getRootCauseMessage(e), e });
 					errors.add(e);
 					object = null;
@@ -268,9 +260,8 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 	@Override
 	public String toString() {
 		final GyrexContextImpl context = this.context;
-		if (null == context) {
+		if (null == context)
 			return "GyrexContextObject [DISPOSED]";
-		}
 
 		final StringBuilder builder = new StringBuilder();
 		builder.append("GyrexContextObject [context=").append(context).append(", type=").append(type).append("]");
