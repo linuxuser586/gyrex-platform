@@ -15,7 +15,6 @@ import org.eclipse.gyrex.context.tests.internal.AllContextTests;
 import org.eclipse.gyrex.junit.GyrexServerResource;
 import org.eclipse.gyrex.persistence.tests.internal.AllPersistenceTests;
 import org.eclipse.gyrex.preferences.tests.internal.AllPreferencesTests;
-import org.eclipse.gyrex.search.solr.tests.AllSolrCdsTests;
 
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -23,7 +22,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ AllPreferencesTests.class, AllPersistenceTests.class, AllContextTests.class, AllSolrCdsTests.class })
+@SuiteClasses({ AllPreferencesTests.class, AllPersistenceTests.class, AllContextTests.class })
 public class AllServerTests {
 	@ClassRule
 	public static final GyrexServerResource server = new GyrexServerResource();
