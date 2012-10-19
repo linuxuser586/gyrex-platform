@@ -18,8 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.equinox.p2.metadata.Version;
-
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
 import org.eclipse.gyrex.p2.internal.packages.InstallableUnitReference;
@@ -27,12 +25,14 @@ import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
 import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.equinox.p2.metadata.Version;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,17 +57,14 @@ public class PackageManager implements IPackageManager {
 	@Override
 	public PackageDefinition getPackage(final String id) {
 		try {
-			if (!IdHelper.isValidId(id)) {
+			if (!IdHelper.isValidId(id))
 				throw new IllegalArgumentException("invalid id");
-			}
 			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
 				return null;
-			}
 			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(id)) {
+			if (!node.nodeExists(id))
 				return null;
-			}
 
 			return readPackage(id);
 		} catch (final BackingStoreException e) {
@@ -83,9 +80,8 @@ public class PackageManager implements IPackageManager {
 	public Collection<PackageDefinition> getPackages() {
 		try {
 			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
 				return Collections.emptyList();
-			}
 			final Preferences channelsNode = rootNode.node(PREF_NODE_PACKAGES);
 			final String[] childrenNames = channelsNode.childrenNames();
 			final List<PackageDefinition> channels = new ArrayList<PackageDefinition>();
@@ -104,17 +100,14 @@ public class PackageManager implements IPackageManager {
 	@Override
 	public boolean isMarkedForInstall(final PackageDefinition packageDefinition) {
 		try {
-			if (!IdHelper.isValidId(packageDefinition.getId())) {
+			if (!IdHelper.isValidId(packageDefinition.getId()))
 				throw new IllegalArgumentException("invalid id");
-			}
 			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
 				throw new IllegalArgumentException("package does not exist");
-			}
 			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(packageDefinition.getId())) {
+			if (!node.nodeExists(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
-			}
 
 			return node.node(packageDefinition.getId()).getBoolean(PREF_KEY_INSTALL, false);
 		} catch (final BackingStoreException e) {
@@ -125,17 +118,14 @@ public class PackageManager implements IPackageManager {
 	@Override
 	public boolean isMarkedForUninstall(final PackageDefinition packageDefinition) {
 		try {
-			if (!IdHelper.isValidId(packageDefinition.getId())) {
+			if (!IdHelper.isValidId(packageDefinition.getId()))
 				throw new IllegalArgumentException("invalid id");
-			}
 			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
 				throw new IllegalArgumentException("package does not exist");
-			}
 			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(packageDefinition.getId())) {
+			if (!node.nodeExists(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
-			}
 
 			return node.node(packageDefinition.getId()).getBoolean(PREF_KEY_UNINSTALL, false);
 		} catch (final BackingStoreException e) {
@@ -146,17 +136,14 @@ public class PackageManager implements IPackageManager {
 	@Override
 	public void markedForInstall(final PackageDefinition packageDefinition) {
 		try {
-			if (!IdHelper.isValidId(packageDefinition.getId())) {
+			if (!IdHelper.isValidId(packageDefinition.getId()))
 				throw new IllegalArgumentException("invalid id");
-			}
 			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
 				throw new IllegalArgumentException("package does not exist");
-			}
 			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(packageDefinition.getId())) {
+			if (!node.nodeExists(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
-			}
 
 			final Preferences pkgNode = node.node(packageDefinition.getId());
 			pkgNode.putBoolean(PREF_KEY_INSTALL, true);
@@ -170,17 +157,14 @@ public class PackageManager implements IPackageManager {
 	@Override
 	public void markedForUninstall(final PackageDefinition packageDefinition) {
 		try {
-			if (!IdHelper.isValidId(packageDefinition.getId())) {
+			if (!IdHelper.isValidId(packageDefinition.getId()))
 				throw new IllegalArgumentException("invalid id");
-			}
 			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
 				throw new IllegalArgumentException("package does not exist");
-			}
 			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(packageDefinition.getId())) {
+			if (!node.nodeExists(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
-			}
 
 			final Preferences pkgNode = node.node(packageDefinition.getId());
 			pkgNode.putBoolean(PREF_KEY_INSTALL, false);
@@ -226,18 +210,15 @@ public class PackageManager implements IPackageManager {
 	@Override
 	public void removePackage(final String id) {
 		try {
-			if (!IdHelper.isValidId(id)) {
+			if (!IdHelper.isValidId(id))
 				throw new IllegalArgumentException("invalid id");
-			}
 
 			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES)) {
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
 				return;
-			}
 			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(id)) {
+			if (!node.nodeExists(id))
 				return;
-			}
 
 			node.node(id).removeNode();
 			node.flush();
@@ -250,13 +231,10 @@ public class PackageManager implements IPackageManager {
 	public void savePackage(final PackageDefinition packageDefinition) {
 		try {
 			final String id = packageDefinition.getId();
-			if (!IdHelper.isValidId(id)) {
+			if (!IdHelper.isValidId(id))
 				throw new IllegalArgumentException("invalid package id");
-			}
 			final Collection<InstallableUnitReference> componentsToInstall = packageDefinition.getComponentsToInstall();
-			if (componentsToInstall.isEmpty()) {
-				throw new IllegalArgumentException("package does not have components");
-			}
+
 			final Preferences node = getPackageNode(id);
 			final String nodeFilter = packageDefinition.getNodeFilter();
 			if (StringUtils.isNotBlank(nodeFilter)) {
