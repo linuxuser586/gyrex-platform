@@ -12,13 +12,13 @@
 package org.eclipse.gyrex.http.log.internal;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -57,9 +57,8 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 
 	@Override
 	protected void append(final ILoggingEvent event) {
-		if (!isStarted()) {
+		if (!isStarted())
 			return;
-		}
 
 		try {
 			// this step avoids LBCLASSIC-139
@@ -69,9 +68,8 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 
 			// get response
 			final HttpServletResponse servletResponse = responseHolder.get();
-			if (null == servletResponse) {
+			if (null == servletResponse)
 				return;
-			}
 
 			// send header
 			if (!servletResponse.containsHeader("X-Wf-Protocol-1")) {
@@ -108,18 +106,15 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 				servletResponse.setHeader("X-Wf-1-1-1-" + sequenceHolder.get().incrementAndGet(), header.toString());
 			}
 
-		} catch (final IOException ioe) {
+		} catch (final IOException | JSONException e) {
 			// as soon as an exception occurs, move to non-started state
 			// and add a single ErrorStatus to the SM.
 			started = false;
-			addStatus(new ErrorStatus("IO failure in appender", this, ioe));
+			addStatus(new ErrorStatus("IO failure in appender", this, e));
 		}
 	}
 
-	private String createLogResponse(final ILoggingEvent event) throws IOException {
-
-		final StringWriter writer = new StringWriter(2048);
-		final JsonGenerator json = new JsonFactory().createJsonGenerator(writer);
+	private String createLogResponse(final ILoggingEvent event) throws IOException, JSONException {
 
 		final String type = getType(event);
 
@@ -129,34 +124,18 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 		final String label = event.getFormattedMessage();
 
 		// start
-		json.writeStartArray();
+		final JSONArray array = new JSONArray();
 
 		// header/meta
-		json.writeStartObject();
-		json.writeFieldName("Type");
-		json.writeString(type);
-		json.writeFieldName("File");
-		if (null != file) {
-			json.writeString(file);
-		} else {
-			json.writeNull();
-		}
-		json.writeFieldName("Line");
-		if (line > 0) {
-			json.writeNumber(line);
-		} else {
-			json.writeNull();
-		}
-		json.writeFieldName("Label");
-		if (null != label) {
-			json.writeString(label);
-		} else {
-			json.writeNull();
-		}
-		json.writeEndObject();
+		final JSONObject header = new JSONObject();
+		header.put("Type", type);
+		header.put("File", null != file ? file : JSONObject.NULL);
+		header.put("Line", line > 0 ? line : JSONObject.NULL);
+		header.put("Label", null != label ? label : JSONObject.NULL);
+		array.put(header);
 
 		// body
-		json.writeString("");
+		array.put("");
 		//		final PatternLayout patternLayout = (PatternLayout) layout;
 		//		if (null != patternLayout) {
 		//			json.writeString(patternLayout.doLayout(event));
@@ -165,11 +144,7 @@ public class WildfireAppender extends UnsynchronizedAppenderBase<ILoggingEvent> 
 		//		}
 
 		// end
-		json.writeEndArray();
-
-		json.flush();
-
-		return writer.toString();
+		return array.toString();
 	}
 
 	public String getPattern() {
