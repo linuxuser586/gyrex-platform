@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,6 +37,7 @@ import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.worker.JobInfo;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
+import org.eclipse.gyrex.preferences.ModificationConflictException;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -49,6 +51,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,9 +84,8 @@ public class JobManagerImpl implements IJobManager {
 
 		@Override
 		public void preferenceChange(final PreferenceChangeEvent event) {
-			if (!PROPERTY_STATUS.equals(event.getKey())) {
+			if (!PROPERTY_STATUS.equals(event.getKey()))
 				return;
-			}
 
 			final JobState newState = toState(event.getNewValue());
 			if (newState != state) {
@@ -95,6 +97,8 @@ public class JobManagerImpl implements IJobManager {
 			}
 		}
 	}
+
+	private static final int MAY_RETRIES = 3;
 
 	private static final long DEFAULT_MODIFY_LOCK_TIMEOUT = 3000L;
 
@@ -141,15 +145,13 @@ public class JobManagerImpl implements IJobManager {
 
 			// re-read job status (inside lock)
 			job = getJob(job.getId(), job.getStorageKey());
-			if (null == job) {
+			if (null == job)
 				throw new IllegalStateException(String.format("Job %s does not exist!", job.getId()));
-			}
 
 			// re-check job status (inside lock)
-			if ((job.getState() != JobState.WAITING) && (job.getState() != JobState.RUNNING)) {
+			if ((job.getState() != JobState.WAITING) && (job.getState() != JobState.RUNNING))
 				// no-op
 				return;
-			}
 
 			try {
 				// set state
@@ -167,9 +169,8 @@ public class JobManagerImpl implements IJobManager {
 
 	private static String findCaller() {
 		final StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-		if (trace.length == 0) {
+		if (trace.length == 0)
 			return StringUtils.EMPTY;
-		}
 
 		// find first _none_ jobs API call
 		for (int i = 0; i < trace.length; i++) {
@@ -184,9 +185,8 @@ public class JobManagerImpl implements IJobManager {
 
 	public static String getExternalId(final String internalId) {
 		final int i = internalId.indexOf(SEPARATOR);
-		if (i < 0) {
+		if (i < 0)
 			return internalId;
-		}
 		return internalId.substring(i + 1);
 	}
 
@@ -201,9 +201,8 @@ public class JobManagerImpl implements IJobManager {
 	public static JobImpl getJob(final String jobId, final String storageKey) throws IllegalStateException {
 		try {
 			// don't create node if it doesn't exist
-			if (!JobHistoryStore.getJobsNode().nodeExists(storageKey)) {
+			if (!JobHistoryStore.getJobsNode().nodeExists(storageKey))
 				return null;
-			}
 
 			// read job
 			return readJob(jobId, JobHistoryStore.getJobsNode().node(storageKey));
@@ -244,9 +243,8 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	static HashMap<String, String> readParameter(final Preferences node) throws BackingStoreException {
-		if (!node.nodeExists(NODE_PARAMETER)) {
+		if (!node.nodeExists(NODE_PARAMETER))
 			return null;
-		}
 		final Preferences paramNode = node.node(NODE_PARAMETER);
 		final String[] keys = paramNode.keys();
 		final HashMap<String, String> jobParamater = new HashMap<String, String>(keys.length);
@@ -273,14 +271,12 @@ public class JobManagerImpl implements IJobManager {
 	 * records cancellation time and trigger
 	 */
 	private static void setJobCancelled(final JobImpl job, final long timestamp, final String trigger, final IExclusiveLock lock) throws BackingStoreException {
-		if ((null == lock) || !lock.isValid()) {
+		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
-		}
 
-		if (!JobHistoryStore.getJobsNode().nodeExists(job.getStorageKey())) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(job.getStorageKey()))
 			// don't update if removed
 			return;
-		}
 
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(job.getStorageKey());
@@ -290,24 +286,20 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	private static void setJobState(final JobImpl job, final JobState state, final IExclusiveLock lock) throws BackingStoreException {
-		if (null == state) {
+		if (null == state)
 			throw new IllegalArgumentException("job state must not be null");
-		}
 
-		if ((null == lock) || !lock.isValid()) {
+		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update job state of job %s to %s due to missing or lost job lock!", job.getId(), state.toString()));
-		}
 
-		if (!JobHistoryStore.getJobsNode().nodeExists(job.getStorageKey())) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(job.getStorageKey()))
 			// don't update if removed
 			return;
-		}
 
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(job.getStorageKey());
-		if (StringUtils.equals(jobNode.get(PROPERTY_STATUS, null), state.name())) {
+		if (StringUtils.equals(jobNode.get(PROPERTY_STATUS, null), state.name()))
 			// don't update if not different
 			return;
-		}
 
 		// update job node
 		// (note, this might trigger any watches immediately)
@@ -354,40 +346,34 @@ public class JobManagerImpl implements IJobManager {
 
 	@Override
 	public void cancelJob(final String jobId, final String trigger) throws IllegalStateException {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
 
 		final JobImpl job = getJob(jobId);
-		if (null == job) {
+		if (null == job)
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-		}
 
 		// check job status
-		if ((job.getState() != JobState.WAITING) && (job.getState() != JobState.RUNNING)) {
+		if ((job.getState() != JobState.WAITING) && (job.getState() != JobState.RUNNING))
 			// no-op
 			return;
-		}
 
 		cancel(job, trigger);
 	}
 
 	@Override
 	public JobImpl createJob(final String jobTypeId, final String jobId, final Map<String, String> parameter) {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
 
-		if (!IdHelper.isValidId(jobTypeId)) {
+		if (!IdHelper.isValidId(jobTypeId))
 			throw new IllegalArgumentException(String.format("Invalid type id '%s'", jobTypeId));
-		}
 
 		IExclusiveLock jobLock = null;
 		try {
 			final String internalId = toInternalId(jobId);
-			if (JobHistoryStore.getJobsNode().nodeExists(internalId)) {
+			if (JobHistoryStore.getJobsNode().nodeExists(internalId))
 				throw new IllegalStateException(String.format("Job '%s' is already stored", jobId));
-			}
 
 			// create preference node
 			final Preferences node = JobHistoryStore.getJobsNode().node(internalId);
@@ -395,10 +381,18 @@ public class JobManagerImpl implements IJobManager {
 			node.flush();
 
 			// read job
-			final JobImpl job = readJob(jobId, node);
+			JobImpl job = readJob(jobId, node);
 
 			// acquire lock
 			jobLock = acquireLock(job);
+
+			// make sure node is in sync
+			syncJobNode(jobId);
+
+			// re-read job status (inside lock)
+			job = getJob(jobId);
+			if (null == job)
+				throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 
 			// update job parameter
 			setJobParameter(job, parameter, jobLock);
@@ -408,7 +402,7 @@ public class JobManagerImpl implements IJobManager {
 
 			// re-read job (this time with parameter)
 			return readJob(jobId, node);
-		} catch (final BackingStoreException e) {
+		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Error creating job data. %s", e.getMessage()), e);
 		} finally {
 			releaseLock(jobLock, jobId);
@@ -417,19 +411,16 @@ public class JobManagerImpl implements IJobManager {
 
 	private void doQueueJob(final String jobId, Map<String, String> parameter, final String queueId, final String trigger) {
 		JobImpl job = getJob(jobId);
-		if (null == job) {
+		if (null == job)
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-		}
 
 		// check the job state (but ignore stuck jobs)
-		if ((job.getState() != JobState.NONE) && !isStuck(job)) {
+		if ((job.getState() != JobState.NONE) && !isStuck(job))
 			throw new IllegalStateException(String.format("Job %s cannot be queued because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
-		}
 
 		final IQueue queue = JobsActivator.getInstance().getQueueService().getQueue(null != queueId ? queueId : DEFAULT_QUEUE, null);
-		if (null == queue) {
+		if (null == queue)
 			throw new IllegalStateException(String.format("Queue %s does not exist!", queueId));
-		}
 
 		IExclusiveLock jobLock = null;
 		try {
@@ -441,15 +432,14 @@ public class JobManagerImpl implements IJobManager {
 
 			// re-read job status (inside lock)
 			job = getJob(jobId);
-			if (null == job) {
+			if (null == job)
 				throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-			}
 
 			// re-check the job state (inside lock) but ignore stuck jobs
 			if (job.getState() != JobState.NONE) {
-				if (!isStuck(job)) {
+				if (!isStuck(job))
 					throw new IllegalStateException(String.format("Job %s cannot be queued because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
-				} else {
+				else {
 					LOG.warn("Job {} is in state {}. However, it's assumed stuck. The queue request will reset the state!", job.getId(), job.getState());
 				}
 			}
@@ -494,12 +484,27 @@ public class JobManagerImpl implements IJobManager {
 		triggerCleanUp();
 	}
 
+	private <T> T executeWithRetry(final Callable<T> c) throws Exception {
+		int attempt = 0;
+		while (true) {
+			try {
+				return c.call();
+			} catch (final ModificationConflictException e) {
+				// try up to max retries
+				if (++attempt > MAY_RETRIES)
+					throw e;
+
+				// yield thread
+				Thread.yield();
+			}
+		}
+	}
+
 	@Override
 	public JobHistoryImpl getHistory(final String jobId) throws IllegalStateException {
 		final JobImpl job = getJob(jobId);
-		if (null == job) {
+		if (null == job)
 			throw new IllegalStateException(String.format("Job '%s' does not exist.", jobId));
-		}
 
 		try {
 			return JobHistoryStore.create(toInternalId(jobId), jobId, context);
@@ -510,9 +515,8 @@ public class JobManagerImpl implements IJobManager {
 
 	@Override
 	public JobImpl getJob(final String jobId) {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
 
 		return getJob(jobId, toInternalId(jobId));
 	}
@@ -535,9 +539,8 @@ public class JobManagerImpl implements IJobManager {
 
 	@Override
 	public Collection<String> getJobsByState(final JobState state) {
-		if (null == state) {
+		if (null == state)
 			throw new IllegalArgumentException("Status must not be null");
-		}
 
 		try {
 			final String[] storageIds = JobHistoryStore.getJobsNode().childrenNames();
@@ -560,40 +563,34 @@ public class JobManagerImpl implements IJobManager {
 
 	@Override
 	public void queueJob(final String jobId, final Map<String, String> parameter, final String queueId, final String trigger) throws IllegalArgumentException, IllegalStateException {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
-		if (null == parameter) {
+		if (null == parameter)
 			throw new IllegalArgumentException("parameter must not be null");
-		}
 
 		doQueueJob(jobId, parameter, queueId, trigger);
 	}
 
 	@Override
 	public void queueJob(final String jobId, final String queueId, final String trigger) {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
 
 		doQueueJob(jobId, null, queueId, trigger);
 	}
 
 	@Override
 	public void removeJob(final String jobId) {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
 
 		final JobImpl job = getJob(jobId);
-		if (null == job) {
+		if (null == job)
 			return;
-		}
 
 		// check the job state
-		if (job.getState() != JobState.NONE) {
+		if (job.getState() != JobState.NONE)
 			throw new IllegalStateException(String.format("Job %s cannot be removed because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
-		}
 
 		IExclusiveLock jobLock = null;
 		try {
@@ -603,11 +600,17 @@ public class JobManagerImpl implements IJobManager {
 			// remove from preferences
 			final String internalId = toInternalId(jobId);
 			final IEclipsePreferences jobsNode = JobHistoryStore.getJobsNode();
-			if (jobsNode.nodeExists(internalId)) {
-				jobsNode.node(internalId).removeNode();
-				jobsNode.flush();
-			}
-		} catch (final BackingStoreException e) {
+			executeWithRetry(new Callable<Object>() {
+				@Override
+				public Object call() throws Exception {
+					if (jobsNode.nodeExists(internalId)) {
+						jobsNode.node(internalId).removeNode();
+						jobsNode.flush();
+					}
+					return null;
+				}
+			});
+		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Error removing job %s. %s", jobId, e.getMessage()), e);
 		} finally {
 			releaseLock(jobLock, jobId);
@@ -630,9 +633,15 @@ public class JobManagerImpl implements IJobManager {
 		}
 		JobHungDetectionHelper.setActive(toInternalId(jobId));
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(toInternalId(jobId));
-		jobNode.sync();
-		jobNode.putBoolean(PROPERTY_ACTIVE, true);
-		jobNode.flush();
+		executeWithRetry(new Callable<Object>() {
+			@Override
+			public Object call() throws Exception {
+				jobNode.sync();
+				jobNode.putBoolean(PROPERTY_ACTIVE, true);
+				jobNode.flush();
+				return null;
+			}
+		});
 	}
 
 	/**
@@ -651,21 +660,26 @@ public class JobManagerImpl implements IJobManager {
 		}
 		JobHungDetectionHelper.setInactive(toInternalId(jobId));
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(toInternalId(jobId));
-		jobNode.sync();
-		jobNode.remove(PROPERTY_ACTIVE);
-		jobNode.flush();
+
+		executeWithRetry(new Callable<Object>() {
+			@Override
+			public Object call() throws Exception {
+				jobNode.sync();
+				jobNode.remove(PROPERTY_ACTIVE);
+				jobNode.flush();
+				return null;
+			}
+		});
 	}
 
 	private void setJobParameter(final JobImpl job, final Map<String, String> parameter, final IExclusiveLock lock) throws BackingStoreException {
-		if ((null == lock) || !lock.isValid()) {
+		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update parameter of job %s due to missing or lost job lock!", job.getId()));
-		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId))
 			// don't update if removed
 			return;
-		}
 
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		if ((null != parameter) && !parameter.isEmpty()) {
@@ -697,22 +711,18 @@ public class JobManagerImpl implements IJobManager {
 
 	@Override
 	public void setJobParameter(final String jobId, final Map<String, String> parameter) throws IllegalStateException, IllegalArgumentException {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
-		if (null == parameter) {
+		if (null == parameter)
 			throw new IllegalArgumentException("parameter must not be null");
-		}
 
 		JobImpl job = getJob(jobId);
-		if (null == job) {
+		if (null == job)
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-		}
 
 		// check the job state (but ignore stuck jobs)
-		if ((job.getState() != JobState.NONE) && !isStuck(job)) {
+		if ((job.getState() != JobState.NONE) && !isStuck(job))
 			throw new IllegalStateException(String.format("Job %s cannot be updated because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
-		}
 
 		IExclusiveLock jobLock = null;
 		try {
@@ -721,15 +731,14 @@ public class JobManagerImpl implements IJobManager {
 
 			// re-read job status (inside lock)
 			job = getJob(jobId);
-			if (null == job) {
+			if (null == job)
 				throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-			}
 
 			// re-check the job state (inside lock) but ignore stuck jobs
 			if (job.getState() != JobState.NONE) {
-				if (!isStuck(job)) {
+				if (!isStuck(job))
 					throw new IllegalStateException(String.format("Job %s cannot be updated because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
-				} else {
+				else {
 					LOG.warn("Job {} is in state {}. However, it's assumed stuck. The updated will reset the state!", job.getId(), job.getState());
 				}
 			}
@@ -750,15 +759,13 @@ public class JobManagerImpl implements IJobManager {
 	 * records queuing time and trigger.
 	 */
 	private void setJobQueued(final IJob job, final long timestamp, final String trigger, final IExclusiveLock lock) throws BackingStoreException {
-		if ((null == lock) || !lock.isValid()) {
+		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
-		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId))
 			// don't update if removed
 			return;
-		}
 
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
@@ -768,18 +775,15 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	private void setJobResult(final JobImpl job, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final IExclusiveLock lock) throws BackingStoreException {
-		if ((null == lock) || !lock.isValid()) {
+		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update job result of job %s due to missing or lost job lock!", job.getId()));
-		}
-		if (null == result) {
+		if (null == result)
 			throw new IllegalStateException(String.format("Unable to update job result of job %s due to missing result!", job.getId()));
-		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId))
 			// don't update if removed
 			return;
-		}
 
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
@@ -799,15 +803,13 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	private void setJobStartTime(final IJob job, final long startTimestamp, final IExclusiveLock lock) throws BackingStoreException {
-		if ((null == lock) || !lock.isValid()) {
+		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update job %s due to missing or lost job lock!", job.getId()));
-		}
 
 		final String internalId = toInternalId(job.getId());
-		if (!JobHistoryStore.getJobsNode().nodeExists(internalId)) {
+		if (!JobHistoryStore.getJobsNode().nodeExists(internalId))
 			// don't update if removed
 			return;
-		}
 
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
@@ -839,17 +841,14 @@ public class JobManagerImpl implements IJobManager {
 	 *             job
 	 */
 	public boolean setJobState(final String jobId, final JobState expected, final JobState state, final IJobStateWatch stateWatch) throws IllegalArgumentException, IllegalStateException {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
-		if (null == state) {
+		if (null == state)
 			throw new IllegalArgumentException("Job state must not be null");
-		}
 
 		JobImpl job = getJob(jobId);
-		if (null == job) {
+		if (null == job)
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-		}
 
 		IExclusiveLock jobLock = null;
 		try {
@@ -861,16 +860,15 @@ public class JobManagerImpl implements IJobManager {
 
 			// re-read job status (inside lock)
 			job = getJob(jobId);
-			if (null == job) {
+			if (null == job)
 				throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-			}
 
 			// check job status (inside lock) but ignore for stuck jobs
 			if ((null != expected) && (job.getState() != expected)) {
-				if (!isStuck(job)) {
+				if (!isStuck(job))
 					// no-op
 					return false;
-				} else {
+				else {
 					LOG.warn("Job {} is in state {} which doesn't match the expected state {}. However, it's assumed stuck. Thus, the status will be reset to {}!", new Object[] { job.getId(), job.getState(), expected, state });
 				}
 			}
@@ -901,14 +899,12 @@ public class JobManagerImpl implements IJobManager {
 	}
 
 	public void setResult(final String jobId, final Map<String, String> parameter, final IStatus result, final long resultTimestamp) {
-		if (!IdHelper.isValidId(jobId)) {
+		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		}
 
-		final JobImpl job = getJob(jobId);
-		if (null == job) {
+		JobImpl job = getJob(jobId);
+		if (null == job)
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
-		}
 
 		IExclusiveLock jobLock = null;
 		try {
@@ -919,6 +915,14 @@ public class JobManagerImpl implements IJobManager {
 			syncJobNode(jobId);
 
 			try {
+				// make sure node is in sync
+				syncJobNode(jobId);
+
+				// re-read job status (inside lock)
+				job = getJob(jobId);
+				if (null == job)
+					throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
+
 				// set state
 				setJobState(job, JobState.NONE, jobLock);
 
@@ -934,8 +938,14 @@ public class JobManagerImpl implements IJobManager {
 
 	private void syncJobNode(final String jobId) {
 		try {
-			JobHistoryStore.getJobsNode().node(toInternalId(jobId)).sync();
-		} catch (final BackingStoreException e) {
+			executeWithRetry(new Callable<Object>() {
+				@Override
+				public Object call() throws Exception {
+					JobHistoryStore.getJobsNode().node(toInternalId(jobId)).sync();
+					return null;
+				}
+			});
+		} catch (final Exception e) {
 			LOG.warn("Exception refreshing job {}. Available job data might be stale.", toInternalId(jobId), e);
 		}
 	}
