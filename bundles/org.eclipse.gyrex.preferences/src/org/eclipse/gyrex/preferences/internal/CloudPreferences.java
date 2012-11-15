@@ -43,14 +43,16 @@ public class CloudPreferences extends ZooKeeperBasedPreferences {
 	@Override
 	protected BackingStoreException createBackingStoreException(final String action, final Exception cause) {
 		// ZooKeeper bad version
-		if (cause instanceof BadVersionException) {
+		if (cause instanceof BadVersionException)
 			return new ModificationConflictException(String.format("Concurrent modification error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
-		}
 
 		// ZooKeeper NoNode usually also means a concurrent modification
-		if (cause instanceof NoNodeException) {
+		if (cause instanceof NoNodeException)
 			return new ModificationConflictException(String.format("Concurrent modification error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
-		}
+
+		// nested exceptions are ugly but may happen
+		if (cause instanceof ModificationConflictException)
+			return new ModificationConflictException(String.format("Concurrent modification error %s (node %s). %s", action, absolutePath(), null != cause.getMessage() ? cause.getMessage() : ExceptionUtils.getMessage(cause)), cause);
 
 		// default
 		return super.createBackingStoreException(action, cause);
