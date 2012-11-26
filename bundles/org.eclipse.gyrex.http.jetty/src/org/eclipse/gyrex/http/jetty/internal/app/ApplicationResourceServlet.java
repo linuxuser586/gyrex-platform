@@ -13,8 +13,11 @@ package org.eclipse.gyrex.http.jetty.internal.app;
 
 import java.net.MalformedURLException;
 
+import javax.servlet.ServletContext;
+
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
@@ -60,6 +63,11 @@ public class ApplicationResourceServlet extends DefaultServlet {
 		} catch (final MalformedURLException e) {
 			return null;
 		}
+	}
+
+	@Override
+	protected ContextHandler initContextHandler(final ServletContext servletContext) {
+		return applicationHandler;
 	}
 
 }

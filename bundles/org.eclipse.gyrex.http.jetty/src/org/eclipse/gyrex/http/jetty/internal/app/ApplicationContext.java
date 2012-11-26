@@ -83,11 +83,10 @@ public class ApplicationContext implements IApplicationContext {
 
 		@Override
 		public void bundleChanged(final BundleEvent event) {
-			if (bundleId != event.getBundle().getBundleId()) {
+			if (bundleId != event.getBundle().getBundleId())
 				// ignore events for different bundles
 				// (clarify if we should ever get those here; I got a stacktrace once that indicates this)
 				return;
-			}
 			if (event.getType() == Bundle.STOPPING) {
 				try {
 					unregister(alias);
@@ -154,6 +153,25 @@ public class ApplicationContext implements IApplicationContext {
 		return applicationHandler.getDelegateHandler().handleApplicationRequest(request, response);
 	}
 
+	private void initializeServletIfNecessary(final String alias, final ServletHolder holder) throws ServletException {
+		if (applicationHandler.getServletHandler().isStarted() || applicationHandler.getServletHandler().isStarting()) {
+			try {
+				holder.start();
+			} catch (final Exception e) {
+				// attempt a clean unregister
+				try {
+					unregister(alias);
+				} catch (final Exception e2) {
+					if (JettyDebug.debug) {
+						LOG.debug("Exception during cleanup of failed registration.", e2);
+					}
+				}
+				// fail
+				throw new ServletException(String.format("Error starting servlet. %s", e.getMessage()), e);
+			}
+		}
+	}
+
 	/**
 	 * Checks and normalizes an OSGi alias to the path spec (as used by Jetty's
 	 * {@link PathMap}).
@@ -166,23 +184,18 @@ public class ApplicationContext implements IApplicationContext {
 	 */
 	private String normalizeAliasToPathSpec(final String alias) throws IllegalArgumentException {
 		// sanity check alias
-		if (null == alias) {
+		if (null == alias)
 			throw new IllegalArgumentException("alias must not be null");
-		}
-		if (!alias.startsWith(URIUtil.SLASH) && !alias.startsWith("*.")) {
+		if (!alias.startsWith(URIUtil.SLASH) && !alias.startsWith("*."))
 			throw new IllegalArgumentException("alias must start with '/' or '*.'");
-		}
-		if (alias.endsWith("/*")) {
+		if (alias.endsWith("/*"))
 			throw new IllegalArgumentException("alias must not end with '/*'");
-		}
-		if (!URIUtil.SLASH.equals(alias) && StringUtil.endsWithIgnoreCase(alias, URIUtil.SLASH)) {
+		if (!URIUtil.SLASH.equals(alias) && StringUtil.endsWithIgnoreCase(alias, URIUtil.SLASH))
 			throw new IllegalArgumentException("alias must not end with '/'");
-		}
 
 		// use extension alias as is
-		if (alias.startsWith("*.")) {
+		if (alias.startsWith("*."))
 			return alias;
-		}
 
 		// make all other aliases implicit to simulate OSGi prefix matching
 		// note, '/' must also be made implicit so that internally it matches as '/*'
@@ -234,9 +247,8 @@ public class ApplicationContext implements IApplicationContext {
 		// create dynamic resource provider based on the calling bundle if non was specified
 		if (provider == null) {
 			final Bundle callingBundle = HttpJettyActivator.getInstance().getCallingBundle();
-			if (null == callingBundle) {
+			if (null == callingBundle)
 				throw new IllegalArgumentException("unable to determine the calling bundle; please specify a non-null resource provider");
-			}
 			provider = new BundleResourceProvider(callingBundle);
 		}
 
@@ -257,7 +269,15 @@ public class ApplicationContext implements IApplicationContext {
 			applicationHandler.addResource(pathSpec, new ResourceProviderHolder(name, provider));
 
 			// register a resource servlet to make the resources accessible
-			applicationHandler.getServletHandler().addServletWithMapping(ApplicationResourceServlet.newHolder(applicationHandler), pathSpec);
+			final ServletHolder holder = ApplicationResourceServlet.newHolder(applicationHandler);
+			applicationHandler.getServletHandler().addServletWithMapping(holder, pathSpec);
+
+			// initialize resource servlet if application already started
+			try {
+				initializeServletIfNecessary(alias, holder);
+			} catch (final ServletException e) {
+				throw new IllegalStateException(String.format("Unhandled error registering resources. %s", e.getMessage()), e);
+			}
 		} finally {
 			registryModificationLock.unlock();
 		}
@@ -289,23 +309,8 @@ public class ApplicationContext implements IApplicationContext {
 			// register servlet
 			applicationHandler.getServletHandler().addServletWithMapping(holder, pathSpec);
 
-			// start if already started
-			if (applicationHandler.getServletHandler().isStarted() || applicationHandler.getServletHandler().isStarting()) {
-				try {
-					holder.start();
-				} catch (final Exception e) {
-					// attempt a clean unregister
-					try {
-						unregister(alias);
-					} catch (final Exception e2) {
-						if (JettyDebug.debug) {
-							LOG.debug("Exception during cleanup of failed registration.", e2);
-						}
-					}
-					// fail
-					throw new ServletException(String.format("Error starting servlet. %s", e.getMessage()), e);
-				}
-			}
+			// initialize servlet if application already started
+			initializeServletIfNecessary(alias, holder);
 		} finally {
 			registryModificationLock.unlock();
 		}
@@ -337,23 +342,8 @@ public class ApplicationContext implements IApplicationContext {
 			// register servlet
 			applicationHandler.getServletHandler().addServletWithMapping(holder, pathSpec);
 
-			// start if already started
-			if (applicationHandler.getServletHandler().isStarted() || applicationHandler.getServletHandler().isStarting()) {
-				try {
-					holder.start();
-				} catch (final Exception e) {
-					// attempt a clean unregister
-					try {
-						unregister(alias);
-					} catch (final Exception e2) {
-						if (JettyDebug.debug) {
-							LOG.debug("Exception during cleanup of failed registration.", e2);
-						}
-					}
-					// fail
-					throw new ServletException(String.format("Error starting servlet. %s", e.getMessage()), e);
-				}
-			}
+			// initialize servlet if application already started
+			initializeServletIfNecessary(alias, holder);
 		} finally {
 			registryModificationLock.unlock();
 		}
@@ -401,9 +391,8 @@ public class ApplicationContext implements IApplicationContext {
 			}
 
 			// sanity check
-			if (toRemove.isEmpty()) {
+			if (toRemove.isEmpty())
 				throw new IllegalStateException("filter '" + filter + "' not found");
-			}
 
 			// collect remaining mappings
 			final FilterMapping[] mappings = servletHandler.getFilterMappings();
@@ -471,9 +460,8 @@ public class ApplicationContext implements IApplicationContext {
 			}
 
 			// sanity check
-			if (!removedSomething) {
+			if (!removedSomething)
 				throw new IllegalStateException("alias '" + alias + "' registered but nothing removed");
-			}
 
 			// find servlets to remove
 			final ServletHolder[] servlets = servletHandler.getServlets();
@@ -505,9 +493,8 @@ public class ApplicationContext implements IApplicationContext {
 	}
 
 	private void unregisterAlias(final String alias) {
-		if (!registeredAliases.contains(alias)) {
+		if (!registeredAliases.contains(alias))
 			throw new IllegalStateException("alias '" + alias + "' not registered");
-		}
 		registeredAliases.remove(alias);
 	}
 }
