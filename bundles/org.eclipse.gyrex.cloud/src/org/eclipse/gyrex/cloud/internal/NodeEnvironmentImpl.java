@@ -25,6 +25,8 @@ import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.prefs.Preferences;
 
+import org.apache.commons.lang.StringUtils;
+
 /**
  * {@link INodeEnvironment} implementation.
  */
@@ -33,18 +35,26 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 	@Override
 	public String getNodeId() {
 		final NodeInfo nodeInfo = CloudState.getNodeInfo();
-		if (nodeInfo == null) {
+		if (nodeInfo == null)
 			return new NodeInfo().getNodeId();
-		}
 		return nodeInfo.getNodeId();
 	}
 
 	private Map<String, Object> getNodeProperties() {
 		final Map<String, Object> nodeProperties = new HashMap<String, Object>(2);
 		nodeProperties.put("id", getNodeId());
-		final Set<String> tags = getTags();
-		if (!tags.isEmpty()) {
-			nodeProperties.put("tag", tags.toArray(new String[tags.size()]));
+		final NodeInfo nodeInfo = CloudState.getNodeInfo();
+		if (nodeInfo != null) {
+			final Set<String> tags = nodeInfo.getTags();
+			if (!tags.isEmpty()) {
+				nodeProperties.put("tag", tags.toArray(new String[tags.size()]));
+			}
+			if (StringUtils.isNotBlank(nodeInfo.getLocation())) {
+				nodeProperties.put("location", nodeInfo.getLocation());
+			}
+			if (StringUtils.isNotBlank(nodeInfo.getName())) {
+				nodeProperties.put("name", nodeInfo.getName());
+			}
 		}
 		return nodeProperties;
 	}
@@ -52,9 +62,8 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 	@Override
 	public Set<String> getTags() {
 		final NodeInfo nodeInfo = CloudState.getNodeInfo();
-		if (nodeInfo == null) {
+		if (nodeInfo == null)
 			return Collections.emptySet();
-		}
 		return nodeInfo.getTags();
 	}
 
@@ -68,9 +77,8 @@ public class NodeEnvironmentImpl implements INodeEnvironment {
 	@Override
 	public boolean isApproved() {
 		final NodeInfo nodeInfo = CloudState.getNodeInfo();
-		if (nodeInfo == null) {
+		if (nodeInfo == null)
 			return false;
-		}
 		return nodeInfo.isApproved();
 	}
 

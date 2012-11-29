@@ -101,6 +101,8 @@ public interface INodeEnvironment {
 	 * </p>
 	 * <ul>
 	 * <li>id</li> - {@link #getNodeId() the node id}
+	 * <li>name</li> - the node name (if set)
+	 * <li>location</li> - the node location string (if set)
 	 * <li>tag</li> - an array of strings containing {@link #getTags() the node
 	 * tags}
 	 * </ul>
