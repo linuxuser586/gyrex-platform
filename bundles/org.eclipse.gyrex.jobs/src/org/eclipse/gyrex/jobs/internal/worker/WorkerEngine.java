@@ -118,7 +118,7 @@ public class WorkerEngine extends Job {
 		setPriority(LONG);
 		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", DEFAULT_IDLE_SLEEP_TIME);
 		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", DEFAULT_NON_IDLE_SLEEP_TIME);
-		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", Runtime.getRuntime().availableProcessors() * 2);
+		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", Runtime.getRuntime().availableProcessors());
 	}
 
 	private JobContext createContext(final JobInfo info) {
