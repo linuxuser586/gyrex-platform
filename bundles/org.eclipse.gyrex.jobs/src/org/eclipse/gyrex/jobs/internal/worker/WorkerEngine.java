@@ -45,6 +45,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,9 +79,9 @@ public class WorkerEngine extends Job {
 		preferences.flush();
 	}
 
+	private final WorkerEngineMetrics metrics;
 	private final int maxConcurrentJobs;
 	private final long idleSleepTime;
-
 	private final long nonIdleSleepTime;
 
 	private long engineSleepTime = DEFAULT_IDLE_SLEEP_TIME;
@@ -96,14 +97,23 @@ public class WorkerEngine extends Job {
 			if (scheduledJobsCount < 0) {
 				scheduledJobsCount = 0;
 			}
+			// update metric
+			metrics.getCapacity().channelFinished();
+		};
+
+		@Override
+		public void scheduled(final IJobChangeEvent event) {
+			// update metric
+			metrics.getCapacity().channelStarted(0);
 		}
 	};
 
 	/**
 	 * Creates a new instance.
 	 */
-	public WorkerEngine() {
+	public WorkerEngine(final WorkerEngineMetrics metrics) {
 		super("Gyrex Worker Engine Job");
+		this.metrics = metrics;
 		setSystem(true);
 		setPriority(LONG);
 		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", DEFAULT_IDLE_SLEEP_TIME);
@@ -114,9 +124,8 @@ public class WorkerEngine extends Job {
 	private JobContext createContext(final JobInfo info) {
 		final IRuntimeContextRegistry contextRegistry = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class);
 		final IRuntimeContext context = contextRegistry.get(info.getContextPath());
-		if (null == context) {
+		if (null == context)
 			throw new IllegalStateException(String.format("Context %s not available!", info.getContextPath().toString()));
-		}
 		return new JobContext(context, info);
 	}
 
@@ -141,14 +150,12 @@ public class WorkerEngine extends Job {
 
 	private Job createJobInstance(final JobInfo info, final IJobContext jobContext) throws Exception {
 		final JobProvider provider = JobsActivator.getInstance().getJobProviderRegistry().getProvider(info.getJobTypeId());
-		if (null == provider) {
+		if (null == provider)
 			throw new IllegalStateException(String.format("Job type %s not available!", info.getJobTypeId()));
-		}
 
 		final Job job = provider.createJob(info.getJobTypeId(), jobContext);
-		if (null == job) {
+		if (null == job)
 			throw new IllegalStateException(String.format("Provider %s did not create job of type %s!", provider.toString(), info.getJobTypeId()));
-		}
 		return job;
 	}
 
@@ -231,9 +238,8 @@ public class WorkerEngine extends Job {
 	 */
 	private boolean processNextJobFromQueue() {
 		final IQueue queue = getDefaultQueue(); // TODO how to get messages from other queues?
-		if (queue == null) {
+		if (queue == null)
 			throw new IllegalStateException("No queue available for reading scheduled jobs to execute. Please check engine configuration.");
-		}
 
 		// don't process any jobs if we are over the limit
 		if (scheduledJobsCount > maxConcurrentJobs) {
@@ -241,8 +247,12 @@ public class WorkerEngine extends Job {
 			if (JobsDebug.workerEngine) {
 				LOG.debug("There are currently {} jobs scheduled. Won't schedule more at this time.", scheduledJobsCount);
 			}
+			metrics.getCapacity().channelDenied();
+			metrics.setStatus("EXHAUSTED", "capacity limit reached");
 			return false;
 		}
+
+		metrics.setStatus("PROCESSING", "processing next job from queue");
 
 		// set receive timeout
 		final Map<String, Object> requestProperties = new HashMap<String, Object>(1);
@@ -250,28 +260,25 @@ public class WorkerEngine extends Job {
 
 		// receive message
 		final List<IMessage> messages = queue.receiveMessages(1, requestProperties);
-		if (messages.isEmpty()) {
+		if (messages.isEmpty())
 			// no more messages, abort
 			return false;
-		}
 		final IMessage message = messages.get(0);
 
 		// read job info
 		final JobInfo info = parseJobInfo(queue, message);
-		if (null == info) {
+		if (null == info)
 			// continue with next message
 			return true;
-		}
 
 		// create context
 		final JobContext jobContext = createContext(info);
 
 		// create job
 		final Job job = createJob(queue, message, info, jobContext);
-		if (null == job) {
+		if (null == job)
 			// continue with next message
 			return true;
-		}
 
 		// add state synchronizer and finish listener
 		final JobStateSynchronizer stateSynchronizer = new JobStateSynchronizer(job, jobContext);
@@ -321,8 +328,12 @@ public class WorkerEngine extends Job {
 				if (JobsDebug.workerEngine) {
 					LOG.debug("Worker engine is suspended.");
 				}
+				metrics.setStatus("SUSPENDED", "suspended in preferences");
 				return Status.CANCEL_STATUS;
 			}
+
+			// update metric
+			metrics.getCapacity().setChannelsCapacity(maxConcurrentJobs);
 
 			// process next job from queue
 			final boolean moreJobsAvailable = processNextJobFromQueue();
@@ -335,7 +346,13 @@ public class WorkerEngine extends Job {
 			engineSleepTime = moreJobsAvailable ? nonIdleSleepTime : idleSleepTime;
 
 			// done
-			return Status.OK_STATUS;
+			if (!monitor.isCanceled()) {
+				metrics.setStatus("SLEEPING", "expected sleep time: " + engineSleepTime);
+				return Status.OK_STATUS;
+			} else {
+				metrics.setStatus("CANCELED", "monitor is canceled");
+				return Status.CANCEL_STATUS;
+			}
 		} catch (final Exception e) {
 			// implement a back-off sleeping time (max 5 min)
 			engineSleepTime = Math.min(engineSleepTime * 2, DEFAULT_MAX_SLEEP_TIME);
@@ -344,6 +361,7 @@ public class WorkerEngine extends Job {
 			LOG.error("Unable to process queued jobs. Please verify the system is setup properly. {}", new Object[] { ExceptionUtils.getRootCauseMessage(e), e });
 
 			// indicate error through cancel status
+			metrics.setStatus("ERROR", ExceptionUtils.getRootCauseMessage(e));
 			return Status.CANCEL_STATUS;
 		} finally {
 			// reschedule if not canceled

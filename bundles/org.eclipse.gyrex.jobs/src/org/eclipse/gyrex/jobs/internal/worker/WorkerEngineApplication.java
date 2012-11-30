@@ -16,10 +16,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
+import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.util.WaitForJobToFinishJob;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
 import org.eclipse.core.runtime.jobs.Job;
+
+import org.osgi.framework.ServiceRegistration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +34,10 @@ import org.slf4j.LoggerFactory;
 public class WorkerEngineApplication extends BaseApplication {
 
 	private static final Logger LOG = LoggerFactory.getLogger(WorkerEngineApplication.class);
+
+	private final WorkerEngineMetrics metrics = new WorkerEngineMetrics();
 	private WorkerEngine workerEngine;
+	private ServiceRegistration<MetricSet> metricsRegistration;
 
 	@Override
 	protected void doCleanup() {
@@ -47,17 +54,18 @@ public class WorkerEngineApplication extends BaseApplication {
 			LOG.debug("Starting worker engine application.");
 		}
 
+		metricsRegistration = JobsActivator.registerMetrics(metrics);
+
 		// create & launch worker engine
-		workerEngine = new WorkerEngine();
+		workerEngine = new WorkerEngine(metrics);
 		workerEngine.schedule();
 	}
 
 	@Override
 	protected Object doStop() {
 		final WorkerEngine engine = workerEngine;
-		if (null == engine) {
+		if (null == engine)
 			return EXIT_OK;
-		}
 
 		if (JobsDebug.workerEngine) {
 			LOG.debug("Stopping worker engine application...");
@@ -85,6 +93,11 @@ public class WorkerEngineApplication extends BaseApplication {
 
 		if (JobsDebug.workerEngine) {
 			LOG.debug("Worker engine application engine stopped.");
+		}
+
+		if (metricsRegistration != null) {
+			metricsRegistration.unregister();
+			metricsRegistration = null;
 		}
 
 		return EXIT_OK;
