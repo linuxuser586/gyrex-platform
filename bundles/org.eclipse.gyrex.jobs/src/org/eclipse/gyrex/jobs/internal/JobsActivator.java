@@ -19,8 +19,10 @@ import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.jobs.internal.registry.JobProviderRegistry;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 
 /**
  * Bundle activator.
@@ -39,10 +41,13 @@ public class JobsActivator extends BaseBundleActivator {
 	 */
 	public static JobsActivator getInstance() {
 		final JobsActivator activator = instanceRef.get();
-		if (activator == null) {
+		if (activator == null)
 			throw new IllegalStateException("inactive");
-		}
 		return activator;
+	}
+
+	public static ServiceRegistration<MetricSet> registerMetrics(final MetricSet metrics) {
+		return getInstance().getServiceHelper().registerService(MetricSet.class, metrics, "Eclipse Gyrex", metrics.getDescription(), null, null);
 	}
 
 	private volatile IServiceProxy<IQueueService> queueServiceProxy;
@@ -85,9 +90,8 @@ public class JobsActivator extends BaseBundleActivator {
 	 */
 	public JobProviderRegistry getJobProviderRegistry() {
 		final JobProviderRegistry providerRegistry = jobProviderRegistry;
-		if (null == providerRegistry) {
+		if (null == providerRegistry)
 			throw createBundleInactiveException();
-		}
 		return providerRegistry;
 	}
 

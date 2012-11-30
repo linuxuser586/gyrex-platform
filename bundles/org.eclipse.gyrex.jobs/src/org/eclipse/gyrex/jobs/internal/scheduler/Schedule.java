@@ -15,11 +15,13 @@ package org.eclipse.gyrex.jobs.internal.scheduler;
 import java.text.ParseException;
 import java.util.List;
 
+import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
+import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -29,10 +31,12 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.prefs.BackingStoreException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.quartz.CronTrigger;
 import org.quartz.JobDetail;
 import org.quartz.SchedulerException;
@@ -62,9 +66,8 @@ public class Schedule implements IPreferenceChangeListener {
 				// Force re-load of schedule data
 				final ScheduleImpl schedule = ensureScheduleData(Boolean.TRUE);
 				if (schedule.isEnabled()) {
-					if (monitor.isCanceled()) {
+					if (monitor.isCanceled())
 						return Status.CANCEL_STATUS;
-					}
 					activateEngine();
 				} else {
 					deactivateEngine();
@@ -91,6 +94,9 @@ public class Schedule implements IPreferenceChangeListener {
 	private final DeferredActivationJob deferredActivationJob = new DeferredActivationJob();
 
 	private final String scheduleStoreStorageKey;
+	private final ScheduleMetrics metrics;
+
+	private ServiceRegistration<MetricSet> metricsRegistration;
 	private ScheduleImpl scheduleData;
 	private org.quartz.Scheduler quartzScheduler;
 
@@ -103,15 +109,15 @@ public class Schedule implements IPreferenceChangeListener {
 	 */
 	public Schedule(final String scheduleStoreStorageKey, final Scheduler scheduler) throws Exception {
 		this.scheduleStoreStorageKey = scheduleStoreStorageKey;
+		metrics = new ScheduleMetrics(scheduleStoreStorageKey);
 	}
 
 	synchronized void activateEngine() {
 		if (JobsDebug.schedulerEngine) {
 			LOG.debug("Activating schedule {}...", scheduleStoreStorageKey);
 		}
-		if (null != quartzScheduler) {
+		if (null != quartzScheduler)
 			return;
-		}
 
 		try {
 			// make sure that Quartz does not check for updates
@@ -136,9 +142,8 @@ public class Schedule implements IPreferenceChangeListener {
 			}
 
 			// double check to ensure that Quartz did not fail
-			if (null == quartzScheduler) {
+			if (null == quartzScheduler)
 				throw new SchedulerException("Unabled to retrieve created scheduler from Quartz SchedulerRepository. It looks like the creation failed but the Quartz framework did not report it as such!");
-			}
 
 			// TODO add support for calendars (we likely should support global calendars)
 
@@ -147,12 +152,13 @@ public class Schedule implements IPreferenceChangeListener {
 
 			// start
 			quartzScheduler.start();
+			metrics.setStatus("QUARTZRUNNING", "Quartz schedule started successfully");
 
 			// log success message
 			LOG.info("Activated schedule {}.", getScheduleStoreStorageKey());
-
 		} catch (final SchedulerException e) {
 			LOG.error("Unable to activate Quarz scheduler. {}", ExceptionUtils.getRootCauseMessage(e));
+			metrics.error("error activating schedule", e);
 
 			// cleanup
 			quietShutdown();
@@ -165,6 +171,7 @@ public class Schedule implements IPreferenceChangeListener {
 			LOG.debug("Deactivating Quartz engine {}...", getScheduleStoreStorageKey());
 		}
 		quietShutdown();
+		metrics.setStatus("DEACTIVATED", "schedule deactivated");
 	}
 
 	/**
@@ -262,6 +269,7 @@ public class Schedule implements IPreferenceChangeListener {
 				try {
 					// shutdown
 					quartzScheduler.shutdown();
+					metrics.setStatus("QUARTZSTOPPED", "quiet shutdown triggered");
 
 					// log success message
 					LOG.info("Deactivated schedule {}.", scheduleStoreStorageKey);
@@ -328,7 +336,10 @@ public class Schedule implements IPreferenceChangeListener {
 			LOG.debug("Starting schedule {}...", getScheduleStoreStorageKey());
 		}
 
+		metricsRegistration = JobsActivator.registerMetrics(metrics);
+
 		if (!ScheduleStore.getSchedulesNode().nodeExists(scheduleStoreStorageKey)) {
+			metrics.setStatus("NOTFOUND", "not found during start");
 			throw new IllegalStateException(String.format("Schedule '%s' not found", scheduleStoreStorageKey));
 		}
 
@@ -349,16 +360,20 @@ public class Schedule implements IPreferenceChangeListener {
 			if (JobsDebug.schedulerEngine) {
 				LOG.debug("Schedule {} will not be activated due to loading errors. It looks like its creation is still in progress.", scheduleStoreStorageKey, e);
 			}
+			metrics.setStatus("ERROR", "exception during start");
+			metrics.error("loading error", e);
 			return;
 		}
 
 		// check if enabled
 		if (schedule.isEnabled()) {
+			metrics.setStatus("ACTIVATING", "schedule started");
 			activateEngine();
 		} else {
 			if (JobsDebug.schedulerEngine) {
 				LOG.debug("Schedule {} is disabled.", getScheduleStoreStorageKey());
 			}
+			metrics.setStatus("DISABLED", "schedule is disabled");
 		}
 	}
 
@@ -383,6 +398,19 @@ public class Schedule implements IPreferenceChangeListener {
 			}
 		} catch (final Exception e) {
 			// might have been removed
+		} finally {
+			final ServiceRegistration<MetricSet> registration = metricsRegistration;
+			if (registration != null) {
+				try {
+					registration.unregister();
+				} catch (final IllegalStateException e) {
+					// ignore
+				} finally {
+					metricsRegistration = null;
+				}
+			}
 		}
+
+		metrics.setStatus("STOPPED", "schedule stopped");
 	}
 }

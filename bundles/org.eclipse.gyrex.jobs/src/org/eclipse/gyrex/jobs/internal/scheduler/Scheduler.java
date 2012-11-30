@@ -27,6 +27,8 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
+import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.INodeChangeListener;
@@ -52,16 +54,50 @@ public class Scheduler extends Job implements INodeChangeListener {
 
 	private long engineSleepTime = INITIAL_SLEEP_TIME;
 	private final ConcurrentMap<String, Schedule> schedulesById = new ConcurrentHashMap<String, Schedule>();
+	private final SchedulerApplicationMetrics metrics;
 
 	/**
 	 * Creates a new instance.
 	 * 
 	 * @param name
 	 */
-	public Scheduler() {
+	public Scheduler(final SchedulerApplicationMetrics metrics) {
 		super("Gyrex Scheduler");
+		this.metrics = metrics;
 		setSystem(true);
 		setPriority(SHORT);
+		addJobChangeListener(new IJobChangeListener() {
+
+			@Override
+			public void aboutToRun(final IJobChangeEvent event) {
+				metrics.setStatus("ABOUTTORUN", "job event");
+			}
+
+			@Override
+			public void awake(final IJobChangeEvent event) {
+				metrics.setStatus("AWAKE", "job event");
+			}
+
+			@Override
+			public void done(final IJobChangeEvent event) {
+				metrics.setStatus("DONE", "job event");
+			}
+
+			@Override
+			public void running(final IJobChangeEvent event) {
+				metrics.setStatus("RUNNING", "job event");
+			}
+
+			@Override
+			public void scheduled(final IJobChangeEvent event) {
+				metrics.setStatus("SCHEDULED", "job event");
+			}
+
+			@Override
+			public void sleeping(final IJobChangeEvent event) {
+				metrics.setStatus("SLEEPING", "job event");
+			}
+		});
 	}
 
 	@Override
@@ -99,6 +135,8 @@ public class Scheduler extends Job implements INodeChangeListener {
 				if (monitor.isCanceled())
 					throw new OperationCanceledException();
 
+				metrics.setStatus("WAITINGFORLOCK", "lock acquire loop");
+
 				// try to acquire lock
 				// (note, we cannot wait forever because we must check for cancelation regularly)
 				// (however, checking very often is too expensive; we need to make a tradeoff here)
@@ -114,6 +152,8 @@ public class Scheduler extends Job implements INodeChangeListener {
 			// check for cancellation
 			if (monitor.isCanceled())
 				throw new OperationCanceledException();
+
+			metrics.setStatus("LOCKACQUIRED", "lock acquire loop");
 
 			// setup the schedule listeners
 			final IEclipsePreferences schedulesNode = ScheduleStore.getSchedulesNode();
@@ -137,12 +177,15 @@ public class Scheduler extends Job implements INodeChangeListener {
 				LOG.debug("Scheduler engine canceled. Shutting down.");
 			}
 		} catch (final IllegalStateException e) {
+			metrics.setStatus("ERROR", ExceptionUtils.getRootCauseMessage(e));
 			LOG.warn("Unable to check for schedules. System does not seem to be ready. {}", ExceptionUtils.getRootCauseMessage(e));
 			return Status.CANCEL_STATUS;
 		} catch (final InterruptedException e) {
+			metrics.setStatus("INTERRUPTED", ExceptionUtils.getRootCauseMessage(e));
 			Thread.currentThread().interrupt();
 			return Status.CANCEL_STATUS;
 		} catch (final BackingStoreException e) {
+			metrics.setStatus("ERROR", ExceptionUtils.getRootCauseMessage(e));
 			LOG.error("Error reading schedules. {}", ExceptionUtils.getRootCauseMessage(e));
 			return Status.CANCEL_STATUS;
 		} finally {
