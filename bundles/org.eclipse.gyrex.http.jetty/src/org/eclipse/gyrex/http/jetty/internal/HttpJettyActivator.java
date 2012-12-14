@@ -22,6 +22,7 @@ import org.eclipse.gyrex.common.services.IServiceProxy;
 import org.eclipse.gyrex.http.internal.BundleFinder;
 import org.eclipse.gyrex.http.jetty.admin.IJettyManager;
 import org.eclipse.gyrex.http.jetty.internal.admin.JettyManagerImpl;
+import org.eclipse.gyrex.monitoring.diagnostics.StatusTracker;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -43,18 +44,16 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	 */
 	public static HttpJettyActivator getInstance() throws IllegalStateException {
 		final HttpJettyActivator httpJettyActivator = instanceRef.get();
-		if (null == httpJettyActivator) {
+		if (null == httpJettyActivator)
 			throw new IllegalStateException("Bundle '" + SYMBOLIC_NAME + "' is inactive.");
-		}
 		return httpJettyActivator;
 	}
 
 	public static IStatus getPlatformStatus() {
 		try {
-			final StatusMonitor monitor = getInstance().statusMonitor;
-			if (monitor != null) {
-				return monitor.getOverallStatus();
-			}
+			final StatusTracker monitor = getInstance().statusMonitor;
+			if (monitor != null)
+				return monitor.getSystemStatus();
 		} catch (final IllegalStateException e) {
 			// ignored
 		}
@@ -64,9 +63,8 @@ public class HttpJettyActivator extends BaseBundleActivator {
 
 	public static byte[] readBundleResource(final String bundleResource) {
 		final URL eclipseIconUrl = getInstance().getBundle().getEntry(bundleResource);
-		if (null == eclipseIconUrl) {
+		if (null == eclipseIconUrl)
 			throw new IllegalStateException("Bundle resource not found: " + bundleResource);
-		}
 		InputStream in = null;
 		try {
 			in = eclipseIconUrl.openStream();
@@ -81,7 +79,7 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	private volatile JettyManagerImpl jettyManager;
 	private IServiceProxy<INodeEnvironment> nodeEnvironmentService;
 
-	private volatile StatusMonitor statusMonitor;
+	private volatile StatusTracker statusMonitor;
 
 	/**
 	 * Creates a new instance.
@@ -94,7 +92,7 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
 
-		statusMonitor = new StatusMonitor(context);
+		statusMonitor = new StatusTracker(context);
 		statusMonitor.open();
 
 		jettyManager = new JettyManagerImpl();
@@ -114,9 +112,8 @@ public class HttpJettyActivator extends BaseBundleActivator {
 
 	public Bundle getCallingBundle() {
 		final Bundle bundle = getBundle();
-		if (null == bundle) {
+		if (null == bundle)
 			return null;
-		}
 
 		return new BundleFinder(bundle).getCallingBundle();
 	}
@@ -133,9 +130,8 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	 */
 	public IJettyManager getJettyManager() {
 		final JettyManagerImpl manager = jettyManager;
-		if (manager == null) {
+		if (manager == null)
 			throw createBundleInactiveException();
-		}
 		return manager;
 	}
 
@@ -146,9 +142,8 @@ public class HttpJettyActivator extends BaseBundleActivator {
 	 */
 	public INodeEnvironment getNodeEnvironment() {
 		final IServiceProxy<INodeEnvironment> proxy = nodeEnvironmentService;
-		if (null == proxy) {
+		if (null == proxy)
 			throw createBundleInactiveException();
-		}
 		return proxy.getService();
 	}
 
