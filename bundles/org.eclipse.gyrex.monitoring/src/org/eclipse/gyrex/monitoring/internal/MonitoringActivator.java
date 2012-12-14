@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2010 Gunnar Wagenknecht and others.
+ * Copyright (c) 2008, 2012 Gunnar Wagenknecht and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -21,7 +21,7 @@ public class MonitoringActivator extends BaseBundleActivator {
 	public static final String SYMBOLIC_NAME = "org.eclipse.gyrex.monitoring";
 
 	private MetricSetTracker metricSetTracker;
-	private StatusTracker statusTracker;
+	private StatusTrackerWithMetric statusTracker;
 
 	/**
 	 * Creates a new instance.
@@ -37,7 +37,7 @@ public class MonitoringActivator extends BaseBundleActivator {
 		metricSetTracker.open();
 
 		// track status
-		statusTracker = new StatusTracker(context);
+		statusTracker = new StatusTrackerWithMetric(context);
 		statusTracker.open();
 	}
 
