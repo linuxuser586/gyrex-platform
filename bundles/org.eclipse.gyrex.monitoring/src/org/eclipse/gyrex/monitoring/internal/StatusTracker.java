@@ -25,63 +25,18 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 
-import org.apache.commons.lang.SystemUtils;
-import org.apache.commons.lang.text.StrBuilder;
-
 /**
  * A tracker for {@link IStatus}.
  */
 public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 
-	static String getFormattedMessage(final IStatus[] children, final int ident) {
-		final StrBuilder builder = new StrBuilder();
-		for (final IStatus child : children) {
-			builder.appendSeparator(SystemUtils.LINE_SEPARATOR);
-			builder.appendPadding(ident, ' ');
-			builder.append(getSeverityText(child.getSeverity())).append(": ");
-			builder.append(child.getMessage());
-			if (child.getCode() != 0) {
-				builder.append(" (code ").append(child.getCode()).append(")");
-			}
-			if (child.isMultiStatus()) {
-				builder.appendNewLine();
-				builder.append(getFormattedMessage(child.getChildren(), ident + 2));
-			}
-		}
-		return builder.toString();
-	}
-
-	private static String getSeverityText(final int severity) {
-		switch (severity) {
-			case IStatus.OK:
-				return "OK";
-			case IStatus.INFO:
-				return "INFO";
-			case IStatus.WARNING:
-				return "WARNING";
-			case IStatus.ERROR:
-				return "ERROR";
-			case IStatus.CANCEL:
-				return "CANCEL";
-			default:
-				return "UNKNOWN";
-		}
-	}
-
-	private final DiagnosticsStatusMetrics diagnosticsStatusMetrics;
+	private final DiagnosticsStatusMetrics diagnosticsStatusMetrics = new DiagnosticsStatusMetrics();
+	private final CopyOnWriteArrayList<IStatus> statusList = new CopyOnWriteArrayList<IStatus>();
 
 	private ServiceRegistration<MetricSet> metricSetRegistration;
 
-	private final CopyOnWriteArrayList<IStatus> statusList = new CopyOnWriteArrayList<IStatus>();
-
-	/**
-	 * Creates a new instance.
-	 * 
-	 * @param context
-	 */
 	public StatusTracker(final BundleContext context) {
 		super(context, IStatus.class, null);
-		diagnosticsStatusMetrics = new DiagnosticsStatusMetrics();
 	}
 
 	@Override
@@ -96,19 +51,17 @@ public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 
 	@Override
 	public void close() {
-		// unregister metric
-		synchronized (this) {
-			if (null != metricSetRegistration) {
-				try {
-					metricSetRegistration.unregister();
-				} catch (final Exception e) {
-					// ignore
-				}
-				metricSetRegistration = null;
-			}
-		}
 		// close
 		super.close();
+		// unregister metric
+		if (null != metricSetRegistration) {
+			try {
+				metricSetRegistration.unregister();
+			} catch (final Exception e) {
+				// ignore
+			}
+			metricSetRegistration = null;
+		}
 	}
 
 	@Override
@@ -121,15 +74,11 @@ public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 		// open
 		super.open(trackAllServices);
 		// register metric
-		synchronized (this) {
-			if (null == metricSetRegistration) {
-				final Hashtable<String, Object> properties = new Hashtable<String, Object>(3);
-				properties.put(Constants.SERVICE_VENDOR, "Eclipse Gyrex");
-				properties.put(Constants.SERVICE_DESCRIPTION, diagnosticsStatusMetrics.getDescription());
-				properties.put(Constants.SERVICE_PID, diagnosticsStatusMetrics.getId());
-				metricSetRegistration = context.registerService(MetricSet.class, diagnosticsStatusMetrics, properties);
-			}
-		}
+		final Hashtable<String, Object> properties = new Hashtable<String, Object>(3);
+		properties.put(Constants.SERVICE_VENDOR, "Eclipse Gyrex");
+		properties.put(Constants.SERVICE_DESCRIPTION, diagnosticsStatusMetrics.getDescription());
+		properties.put(Constants.SERVICE_PID, diagnosticsStatusMetrics.getId());
+		metricSetRegistration = context.registerService(MetricSet.class, diagnosticsStatusMetrics, properties);
 	}
 
 	@Override
@@ -146,7 +95,7 @@ public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 			systemStatus.add(status);
 		}
 
-		diagnosticsStatusMetrics.setStatus(getSeverityText(systemStatus.getSeverity()), getFormattedMessage(systemStatus.getChildren(), 0));
+		diagnosticsStatusMetrics.setStatus(systemStatus);
 	}
 
 }
