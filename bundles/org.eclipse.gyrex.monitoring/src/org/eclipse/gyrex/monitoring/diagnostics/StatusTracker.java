@@ -9,9 +9,11 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.monitoring.internal;
+package org.eclipse.gyrex.monitoring.diagnostics;
 
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.eclipse.gyrex.monitoring.internal.MonitoringActivator;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
@@ -22,7 +24,15 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 
 /**
- * A tracker for {@link IStatus}.
+ * A service tracker for {@link IStatus} objects registered as OSGi services
+ * using {@link IStatusConstants#SERVICE_NAME}.
+ * <p>
+ * Whenever a status is updated or removed/added, a new system status will be
+ * calculated and passed to {@link #setSystemStatus(MultiStatus)}.
+ * </p>
+ * <p>
+ * This class may be subclassed or instantiated by clients.
+ * </p>
  */
 public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 
@@ -36,7 +46,7 @@ public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 	}
 
 	@Override
-	public IStatus addingService(final ServiceReference<IStatus> reference) {
+	public final IStatus addingService(final ServiceReference<IStatus> reference) {
 		final IStatus status = super.addingService(reference);
 		if (status != null) {
 			statusList.add(status);
@@ -45,23 +55,33 @@ public class StatusTracker extends ServiceTracker<IStatus, IStatus> {
 		return status;
 	}
 
-	public IStatus getSystemStatus() {
+	public final IStatus getSystemStatus() {
 		return systemStatus;
 	}
 
 	@Override
-	public void modifiedService(final ServiceReference<IStatus> reference, final IStatus service) {
+	public final void modifiedService(final ServiceReference<IStatus> reference, final IStatus service) {
 		updateStatus();
 	}
 
 	@Override
-	public void removedService(final ServiceReference<IStatus> reference, final IStatus service) {
+	public final void removedService(final ServiceReference<IStatus> reference, final IStatus service) {
 		statusList.remove(service);
 		updateStatus();
 		super.removedService(reference, service);
 	}
 
-	protected void setSystemStatus(final MultiStatus systemStatus) {
+	/**
+	 * Called when a status was changed, added or removed.
+	 * <p>
+	 * Clients may override to hook there custom triggers. However, they must
+	 * call super.
+	 * </p>
+	 * 
+	 * @param systemStatus
+	 *            the new system status to set
+	 */
+	protected void setSystemStatus(final IStatus systemStatus) {
 		this.systemStatus = null != systemStatus ? systemStatus : UNINITIALIZED;
 	}
 

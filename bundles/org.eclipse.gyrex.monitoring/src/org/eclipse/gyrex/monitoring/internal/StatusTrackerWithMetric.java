@@ -13,9 +13,10 @@ package org.eclipse.gyrex.monitoring.internal;
 
 import java.util.Hashtable;
 
+import org.eclipse.gyrex.monitoring.diagnostics.StatusTracker;
 import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 
-import org.eclipse.core.runtime.MultiStatus;
+import org.eclipse.core.runtime.IStatus;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -61,7 +62,7 @@ public class StatusTrackerWithMetric extends StatusTracker {
 	}
 
 	@Override
-	protected void setSystemStatus(final MultiStatus systemStatus) {
+	protected void setSystemStatus(final IStatus systemStatus) {
 		diagnosticsStatusMetrics.setStatus(systemStatus);
 		super.setSystemStatus(systemStatus);
 	}
