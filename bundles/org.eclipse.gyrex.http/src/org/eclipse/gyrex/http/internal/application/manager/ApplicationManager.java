@@ -64,16 +64,14 @@ public class ApplicationManager implements IApplicationManager {
 
 	@Override
 	public void activate(final String applicationId) {
-		if (!IdHelper.isValidId(applicationId)) {
+		if (!IdHelper.isValidId(applicationId))
 			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
 
 		try {
 			// check if there is a registration
 			final Preferences node = getAppsNode();
-			if (!node.nodeExists(applicationId)) {
+			if (!node.nodeExists(applicationId))
 				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
-			}
 
 			// activate
 			node.node(applicationId).putBoolean(KEY_ACTIVE, true);
@@ -85,16 +83,14 @@ public class ApplicationManager implements IApplicationManager {
 
 	@Override
 	public void deactivate(final String applicationId) {
-		if (!IdHelper.isValidId(applicationId)) {
+		if (!IdHelper.isValidId(applicationId))
 			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
 
 		try {
 			// check if there is a registration
 			final Preferences node = getAppsNode();
-			if (!node.nodeExists(applicationId)) {
+			if (!node.nodeExists(applicationId))
 				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
-			}
 
 			// deactivate
 			node.node(applicationId).putBoolean(KEY_ACTIVE, false);
@@ -114,24 +110,20 @@ public class ApplicationManager implements IApplicationManager {
 	public ApplicationRegistration getApplicationRegistration(final String applicationId) {
 		try {
 			final Preferences appNode = getAppsNode().node(applicationId);
-			if (!appNode.nodeExists("")) {
+			if (!appNode.nodeExists(""))
 				throw new IllegalStateException(String.format("application %s does not exists", applicationId));
-			}
 
 			final String providerId = appNode.get(KEY_PROVIDER_ID, null);
-			if (StringUtils.isBlank(providerId)) {
+			if (StringUtils.isBlank(providerId))
 				throw new IllegalStateException(String.format("application information %s contains invalid provider id %s", applicationId, String.valueOf(providerId)));
-			}
 
 			final String contextPath = appNode.get(KEY_CONTEXT_PATH, null);
-			if (StringUtils.isBlank(contextPath) || !Path.EMPTY.isValidPath(contextPath)) {
+			if (StringUtils.isBlank(contextPath) || !Path.EMPTY.isValidPath(contextPath))
 				throw new IllegalStateException(String.format("application information %s contains invalid context path %s", applicationId, String.valueOf(contextPath)));
-			}
 
 			final IRuntimeContext context = HttpActivator.getInstance().getService(IRuntimeContextRegistry.class).get(new Path(contextPath));
-			if (context == null) {
+			if (context == null)
 				throw new IllegalStateException(String.format("context %s does not exists", contextPath));
-			}
 			return new ApplicationRegistration(applicationId, providerId, context, this);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Error reading application info for application %s. %s", applicationId, ExceptionUtils.getRootCauseMessage(e)), e);
@@ -160,15 +152,13 @@ public class ApplicationManager implements IApplicationManager {
 	@Override
 	public Map<String, String> getProperties(final String applicationId) throws IllegalArgumentException {
 		// verify application id
-		if (!IdHelper.isValidId(applicationId)) {
+		if (!IdHelper.isValidId(applicationId))
 			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
 
 		try {
 			final Preferences appNode = getAppsNode().node(applicationId);
-			if (!appNode.nodeExists("")) {
+			if (!appNode.nodeExists(""))
 				return null;
-			}
 
 			final Map<String, String> properties = new HashMap<String, String>();
 			if (appNode.nodeExists(NODE_PROPERTIES)) {
@@ -190,16 +180,14 @@ public class ApplicationManager implements IApplicationManager {
 	}
 
 	public boolean isActive(final String applicationId) {
-		if (!IdHelper.isValidId(applicationId)) {
+		if (!IdHelper.isValidId(applicationId))
 			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
 
 		try {
 			// check if there is a registration
 			final Preferences node = getAppsNode();
-			if (!node.nodeExists(applicationId)) {
+			if (!node.nodeExists(applicationId))
 				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
-			}
 
 			// return
 			return node.node(applicationId).getBoolean(KEY_ACTIVE, DEFAULT_ACTIVE);
@@ -214,23 +202,20 @@ public class ApplicationManager implements IApplicationManager {
 		final URL parsedUrl = parseAndVerifyUrl(url);
 
 		// verify application id
-		if (!IdHelper.isValidId(applicationId)) {
+		if (!IdHelper.isValidId(applicationId))
 			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
 
 		try {
 			// verify the application exists
 			final Preferences node = getAppsNode();
-			if (!node.nodeExists(applicationId)) {
+			if (!node.nodeExists(applicationId))
 				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
-			}
 
 			// verify the url is not registered yet
 			final String externalForm = parsedUrl.toExternalForm();
 			final Preferences urlsNode = getUrlsNode();
-			if (null != urlsNode.get(externalForm, null)) {
+			if (null != urlsNode.get(externalForm, null))
 				throw new MountConflictException(url);
-			}
 
 			// put url
 			urlsNode.put(externalForm, applicationId);
@@ -241,39 +226,33 @@ public class ApplicationManager implements IApplicationManager {
 	}
 
 	private URL parseAndVerifyUrl(final String url) throws MalformedURLException {
-		if (null == url) {
+		if (null == url)
 			throw new IllegalArgumentException("url must not be null");
-		}
 
 		// parse the url
 		final URL parsedUrl = new URL(url);
 
 		// verify protocol
 		final String protocol = parsedUrl.getProtocol();
-		if (!(protocol.equals("http") || protocol.equals("https"))) {
+		if (!(protocol.equals("http") || protocol.equals("https")))
 			throw new IllegalArgumentException("url '" + url + "' must start with 'http://' or 'https://'");
-		}
 		return parsedUrl;
 	}
 
 	@Override
 	public void register(final String applicationId, final String providerId, final IRuntimeContext context, final Map<String, String> properties) throws ApplicationRegistrationException {
-		if (!IdHelper.isValidId(applicationId)) {
+		if (!IdHelper.isValidId(applicationId))
 			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
-		if (!IdHelper.isValidId(providerId)) {
+		if (!IdHelper.isValidId(providerId))
 			throw new IllegalArgumentException("invalid provider id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
-		if (null == context) {
+		if (null == context)
 			throw new IllegalArgumentException("context must not be null");
-		}
 
 		try {
 			// check if there is already a registration
 			final Preferences node = getAppsNode();
-			if (node.nodeExists(applicationId)) {
+			if (node.nodeExists(applicationId))
 				throw new ApplicationRegistrationException(applicationId);
-			}
 
 			// persist registration
 			final Preferences appNode = node.node(applicationId);
@@ -296,15 +275,13 @@ public class ApplicationManager implements IApplicationManager {
 	@Override
 	public void setProperties(final String applicationId, final Map<String, String> properties) throws IllegalArgumentException, IllegalStateException {
 		// verify application id
-		if (!IdHelper.isValidId(applicationId)) {
+		if (!IdHelper.isValidId(applicationId))
 			throw new IllegalArgumentException("invalid application id; please use only ascii chars a-z, 0-9, ., _ and/or -");
-		}
 
 		try {
 			final Preferences appNode = getAppsNode().node(applicationId);
-			if (!appNode.nodeExists("")) {
+			if (!appNode.nodeExists(""))
 				throw new IllegalStateException(String.format("application %s does not exists", applicationId));
-			}
 
 			if ((null == properties) || properties.isEmpty()) {
 				if (appNode.nodeExists(NODE_PROPERTIES)) {
@@ -351,9 +328,8 @@ public class ApplicationManager implements IApplicationManager {
 			applicationId = urlsNode.get(externalForm, null);
 
 			// throw IllegalStateException if nothing was removed
-			if (null == applicationId) {
+			if (null == applicationId)
 				throw new IllegalStateException("no application was mounted for url '" + externalForm + "' (submitted url was '" + url + "')");
-			}
 
 			// remove from persisted info
 			urlsNode.remove(externalForm);
@@ -369,8 +345,13 @@ public class ApplicationManager implements IApplicationManager {
 		try {
 			// check if there is a registration
 			final Preferences node = getAppsNode();
-			if (!node.nodeExists(applicationId)) {
+			if (!node.nodeExists(applicationId))
 				throw new IllegalStateException(String.format("Application '%s' does not exist", applicationId));
+
+			// remove mounts
+			final Collection<String> existingMounts = getMounts(applicationId);
+			for (final String url : existingMounts) {
+				unmount(url);
 			}
 
 			// remove
@@ -378,7 +359,8 @@ public class ApplicationManager implements IApplicationManager {
 			node.flush();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error removing application registration info from the backend data store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		} catch (final MalformedURLException e) {
+			throw new IllegalStateException("Error removing application while unmounting urls. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
 	}
-
 }
