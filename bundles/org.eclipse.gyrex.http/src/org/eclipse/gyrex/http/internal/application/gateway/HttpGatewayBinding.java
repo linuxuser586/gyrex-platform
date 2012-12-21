@@ -11,8 +11,6 @@
  *******************************************************************************/
 package org.eclipse.gyrex.http.internal.application.gateway;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -36,6 +34,7 @@ import org.osgi.util.tracker.ServiceTracker;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,16 +47,14 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	private static final Logger LOG = LoggerFactory.getLogger(HttpGatewayBinding.class);
 
 	private final Lock bindingModificationLock = new ReentrantLock();
-	private final ConcurrentMap<String, ApplicationRegistration> applicationsById = new ConcurrentHashMap<String, ApplicationRegistration>(1);
 
 	/** listens for new or removed applications */
 	final INodeChangeListener applicationsListener = new INodeChangeListener() {
 
 		@Override
 		public void added(final NodeChangeEvent event) {
-			if (isEmpty()) {
+			if (isEmpty())
 				return;
-			}
 
 			final IEclipsePreferences appNode = (IEclipsePreferences) event.getChild();
 			final String applicationId = appNode.name();
@@ -77,9 +74,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 
 		@Override
 		public void removed(final NodeChangeEvent event) {
-			if (isEmpty()) {
+			if (isEmpty())
 				return;
-			}
 
 			final String applicationId = event.getChild().name();
 			if (HttpDebug.gatewayBinding) {
@@ -97,9 +93,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	final IPreferenceChangeListener applicationActiveListener = new IPreferenceChangeListener() {
 		@Override
 		public void preferenceChange(final PreferenceChangeEvent event) {
-			if (isEmpty()) {
+			if (isEmpty())
 				return;
-			}
 
 			if (ApplicationManager.KEY_ACTIVE.equals(event.getKey())) {
 				final String applicationId = event.getNode().name();
@@ -121,9 +116,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	final IPreferenceChangeListener urlMountListener = new IPreferenceChangeListener() {
 		@Override
 		public void preferenceChange(final PreferenceChangeEvent event) {
-			if (isEmpty()) {
+			if (isEmpty())
 				return;
-			}
 
 			final String url = event.getKey();
 			try {
@@ -228,12 +222,7 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	 *         application is registered (or the registration has been removed)
 	 */
 	public ApplicationRegistration getApplicationRegistration(final String applicationId) {
-		ApplicationRegistration applicationRegistration = applicationsById.get(applicationId);
-		if (null == applicationRegistration) {
-			applicationsById.putIfAbsent(applicationId, applicationManager.getApplicationRegistration(applicationId));
-			applicationRegistration = applicationsById.get(applicationId);
-		}
-		return applicationRegistration;
+		return applicationManager.getApplicationRegistration(applicationId);
 	}
 
 	/**
@@ -245,9 +234,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 		bindingModificationLock.lock();
 		try {
 			final Object[] services = getServices();
-			if (null == services) {
+			if (null == services)
 				return;
-			}
 
 			for (int i = 0; i < services.length; i++) {
 				final IHttpGateway gateway = (IHttpGateway) services[i];
@@ -292,9 +280,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 		bindingModificationLock.lock();
 		try {
 			final Object[] services = getServices();
-			if (null == services) {
+			if (null == services)
 				return;
-			}
 
 			for (int i = 0; i < services.length; i++) {
 				final IHttpGateway gateway = (IHttpGateway) services[i];
@@ -370,9 +357,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	 */
 	void unmountApp(final String applicationId) {
 		final Object[] services = getServices();
-		if (null == services) {
+		if (null == services)
 			return;
-		}
 
 		for (int i = 0; i < services.length; i++) {
 			final IHttpGateway gateway = (IHttpGateway) services[i];
@@ -393,9 +379,8 @@ public class HttpGatewayBinding extends ServiceTracker<IHttpGateway, IHttpGatewa
 	 */
 	void unmountUrl(final String url, final String applicationId) {
 		final Object[] services = getServices();
-		if (null == services) {
+		if (null == services)
 			return;
-		}
 
 		for (int i = 0; i < services.length; i++) {
 			final IHttpGateway gateway = (IHttpGateway) services[i];
