@@ -72,16 +72,20 @@ public class StaticResourceApplication extends Application {
 	 */
 	@Override
 	protected void doInit() throws IllegalStateException, Exception {
+
+		// registering jetty resources
 		getApplicationContext().registerResources("/", "", new IResourceProvider() {
 
 			@Override
 			public URL getResource(final String path) throws MalformedURLException {
+				// if gyrex platform runs in dev mode and the service definition contains a ENV variable which is present in the environment and contains a directory, then this path is registered with jetty 
 				if (Platform.inDevelopmentMode() && (devModeDocRootEnvVar != null) && (System.getenv(devModeDocRootEnvVar) != null)) {
 					final File file = new File(System.getenv(devModeDocRootEnvVar), path);
 					if (file.exists())
 						return file.toURI().toURL();
 					return null;
 				}
+				// else the configured folder inside the bundle is used for serving the static resources 
 				return bundle.getEntry(new Path(bundleResourcePath).append(path).toString());
 			}
 
