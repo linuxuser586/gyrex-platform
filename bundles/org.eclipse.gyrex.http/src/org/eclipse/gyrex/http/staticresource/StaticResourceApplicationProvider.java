@@ -9,7 +9,7 @@
  * Contributors:
  *     Andreas Mihm - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.http.internal.staticresource;
+package org.eclipse.gyrex.http.staticresource;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
