@@ -31,12 +31,21 @@ public class CertificateSslContextFactory extends SslContextFactory {
 	 * @param certificate
 	 */
 	public CertificateSslContextFactory(final ICertificate certificate) {
-		if (certificate == null) {
+		if (certificate == null)
 			throw new IllegalArgumentException("certificate must not be null");
-		}
 		this.certificate = certificate;
 
+		setTrustAll(false);
+
+		// set dummy path to trick checks and force call to #loadKeyStore
+		setKeyStorePath("Gyrex-Certificat:" + certificate.getId());
+
 		setKeyManagerPassword(new String(certificate.getKeyPassword()));
+	}
+
+	@Override
+	public void checkKeyStore() {
+		// check not necessary in this implementation
 	}
 
 	@Override
