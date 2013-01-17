@@ -13,6 +13,7 @@ package org.eclipse.gyrex.boot.internal.logback;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.util.Map.Entry;
 import java.util.logging.LogManager;
 
 import org.eclipse.gyrex.boot.internal.BootActivator;
@@ -23,6 +24,7 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.osgi.service.datalocation.Location;
 
 import org.apache.commons.lang.StringUtils;
+
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
@@ -50,6 +52,8 @@ public class LogbackConfigurator {
 	// default pattern (note, this is also emulated by GyrexSlf4jForwarder)
 	public static final String DEFAULT_PATTERN = "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n";
 
+	private static final LogbackLevelDebugOptionsBridge LOGBACK_DEBUG_OPTIONS_BRIDGE = new LogbackLevelDebugOptionsBridge();
+
 	private static File logConfigurationFile;
 
 	public static void configureDefaultContext() throws Exception {
@@ -62,9 +66,8 @@ public class LogbackConfigurator {
 		}
 
 		// don't perform any further configuration if a config file is specified
-		if (StringUtils.isNotBlank(System.getProperty("logback.configurationFile"))) {
+		if (StringUtils.isNotBlank(System.getProperty("logback.configurationFile")))
 			return;
-		}
 
 		// reset LoggerContext
 		final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -169,6 +172,13 @@ public class LogbackConfigurator {
 		lc.getLogger("org.quartz").setLevel(Level.INFO);
 		lc.getLogger("sun").setLevel(Level.INFO);
 
+		// apply overrides
+		if (!LOGBACK_DEBUG_OPTIONS_BRIDGE.overriddenLogLevels.isEmpty()) {
+			for (final Entry<String, String[]> e : LOGBACK_DEBUG_OPTIONS_BRIDGE.overriddenLogLevels.entrySet()) {
+				lc.getLogger(e.getKey()).setLevel(Level.toLevel(e.getValue()[0], null));
+			}
+		}
+
 		// print logback's internal status
 		StatusPrinter.printIfErrorsOccured(lc);
 	}
@@ -221,9 +231,8 @@ public class LogbackConfigurator {
 	private static File getLogConfigurationFile() {
 		// use configured file
 		final File file = logConfigurationFile;
-		if (null != file) {
+		if (null != file)
 			return file;
-		}
 
 		// use default file
 		final Location instanceLocation = BootActivator.getInstance().getInstanceLocation();
@@ -238,6 +247,19 @@ public class LogbackConfigurator {
 			// not available, fallback null (which means no log files will be written)
 			return null;
 		}
+	}
+
+	/**
+	 * Initialize log level overrides from debug options.
+	 * <p>
+	 * This may only be called during bootstrapping before any custom overrides
+	 * are set. Your milage may vary if called while the application is running.
+	 * </p>
+	 * 
+	 * @throws Exception
+	 */
+	public static void initializeLogLevelOverrides() throws Exception {
+		LOGBACK_DEBUG_OPTIONS_BRIDGE.initializeLogLevelOverrides();
 	}
 
 	public static void reset() throws Exception {
@@ -260,5 +282,16 @@ public class LogbackConfigurator {
 		final File oldFile = logConfigurationFile;
 		logConfigurationFile = file;
 		return oldFile;
+	}
+
+	/**
+	 * Sets or unsets a log level override.
+	 * 
+	 * @param loggerName
+	 * @param level
+	 * @throws Exception
+	 */
+	public static void setLogLevelOverride(final String loggerName, final String level) throws Exception {
+		LOGBACK_DEBUG_OPTIONS_BRIDGE.setLogLevelOverride(loggerName, level);
 	}
 }

@@ -29,10 +29,21 @@ public class ListCmd extends Command {
 	@Override
 	protected void doExecute() throws Exception {
 		final DebugOptions debugOptions = DebugConsoleCommands.getDebugOptions();
+		if (debugOptions.isDebugEnabled()) {
+			printf("Traceing is currently enabled.");
+		} else {
+			printf("Traceing is not enabled.");
+		}
+
 		final Map<String, String> options = debugOptions.getOptions();
 		final TreeSet<String> keys = new TreeSet<String>(options.keySet());
-		for (final String key : keys) {
-			printf("%s=%s", key, options.get(key));
+		if (!keys.isEmpty()) {
+			printf("The following debug options are set:");
+			for (final String key : keys) {
+				printf("  %s = %s", key, options.get(key));
+			}
+		} else {
+			printf("No debug options set.");
 		}
 	}
 }

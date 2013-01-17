@@ -43,6 +43,7 @@ import org.osgi.util.tracker.ServiceTracker;
 
 import org.apache.commons.lang.UnhandledException;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,9 +98,8 @@ public class BootActivator extends BaseBundleActivator {
 
 	public static boolean isDevMode() {
 		final OpsMode mode = getOpsMode();
-		if (mode == null) {
+		if (mode == null)
 			return true;
-		}
 		return mode.getMode() != OperationMode.PRODUCTION;
 	}
 
@@ -160,9 +160,8 @@ public class BootActivator extends BaseBundleActivator {
 			} catch (final Exception e) {
 				throw new UnhandledException("Invalid port offset. ", e);
 			}
-			if (offset < 0) {
+			if (offset < 0)
 				throw new IllegalStateException("Negativ port offset not allowed!");
-			}
 			BootActivator.portOffset = offset;
 		}
 	}
@@ -177,18 +176,15 @@ public class BootActivator extends BaseBundleActivator {
 
 	public Bundle getBundle(final String symbolicName) {
 		final PackageAdmin packageAdmin = getBundleAdmin();
-		if (packageAdmin == null) {
+		if (packageAdmin == null)
 			return null;
-		}
 		final Bundle[] bundles = packageAdmin.getBundles(symbolicName, null);
-		if (bundles == null) {
+		if (bundles == null)
 			return null;
-		}
 		// return the first bundle that is not installed or uninstalled
 		for (int i = 0; i < bundles.length; i++) {
-			if ((bundles[i].getState() & (Bundle.INSTALLED | Bundle.UNINSTALLED)) == 0) {
+			if ((bundles[i].getState() & (Bundle.INSTALLED | Bundle.UNINSTALLED)) == 0)
 				return bundles[i];
-			}
 		}
 		return null;
 	}
@@ -196,9 +192,8 @@ public class BootActivator extends BaseBundleActivator {
 	@Deprecated
 	private PackageAdmin getBundleAdmin() {
 		if (bundleTracker == null) {
-			if (context == null) {
+			if (context == null)
 				return null;
-			}
 			bundleTracker = new ServiceTracker<PackageAdmin, PackageAdmin>(context, PackageAdmin.class, null);
 			bundleTracker.open();
 		}
@@ -234,11 +229,10 @@ public class BootActivator extends BaseBundleActivator {
 		} catch (final InvalidSyntaxException e) {
 			throw new IllegalStateException(NLS.bind("Internal error while looking for application {0} using filer {1}. {2}", new Object[] { applicationId, filterString, e.getMessage() }));
 		}
-		if ((serviceReferences == null) || (serviceReferences.isEmpty())) {
+		if ((serviceReferences == null) || (serviceReferences.isEmpty()))
 			throw new IllegalStateException(NLS.bind("Application {0} not found!", applicationId));
-		} else if (serviceReferences.size() > 1) {
+		else if (serviceReferences.size() > 1)
 			throw new IllegalStateException(NLS.bind("Multiple applications with id {0} found! Just one expected!", applicationId));
-		}
 		final ServiceReference<ApplicationDescriptor> serviceReference = serviceReferences.iterator().next();
 		try {
 			return context.getService(serviceReference);
@@ -259,9 +253,8 @@ public class BootActivator extends BaseBundleActivator {
 
 	public Location getInstanceLocation() throws IllegalStateException {
 		final IServiceProxy<Location> proxy = instanceLocationProxy;
-		if (null == proxy) {
+		if (null == proxy)
 			throw createBundleInactiveException();
-		}
 		return proxy.getService();
 	}
 
@@ -271,16 +264,13 @@ public class BootActivator extends BaseBundleActivator {
 	 * @return path to the instance location
 	 */
 	public IPath getInstanceLocationPath() {
-		if (instanceLocationPath != null) {
+		if (instanceLocationPath != null)
 			return instanceLocationPath;
-		}
 		final URL url = getInstanceLocation().getURL();
-		if (url == null) {
+		if (url == null)
 			throw new IllegalStateException("instance location not available");
-		}
-		if (!url.getProtocol().equals("file")) {
+		if (!url.getProtocol().equals("file"))
 			throw new IllegalStateException("instance location must be on local file system");
-		}
 		return instanceLocationPath = new Path(url.getPath());
 	}
 
@@ -288,9 +278,8 @@ public class BootActivator extends BaseBundleActivator {
 	 * Implementation for {@link Platform#getStateLocation(Bundle)}.
 	 */
 	public IPath getStateLocation(final Bundle bundle) {
-		if (bundle == null) {
+		if (bundle == null)
 			throw new IllegalArgumentException("bundle must not be null");
-		}
 		return getInstanceLocationPath().append(BUNDLE_STATE_LOCATION).append(bundle.getSymbolicName());
 	}
 
@@ -321,6 +310,7 @@ public class BootActivator extends BaseBundleActivator {
 		// configure logback
 		try {
 			LogbackConfigurator.configureDefaultContext();
+			LogbackConfigurator.initializeLogLevelOverrides();
 		} catch (final ClassNotFoundException e) {
 			// logback not available
 			LOG.debug("Logback not available. Please configure logging manually. ({})", e.getMessage());
