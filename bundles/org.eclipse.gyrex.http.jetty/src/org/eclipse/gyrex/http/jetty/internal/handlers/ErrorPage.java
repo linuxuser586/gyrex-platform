@@ -39,9 +39,8 @@ public class ErrorPage {
 	private static final String GENERATOR = "Gyrex Error Handler";
 
 	public static final void writeEscaped(final Writer writer, final Object object) throws IOException {
-		if (object == null) {
+		if (object == null)
 			return;
-		}
 
 		final String string = object.toString();
 		for (int i = 0; i < string.length(); i++) {
@@ -141,7 +140,7 @@ public class ErrorPage {
 	}
 
 	public void render(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
-		response.setContentType(MimeTypes.TEXT_HTML_8859_1);
+		response.setContentType(MimeTypes.Type.TEXT_HTML_8859_1.asString());
 
 		final ByteArrayISO8859Writer writer = new ByteArrayISO8859Writer(8192);
 		writeErrorPage(request, writer);
@@ -291,9 +290,8 @@ public class ErrorPage {
 
 	private void writeStatus(final IStatus status, final Writer writer) throws IOException, UnsupportedEncodingException {
 		// ignore OK status
-		if (status.isOK()) {
+		if (status.isOK())
 			return;
-		}
 
 		// start list
 		writer.write("<ul class=\"status\">");
@@ -319,9 +317,8 @@ public class ErrorPage {
 
 	private void writeStatusItem(final IStatus status, final Writer writer, final int identSize) throws IOException {
 		// ignore OK status
-		if (status.isOK()) {
+		if (status.isOK())
 			return;
-		}
 
 		// ident
 		String ident = "";

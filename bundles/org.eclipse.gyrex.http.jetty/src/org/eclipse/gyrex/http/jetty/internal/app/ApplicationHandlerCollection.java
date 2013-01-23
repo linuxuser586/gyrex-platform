@@ -13,6 +13,7 @@ package org.eclipse.gyrex.http.jetty.internal.app;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -30,20 +31,18 @@ import org.eclipse.gyrex.monitoring.metrics.ThroughputMetric;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.jetty.continuation.ContinuationThrowable;
-import org.eclipse.jetty.http.HttpException;
 import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.PathMap.Entry;
+import org.eclipse.jetty.http.PathMap.MappedEntry;
 import org.eclipse.jetty.io.EofException;
 import org.eclipse.jetty.io.RuntimeIOException;
-import org.eclipse.jetty.server.AsyncContinuation;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.handler.AbstractHandlerContainer;
-import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.URIUtil;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,18 +96,6 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	}
 
 	private void doHandle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException { // check async requests
-		final AsyncContinuation async = baseRequest.getAsyncContinuation();
-		if (async.isAsync()) {
-			final ContextHandler context = async.getContextHandler();
-			if (context != null) {
-				if (JettyDebug.handlers) {
-					LOG.debug("Dispatching asynchronous request {} to context {}", baseRequest, context);
-				}
-				context.handle(target, baseRequest, request, response);
-				return;
-			}
-		}
-
 		// get map
 		final UrlMap map = urlMap.get();
 		if (map == null) {
@@ -119,7 +106,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 		}
 
 		// perform lookup
-		final Entry entry = map.getMatch(request.getScheme(), request.getServerName(), request.getServerPort(), target);
+		final MappedEntry<Handler> entry = map.getMatch(request.getScheme(), request.getServerName(), request.getServerPort(), target);
 		if (entry == null) {
 			if (JettyDebug.handlers) {
 				LOG.debug("no matching handler for {}", request.getRequestURL());
@@ -134,7 +121,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 			baseRequest.setContextPath((mapped != null) && (mapped.length() > 0) ? mapped : URIUtil.SLASH);
 
 			// get handler
-			final Handler handler = (Handler) entry.getValue();
+			final Handler handler = entry.getValue();
 			if (JettyDebug.handlers) {
 				LOG.debug("found matching handler for {}: {}", request.getRequestURL(), handler);
 				LOG.debug("adjusted context path for {} to {}", request.getRequestURL(), baseRequest.getContextPath());
@@ -187,13 +174,11 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	protected Object expandChildren(Object list, final Class<?> byClass) {
+	protected void expandChildren(final List<Handler> list, final Class<?> byClass) {
 		final Handler[] handlers = getHandlers();
 		for (int i = 0; (handlers != null) && (i < handlers.length); i++) {
-			list = expandHandler(handlers[i], list, (Class<Handler>) byClass);
+			expandHandler(handlers[i], list, byClass);
 		}
-		return list;
 	}
 
 	@Override
@@ -204,14 +189,12 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 	@Override
 	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
 		// don't do anything if already processed
-		if (response.isCommitted() || baseRequest.isHandled()) {
+		if (response.isCommitted() || baseRequest.isHandled())
 			return;
-		}
 
 		final Iterator<Handler> handlers = this.handlers.iterator();
-		if (!handlers.hasNext()) {
+		if (!handlers.hasNext())
 			return;
-		}
 
 		final ThroughputMetric requestsMetric = metrics.getRequestsMetric();
 		final long requestStart = requestsMetric.requestStarted();
@@ -228,13 +211,7 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 			} else {
 				metrics.getRequestsMetric().requestFinished(0, System.currentTimeMillis() - requestStart);
 			}
-		} catch (final EofException e) {
-			metrics.getRequestsMetric().requestFailed();
-			throw e;
-		} catch (final RuntimeIOException e) {
-			metrics.getRequestsMetric().requestFailed();
-			throw e;
-		} catch (final ContinuationThrowable e) {
+		} catch (final EofException | RuntimeIOException | ContinuationThrowable e) {
 			metrics.getRequestsMetric().requestFailed();
 			throw e;
 		} catch (final Exception e) {
@@ -242,27 +219,22 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 
 			final DispatcherType type = baseRequest.getDispatcherType();
 			if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type))) {
-				if (e instanceof IOException) {
+				if (e instanceof IOException)
 					throw (IOException) e;
-				}
-				if (e instanceof RuntimeException) {
+				if (e instanceof RuntimeException)
 					throw (RuntimeException) e;
-				}
-				if (e instanceof ServletException) {
+				if (e instanceof ServletException)
 					throw (ServletException) e;
-				}
 			}
 
 			// handle or log exception
-			if (e instanceof HttpException) {
-				throw (HttpException) e;
-			} else if (e instanceof RuntimeIOException) {
+			else if (e instanceof RuntimeIOException)
 				throw (RuntimeIOException) e;
-			} else if (e instanceof EofException) {
+			else if (e instanceof EofException)
 				throw (EofException) e;
-			} else if ((e instanceof IOException) || (e instanceof UnavailableException) || (e instanceof IllegalStateException)) {
+			else if ((e instanceof IOException) || (e instanceof UnavailableException) || (e instanceof IllegalStateException)) {
 				if (Platform.inDebugMode()) {
-					LOG.debug("Exception processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e));
+					LOG.debug("Exception processing request {}: {}", request.getRequestURI(), ExceptionUtils.getMessage(e), e);
 					LOG.debug(request.toString());
 				}
 			} else {
@@ -298,14 +270,12 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 			metrics.getRequestsMetric().requestFailed();
 
 			// only handle some errors
-			if (!((e instanceof LinkageError) || (e instanceof AssertionError))) {
+			if (!((e instanceof LinkageError) || (e instanceof AssertionError)))
 				throw e;
-			}
 
 			final DispatcherType type = baseRequest.getDispatcherType();
-			if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type))) {
+			if (!(DispatcherType.REQUEST.equals(type) || DispatcherType.ASYNC.equals(type)))
 				throw e;
-			}
 
 			LOG.error("Error processing request {}: {}", new Object[] { request.getRequestURI(), ExceptionUtils.getRootCauseMessage(e), e });
 			if (JettyDebug.debug) {
@@ -339,9 +309,8 @@ public class ApplicationHandlerCollection extends AbstractHandlerContainer {
 			final String[] urls = handler.getUrls();
 			for (final String url : urls) {
 				// note, we must but the customized handler for the url
-				if (!urlMap.put(url, handlers[i])) {
+				if (!urlMap.put(url, handlers[i]))
 					throw new IllegalStateException("conflict detected for url: " + url);
-				}
 				if (JettyDebug.handlers) {
 					LOG.debug("mapped url {} --> {}", url, handlers[i]);
 				}

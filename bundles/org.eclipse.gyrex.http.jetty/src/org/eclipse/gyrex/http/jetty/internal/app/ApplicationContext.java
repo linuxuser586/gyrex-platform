@@ -40,7 +40,7 @@ import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.FilterMapping;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
-import org.eclipse.jetty.util.LazyList;
+import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.URIUtil;
 
@@ -449,7 +449,7 @@ public class ApplicationContext implements IApplicationContext {
 				final String[] pathSpecs = mapping.getPathSpecs();
 				for (final String spec : pathSpecs) {
 					if (pathSpec.equals(spec)) {
-						mapping.setPathSpecs(LazyList.removeFromArray(mapping.getPathSpecs(), spec));
+						mapping.setPathSpecs(ArrayUtil.removeFromArray(mapping.getPathSpecs(), spec));
 						removedSomething = true;
 					}
 				}

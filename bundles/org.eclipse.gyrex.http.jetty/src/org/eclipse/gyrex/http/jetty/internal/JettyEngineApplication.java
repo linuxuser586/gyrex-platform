@@ -13,15 +13,13 @@ package org.eclipse.gyrex.http.jetty.internal;
 
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.eclipse.equinox.app.IApplication;
-import org.eclipse.equinox.app.IApplicationContext;
 
 import org.eclipse.gyrex.cloud.environment.INodeEnvironment;
 import org.eclipse.gyrex.http.internal.application.gateway.IHttpGateway;
@@ -34,23 +32,25 @@ import org.eclipse.gyrex.monitoring.metrics.MetricSet;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.equinox.app.IApplication;
+import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.jetty.http.HttpGenerator;
-import org.eclipse.jetty.http.HttpSchemes;
+import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.jmx.MBeanContainer;
-import org.eclipse.jetty.server.AbstractConnector;
+import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.bio.SocketConnector;
-import org.eclipse.jetty.server.nio.SelectChannelConnector;
-import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
-import org.eclipse.jetty.server.ssl.SslSocketConnector;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.spdy.server.http.HTTPSPDYServerConnector;
+import org.eclipse.jetty.spdy.server.http.PushStrategy;
 import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import org.osgi.framework.Filter;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,9 +61,6 @@ public class JettyEngineApplication implements IApplication {
 	// OSGi Http Service suggest these properties for setting the default ports
 	private static final String ORG_OSGI_SERVICE_HTTP_PORT = "org.osgi.service.http.port"; //$NON-NLS-1$
 //	private static final String ORG_OSGI_SERVICE_HTTP_PORT_SECURE = "org.osgi.service.http.port.secure"; //$NON-NLS-1$
-
-	// allow to disable NIO
-	private static boolean noNio = Boolean.getBoolean("gyrex.jetty.nio.disabled");
 
 	/** Exit object indicating error termination */
 	private static final Integer EXIT_ERROR = Integer.valueOf(1);
@@ -143,23 +140,13 @@ public class JettyEngineApplication implements IApplication {
 		}
 
 		// tweak server
-		server.setSendServerVersion(true);
-		server.setSendDateHeader(true); // required by some (older) browsers to support caching
-		server.setGracefulShutdown(5000);
+		server.setStopAtShutdown(true);
+		server.setStopTimeout(5000);
 
 		// set thread pool
-		final QueuedThreadPool threadPool = new QueuedThreadPool();
-		threadPool.setName("jetty-server");
-		server.setThreadPool(threadPool);
-
-		// configure thread monitor (if available)
-		try {
-			server.addBean(HttpJettyActivator.getInstance().getBundle().loadClass("org.eclipse.jetty.monitor.ThreadMonitor").newInstance());
-		} catch (final ClassNotFoundException ignored) {
-			LOG.warn("ThreadMonitor not found. Spinning thread detection won't be available.");
-		} catch (final Exception e) {
-			LOG.warn("Unable to initialize thread monitor. Spinning thread detection won't be available.", e);
-		}
+		// TODO: (Jetty9?) final QueuedThreadPool threadPool = new QueuedThreadPool();
+		// TODO: (Jetty9?) threadPool.setName("jetty-server");
+		// TODO: (Jetty9?) server.setThreadPool(threadPool);
 	}
 
 	private void createConnector(final Server server, final ChannelDescriptor channel, final IJettyManager jettyManager, final Map<String, Object> nodeProperties) {
@@ -186,34 +173,31 @@ public class JettyEngineApplication implements IApplication {
 				LOG.debug("Configuring channel {}", channel);
 			}
 
-			final AbstractConnector connector;
-
+			SslContextFactory sslFactory = null;
 			if (channel.isSecure()) {
 				final ICertificate certificate = jettyManager.getCertificate(channel.getCertificateId());
-				connector = noNio ? new SslSocketConnector(new CertificateSslContextFactory(certificate)) : new SslSelectChannelConnector(new CertificateSslContextFactory(certificate));
-			} else {
-				connector = noNio ? new SocketConnector() : new SelectChannelConnector();
+				sslFactory = new CertificateSslContextFactory(certificate);
 			}
 
-			connector.setPort(channel.getPort());
-			connector.setMaxIdleTime(200000);
-			connector.setAcceptors(2);
-			connector.setStatsOn(false);
-			connector.setLowResourcesMaxIdleTime(5000);
-			connector.setForwarded(true);
-			if (connector instanceof SelectChannelConnector) {
-				((SelectChannelConnector) connector).setLowResourcesConnections(20000);
-			}
-
+			final HttpConfiguration httpConfig = new HttpConfiguration();
 			if (null != channel.getSecureChannelId()) {
 				final ChannelDescriptor secureChannel = jettyManager.getChannel(channel.getSecureChannelId());
 				if (secureChannel != null) {
-					connector.setConfidentialPort(secureChannel.getPort());
-					connector.setConfidentialScheme(HttpSchemes.HTTPS);
-					connector.setIntegralPort(secureChannel.getPort());
-					connector.setIntegralScheme(HttpSchemes.HTTPS);
+					httpConfig.setSecurePort(secureChannel.getPort());
+					httpConfig.setSecureScheme(HttpScheme.HTTPS.asString());
 				}
 			}
+
+			final ServerConnector connector = new HTTPSPDYServerConnector(server, httpConfig, sslFactory, Collections.<Short, PushStrategy> emptyMap());
+			connector.setPort(channel.getPort());
+			connector.setIdleTimeout(200000);
+			// TODO: (Jetty9?) connector.setAcceptors(2);
+			// TODO: (Jetty9?) connector.setStatsOn(false);
+			// TODO: (Jetty9?) connector.setLowResourcesMaxIdleTime(5000);
+			// TODO: (Jetty9?) connector.setForwarded(true);
+			// TODO: (Jetty9?) if (connector instanceof SelectChannelConnector) {
+			// TODO: (Jetty9?) 	((SelectChannelConnector) connector).setLowResourcesConnections(20000);
+			// TODO: (Jetty9?) }
 
 			server.addConnector(connector);
 		} catch (final Exception e) {
@@ -256,9 +240,8 @@ public class JettyEngineApplication implements IApplication {
 
 		// set stop signal
 		final CountDownLatch stopSignal = new CountDownLatch(1);
-		if (!stopSignalRef.compareAndSet(null, stopSignal)) {
+		if (!stopSignalRef.compareAndSet(null, stopSignal))
 			throw new IllegalStateException("Jetty engine already running!");
-		}
 
 		try {
 			// FIXME timing issue with "ON_CLOUD_CONNECT" and ZooKeeperBasedPreferences
@@ -288,11 +271,10 @@ public class JettyEngineApplication implements IApplication {
 
 			// enable Jetty JMX support
 			final MBeanContainer mbContainer = new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
-			server.getContainer().addEventListener(mbContainer);
 			server.addBean(mbContainer);
 
 			// register Jetty loggers as MBeans
-			mbContainer.addBean(Log.getRootLogger());
+			mbContainer.beanAdded(server, Log.getRootLogger());
 
 			// create gateway
 			JettyGateway gateway = new JettyGateway(server);

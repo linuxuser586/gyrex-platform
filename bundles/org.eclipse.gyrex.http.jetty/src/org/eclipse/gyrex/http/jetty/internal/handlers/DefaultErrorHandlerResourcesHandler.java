@@ -19,8 +19,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 
-import org.eclipse.jetty.http.HttpHeaders;
-import org.eclipse.jetty.http.HttpMethods;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.StringUtil;
@@ -64,17 +64,15 @@ public class DefaultErrorHandlerResourcesHandler extends AbstractHandler {
 	@Override
 	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
 		// don't do anything if already processed
-		if (response.isCommitted() || baseRequest.isHandled()) {
+		if (response.isCommitted() || baseRequest.isHandled())
 			return;
-		}
 
 		// check request method
 		boolean headOnly = false;
-		if (!HttpMethods.GET.equals(request.getMethod())) {
-			if (!HttpMethods.HEAD.equals(request.getMethod())) {
+		if (!HttpMethod.GET.is(request.getMethod())) {
+			if (!HttpMethod.HEAD.is(request.getMethod()))
 				// don't handle non-GET or non-HEAD
 				return;
-			}
 			headOnly = true;
 		}
 
@@ -98,23 +96,22 @@ public class DefaultErrorHandlerResourcesHandler extends AbstractHandler {
 		} else if (StringUtil.endsWithIgnoreCase(requestURI, URI_GYREX_LOGO)) {
 			mimeType = MIME_TYPE_GYREX_LOGO;
 			resourceBytes = logoPng;
-		} else {
+		} else
 			// non-error resource
 			return;
-		}
 
 		// mark as handled
 		baseRequest.setHandled(true);
 
 		// check modified
-		if (request.getDateHeader(HttpHeaders.IF_MODIFIED_SINCE) == lastModified) {
+		if (request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE.asString()) == lastModified) {
 			response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 		} else {
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.setContentType(mimeType);
 			response.setContentLength(resourceBytes.length);
-			response.setDateHeader(HttpHeaders.LAST_MODIFIED, lastModified);
-			response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=360000,public");
+			response.setDateHeader(HttpHeader.LAST_MODIFIED.asString(), lastModified);
+			response.setHeader(HttpHeader.CACHE_CONTROL.asString(), "max-age=360000,public");
 			if (!headOnly) {
 				response.getOutputStream().write(resourceBytes);
 			}

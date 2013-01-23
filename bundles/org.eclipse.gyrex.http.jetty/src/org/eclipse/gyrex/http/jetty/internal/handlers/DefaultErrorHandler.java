@@ -30,13 +30,14 @@ import org.eclipse.gyrex.http.jetty.internal.app.ApplicationHandler;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.jetty.http.HttpHeaders;
-import org.eclipse.jetty.http.HttpMethods;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpHeaderValue;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.MimeTypes;
-import org.eclipse.jetty.server.AbstractHttpConnection;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.util.ByteArrayISO8859Writer;
@@ -53,11 +54,11 @@ public class DefaultErrorHandler extends ErrorHandler {
 	private static final Set<String> handledMethods;
 	static {
 		final HashSet<String> methods = new HashSet<String>();
-		methods.add(HttpMethods.GET);
-		methods.add(HttpMethods.POST);
-		methods.add(HttpMethods.PUT);
-		methods.add(HttpMethods.HEAD);
-		methods.add(HttpMethods.DELETE);
+		methods.add(HttpMethod.GET.asString());
+		methods.add(HttpMethod.POST.asString());
+		methods.add(HttpMethod.PUT.asString());
+		methods.add(HttpMethod.HEAD.asString());
+		methods.add(HttpMethod.DELETE.asString());
 		handledMethods = Collections.unmodifiableSet(methods);
 	}
 
@@ -65,9 +66,8 @@ public class DefaultErrorHandler extends ErrorHandler {
 		String serverName = null;
 
 		// try the server name the connection is configured to
-		final AbstractHttpConnection httpConnection = AbstractHttpConnection.getCurrentConnection();
-		if (null != httpConnection) {
-			serverName = httpConnection.getConnector().getHost();
+		if (request instanceof Request) {
+			serverName = ((Request) request).getHttpChannel().getLocalAddress().getHostName();
 		}
 
 		// try the local machine name if bound to 0.0.0.0
@@ -90,23 +90,22 @@ public class DefaultErrorHandler extends ErrorHandler {
 	}
 
 	private boolean acceptsHtml(final HttpServletRequest request) {
-		final Enumeration acceptHeaders = request.getHeaders(HttpHeaders.ACCEPT);
+		final Enumeration acceptHeaders = request.getHeaders(HttpHeader.ACCEPT.asString());
 		if (acceptHeaders != null) {
 			// scan all Accept headers for text/html, x-html or */*
 			while (acceptHeaders.hasMoreElements()) {
 				final String accept = (String) acceptHeaders.nextElement();
-				if ((accept.indexOf("text/html") > -1) || (accept.indexOf("application/xhtml") > -1) || (accept.indexOf("*/*") > -1)) {
+				if ((accept.indexOf("text/html") > -1) || (accept.indexOf("application/xhtml") > -1) || (accept.indexOf("*/*") > -1))
 					return true;
-				}
 			}
 		}
 		return false;
 	}
 
-	private void generateErrorPagePlain(final HttpServletRequest request, final HttpServletResponse response, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException {
-		response.setContentType(MimeTypes.TEXT_HTML_8859_1);
+	private void generateErrorPagePlain(final HttpServletRequest request, final HttpServletResponse response, final int code, final String internalMessage, final String officialMessage) throws IOException {
+		response.setContentType(MimeTypes.Type.TEXT_PLAIN_8859_1.asString());
 		final ByteArrayISO8859Writer writer = new ByteArrayISO8859Writer(4096);
-		writeErrorPagePlain(request, writer, code, internalMessage, officialMessage, serverName);
+		writeErrorPagePlain(request, writer, code, internalMessage, officialMessage);
 		writer.flush();
 		response.setContentLength(writer.size());
 		writer.writeTo(response.getOutputStream());
@@ -119,17 +118,9 @@ public class DefaultErrorHandler extends ErrorHandler {
 	 * @return the admin server URL
 	 */
 	private String getAdminServerURL(final HttpServletRequest request) {
-		// TODO: admin server scheme should be HTTPS (not implemented yet=
+		// TODO: admin server scheme may be HTTPS (not implemented yet)
 		// TODO: lookup the admin server port from the preferences
 		return "http://".concat(request.getServerName()).concat(":3110/");
-	}
-
-	private AbstractHttpConnection getCurrentConnection() {
-		final AbstractHttpConnection connection = AbstractHttpConnection.getCurrentConnection();
-		if (connection == null) {
-			throw new IllegalStateException("Called outside request thread! No connection available.");
-		}
-		return connection;
 	}
 
 	private Throwable getException(final HttpServletRequest request) {
@@ -166,24 +157,21 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 	@Override
 	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException {
-		final AbstractHttpConnection connection = getCurrentConnection();
-
 		// mark handled
-		connection.getRequest().setHandled(true);
+		baseRequest.setHandled(true);
 
 		// only render output for a few methods
 		final String method = request.getMethod();
-		if (!handledMethods.contains(method)) {
+		if (!handledMethods.contains(method))
 			return;
-		}
 
 		// con't cache error pages
-		response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
-		response.setHeader(HttpHeaders.PRAGMA, "no-cache");
+		response.setHeader(HttpHeader.CACHE_CONTROL.asString(), "must-revalidate,no-cache,no-store");
+		response.setHeader(HttpHeader.PRAGMA.asString(), HttpHeaderValue.NO_CACHE.asString());
 
 		// get code and message
-		final int code = connection.getResponse().getStatus();
-		String internalMessage = connection.getResponse().getReason();
+		final int code = response.getStatus();
+		String internalMessage = (response instanceof Response) ? ((Response) response).getReason() : null;
 
 		// handle empty message
 		if ((null == internalMessage) && (code == 500) && (null != getException(request))) {
@@ -204,7 +192,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 		// support non-html response
 		if (!acceptsHtml(request)) {
-			generateErrorPagePlain(request, response, code, internalMessage, officialMessage, getServerName(request));
+			generateErrorPagePlain(request, response, code, internalMessage, officialMessage);
 			return;
 		}
 
@@ -283,8 +271,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 		errorPage.render(request, response);
 	}
 
-	private void writeErrorPagePlain(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage, final String serverName) throws IOException {
-		AbstractHttpConnection.getCurrentConnection().getResponse().setContentType(MimeTypes.TEXT_PLAIN_8859_1);
+	private void writeErrorPagePlain(final HttpServletRequest request, final Writer writer, final int code, final String internalMessage, final String officialMessage) throws IOException {
 		writer.write("Error ");
 		writer.write(Integer.toString(code));
 		writer.write(" - ");
@@ -312,7 +299,7 @@ public class DefaultErrorHandler extends ErrorHandler {
 				writer.write("You might want to check the server configuration (" + getAdminServerURL(request) + ")." + NEWLINE);
 				writer.write(NEWLINE);
 				writer.write("Issues detected on ");
-				writer.write(serverName);
+				writer.write(getServerName(request));
 				writer.write(":" + NEWLINE);
 				writeStatusPlain(platformStatus, writer);
 				writer.write(NEWLINE);
@@ -333,9 +320,8 @@ public class DefaultErrorHandler extends ErrorHandler {
 	}
 
 	private void writeEscaped(final Writer writer, final String string) throws IOException {
-		if (string == null) {
+		if (string == null)
 			return;
-		}
 
 		for (int i = 0; i < string.length(); i++) {
 			final char c = string.charAt(i);
@@ -370,9 +356,8 @@ public class DefaultErrorHandler extends ErrorHandler {
 	 * @param officialMessage
 	 */
 	private void writePlain(final Writer writer, final String string) throws IOException {
-		if (string == null) {
+		if (string == null)
 			return;
-		}
 
 		for (int i = 0; i < string.length(); i++) {
 			final char c = string.charAt(i);
@@ -386,9 +371,8 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 	private void writeStatusItemPlain(final IStatus status, final Writer writer, final int identSize) throws IOException {
 		// ignore OK status
-		if (status.isOK()) {
+		if (status.isOK())
 			return;
-		}
 
 		// ident
 		String ident = "";
@@ -424,9 +408,8 @@ public class DefaultErrorHandler extends ErrorHandler {
 
 	private void writeStatusPlain(final IStatus status, final Writer writer) throws IOException {
 		// ignore OK status
-		if (status.isOK()) {
+		if (status.isOK())
 			return;
-		}
 
 		/*
 		 * sometimes we have a multi status with no message but only children;

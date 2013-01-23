@@ -19,8 +19,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.gyrex.http.jetty.internal.HttpJettyActivator;
 
-import org.eclipse.jetty.http.HttpHeaders;
-import org.eclipse.jetty.http.HttpMethods;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.StringUtil;
@@ -46,21 +46,20 @@ public class DefaultFaviconHandler extends AbstractHandler {
 	@Override
 	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
 		// don't do anything if already processed
-		if (response.isCommitted() || baseRequest.isHandled()) {
+		if (response.isCommitted() || baseRequest.isHandled())
 			return;
-		}
 
 		// process favicon requests
-		if ((null != iconBytes) && HttpMethods.GET.equals(request.getMethod()) && StringUtil.endsWithIgnoreCase(request.getRequestURI(), FAVICON_ICO_URI)) {
+		if ((null != iconBytes) && HttpMethod.GET.is(request.getMethod()) && StringUtil.endsWithIgnoreCase(request.getRequestURI(), FAVICON_ICO_URI)) {
 			baseRequest.setHandled(true);
-			if (request.getDateHeader(HttpHeaders.IF_MODIFIED_SINCE) == iconModified) {
+			if (request.getDateHeader(HttpHeader.IF_MODIFIED_SINCE.asString()) == iconModified) {
 				response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 			} else {
 				response.setStatus(HttpServletResponse.SC_OK);
 				response.setContentType("image/x-icon");
 				response.setContentLength(iconBytes.length);
-				response.setDateHeader(HttpHeaders.LAST_MODIFIED, iconModified);
-				response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=360000,public");
+				response.setDateHeader(HttpHeader.LAST_MODIFIED.asString(), iconModified);
+				response.setHeader(HttpHeader.CACHE_CONTROL.asString(), "max-age=360000,public");
 				response.getOutputStream().write(iconBytes);
 			}
 			return;

@@ -36,7 +36,7 @@ import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.jetty.http.PathMap;
-import org.eclipse.jetty.http.PathMap.Entry;
+import org.eclipse.jetty.http.PathMap.MappedEntry;
 import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ContextHandler;
@@ -50,6 +50,7 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.math.NumberUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,9 +107,8 @@ public class ApplicationHandler extends ServletContextHandler {
 		@Override
 		public String getContextPath() {
 			final String contextPath = getCurrentContextPath();
-			if (URIUtil.SLASH.equals(contextPath)) {
+			if (URIUtil.SLASH.equals(contextPath))
 				return EMPTY_STRING;
-			}
 			return contextPath;
 		}
 
@@ -137,10 +137,10 @@ public class ApplicationHandler extends ServletContextHandler {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ApplicationHandler.class);
 
-	private final ThreadLocal<String> currentContextPath = new ThreadLocal<String>();
+	private final ThreadLocal<String> currentContextPath = new ThreadLocal<>();
 	private final ApplicationRegistration applicationRegistration;
-	private final CopyOnWriteArraySet<String> urls = new CopyOnWriteArraySet<String>();
-	private final PathMap resourcesMap = new PathMap();
+	private final CopyOnWriteArraySet<String> urls = new CopyOnWriteArraySet<>();
+	private final PathMap<ResourceProviderHolder> resourcesMap = new PathMap<>();
 	private final boolean showDebugInfo = Platform.inDebugMode() || Platform.inDevelopmentMode();
 	private final ApplicationHandlerMetrics metrics;
 
@@ -157,9 +157,8 @@ public class ApplicationHandler extends ServletContextHandler {
 	public ApplicationHandler(final ApplicationRegistration applicationRegistration) {
 		super();
 
-		if (null == applicationRegistration) {
+		if (null == applicationRegistration)
 			throw new IllegalArgumentException("application registration must not be null");
-		}
 
 		metrics = new ApplicationHandlerMetrics(applicationRegistration.getApplicationId());
 		JettyEngineApplication.registerMetrics(metrics);
@@ -228,9 +227,8 @@ public class ApplicationHandler extends ServletContextHandler {
 
 		// note, we do not support requests going through different contexts
 		final ContextHandler.Context origContext = baseRequest.getContext();
-		if ((origContext != null) && (origContext != _scontext)) {
+		if ((origContext != null) && (origContext != _scontext))
 			throw new IllegalStateException("origContext != this context, nesting/cross-application routing not supported!");
-		}
 
 		// backup paths
 		final String origContextPath = baseRequest.getContextPath();
@@ -258,14 +256,12 @@ public class ApplicationHandler extends ServletContextHandler {
 				if (DispatcherType.REQUEST.equals(dispatch) || DispatcherType.ASYNC.equals(dispatch)) {
 
 					// perform checkContext to support unavailable status
-					if (!checkContext(target, baseRequest, response)) {
+					if (!checkContext(target, baseRequest, response))
 						return;
-					}
 
 					// only accept requests coming through ApplicationHandlerCollection
-					if (contextPath == null) {
+					if (contextPath == null)
 						return;
-					}
 
 					// calculate paths
 					if (target.length() > contextPath.length()) {
@@ -388,9 +384,8 @@ public class ApplicationHandler extends ServletContextHandler {
 	public Application getApplication() {
 		final ApplicationInstance instance = applicationInstance;
 		final Application app = instance != null ? instance.getApplication() : null;
-		if (app == null) {
+		if (app == null)
 			throw new IllegalStateException("inactive");
-		}
 		return app;
 	}
 
@@ -458,32 +453,28 @@ public class ApplicationHandler extends ServletContextHandler {
 	public Resource getResource(String path) throws MalformedURLException {
 		// data structure which maps a request to a resource provider; first-best match wins
 		// { path =>  resource provider holder }
-		if (resourcesMap.isEmpty() || (null == path) || !path.startsWith(URIUtil.SLASH)) {
+		if (resourcesMap.isEmpty() || (null == path) || !path.startsWith(URIUtil.SLASH))
 			return null;
-		}
 
 		path = URIUtil.canonicalPath(path);
-		final Entry entry = resourcesMap.getMatch(path);
-		if (null == entry) {
+		final MappedEntry<ResourceProviderHolder> entry = resourcesMap.getMatch(path);
+		if (null == entry)
 			return null;
-		}
-		final ResourceProviderHolder provider = (ResourceProviderHolder) entry.getValue();
-		if (null == provider) {
+		final ResourceProviderHolder provider = entry.getValue();
+		if (null == provider)
 			return null;
-		}
 
-		final String pathSpec = (String) entry.getKey();
+		final String pathSpec = entry.getKey();
 		final String pathInfo = PathMap.pathInfo(pathSpec, path);
 		final URL resourceUrl = provider.getResource(pathInfo);
-		if (null == resourceUrl) {
+		if (null == resourceUrl)
 			return null;
-		}
 		try {
 			// resolve bundle/Eclipse URLs
 			final URL fileURL = FileLocator.toFileURL(resourceUrl);
 			return Resource.newResource(fileURL);
 		} catch (final IOException e) {
-			LOG.warn("Error resolving url {} to file based resource. {}", resourceUrl.toExternalForm(), ExceptionUtils.getMessage(e));
+			LOG.warn("Error resolving url {} to file based resource. {}", resourceUrl.toExternalForm(), e.getMessage());
 			return null;
 		}
 	}
@@ -527,13 +518,11 @@ public class ApplicationHandler extends ServletContextHandler {
 	@Override
 	public boolean isProtectedTarget(String target) {
 		// support custom protected targets
-		if (super.isProtectedTarget(target)) {
+		if (super.isProtectedTarget(target))
 			return true;
-		}
 
-		if (null == target) {
+		if (null == target)
 			return false;
-		}
 
 		while (target.startsWith("//")) {
 			target = URIUtil.compactPath(target);
@@ -586,18 +575,16 @@ public class ApplicationHandler extends ServletContextHandler {
 		// the application
 		try {
 			applicationInstance = applicationRegistration.getApplication(applicationContext);
-			if (applicationInstance == null) {
+			if (applicationInstance == null)
 				throw new IllegalStateException("no application instance for " + applicationRegistration);
-			}
 		} catch (final Exception e) {
 			throw new IllegalStateException(String.format("Error creating application '%s': %s", StringUtils.trimToEmpty(getApplicationId()), StringUtils.trimToEmpty(e.getMessage())), e);
 		}
 
 		// get application
 		final Application application = applicationInstance.getApplication();
-		if (application == null) {
+		if (application == null)
 			throw new IllegalStateException("no application object returned from instance for " + applicationRegistration);
-		}
 
 		// set important attributes
 		setAttribute(IApplicationContext.SERVLET_CONTEXT_ATTRIBUTE_APPLICATION, application);

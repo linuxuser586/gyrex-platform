@@ -16,7 +16,7 @@ import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
-import org.eclipse.jetty.util.LazyList;
+import org.eclipse.jetty.util.ArrayUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +47,7 @@ public class ApplicationServletHandler extends ServletHandler {
 	}
 
 	public void removeServlet(final ServletHolder holder) {
-		setServlets(LazyList.removeFromArray(getServlets(), holder));
+		setServlets(ArrayUtil.removeFromArray(getServlets(), holder));
 	}
 
 	@Override

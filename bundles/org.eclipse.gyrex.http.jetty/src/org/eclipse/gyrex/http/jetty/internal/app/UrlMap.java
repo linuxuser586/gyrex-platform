@@ -15,12 +15,13 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 
 import org.eclipse.jetty.http.PathMap;
-import org.eclipse.jetty.http.PathMap.Entry;
+import org.eclipse.jetty.http.PathMap.MappedEntry;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.osgi.util.NLS;
@@ -53,23 +54,21 @@ public class UrlMap {
 	private static final String EMPTY_STRING = "";
 
 	private static int getEstimatedCapacity(final String domain) {
-		if (domain.isEmpty() || "localhost".equals(domain)) {
+		if (domain.isEmpty() || "localhost".equals(domain))
 			return 12;
-		}
 		return 1;
 	}
 
-	private final Map<String, Map<Integer, PathMap>> hostsToPortsToPathsForHttp = new HashMap<String, Map<Integer, PathMap>>(5);
-	private final Map<String, Map<Integer, PathMap>> hostsToPortsToPathsForHttps = new HashMap<String, Map<Integer, PathMap>>(5);
+	private final Map<String, Map<Integer, PathMap<Handler>>> hostsToPortsToPathsForHttp = new HashMap<>(5);
+	private final Map<String, Map<Integer, PathMap<Handler>>> hostsToPortsToPathsForHttps = new HashMap<>(5);
 
-	private Map<String, Map<Integer, PathMap>> getHostsToPortsToPathMap(final String protocol) {
-		if (URIUtil.HTTP.equals(protocol)) {
+	private Map<String, Map<Integer, PathMap<Handler>>> getHostsToPortsToPathMap(final String protocol) {
+		if (URIUtil.HTTP.equals(protocol))
 			return hostsToPortsToPathsForHttp;
-		} else if (URIUtil.HTTPS.equals(protocol)) {
+		else if (URIUtil.HTTPS.equals(protocol))
 			return hostsToPortsToPathsForHttps;
-		} else {
+		else
 			return null;
-		}
 	}
 
 	/**
@@ -85,14 +84,13 @@ public class UrlMap {
 	 * @return the best matching {@link Entry} from the underlying
 	 *         {@link PathMap} (maybe <code>null</code>)
 	 */
-	public Entry getMatch(final String protocol, String domain, final int port, final String path) {
+	public MappedEntry<Handler> getMatch(final String protocol, String domain, final int port, final String path) {
 		// check input
-		if ((protocol == null) || (domain == null) || (path == null) || !path.startsWith(URIUtil.SLASH)) {
+		if ((protocol == null) || (domain == null) || (path == null) || !path.startsWith(URIUtil.SLASH))
 			return null;
-		}
 
 		// get domain map based on protocol
-		final Map<String, Map<Integer, PathMap>> hostsToPortsToPathMap = getHostsToPortsToPathMap(protocol);
+		final Map<String, Map<Integer, PathMap<Handler>>> hostsToPortsToPathMap = getHostsToPortsToPathMap(protocol);
 		if (hostsToPortsToPathMap == null) {
 			if (JettyDebug.urlMapLookup) {
 				LOG.debug("[URLMAP] no map for protocol {}://{}:{}{} --> {}", new Object[] { protocol, domain, port, path, null });
@@ -104,7 +102,7 @@ public class UrlMap {
 		domain = UrlUtil.normalizeDomain(domain);
 
 		// begin the lookup procedure
-		Entry match = null;
+		MappedEntry<Handler> match = null;
 		boolean continueMatching = true;
 		while ((match == null) && continueMatching) {
 			// debug logging
@@ -113,7 +111,7 @@ public class UrlMap {
 			}
 
 			// domain name lookup
-			final Map<Integer, PathMap> portsToPathMap = hostsToPortsToPathMap.get(domain);
+			final Map<Integer, PathMap<Handler>> portsToPathMap = hostsToPortsToPathMap.get(domain);
 
 			// log debug message here (before reducing domain name)
 			if (portsToPathMap == null) {
@@ -136,7 +134,7 @@ public class UrlMap {
 			}
 
 			// get direct port match
-			PathMap pathMap = portsToPathMap.get(port);
+			PathMap<Handler> pathMap = portsToPathMap.get(port);
 			if ((pathMap != null) && !pathMap.isEmpty()) {
 				// get matching handler (don't sanitize path during lookup)
 				match = pathMap.getMatch(path);
@@ -185,28 +183,27 @@ public class UrlMap {
 		final String protocol = UrlUtil.getNormalizedProtocol(parsedUrl);
 
 		// get domain map based on protocol
-		final Map<String, Map<Integer, PathMap>> hostsToPortsToPathMap = getHostsToPortsToPathMap(protocol);
-		if (hostsToPortsToPathMap == null) {
+		final Map<String, Map<Integer, PathMap<Handler>>> hostsToPortsToPathMap = getHostsToPortsToPathMap(protocol);
+		if (hostsToPortsToPathMap == null)
 			throw new IllegalArgumentException(NLS.bind("Protocol {0} not support for url {1}.", protocol, parsedUrl.toExternalForm()));
-		}
 
 		// virtual host
 		final String domain = UrlUtil.getNormalizedDomain(parsedUrl);
 
 		// get port map based on domain
 		if (!hostsToPortsToPathMap.containsKey(domain)) {
-			hostsToPortsToPathMap.put(domain, new HashMap<Integer, PathMap>(1));
+			hostsToPortsToPathMap.put(domain, new HashMap<Integer, PathMap<Handler>>(1));
 		}
-		final Map<Integer, PathMap> portsToPathMap = hostsToPortsToPathMap.get(domain);
+		final Map<Integer, PathMap<Handler>> portsToPathMap = hostsToPortsToPathMap.get(domain);
 
 		// port
 		final Integer port = new Integer(UrlUtil.getNormalizedPort(parsedUrl));
 
 		// get path map based on port
 		if (!portsToPathMap.containsKey(port)) {
-			portsToPathMap.put(port, new PathMap(getEstimatedCapacity(domain)));
+			portsToPathMap.put(port, new PathMap<Handler>(getEstimatedCapacity(domain)));
 		}
-		final PathMap pathMap = portsToPathMap.get(port);
+		final PathMap<Handler> pathMap = portsToPathMap.get(port);
 
 		// context path
 		String path = UrlUtil.getNormalizedPath(parsedUrl);
@@ -216,7 +213,7 @@ public class UrlMap {
 		path = URIUtil.SLASH.equals(path) ? "/*" : path.concat("/*");
 
 		// put handler
-		final Object old = pathMap.put(path.length() == 0 ? "/" : path, handler);
+		final Handler old = pathMap.put(path.length() == 0 ? "/" : path, handler);
 
 		// ensure there was no conflict
 		return old == null;

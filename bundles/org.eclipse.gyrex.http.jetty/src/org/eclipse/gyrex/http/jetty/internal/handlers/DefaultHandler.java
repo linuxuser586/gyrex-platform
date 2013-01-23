@@ -21,7 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.eclipse.gyrex.http.jetty.internal.JettyDebug;
 import org.eclipse.gyrex.http.jetty.internal.app.ApplicationHandler;
 
-import org.eclipse.jetty.http.HttpMethods;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
@@ -37,15 +37,14 @@ public class DefaultHandler extends AbstractHandler {
 	@Override
 	public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
 		// don't do anything if already processed
-		if (response.isCommitted() || baseRequest.isHandled()) {
+		if (response.isCommitted() || baseRequest.isHandled())
 			return;
-		}
 
 		// mark handled
 		baseRequest.setHandled(true);
 
 		// 404 for all urls
-		if (!request.getMethod().equals(HttpMethods.GET)) {
+		if (!HttpMethod.GET.is(request.getMethod())) {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			return;
 		}

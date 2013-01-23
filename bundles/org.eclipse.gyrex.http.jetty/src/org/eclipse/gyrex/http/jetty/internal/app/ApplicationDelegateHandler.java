@@ -33,6 +33,7 @@ import org.eclipse.jetty.server.handler.ScopedHandler;
 import org.eclipse.jetty.util.URIUtil;
 
 import org.apache.commons.lang.StringUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -154,9 +155,8 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 				if (Platform.inDebugMode()) {
 					LOG.warn("Application '{}' returned a not-ok status: {}", new Object[] { application.getId(), status });
 					throw new UnavailableException(message, 5);
-				} else {
+				} else
 					throw new UnavailableException(message, 30); // TODO make configurable
-				}
 			}
 
 			// route to application
@@ -176,9 +176,8 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 				if (Platform.inDebugMode()) {
 					LOG.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 					throw new UnavailableException(e.getMessage(), 5);
-				} else {
+				} else
 					throw new UnavailableException(e.getMessage(), 30); // TODO make configurable
-				}
 			} else {
 				if (Platform.inDebugMode()) {
 					LOG.warn("Caught ApplicationException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
@@ -193,9 +192,8 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 			if (Platform.inDebugMode()) {
 				LOG.warn("Caught IllegalStateException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
 				throw new UnavailableException(e.getMessage(), 5);
-			} else {
+			} else
 				throw new UnavailableException(e.getMessage(), 30); // TODO make configurable
-			}
 		} catch (final RuntimeException e) {
 			if (Platform.inDebugMode()) {
 				LOG.warn("Caught RuntimeException while processing request '{}': {}", new Object[] { request, e.getMessage(), e });
@@ -225,10 +223,9 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 	 * @throws IOException
 	 */
 	public boolean handleApplicationRequest(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
-		final Request baseRequest = Request.getRequest(request);
-		if (baseRequest == null) {
-			throw new IllegalStateException("Please ensure that this method is called within the request thread!");
-		}
+		if (!(request instanceof Request))
+			throw new IllegalArgumentException("Please ensure that this method is called within the request thread with the original Jetty request and response objects!");
+		final Request baseRequest = (Request) request;
 
 		try {
 			// calculate target based on current path info
@@ -237,11 +234,10 @@ public class ApplicationDelegateHandler extends ScopedHandler {
 				LOG.debug("got request back from application {}, continue processing with Jetty handler chain (using target '{}')", applicationHandler.getApplication(), target);
 			}
 			// also make sure the path absolute is absolute (required by ServletHandler down the road)
-			if ((null == target) || !target.startsWith(URIUtil.SLASH)) {
+			if ((null == target) || !target.startsWith(URIUtil.SLASH))
 				// if not it might indicate a problem higher up the stack, thus, make sure to fail
 				// otherwise we might unveil unwanted resources (eg. display directory for wrong folder)
 				throw new ApplicationException(String.format("Unable to handle request. It seems the specified request is invalid (path info '%s'). At least an absolute path info is necessary in order to determine the request target within the registered application servlets and resources.", StringUtils.trimToEmpty(target)));
-			}
 			nextScope(target, baseRequest, baseRequest, response);
 		} catch (final ServletException e) {
 			throw new ApplicationException(e);
