@@ -22,12 +22,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.eclipse.equinox.http.servlet.ExtendedHttpService;
-
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.http.application.Application;
 import org.eclipse.gyrex.http.application.ApplicationException;
 import org.eclipse.gyrex.http.application.manager.IApplicationManager;
+
+import org.eclipse.equinox.http.servlet.ExtendedHttpService;
 
 import org.osgi.framework.Bundle;
 import org.osgi.service.http.HttpContext;
@@ -102,11 +102,18 @@ public interface IApplicationContext {
 	 * that, an extension mapping will be performed similar to the Eclipse
 	 * Equinox Jetty based Http Service implementation.
 	 * </p>
+	 * <p>
+	 * Note, the {@code request} and {@code response} objects must be the onces
+	 * received from the container. An application context is a bridge into the
+	 * container and may be implemented with container specific optimizations.
+	 * Therefor, the objects must not be wrapped or modified. Otherwise, the
+	 * result of this operation is undefined.
+	 * </p>
 	 * 
 	 * @param request
-	 *            the request
+	 *            the request (as received by the container)
 	 * @param response
-	 *            the response
+	 *            the response (as received by the container)
 	 * @return <code>true</code> if the request has been handled and a response
 	 *         was sent back, <code>false</code> otherwise
 	 * @throws IOException
