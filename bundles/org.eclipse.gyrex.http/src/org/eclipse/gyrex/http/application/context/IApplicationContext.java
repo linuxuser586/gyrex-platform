@@ -121,8 +121,11 @@ public interface IApplicationContext {
 	 * @throws ApplicationException
 	 *             if an exception occurs that interferes with the application's
 	 *             normal operation
+	 * @throws IllegalArgumentException
+	 *             if the passed in request or response objects are invalid
+	 *             (eg., not the expected onces from the container)
 	 */
-	boolean handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ApplicationException;
+	boolean handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ApplicationException, IllegalArgumentException;
 
 	/**
 	 * Registers a filter into the URI namespace.
