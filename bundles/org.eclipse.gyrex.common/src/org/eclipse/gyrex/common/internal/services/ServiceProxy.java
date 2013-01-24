@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.common.internal.services;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
@@ -50,9 +51,8 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 
 	public static <T> void verifyFilterContainsObjectClassConditionForServiceInterface(final Class<T> serviceInterface, final String filter) {
 		final String requiredObjectClassCondition = String.format("&(objectClass=%s)", serviceInterface.getName());
-		if (!filter.contains(requiredObjectClassCondition)) {
+		if (!filter.contains(requiredObjectClassCondition))
 			throw new IllegalArgumentException(String.format("Filter '%s' does not match the service class condition '%s'!", filter, requiredObjectClassCondition));
-		}
 	}
 
 	private final BundleContext bundleContext;
@@ -91,15 +91,13 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 			@Override
 			protected org.eclipse.core.runtime.IStatus run(final IProgressMonitor monitor) {
 				// check for disposal
-				if (disposed || monitor.isCanceled()) {
+				if (disposed || monitor.isCanceled())
 					return Status.CANCEL_STATUS;
-				}
 
 				// notify
 				for (final IServiceProxyChangeListener changeListener : changeListeners) {
-					if (disposed || monitor.isCanceled()) {
+					if (disposed || monitor.isCanceled())
 						return Status.CANCEL_STATUS;
-					}
 					if (!changeListener.serviceChanged(ServiceProxy.this)) {
 						changeListeners.remove(changeListener);
 					}
@@ -199,9 +197,8 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	}
 
 	private void checkDisposed() {
-		if (disposed) {
+		if (disposed)
 			throw new IllegalStateException(String.format("The service proxy for service '%s' has been disposed.", serviceInterface.getName()));
-		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -212,9 +209,9 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 
 	@Override
 	public void dispose() {
-		if (disposed) {
+		if (disposed)
 			return;
-		} else {
+		else {
 			disposed = true;
 		}
 
@@ -252,16 +249,14 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 	@Override
 	public T getProxy() {
 		T proxy = dynamicProxy;
-		if (null != proxy) {
+		if (null != proxy)
 			return proxy;
-		}
 
 		// ensure that at most one proxy is created
 		synchronized (dynamicProxyCreationLock) {
 			proxy = dynamicProxy;
-			if (null != proxy) {
+			if (null != proxy)
 				return proxy;
-			}
 
 			return dynamicProxy = createProxy();
 		}
@@ -274,9 +269,8 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 		// return the first available service
 		final Iterator<T> iterator = services.iterator();
 		final T service = iterator.hasNext() ? iterator.next() : null;
-		if (null == service) {
+		if (null == service)
 			throw new ServiceNotAvailableException(bundleContext, serviceInterface.getName());
-		}
 		return service;
 	}
 
@@ -293,15 +287,20 @@ public class ServiceProxy<T> implements IServiceProxy<T>, InvocationHandler, Ser
 		checkDisposed();
 
 		// need to handle hashCode and equals within the proxy (for proper usage in collections)
-		if (method.getName().equals("hashCode") && ((null == args) || (args.length == 0))) {
+		if (method.getName().equals("hashCode") && ((null == args) || (args.length == 0)))
 			return System.identityHashCode(proxy); // rely entirely on identity
-		} else if (method.getName().equals("equals") && (null != args) && (args.length == 1)) {
+		else if (method.getName().equals("equals") && (null != args) && (args.length == 1))
 			return proxy == args[0]; // rely entirely on identity
-		} else if (method.getName().equals("toString") && ((null == args) || (args.length == 0))) {
+		else if (method.getName().equals("toString") && ((null == args) || (args.length == 0)))
 			return toString(); // use ServiceProxy implementation
-		}
 
-		return method.invoke(getService(), args);
+		try {
+			return method.invoke(getService(), args);
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		} catch (final IllegalAccessException | IllegalArgumentException e) {
+			throw new IllegalStateException(String.format("Error calling method '%s' of service '%s'. %s", method.toString(), serviceInterface.getName(), e.getMessage()), e);
+		}
 	}
 
 	/**
