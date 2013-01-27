@@ -25,12 +25,14 @@ import org.eclipse.gyrex.cloud.tests.internal.CloudTestsActivator;
 import org.eclipse.gyrex.cloud.tests.internal.zookeeper.CountdownCloudStateHandler.CloudStateEvent;
 import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.AllZooKeeperPreferencesNonEnsembleTests;
 import org.eclipse.gyrex.cloud.tests.internal.zookeeper.preferences.ZooKeeperPreferencesEnsambleTests;
+import org.eclipse.gyrex.junit.GyrexServerResource;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.IStatus;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -40,6 +42,9 @@ import org.slf4j.LoggerFactory;
 @RunWith(Suite.class)
 @SuiteClasses({ ZooKeeperEnsambleTest.class, ZooKeeperPreferencesEnsambleTests.class, AllZooKeeperPreferencesNonEnsembleTests.class })
 public class ZooKeeperEnsambleTestSuite {
+
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 	private static final int CONNECT_TIMEOUT = 30000;
 
@@ -74,7 +79,7 @@ public class ZooKeeperEnsambleTestSuite {
 		new CountdownGateListener().waitForUp(CONNECT_TIMEOUT);
 
 		// now sleep a little to allow CloudState to populate ZK correctly
-		Thread.sleep(2000);
+		Thread.sleep(5000);
 
 		assertEquals("No node should be online", 0, cloudManager.getOnlineNodes().size());
 		assertEquals("One node should be pending.", 1, cloudManager.getPendingNodes().size());

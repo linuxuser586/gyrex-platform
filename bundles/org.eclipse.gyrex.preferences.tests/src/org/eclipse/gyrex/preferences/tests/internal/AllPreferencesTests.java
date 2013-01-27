@@ -11,6 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.preferences.tests.internal;
 
+import org.eclipse.gyrex.junit.GyrexServerResource;
+
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -20,5 +23,6 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({ CloudPreferencesBlackBoxTests.class })
 public class AllPreferencesTests {
-
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 }
