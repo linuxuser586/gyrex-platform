@@ -32,6 +32,7 @@ import org.osgi.service.prefs.Preferences;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.text.StrBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,7 @@ public class JobHistoryImpl implements IJobHistory {
 	private static final String KEY_QUEUED_TRIGGER = "queuedTrigger";
 	private static final String KEY_CANCELLED_TRIGGER = "canceledTrigger";
 	private static final int MAX_HISTORY_SIZE = 120;
+	static final int MAX_RESULT_MESSAGE_SIZE = Integer.getInteger("gyrex.jobs.history.maxMessageLength", 4096); // ~4K
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobHistoryImpl.class);
 
@@ -106,7 +108,7 @@ public class JobHistoryImpl implements IJobHistory {
 
 	private static void serializeStatus(final IStatus status, final Preferences node) {
 		// FIXME: implement better serialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
-		node.put(KEY_RESULT_MESSAGE, status.getMessage());
+		node.put(KEY_RESULT_MESSAGE, StringUtils.left(status.getMessage(), MAX_RESULT_MESSAGE_SIZE));
 		node.putInt(KEY_RESULT_SEVERITY, status.getSeverity());
 	}
 
@@ -153,9 +155,8 @@ public class JobHistoryImpl implements IJobHistory {
 
 	@Override
 	public Collection<IJobHistoryEntry> getEntries() {
-		if (null == entries) {
+		if (null == entries)
 			return Collections.emptyList();
-		}
 
 		return Collections.unmodifiableCollection(entries);
 	}
@@ -180,10 +181,9 @@ public class JobHistoryImpl implements IJobHistory {
 	}
 
 	public void save(final IEclipsePreferences historyNode) throws BackingStoreException {
-		if (null == entries) {
+		if (null == entries)
 			// never loaded
 			return;
-		}
 
 		// shrink to size limit
 		shrinkToSizeLimit();

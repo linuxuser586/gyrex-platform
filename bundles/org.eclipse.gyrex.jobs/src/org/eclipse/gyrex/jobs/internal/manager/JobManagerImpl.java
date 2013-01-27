@@ -788,7 +788,7 @@ public class JobManagerImpl implements IJobManager {
 		// update job node
 		final Preferences jobNode = JobHistoryStore.getJobsNode().node(internalId);
 		jobNode.putLong(PROPERTY_LAST_RESULT, resultTimestamp);
-		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, JobHistoryImpl.getFormattedMessage(result, 0));
+		jobNode.put(PROPERTY_LAST_RESULT_MESSAGE, StringUtils.left(JobHistoryImpl.getFormattedMessage(result, 0), JobHistoryImpl.MAX_RESULT_MESSAGE_SIZE));
 		jobNode.putInt(PROPERTY_LAST_RESULT_SEVERITY, result.getSeverity());
 		if (!result.matches(IStatus.CANCEL | IStatus.ERROR)) {
 			// every run that does not result in ERROR or CANCEL is considered successful
