@@ -11,13 +11,20 @@
  *******************************************************************************/
 package org.eclipse.gyrex.cloud.internal.zk;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +100,7 @@ public abstract class ZooKeeperBasedService {
 
 	private final long retryDelay;
 	private final int retryCount;
+	private final ExecutorService executor;
 
 	/**
 	 * Creates a new instance.
@@ -105,14 +113,26 @@ public abstract class ZooKeeperBasedService {
 	 * Creates a new instance.
 	 */
 	public ZooKeeperBasedService(final long retryDelay, final int retryCount) {
-		if (retryDelay < 50) {
+		if (retryDelay < 50)
 			throw new IllegalArgumentException("retry delay to low");
-		}
-		if (retryCount < 1) {
+		if (retryCount < 1)
 			throw new IllegalArgumentException("retry count to low");
-		}
 		this.retryDelay = retryDelay;
 		this.retryCount = retryCount;
+		executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(final Runnable r) {
+				final Thread t = new Thread(r, String.format("%s Deferred Executor", ZooKeeperBasedService.this));
+				t.setDaemon(true);
+				t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+					@Override
+					public void uncaughtException(final Thread t, final Throwable e) {
+						LOG.error("Unhandled error processing operation in ({}). {}", ZooKeeperBasedService.this, ExceptionUtils.getRootCauseMessage(e), e);
+					}
+				});
+				return t;
+			}
+		});
 	}
 
 	/**
@@ -124,9 +144,8 @@ public abstract class ZooKeeperBasedService {
 	 */
 	protected final void activate() {
 		// don't do anything if closed
-		if (isClosed()) {
+		if (isClosed())
 			return;
-		}
 
 		// hook connection monitor
 		// (the assumption is that ZooKeeperGate is active when creating a ZooKeeperBasedService)
@@ -142,7 +161,13 @@ public abstract class ZooKeeperBasedService {
 	protected final void close() {
 		if (closed.compareAndSet(false, true)) {
 			try {
-				doClose();
+				try {
+					// abort any running executions
+					executor.shutdown();
+				} finally {
+					// close
+					doClose();
+				}
 			} finally {
 				ZooKeeperGate.removeConnectionMonitor(connectionMonitor);
 			}
@@ -161,9 +186,8 @@ public abstract class ZooKeeperBasedService {
 	 */
 	protected void disconnect() {
 		// don't do anything if already closed (#close may trigger this when removing the connection monitor)
-		if (isClosed()) {
+		if (isClosed())
 			return;
-		}
 
 		// auto-close service on disconnect
 		LOG.warn("Connection to the cloud has been lost. Closing active service {}.", ZooKeeperBasedService.this);
@@ -206,13 +230,6 @@ public abstract class ZooKeeperBasedService {
 		for (int i = 0; i < retryCount; i++) {
 			try {
 				return operation.call();
-			} catch (final KeeperException.SessionExpiredException e) {
-				// we rely on connectionMonitor to close the service
-				if (!isClosed()) {
-					LOG.warn("ZooKeeper session expired. Service {} may be invalid now.", this);
-				}
-				// propagate this exception
-				throw e;
 			} catch (final KeeperException.ConnectionLossException e) {
 				if (exception == null) {
 					exception = e;
@@ -221,6 +238,13 @@ public abstract class ZooKeeperBasedService {
 					LOG.debug("Connection to the server has been lost (retry attempt {}).", i);
 				}
 				sleep(i);
+			} catch (final KeeperException.SessionExpiredException e) {
+				// we rely on connectionMonitor to close the service
+				if (!isClosed()) {
+					LOG.warn("ZooKeeper session expired. Service {} may be invalid now.", this);
+				}
+				// propagate this exception
+				throw e;
 			} catch (final GateDownException e) {
 				// we rely on connectionMonitor to close the service
 				if (!isClosed()) {
@@ -288,6 +312,32 @@ public abstract class ZooKeeperBasedService {
 				Thread.currentThread().interrupt();
 			}
 		}
+	}
+
+	/**
+	 * Submits the specified operation for later execution (asynchronous
+	 * processing).
+	 * <p>
+	 * Note, the operation is submitted regardless of the service
+	 * {@link #isClosed() closed state}. Clients should check
+	 * {@link #isClosed()} in the beginning of the operation.
+	 * </p>
+	 * <p>
+	 * Many operations may be submitted. However, they are not executed in
+	 * parallel, i.e. only one at a time.
+	 * </p>
+	 * 
+	 * @param operation
+	 *            the operation to execute
+	 * @return a {@link Future} to access the result of the specified operation
+	 */
+	protected <V> Future<V> submit(final Callable<V> operation) {
+		return executor.submit(new Callable<V>() {
+			@Override
+			public V call() throws Exception {
+				return execute(operation);
+			}
+		});
 	}
 
 	/**
