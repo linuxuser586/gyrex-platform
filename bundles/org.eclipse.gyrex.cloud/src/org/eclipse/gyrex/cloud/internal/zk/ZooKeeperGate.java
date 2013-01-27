@@ -42,6 +42,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,9 +105,8 @@ public class ZooKeeperGate {
 	 */
 	public static void addConnectionMonitor(final ZooKeeperGateListener listener) {
 		// ignore null monitors
-		if (listener == null) {
+		if (listener == null)
 			return;
-		}
 
 		// add listener first
 		gateListeners.addIfAbsent(listener);
@@ -116,9 +116,8 @@ public class ZooKeeperGate {
 		try {
 			return String.format("ZooKeeper Gate is DOWN. (%s)", String.valueOf(gate));
 		} catch (final Throwable e) {
-			if ((e instanceof VirtualMachineError) || (e instanceof LinkageError)) {
+			if ((e instanceof VirtualMachineError) || (e instanceof LinkageError))
 				throw (Error) e;
-			}
 			return String.format("ZooKeeper Gate is DOWN. (%s)", ExceptionUtils.getRootCauseMessage(e));
 		}
 	}
@@ -132,9 +131,8 @@ public class ZooKeeperGate {
 	 */
 	public static ZooKeeperGate get() throws GateDownException {
 		final ZooKeeperGate gate = instanceRef.get();
-		if (gate == null) {
+		if (gate == null)
 			throw new GateDownException(gateDownError(null));
-		}
 		return gate;
 	}
 
@@ -161,9 +159,8 @@ public class ZooKeeperGate {
 	 */
 	public static void removeConnectionMonitor(final ZooKeeperGateListener connectionMonitor) {
 		// ignore null monitors
-		if (connectionMonitor == null) {
+		if (connectionMonitor == null)
 			return;
-		}
 
 		// remove listener
 		gateListeners.remove(connectionMonitor);
@@ -173,28 +170,29 @@ public class ZooKeeperGate {
 	private final ZooKeeperGateListener reconnectMonitor;
 
 	/**
-	 * a job that triggers when the recovery time expires and closes the session
+	 * a job that triggers when the recovery time expires and a session should
+	 * be closed
 	 */
-	private final Job recoveryTimeoutJob;
+	private final Job markSessionExpiredJob;
 	{
-		recoveryTimeoutJob = new Job("ZooKeeper Gate Recovery") {
+		markSessionExpiredJob = new Job("ZooKeeper Gate Session Timout") {
 			@Override
 			protected IStatus run(final IProgressMonitor monitor) {
 				// check if still alive
-				if (!zooKeeper.getState().isAlive()) {
+				if (!zooKeeper.getState().isAlive())
 					return Status.CANCEL_STATUS;
-				}
 
 				// if the gate is still disconnected then we'll set the session to expired and close the gate
 				if (keeperStateRef.compareAndSet(KeeperState.Disconnected, KeeperState.Expired)) {
+					LOG.info("ZooKeeper session expiration forced. Gate ({}) has been in RECOVERING too long.", ZooKeeperGate.this);
 					shutdown(true);
 				}
 				return Status.OK_STATUS;
 			}
 
 		};
-		recoveryTimeoutJob.setSystem(true);
-		recoveryTimeoutJob.setPriority(Job.SHORT);
+		markSessionExpiredJob.setSystem(true);
+		markSessionExpiredJob.setPriority(Job.SHORT);
 	}
 
 	/** the primary gate watcher */
@@ -227,12 +225,14 @@ public class ZooKeeperGate {
 			// handle event
 			switch (event.getState()) {
 				case SyncConnected:
-					// SyncConnected ==> connection is UP
-					LOG.info("ZooKeeper Gate is now UP. Session 0x{} established with {} (using timeout {}ms).", new Object[] { Long.toHexString(zooKeeper.getSessionId()), zooKeeper.testableRemoteSocketAddress(), zooKeeper.getSessionTimeout() });
+					// set state
 					KeeperState oldState = keeperStateRef.getAndSet(KeeperState.SyncConnected);
 
+					// SyncConnected ==> connection is UP
+					LOG.info("ZooKeeper Gate is now UP (was {}). Session 0x{} established with {} (using timeout {}ms). [{}]", oldState.name(), Long.toHexString(zooKeeper.getSessionId()), zooKeeper.testableRemoteSocketAddress(), zooKeeper.getSessionTimeout(), ZooKeeperGate.this);
+
 					// reset recovery
-					recoveryTimeoutJob.cancel();
+					markSessionExpiredJob.cancel();
 
 					// notify gate listeners (on state change only)
 					if (oldState != KeeperState.SyncConnected) {
@@ -245,9 +245,11 @@ public class ZooKeeperGate {
 					break;
 
 				case Disconnected:
-					// Disconnected ==> connection is down
-					LOG.info("ZooKeeper Gate is now RECOVERING. Connection lost.");
+					// set state
 					oldState = keeperStateRef.getAndSet(KeeperState.Disconnected);
+
+					// Disconnected ==> connection is down
+					LOG.info("ZooKeeper Gate is now RECOVERING (was {}). Connection lost. [{}]", oldState.name(), ZooKeeperGate.this);
 
 					// ZK automatically tries to re-connect; however, until the connection
 					// is established again, we won't see any events from the server;
@@ -255,35 +257,46 @@ public class ZooKeeperGate {
 					// session expiration events come from the server, too
 
 					// schedule a job to expire the session if recovery fails
-					recoveryTimeoutJob.schedule(Math.max(500L, zooKeeper.getSessionTimeout() + 500L));
+					markSessionExpiredJob.schedule(Math.max(500L, zooKeeper.getSessionTimeout() + 500L));
 
 					// notify gate listeners (on state change only)
 					if (oldState != KeeperState.Disconnected) {
 						notifyGateRecovering();
 					} else {
 						if (CloudDebug.zooKeeperGateLifecycle) {
-							LOG.debug("Old state == new state, not sending any events.");
+							LOG.debug("Old state == new state, not sending any events.", oldState.name());
 						}
 					}
 					break;
 
 				case Expired:
-					// Expired || Disconnected ==> connection is down
-					LOG.info("ZooKeeper Gate is now DOWN. Session expired.");
+					// set state
 					oldState = keeperStateRef.getAndSet(KeeperState.Expired);
 
+					// Expired || Disconnected ==> connection is down
+					LOG.info("ZooKeeper Gate is now DOWN (was {}). Session expired. [{}]", oldState.name(), ZooKeeperGate.this);
+
 					// reset recovery
-					recoveryTimeoutJob.cancel();
+					markSessionExpiredJob.cancel();
 
 					// trigger clean shutdown (and notify listeners)
 					shutdown(oldState != KeeperState.Expired);
 					break;
 
 				case AuthFailed:
-					// AuthFailed ==> maybe impossible to connect; however, not handled yet
+					// set state
+					oldState = keeperStateRef.getAndSet(KeeperState.AuthFailed);
+
+					// Expired || Disconnected ==> connection is down
+					LOG.error("ZooKeeper Gate is now DOWN (was {}). Authentication failed. [{}]", oldState.name(), ZooKeeperGate.this);
+
+					// trigger clean shutdown (and notify listeners)
+					shutdown(oldState != KeeperState.Expired);
+					break;
+
 				default:
 					// ZooKeeper will re-try on it's own in all other cases
-					LOG.warn("Received event {} from ZooKeeper. Gate is not intervening. ({})", event.getState(), zooKeeper);
+					LOG.warn("Received event {} from ZooKeeper. Gate is not intervening. [{}]", event.getState(), ZooKeeperGate.this);
 					break;
 			}
 		}
@@ -311,12 +324,10 @@ public class ZooKeeperGate {
 	}
 
 	private IPath create(final IPath path, final CreateMode createMode, final byte[] data) throws InterruptedException, KeeperException, IOException {
-		if (path == null) {
+		if (path == null)
 			throw new IllegalArgumentException("path must not be null");
-		}
-		if (createMode == null) {
+		if (createMode == null)
 			throw new IllegalArgumentException("createMode must not be null");
-		}
 
 		// create all parents
 		ZooKeeperHelper.createParents(getZooKeeper(), path);
@@ -364,9 +375,8 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public IPath createPath(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
-		if (recordData == null) {
+		if (recordData == null)
 			throw new IllegalArgumentException("recordData must not be null");
-		}
 		return create(path, createMode, recordData);
 	}
 
@@ -388,9 +398,8 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public IPath createPath(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
-		if (recordData == null) {
+		if (recordData == null)
 			throw new IllegalArgumentException("recordData must not be null");
-		}
 		try {
 			return createPath(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
 		} catch (final UnsupportedEncodingException e) {
@@ -414,9 +423,8 @@ public class ZooKeeperGate {
 	 * @see {@link #deletePath(IPath, int)}
 	 */
 	public void deletePath(final IPath path) throws KeeperException, InterruptedException, IOException {
-		if (path == null) {
+		if (path == null)
 			throw new IllegalArgumentException("path must not be null");
-		}
 
 		try {
 			// delete all children
@@ -428,9 +436,8 @@ public class ZooKeeperGate {
 			// delete node itself
 			getZooKeeper().delete(path.toString(), -1);
 		} catch (final KeeperException e) {
-			if (e.code() != Code.NONODE) {
+			if (e.code() != Code.NONODE)
 				throw e;
-			}
 			// node does not exist
 			// we don't care, the result matters
 			return;
@@ -463,9 +470,8 @@ public class ZooKeeperGate {
 	 * @see {@link ZooKeeper#delete(String, int)}
 	 */
 	public void deletePath(final IPath path, final int version) throws InterruptedException, IOException, KeeperException {
-		if (path == null) {
+		if (path == null)
 			throw new IllegalArgumentException("path must not be null");
-		}
 
 		// read stats
 		final Stat stat = new Stat();
@@ -474,9 +480,8 @@ public class ZooKeeperGate {
 		final List<String> children = getZooKeeper().getChildren(path.toString(), false, stat);
 
 		// abort if version doesn't match
-		if ((version != -1) && (stat.getVersion() != version)) {
+		if ((version != -1) && (stat.getVersion() != version))
 			throw new BadVersionException(path.toString());
-		}
 
 		// delete all children
 		for (final String child : children) {
@@ -518,9 +523,8 @@ public class ZooKeeperGate {
 	 * @throws KeeperException
 	 */
 	public boolean exists(final IPath path, final ZooKeeperMonitor monitor) throws InterruptedException, KeeperException {
-		if (path == null) {
+		if (path == null)
 			throw new IllegalArgumentException("path must not be null");
-		}
 		try {
 			return getZooKeeper().exists(path.toString(), monitor) != null;
 		} catch (final KeeperException e) {
@@ -540,12 +544,10 @@ public class ZooKeeperGate {
 	 */
 	public String getConnectedServerInfo() {
 		final SocketAddress socketAddress = zooKeeper.testableRemoteSocketAddress();
-		if (socketAddress instanceof InetSocketAddress) {
+		if (socketAddress instanceof InetSocketAddress)
 			return String.format("%s:%d", ((InetSocketAddress) socketAddress).getHostName(), ((InetSocketAddress) socketAddress).getPort());
-		}
-		if (null != socketAddress) {
+		if (null != socketAddress)
 			return socketAddress.toString();
-		}
 		return null;
 	}
 
@@ -615,11 +617,7 @@ public class ZooKeeperGate {
 					LOG.debug("Sending gate down event to listener ({}).", listener);
 				}
 				listener.gateDown(this);
-			} catch (final RuntimeException e) {
-				handleBrokenListener(listener, e);
-			} catch (final AssertionError e) {
-				handleBrokenListener(listener, e);
-			} catch (final LinkageError e) {
+			} catch (final RuntimeException | AssertionError | LinkageError e) {
 				handleBrokenListener(listener, e);
 			}
 		}
@@ -638,11 +636,7 @@ public class ZooKeeperGate {
 					LOG.debug("Sending gate recovering event to listener ({}).", listener);
 				}
 				listener.gateRecovering(this);
-			} catch (final RuntimeException e) {
-				handleBrokenListener(listener, e);
-			} catch (final AssertionError e) {
-				handleBrokenListener(listener, e);
-			} catch (final LinkageError e) {
+			} catch (final RuntimeException | AssertionError | LinkageError e) {
 				handleBrokenListener(listener, e);
 			}
 		}
@@ -666,11 +660,7 @@ public class ZooKeeperGate {
 					LOG.debug("Sending gate up event to listener ({}).", listener);
 				}
 				listener.gateUp(this);
-			} catch (final RuntimeException e) {
-				handleBrokenListener(listener, e);
-			} catch (final AssertionError e) {
-				handleBrokenListener(listener, e);
-			} catch (final LinkageError e) {
+			} catch (final RuntimeException | AssertionError | LinkageError e) {
 				handleBrokenListener(listener, e);
 			}
 		}
@@ -720,9 +710,8 @@ public class ZooKeeperGate {
 	 * @see {@link ZooKeeper#getChildren(String, ZooKeeperMonitor)}
 	 */
 	public List<String> readChildrenNames(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException {
-		if (path == null) {
+		if (path == null)
 			throw new IllegalArgumentException("path must not be null");
-		}
 		return getZooKeeper().getChildren(path.toString(), watch, stat);
 	}
 
@@ -771,9 +760,8 @@ public class ZooKeeperGate {
 	public String readRecord(final IPath path, final String defaultValue, final Stat stat) throws KeeperException, InterruptedException, IOException {
 		try {
 			final byte[] data = readRecord(path, stat);
-			if (data == null) {
+			if (data == null)
 				return defaultValue;
-			}
 			return new String(data, CharEncoding.UTF_8);
 		} catch (final NoNodeException e) {
 			return defaultValue;
@@ -805,9 +793,8 @@ public class ZooKeeperGate {
 	 * @see {@link ZooKeeper#getData(String, ZooKeeperMonitor, org.apache.zookeeper.data.Stat)}
 	 */
 	public byte[] readRecord(final IPath path, final ZooKeeperMonitor watch, final Stat stat) throws NoNodeException, KeeperException, InterruptedException, IOException {
-		if (path == null) {
+		if (path == null)
 			throw new IllegalArgumentException("path must not be null");
-		}
 		return getZooKeeper().getData(path.toString(), watch, stat);
 	}
 
@@ -829,9 +816,8 @@ public class ZooKeeperGate {
 	 * @see {@link ZooKeeper#setData(String, byte[], int)}
 	 */
 	private Stat setData(final IPath path, final CreateMode createMode, final byte[] data, final int version) throws InterruptedException, KeeperException, IOException {
-		if (path == null) {
+		if (path == null)
 			throw new IllegalArgumentException("path must not be null");
-		}
 
 		if ((createMode != null) && !exists(path)) {
 			try {
@@ -839,10 +825,9 @@ public class ZooKeeperGate {
 
 				// create succeeded, continue with set below
 			} catch (final KeeperException e) {
-				if (e.code() != KeeperException.Code.NODEEXISTS) {
+				if (e.code() != KeeperException.Code.NODEEXISTS)
 					// rethrow
 					throw e;
-				}
 			}
 		}
 
@@ -865,6 +850,7 @@ public class ZooKeeperGate {
 		// close ZooKeeper
 		try {
 			zooKeeper.close();
+			LOG.info("ZooKeeper session 0x{} closed. Gate ({}) shut down.", Long.toHexString(zooKeeper.getSessionId()), this);
 		} catch (final InterruptedException e) {
 			Thread.currentThread().interrupt();
 		} catch (final RuntimeException e) {
@@ -901,6 +887,7 @@ public class ZooKeeperGate {
 		if (isCurrentGate(this)) {
 			builder.append("CURRENT ");
 		}
+		builder.append(keeperStateRef.get()).append(' ');
 		builder.append("[").append(zooKeeper).append("]");
 		return builder.toString();
 	}
@@ -926,9 +913,8 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public Stat writeRecord(final IPath path, final byte[] recordData, final int version) throws InterruptedException, KeeperException, IOException {
-		if (recordData == null) {
+		if (recordData == null)
 			throw new IllegalArgumentException("recordData must not be null");
-		}
 		return setData(path, null, recordData, version);
 	}
 
@@ -951,12 +937,10 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public Stat writeRecord(final IPath path, final CreateMode createMode, final byte[] recordData) throws KeeperException, InterruptedException, IOException {
-		if (recordData == null) {
+		if (recordData == null)
 			throw new IllegalArgumentException("recordData must not be null");
-		}
-		if (createMode == null) {
+		if (createMode == null)
 			throw new IllegalArgumentException("createMode must not be null");
-		}
 		return setData(path, createMode, recordData, -1);
 	}
 
@@ -979,12 +963,10 @@ public class ZooKeeperGate {
 	 * @throws IOException
 	 */
 	public Stat writeRecord(final IPath path, final CreateMode createMode, final String recordData) throws KeeperException, InterruptedException, IOException {
-		if (recordData == null) {
+		if (recordData == null)
 			throw new IllegalArgumentException("recordData must not be null");
-		}
-		if (createMode == null) {
+		if (createMode == null)
 			throw new IllegalArgumentException("createMode must not be null");
-		}
 		try {
 			return writeRecord(path, createMode, recordData.getBytes(CharEncoding.UTF_8));
 		} catch (final UnsupportedEncodingException e) {

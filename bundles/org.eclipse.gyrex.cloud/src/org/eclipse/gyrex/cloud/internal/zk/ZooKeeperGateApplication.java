@@ -68,8 +68,7 @@ public class ZooKeeperGateApplication extends BaseApplication {
 
 		@Override
 		public void gateRecovering(final ZooKeeperGate gate) {
-			// TODO Auto-generated method stub
-
+			// nothing to be done here
 		}
 
 		@Override
