@@ -13,7 +13,6 @@ package org.eclipse.gyrex.http.jetty.internal;
 
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -38,10 +37,9 @@ import org.eclipse.jetty.http.HttpGenerator;
 import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.jmx.MBeanContainer;
 import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.spdy.server.http.HTTPSPDYServerConnector;
-import org.eclipse.jetty.spdy.server.http.PushStrategy;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
@@ -188,7 +186,7 @@ public class JettyEngineApplication implements IApplication {
 				}
 			}
 
-			final ServerConnector connector = new HTTPSPDYServerConnector(server, httpConfig, sslFactory, Collections.<Short, PushStrategy> emptyMap());
+			final ServerConnector connector = new ServerConnector(server, sslFactory, new HttpConnectionFactory(httpConfig));
 			connector.setPort(channel.getPort());
 			connector.setIdleTimeout(200000);
 			// TODO: (Jetty9?) connector.setAcceptors(2);
