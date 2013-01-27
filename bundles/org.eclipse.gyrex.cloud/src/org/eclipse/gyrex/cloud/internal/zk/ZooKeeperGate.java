@@ -229,7 +229,7 @@ public class ZooKeeperGate {
 					KeeperState oldState = keeperStateRef.getAndSet(KeeperState.SyncConnected);
 
 					// SyncConnected ==> connection is UP
-					LOG.info("ZooKeeper Gate is now UP (was {}). Session 0x{} established with {} (using timeout {}ms). [{}]", oldState.name(), Long.toHexString(zooKeeper.getSessionId()), zooKeeper.testableRemoteSocketAddress(), zooKeeper.getSessionTimeout(), ZooKeeperGate.this);
+					LOG.info("ZooKeeper Gate is now UP (was {}). Session 0x{} established with {} (using timeout {}ms). [{}]", oldState, Long.toHexString(zooKeeper.getSessionId()), zooKeeper.testableRemoteSocketAddress(), zooKeeper.getSessionTimeout(), ZooKeeperGate.this);
 
 					// reset recovery
 					markSessionExpiredJob.cancel();
@@ -249,7 +249,7 @@ public class ZooKeeperGate {
 					oldState = keeperStateRef.getAndSet(KeeperState.Disconnected);
 
 					// Disconnected ==> connection is down
-					LOG.info("ZooKeeper Gate is now RECOVERING (was {}). Connection lost. [{}]", oldState.name(), ZooKeeperGate.this);
+					LOG.info("ZooKeeper Gate is now RECOVERING (was {}). Connection lost. [{}]", oldState, ZooKeeperGate.this);
 
 					// ZK automatically tries to re-connect; however, until the connection
 					// is established again, we won't see any events from the server;
@@ -264,7 +264,7 @@ public class ZooKeeperGate {
 						notifyGateRecovering();
 					} else {
 						if (CloudDebug.zooKeeperGateLifecycle) {
-							LOG.debug("Old state == new state, not sending any events.", oldState.name());
+							LOG.debug("Old state == new state, not sending any events.", oldState);
 						}
 					}
 					break;
@@ -274,7 +274,7 @@ public class ZooKeeperGate {
 					oldState = keeperStateRef.getAndSet(KeeperState.Expired);
 
 					// Expired || Disconnected ==> connection is down
-					LOG.info("ZooKeeper Gate is now DOWN (was {}). Session expired. [{}]", oldState.name(), ZooKeeperGate.this);
+					LOG.info("ZooKeeper Gate is now DOWN (was {}). Session expired. [{}]", oldState, ZooKeeperGate.this);
 
 					// reset recovery
 					markSessionExpiredJob.cancel();
@@ -288,7 +288,7 @@ public class ZooKeeperGate {
 					oldState = keeperStateRef.getAndSet(KeeperState.AuthFailed);
 
 					// Expired || Disconnected ==> connection is down
-					LOG.error("ZooKeeper Gate is now DOWN (was {}). Authentication failed. [{}]", oldState.name(), ZooKeeperGate.this);
+					LOG.error("ZooKeeper Gate is now DOWN (was {}). Authentication failed. [{}]", oldState, ZooKeeperGate.this);
 
 					// trigger clean shutdown (and notify listeners)
 					shutdown(oldState != KeeperState.Expired);
