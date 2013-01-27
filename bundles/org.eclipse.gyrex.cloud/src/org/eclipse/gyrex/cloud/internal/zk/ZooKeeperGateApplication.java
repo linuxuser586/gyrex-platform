@@ -82,6 +82,7 @@ public class ZooKeeperGateApplication extends BaseApplication {
 			return Math.min(MAX_CONNECT_DELAY, delay * 2);
 		}
 
+		@Override
 		public void run() {
 			if (CloudDebug.zooKeeperGateLifecycle) {
 				LOG.debug("Connecting to ZooKeeper.");
@@ -125,7 +126,8 @@ public class ZooKeeperGateApplication extends BaseApplication {
 	 * Initiates a reconnect with ZooKeeper.
 	 * <p>
 	 * Note, this will likely create a new ZooKeeper session. Thus, all
-	 * ephemeral nodes will still be blocked by the previous session.
+	 * ephemeral nodes will still be blocked by the previous session until the
+	 * previous sessions times out.
 	 * </p>
 	 * <p>
 	 * Although this method is public, client must not call it directly. It is
@@ -136,9 +138,8 @@ public class ZooKeeperGateApplication extends BaseApplication {
 	 */
 	public static void reconnect() {
 		final ZooKeeperGateApplication gateApplication = ZooKeeperServerApplication.connectedGateApplication;
-		if (null == gateApplication) {
+		if (null == gateApplication)
 			throw new IllegalStateException("The ZooKeeper gate manager application is not started!");
-		}
 
 		// refresh the configuration
 		gateApplication.refreshConfig();
@@ -225,9 +226,8 @@ public class ZooKeeperGateApplication extends BaseApplication {
 
 	ZooKeeperGateConfig getConfig() {
 		final ZooKeeperGateConfig gateConfig = config;
-		if (null == gateConfig) {
+		if (null == gateConfig)
 			throw new IllegalStateException("ZooKeeper gate configuration not initialized.");
-		}
 		return gateConfig;
 	}
 
