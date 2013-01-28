@@ -29,6 +29,7 @@ import org.osgi.service.application.ApplicationException;
 import org.osgi.service.application.ApplicationHandle;
 
 import org.apache.commons.lang.StringUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,13 +63,16 @@ public class ServerRole {
 	 */
 	void activate() throws ActivationException {
 		if (!active.compareAndSet(false, true)) {
+			if (BootDebug.roles) {
+				LOG.debug("Server role {} already active!", getId());
+			}
 			return;
 		}
 
-		if (BootDebug.roles) {
-			LOG.debug("Activating server role {}...", getId());
-		}
+		// log a message
+		LOG.info("Activating {}.", StringUtils.isNotBlank(getName()) ? getName() : getId());
 
+		// start bundles
 		for (final String bundleName : requiredBundleNames) {
 			try {
 				startBundle(bundleName);
@@ -76,6 +80,8 @@ public class ServerRole {
 				throw new ActivationException(NLS.bind("Error starting bundle \"{0}\": {1}", bundleName, e.getMessage()), e);
 			}
 		}
+
+		// start applications
 		for (final String applicationId : requiredApplicationIds) {
 			try {
 				startApplication(applicationId);
@@ -84,6 +90,9 @@ public class ServerRole {
 			}
 		}
 
+		if (BootDebug.roles) {
+			LOG.debug("Activating server role {}...", getId());
+		}
 	}
 
 	/**
@@ -91,18 +100,24 @@ public class ServerRole {
 	 */
 	void deactivate() {
 		if (!active.compareAndSet(true, false)) {
+			if (BootDebug.roles) {
+				LOG.debug("Server role {} already inactive!", getId());
+			}
 			return;
 		}
 
-		if (BootDebug.roles) {
-			LOG.debug("Deactivating server role {}...", getId());
-		}
+		// log a message
+		LOG.info("Deactivating {}.", StringUtils.isNotBlank(getName()) ? getName() : getId());
 
 		// stop applications in reverse order
 		final List<String> launchedAppIds = new ArrayList<String>(launchedApps.keySet());
 		Collections.reverse(launchedAppIds);
 		for (final String applicationId : launchedAppIds) {
 			stopApplication(applicationId);
+		}
+
+		if (BootDebug.roles) {
+			LOG.debug("Deactivated server role {}...", getId());
 		}
 	}
 
@@ -137,9 +152,8 @@ public class ServerRole {
 		}
 		// FIXME: we need to check for running instances before we launch
 		final ApplicationDescriptor applicationDescriptor = BootActivator.getInstance().getEclipseApplication(applicationId);
-		if (applicationDescriptor == null) {
+		if (applicationDescriptor == null)
 			throw new IllegalStateException(NLS.bind("Application {0} not found!", applicationId));
-		}
 		final ApplicationHandle handle = applicationDescriptor.launch(null);
 		launchedApps.put(applicationId, handle);
 
@@ -184,21 +198,18 @@ public class ServerRole {
 			return;
 		}
 		final int originalState = bundle.getState();
-		if ((originalState & Bundle.ACTIVE) != 0) {
+		if ((originalState & Bundle.ACTIVE) != 0)
 			return; // bundle is already active
-		}
 		try {
 			// attempt to activate the bundle
 			bundle.start(Bundle.START_TRANSIENT);
 		} catch (final BundleException e) {
-			if ((bundle.getState() & Bundle.ACTIVE) != 0) {
+			if ((bundle.getState() & Bundle.ACTIVE) != 0)
 				// this can happen if the bundle was started by a different thread (the framework) already
 				return;
-			}
-			if (((originalState & Bundle.STARTING) != 0) && ((bundle.getState() & Bundle.STARTING) != 0)) {
+			if (((originalState & Bundle.STARTING) != 0) && ((bundle.getState() & Bundle.STARTING) != 0))
 				// this can happen if the bundle was in the process of being activated on this thread, just return
 				return;
-			}
 			throw e;
 		}
 
