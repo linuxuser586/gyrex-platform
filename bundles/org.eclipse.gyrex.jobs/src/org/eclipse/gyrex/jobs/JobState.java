@@ -43,6 +43,38 @@ public enum JobState {
 	 * 
 	 * @see IJob#getState()
 	 */
-	ABORTING
+	ABORTING;
+
+	/**
+	 * Converts the specified value to a valid {@link JobState}.
+	 * <p>
+	 * If the value is a {@link JobState} it will be returned as is.
+	 * </p>
+	 * <p>
+	 * If the value is a {@link String} it will be evaluated using
+	 * {@link JobState#valueOf(String)}. If the evaluation fails,
+	 * {@link JobState#NONE} will be returned.
+	 * </p>
+	 * <p>
+	 * If the value can't be converted, {@link JobState#NONE} will be returned.
+	 * </p>
+	 * 
+	 * @param value
+	 *            the value to convert
+	 * @return the job state (never <code>null</code>)
+	 */
+	public static JobState toState(final Object value) {
+		if (value instanceof JobState)
+			return (JobState) value;
+		if (value instanceof String) {
+			try {
+				return Enum.valueOf(JobState.class, (String) value);
+			} catch (final IllegalArgumentException e) {
+				return JobState.NONE;
+			}
+		}
+
+		return JobState.NONE;
+	}
 
 }

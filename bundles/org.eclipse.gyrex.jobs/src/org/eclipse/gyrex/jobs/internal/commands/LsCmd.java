@@ -24,14 +24,15 @@ import java.util.TreeSet;
 import org.eclipse.gyrex.common.console.Command;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.JobState;
+import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
-import org.eclipse.gyrex.jobs.internal.manager.JobHistoryImpl;
-import org.eclipse.gyrex.jobs.internal.manager.JobHistoryItemImpl;
-import org.eclipse.gyrex.jobs.internal.manager.JobHistoryStore;
 import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
-import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
+import org.eclipse.gyrex.jobs.internal.manager.StorableBackedJobHistoryEntry;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
+import org.eclipse.gyrex.jobs.internal.storage.CloudPreferncesJobHistoryStorage;
+import org.eclipse.gyrex.jobs.internal.storage.CloudPreferncesJobStorage;
+import org.eclipse.gyrex.jobs.internal.util.ContextHashUtil;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
@@ -43,6 +44,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang.time.DateFormatUtils;
+
 import org.kohsuke.args4j.Argument;
 
 /**
@@ -88,14 +90,13 @@ public class LsCmd extends Command {
 	}
 
 	private SortedSet<String> getJobIds(final JobState state) throws BackingStoreException {
-		final String[] storageIds = JobHistoryStore.getJobsNode().childrenNames();
-		if (null == state) {
+		final String[] storageIds = CloudPreferncesJobStorage.getJobsNode().childrenNames();
+		if (null == state)
 			return new TreeSet<String>(Arrays.asList(storageIds));
-		}
 
 		final TreeSet<String> jobIds = new TreeSet<String>();
 		for (final String storageId : storageIds) {
-			if (StringUtils.equals(JobHistoryStore.getJobsNode().node(storageId).get("status", null), state.name())) {
+			if (StringUtils.equals(CloudPreferncesJobStorage.getJobsNode().node(storageId).get("status", null), state.name())) {
 				jobIds.add(storageId);
 			}
 		}
@@ -111,17 +112,17 @@ public class LsCmd extends Command {
 		info.append(" last successfull finish: ").appendln(job.getLastSuccessfulFinish() > -1 ? DateFormatUtils.formatUTC(job.getLastSuccessfulFinish(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
 		info.append("             last result: ").appendln(job.getLastResult() != null ? job.getLastResult().getMessage() : "(not available)");
 
-		final IEclipsePreferences historyNode = JobHistoryStore.getJobsHistoryNode();
+		final IEclipsePreferences historyNode = CloudPreferncesJobHistoryStorage.getJobsHistoryNode();
 		if (historyNode.nodeExists(job.getStorageKey())) {
-			final IEclipsePreferences jobHistory = JobHistoryStore.getHistoryNode(job.getStorageKey());
+			final IEclipsePreferences jobHistory = CloudPreferncesJobHistoryStorage.getHistoryNode(job.getStorageKey());
 			final String[] childrenNames = jobHistory.childrenNames();
-			final SortedSet<JobHistoryItemImpl> entries = new TreeSet<JobHistoryItemImpl>();
+			final SortedSet<IJobHistoryEntry> entries = new TreeSet<IJobHistoryEntry>();
 			for (final String entryId : childrenNames) {
-				entries.add(JobHistoryImpl.readItem(jobHistory.node(entryId)));
+				entries.add(new StorableBackedJobHistoryEntry(CloudPreferncesJobHistoryStorage.readItem(jobHistory.node(entryId))));
 			}
 
 			info.appendNewLine();
-			for (final JobHistoryItemImpl entry : entries) {
+			for (final IJobHistoryEntry entry : entries) {
 				info.appendln(entry.toString());
 			}
 		}
@@ -136,9 +137,9 @@ public class LsCmd extends Command {
 		// show single job if id matches
 		if (StringUtils.isNotBlank(searchString) && IdHelper.isValidId(searchString)) {
 			for (final String storageId : storageIds) {
-				final String externalId = JobManagerImpl.getExternalId(storageId);
+				final String externalId = ContextHashUtil.getExternalId(storageId);
 				if (StringUtils.equals(searchString, externalId)) {
-					final JobImpl job = JobManagerImpl.readJob(externalId, JobHistoryStore.getJobsNode().node(storageId));
+					final JobImpl job = CloudPreferncesJobStorage.readJob(externalId, CloudPreferncesJobStorage.getJobsNode().node(storageId));
 					if (null != job) {
 						printJob(job);
 						return;
@@ -150,7 +151,7 @@ public class LsCmd extends Command {
 		// list all
 		boolean found = false;
 		for (final String storageId : storageIds) {
-			final String externalId = JobManagerImpl.getExternalId(storageId);
+			final String externalId = ContextHashUtil.getExternalId(storageId);
 			if (StringUtils.isBlank(searchString) || StringUtils.contains(storageId, searchString)) {
 				printf("%s (storage key %s)", externalId, storageId);
 				found = true;

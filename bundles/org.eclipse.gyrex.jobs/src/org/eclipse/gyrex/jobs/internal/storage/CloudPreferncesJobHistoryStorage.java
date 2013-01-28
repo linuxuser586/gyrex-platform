@@ -9,19 +9,22 @@
  * Contributors:
  *     Mike Tschierschke - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.jobs.internal.manager;
+package org.eclipse.gyrex.jobs.internal.storage;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.eclipse.gyrex.jobs.history.IJobHistory;
-import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
-import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import javax.inject.Inject;
 
-import org.eclipse.core.runtime.IPath;
+import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.internal.util.ContextHashUtil;
+import org.eclipse.gyrex.jobs.spi.storage.IJobHistoryStorage;
+import org.eclipse.gyrex.jobs.spi.storage.JobHistoryEntryStorable;
+import org.eclipse.gyrex.preferences.CloudScope;
+
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -37,24 +40,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Simple implementation of of a {@link IJobHistoryEntry}.
+ * Store which persists job history in cloud preferences.
  */
-public class JobHistoryImpl implements IJobHistory {
-
+public class CloudPreferncesJobHistoryStorage implements IJobHistoryStorage {
 	private static final String KEY_RESULT_SEVERITY = "resultSeverity";
 	private static final String KEY_RESULT_MESSAGE = "resultMessage";
 	private static final String KEY_TIMESTAMP = "timestamp";
 	private static final String KEY_QUEUED_TRIGGER = "queuedTrigger";
 	private static final String KEY_CANCELLED_TRIGGER = "canceledTrigger";
 	private static final int MAX_HISTORY_SIZE = 120;
-	static final int MAX_RESULT_MESSAGE_SIZE = Integer.getInteger("gyrex.jobs.history.maxMessageLength", 4096); // ~4K
+	public static final int MAX_RESULT_MESSAGE_SIZE = Integer.getInteger("gyrex.jobs.history.maxMessageLength", 4096); // ~4K
 
-	private static final Logger LOG = LoggerFactory.getLogger(JobHistoryImpl.class);
+	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferncesJobHistoryStorage.class);
+
+	private static final String NODE_HISTORY = "history";
 
 	private static IStatus convertStatus(final IStatus status) {
 		// FIXME: implement better deserialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
 		// for now we just convert the message to not loose any important information
-		return new Status(status.getSeverity(), JobsActivator.SYMBOLIC_NAME, JobHistoryImpl.getFormattedMessage(status, 0));
+		return new Status(status.getSeverity(), JobsActivator.SYMBOLIC_NAME, StringUtils.left(getFormattedMessage(status, 0), MAX_RESULT_MESSAGE_SIZE));
 	}
 
 	private static IStatus deserializeStatus(final Preferences node) {
@@ -62,7 +66,7 @@ public class JobHistoryImpl implements IJobHistory {
 		return new Status(node.getInt(KEY_RESULT_SEVERITY, IStatus.CANCEL), JobsActivator.SYMBOLIC_NAME, node.get(KEY_RESULT_MESSAGE, ""));
 	}
 
-	static String getFormattedMessage(final IStatus status, final int ident) {
+	public static String getFormattedMessage(final IStatus status, final int ident) {
 		final StrBuilder builder = new StrBuilder();
 		builder.appendPadding(ident, ' ');
 		switch (status.getSeverity()) {
@@ -93,110 +97,69 @@ public class JobHistoryImpl implements IJobHistory {
 		return builder.toString();
 	}
 
-	public static JobHistoryItemImpl readItem(final Preferences node) {
-		final long ts = node.getLong(KEY_TIMESTAMP, 0);
-		final String queuedTrigger = node.get(KEY_QUEUED_TRIGGER, StringUtils.EMPTY);
-		final String cancelledTrigger = node.get(KEY_CANCELLED_TRIGGER, null);
-		Map<String, String> parameter = null;
+	public static IEclipsePreferences getHistoryNode(final String jobStorageKey) throws BackingStoreException {
+		return (IEclipsePreferences) getJobsHistoryNode().node(jobStorageKey);
+	}
+
+	public static IEclipsePreferences getJobsHistoryNode() {
+		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_HISTORY);
+	}
+
+	public static JobHistoryEntryStorable readItem(final Preferences node) {
+		final JobHistoryEntryStorable historyEntry = new JobHistoryEntryStorable();
+		historyEntry.setTimestamp(node.getLong(KEY_TIMESTAMP, 0));
+		historyEntry.setResult(deserializeStatus(node));
+		historyEntry.setQueuedTrigger(node.get(KEY_QUEUED_TRIGGER, StringUtils.EMPTY));
+		historyEntry.setCancelledTrigger(node.get(KEY_CANCELLED_TRIGGER, null));
 		try {
-			parameter = JobManagerImpl.readParameter(node);
+			historyEntry.setParameter(CloudPreferncesJobStorage.readParameter(node));
 		} catch (final BackingStoreException e) {
 			LOG.warn("Failed to read parameter for job history {}. {}", new Object[] { node.absolutePath(), ExceptionUtils.getRootCauseMessage(e), e });
 		}
-		return new JobHistoryItemImpl(ts, deserializeStatus(node), queuedTrigger, cancelledTrigger, parameter);
+		return historyEntry;
 	}
 
 	private static void serializeStatus(final IStatus status, final Preferences node) {
 		// FIXME: implement better serialization of Status (must support MultiStatus and plug-in id, but don't need to support exception)
-		node.put(KEY_RESULT_MESSAGE, StringUtils.left(status.getMessage(), MAX_RESULT_MESSAGE_SIZE));
+		node.put(KEY_RESULT_MESSAGE, convertStatus(status).getMessage());
 		node.putInt(KEY_RESULT_SEVERITY, status.getSeverity());
 	}
 
-	private final String jobId;
-
-	private final IPath contextPath;
-
-	private SortedSet<IJobHistoryEntry> entries;
+	private final ContextHashUtil contextHash;
 
 	/**
 	 * Creates a new instance.
-	 * 
-	 * @param jobId
-	 * @param contextPath
 	 */
-	public JobHistoryImpl(final String jobId, final IPath contextPath) {
-		this.jobId = jobId;
-		this.contextPath = contextPath;
-	}
-
-	public void createEntry(final long resultTimestamp, final IStatus result, final long lastQueuedTimestamp, String lastQueueTrigger, final long lastCanceledTimestamp, String lastCanceledTrigger, final Map<String, String> parameter) {
-		// only pass queue trigger to history if it makes sense
-		if (lastQueuedTimestamp > resultTimestamp) {
-			lastQueueTrigger = String.format("Specified trigger is incorrect. Job already queued after receiving result. (%s)", lastQueueTrigger);
-		}
-
-		// only pass cancellation trigger to history if it makes sense
-		// TODO: is logic is brittle, we may need a better way to record cancellations in history
-		if ((lastCanceledTimestamp < lastQueuedTimestamp) || (lastCanceledTimestamp > resultTimestamp)) {
-			lastCanceledTrigger = null;
-		}
-
-		entries.add(new JobHistoryItemImpl(resultTimestamp, convertStatus(result), lastQueueTrigger, lastCanceledTrigger, parameter));
-	}
-
-	/**
-	 * Returns the contextPath.
-	 * 
-	 * @return the contextPath
-	 */
-	public IPath getContextPath() {
-		return contextPath;
+	@Inject
+	public CloudPreferncesJobHistoryStorage(final IRuntimeContext context) {
+		contextHash = new ContextHashUtil(context);
 	}
 
 	@Override
-	public Collection<IJobHistoryEntry> getEntries() {
-		if (null == entries)
-			return Collections.emptyList();
-
-		return Collections.unmodifiableCollection(entries);
-	}
-
-	/**
-	 * Returns the jobId.
-	 * 
-	 * @return the jobId
-	 */
-	public String getJobId() {
-		return jobId;
-	}
-
-	public void load(final IEclipsePreferences historyNode) throws BackingStoreException {
+	public void add(final String jobId, final JobHistoryEntryStorable historyEntry) throws Exception {
+		// load existing entries
+		final IEclipsePreferences historyNode = getHistoryNode(contextHash.toInternalId(jobId));
 		final String[] childrenNames = historyNode.childrenNames();
-		entries = new TreeSet<IJobHistoryEntry>();
+		final SortedSet<JobHistoryEntryStorable> entries = new TreeSet<JobHistoryEntryStorable>();
 		for (final String entryId : childrenNames) {
 			entries.add(readItem(historyNode.node(entryId)));
 		}
 
-		shrinkToSizeLimit();
-	}
-
-	public void save(final IEclipsePreferences historyNode) throws BackingStoreException {
-		if (null == entries)
-			// never loaded
-			return;
+		// add new entry
+		entries.add(historyEntry);
 
 		// shrink to size limit
-		shrinkToSizeLimit();
+		shrinkToSizeLimit(entries);
 
 		// create new entries
-		for (final IJobHistoryEntry entry : entries) {
-			final String entryId = String.valueOf(entry.getTimeStamp());
+		for (final JobHistoryEntryStorable entry : entries) {
+			final String entryId = String.valueOf(entry.getTimestamp());
 			if (historyNode.nodeExists(entryId)) {
 				continue;
 			}
 
 			final Preferences node = historyNode.node(entryId);
-			node.putLong(KEY_TIMESTAMP, entry.getTimeStamp());
+			node.putLong(KEY_TIMESTAMP, entry.getTimestamp());
 			serializeStatus(entry.getResult(), node);
 
 			if (null != entry.getQueuedTrigger()) {
@@ -208,30 +171,50 @@ public class JobHistoryImpl implements IJobHistory {
 		}
 
 		// remove entries over size limit
-		final String[] childrenNames = historyNode.childrenNames();
-		for (final String entryId : childrenNames) {
-			final Preferences node = historyNode.node(entryId);
-			// FIXME: we should not relay on item for comparison (maybe just the timestamp is enough?)
-			if (!entries.contains(readItem(node))) {
-				node.removeNode();
+		for (final String entryId : historyNode.childrenNames()) {
+			// check if there is en entry for the node
+			for (final JobHistoryEntryStorable entry : entries) {
+				if (entryId.equals(String.valueOf(entry.getTimestamp()))) {
+					continue;
+				}
 			}
+			historyNode.node(entryId).removeNode();
 		}
 
 		// flush
 		historyNode.flush();
+
 	}
 
-	private void shrinkToSizeLimit() {
+	@Override
+	public int count(final String jobId) throws Exception {
+		final IEclipsePreferences historyNode = getHistoryNode(contextHash.toInternalId(jobId));
+		final String[] childrenNames = historyNode.childrenNames();
+		return childrenNames.length;
+	}
+
+	@Override
+	public Collection<JobHistoryEntryStorable> find(final String jobId, final int offset, final int fetchSize) throws Exception {
+		if (offset > 0)
+			return Collections.emptyList();
+
+		final IEclipsePreferences historyNode = getHistoryNode(contextHash.toInternalId(jobId));
+		final String[] childrenNames = historyNode.childrenNames();
+		final SortedSet<JobHistoryEntryStorable> entries = new TreeSet<JobHistoryEntryStorable>();
+		for (final String entryId : childrenNames) {
+			entries.add(readItem(historyNode.node(entryId)));
+		}
+
+		shrinkToSizeLimit(entries);
+
+		return entries;
+	}
+
+	private void shrinkToSizeLimit(final SortedSet<JobHistoryEntryStorable> entries) {
 		// remove the last entries if over size
 		while (entries.size() > MAX_HISTORY_SIZE) {
 			entries.remove(entries.last());
 		}
 	}
 
-	@Override
-	public String toString() {
-		final StringBuilder builder = new StringBuilder();
-		builder.append("JobHistoryImpl [jobId=").append(jobId).append(", contextPath=").append(contextPath).append(", entries=").append(entries).append("]");
-		return builder.toString();
-	}
 }

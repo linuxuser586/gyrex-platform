@@ -16,7 +16,10 @@ import java.util.Collection;
 import org.eclipse.gyrex.jobs.IJob;
 
 /**
- * The history of all tracked executions of a {@link IJob job}.
+ * History log of all tracked executions of a {@link IJob job}.
+ * 
+ * @noextend This interface is not intended to be extended by clients.
+ * @noimplement This interface is not intended to be implemented by clients.
  */
 public interface IJobHistory {
 

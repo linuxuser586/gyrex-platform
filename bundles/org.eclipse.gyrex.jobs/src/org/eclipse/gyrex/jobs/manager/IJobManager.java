@@ -23,6 +23,7 @@ import org.eclipse.gyrex.jobs.IJob;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.history.IJobHistory;
 import org.eclipse.gyrex.jobs.service.IJobService;
+import org.eclipse.gyrex.jobs.spi.storage.IJobHistoryStorage;
 
 import org.eclipse.core.runtime.jobs.Job;
 
@@ -123,15 +124,25 @@ public interface IJobManager {
 
 	/**
 	 * Returns the history for the specified job.
+	 * <p>
+	 * Storing and accessing the history for any job requires the availability
+	 * of a {@link IJobHistoryStorage job history storage} in a specific
+	 * context.
+	 * </p>
+	 * <p>
+	 * If no storage is configured, no history will be persisted and an empty
+	 * {@link IJobHistory result} will be returned.
+	 * </p>
 	 * 
 	 * @param jobId
 	 *            the id of the job
-	 * @return the job history
+	 * @return the job history (never <code>null</code>)
 	 * @throws IllegalArgumentException
 	 *             if any of the arguments is invalid
 	 * @throws IllegalStateException
 	 *             if the job history cannot be read (either the job does not
 	 *             exists or any system service is missing)
+	 * @see IJobHistoryStorage
 	 */
 	IJobHistory getHistory(String jobId) throws IllegalArgumentException, IllegalStateException;
 

@@ -9,13 +9,17 @@
  * Contributors:
  *     Gunnar Wagenknecht, Mike Tschierschke - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.jobs.internal.manager;
+package org.eclipse.gyrex.jobs.internal.storage;
 
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
+import org.eclipse.gyrex.jobs.internal.manager.JobHungDetectionHelper;
+import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
+import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
+import org.eclipse.gyrex.jobs.internal.util.ContextHashUtil;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -27,13 +31,14 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Clean-up of old job entries
  */
-public final class CleanupJob extends Job {
+public final class CloudPreferencesCleanupJob extends Job {
 
 	static class MutexRule implements ISchedulingRule {
 
@@ -43,19 +48,20 @@ public final class CleanupJob extends Job {
 			this.object = object;
 		}
 
+		@Override
 		public boolean contains(final ISchedulingRule rule) {
 			return rule == this;
 		}
 
+		@Override
 		public boolean isConflicting(final ISchedulingRule rule) {
-			if (rule instanceof CleanupJob.MutexRule) {
-				return object.equals(((CleanupJob.MutexRule) rule).object);
-			}
+			if (rule instanceof CloudPreferencesCleanupJob.MutexRule)
+				return object.equals(((CloudPreferencesCleanupJob.MutexRule) rule).object);
 			return false;
 		}
 	}
 
-	private static final Logger LOG = LoggerFactory.getLogger(CleanupJob.class);
+	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferencesCleanupJob.class);
 	private final long maxAge;
 
 	/**
@@ -63,11 +69,11 @@ public final class CleanupJob extends Job {
 	 * 
 	 * @param context
 	 */
-	public CleanupJob() {
+	public CloudPreferencesCleanupJob() {
 		super("Gyrex Job API Garbage Collector");
 		setSystem(true);
 		setPriority(LONG);
-		setRule(new MutexRule(CleanupJob.class));
+		setRule(new MutexRule(CloudPreferencesCleanupJob.class));
 
 		// initialize max age
 		final int maxDaysSinceLastRun = Integer.getInteger("gyrex.jobs.cleanup.maxDaysSinceLastRun", 30);
@@ -80,7 +86,7 @@ public final class CleanupJob extends Job {
 
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
-		final IEclipsePreferences jobsNode = JobHistoryStore.getJobsNode();
+		final IEclipsePreferences jobsNode = CloudPreferncesJobStorage.getJobsNode();
 		try {
 			// ensure the preference tree is current (bug 360402)
 			LOG.info("Refreshing job definitions...");
@@ -90,14 +96,14 @@ public final class CleanupJob extends Job {
 			final long now = System.currentTimeMillis();
 			final String[] childrenNames = jobsNode.childrenNames();
 			for (final String internalId : childrenNames) {
-				final String externalId = JobManagerImpl.getExternalId(internalId);
-				JobImpl job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
+				final String externalId = ContextHashUtil.getExternalId(internalId);
+				JobImpl job = CloudPreferncesJobStorage.readJob(externalId, jobsNode.node(internalId));
 
 				// acquire lock (see bug 363423)
 				final IExclusiveLock lock = JobManagerImpl.acquireLock(job);
 				try {
 					// re-read job in lock
-					job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
+					job = CloudPreferncesJobStorage.readJob(externalId, jobsNode.node(internalId));
 
 					// fix hung jobs
 					if (JobHungDetectionHelper.isStuck(internalId, job, true)) {
@@ -105,10 +111,10 @@ public final class CleanupJob extends Job {
 
 						// set inactive
 						final Preferences jobNode = jobsNode.node(internalId);
-						jobNode.put(JobManagerImpl.PROPERTY_STATUS, JobState.NONE.name());
-						jobNode.remove(JobManagerImpl.PROPERTY_ACTIVE);
+						jobNode.put(CloudPreferncesJobStorage.PROPERTY_STATUS, JobState.NONE.name());
+						jobNode.remove(CloudPreferncesJobStorage.PROPERTY_ACTIVE);
 						jobNode.flush();
-						job = JobManagerImpl.readJob(externalId, jobsNode.node(internalId));
+						job = CloudPreferncesJobStorage.readJob(externalId, jobsNode.node(internalId));
 					}
 
 					// remove only jobs in state NONE
