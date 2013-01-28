@@ -11,15 +11,17 @@
  */
 package org.eclipse.gyrex.jobs.tests.internal;
 
+import org.eclipse.gyrex.junit.GyrexServerResource;
+
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-/**
- *
- */
 @RunWith(Suite.class)
 @SuiteClasses({ JobManagerBlackBoxTests.class, JobHungDetectionTests.class })
 public class AllJobTests {
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 }
