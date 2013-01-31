@@ -7,28 +7,28 @@ import org.osgi.framework.BundleContext;
 
 public class JobsTestsActivator extends BaseBundleActivator {
 
-	private static BundleContext context;
+	private static JobsTestsActivator instance;
 
-	static BundleContext getContext() {
-		return context;
+	public static JobsTestsActivator getInstance() {
+		final JobsTestsActivator activator = instance;
+		if (activator == null)
+			throw new IllegalStateException("inactive");
+		return activator;
 	}
 
-	/**
-	 * Creates a new instance.
-	 */
 	public JobsTestsActivator() {
 		super("org.eclipse.gyrex.jobs.tests");
 	}
 
 	@Override
 	protected void doStart(final BundleContext context) throws Exception {
-		JobsTestsActivator.context = context;
+		instance = this;
 		getServiceHelper().registerService(JobProvider.class, new TestJobsProvider(), null, null, null, null);
 	}
 
 	@Override
 	protected void doStop(final BundleContext context) throws Exception {
-		JobsTestsActivator.context = null;
+		instance = null;
 	}
 
 }
