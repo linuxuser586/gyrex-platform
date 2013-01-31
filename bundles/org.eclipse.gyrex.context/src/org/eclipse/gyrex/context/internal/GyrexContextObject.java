@@ -142,6 +142,10 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 				return computedObject;
 			}
 
+			// check if disposed
+			if (context == null)
+				throw new IllegalStateException(String.format("Object for type '%s' in context '%s' already disposed!", type.getName(), context.getContextPath()));
+
 			if (ContextDebug.objectLifecycle) {
 				LOG.debug("Computing object for {}", this);
 			}

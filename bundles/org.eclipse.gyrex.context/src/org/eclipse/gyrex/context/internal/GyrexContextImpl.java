@@ -16,8 +16,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.internal.di.BaseContextInjector;
@@ -56,6 +56,10 @@ import org.slf4j.LoggerFactory;
 // note, this class does intentionally not implement IRuntimeContext directly
 public class GyrexContextImpl extends PlatformObject implements BundleListener {
 
+	static enum DisposeState {
+		DISPOSING, DISPOSED
+	}
+
 	private static final Logger LOG = LoggerFactory.getLogger(GyrexContextImpl.class);
 
 	/** key for looking up a GyrexContextImpl from an IEclipseContext */
@@ -69,10 +73,10 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 			// TODO should debug/trace this
 			return null;
 		}
-	}
+	};
 
 	private final IPath contextPath;
-	private final AtomicBoolean disposed = new AtomicBoolean();
+	private final AtomicReference<DisposeState> disposed = new AtomicReference<>();
 	private final ContextRegistryImpl contextRegistry;
 	private final Set<IContextDisposalListener> disposables = new CopyOnWriteArraySet<IContextDisposalListener>();
 	private final BaseContextInjector injector;
@@ -122,16 +126,32 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	}
 
 	protected void checkDisposed() throws IllegalStateException {
-		if (disposed.get())
+		// this only checks if we are completely disposed
+		if (DisposeState.DISPOSED == disposed.get())
+			throw new IllegalStateException("context is disposed");
+	}
+
+	protected void checkDisposingOrDisposed() throws IllegalStateException {
+		// this already fails if disposing was started
+		if (null != disposed.get())
 			throw new IllegalStateException("context is disposed");
 	}
 
 	/**
 	 * Disposes the context.
+	 * <p>
+	 * Disposing happens in two steps:
+	 * <ul>
+	 * <li>DISPOSING - this is used for disposing all dependent disposables;
+	 * they may still access the context during dispose; however, no new objects
+	 * will be created</li>
+	 * <li>DISPOSED - the context is finally disposed; not accessing anymore</li>
+	 * </ul>
+	 * </p>
 	 */
 	public void dispose() {
-		// don't do anything if already disposed; if not mark disposed
-		if (disposed.getAndSet(true))
+		// don't do anything if already disposed; if not begin disposing
+		if (disposed.compareAndSet(null, DisposeState.DISPOSING))
 			return;
 
 		// notify disposables
@@ -140,6 +160,10 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 				disposable.contextDisposed(getHandle());
 			}
 		} finally {
+			// disposables has been notified -> mark disposed complete
+			disposed.set(DisposeState.DISPOSED);
+
+			// clear disposables
 			disposables.clear();
 
 			// dispose service locators
@@ -153,6 +177,7 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 
 			// dispose preferences
 			preferences.dispose();
+
 		}
 	}
 
@@ -189,6 +214,9 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 			// check if would be possible to compute an object
 			if (null == getContextRegistry().getObjectProviderRegistry().getType(type.getName()))
 				return null;
+
+			// before computing anything, make sure we are not already disposing
+			checkDisposingOrDisposed();
 
 			// compute object
 			computedObjects.putIfAbsent(type, new GyrexContextObject(this, type));
@@ -284,20 +312,17 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	 * @return <code>true</code> if the context has been disposed
 	 */
 	public boolean isDisposed() {
-		return disposed.get();
+		return null != disposed.get();
 	}
 
 	void removeDisposable(final IContextDisposalListener disposable) {
-		// ignore after disposal
-		if (!disposed.get()) {
-			disposables.remove(disposable);
-		}
+		disposables.remove(disposable);
 	}
 
 	@Override
 	public String toString() {
 		if (isDisposed())
-			return String.format("Gyrex Context [DISPOSED (%s)]", contextPath);
+			return String.format("Gyrex Context [%s (%s)]", disposed.get(), contextPath);
 
 		// look for a context name
 		String name;

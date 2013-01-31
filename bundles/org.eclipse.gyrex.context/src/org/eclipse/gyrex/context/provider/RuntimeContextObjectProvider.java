@@ -100,9 +100,8 @@ public abstract class RuntimeContextObjectProvider {
 	 *             if already configured
 	 */
 	protected final void configureObjectTypes(final Map<Class<?>, Class<?>> objectTypesConfiguration) throws IllegalStateException {
-		if (null != objectTypesToImplementationTypesMap) {
+		if (null != objectTypesToImplementationTypesMap)
 			throw new IllegalStateException("already configured");
-		}
 		if (null != objectTypesConfiguration) {
 			objectTypesToImplementationTypesMap = Collections.unmodifiableMap(objectTypesConfiguration);
 			final Set<Class<?>> keySet = objectTypesToImplementationTypesMap.keySet();
@@ -150,13 +149,11 @@ public abstract class RuntimeContextObjectProvider {
 	 *             if not configured
 	 */
 	public <T> T getObject(final Class<T> type, final IRuntimeContext context) throws IllegalStateException {
-		if (null == objectTypesToImplementationTypesMap) {
+		if (null == objectTypesToImplementationTypesMap)
 			throw new IllegalStateException("not configured");
-		}
 		final Class<?> implementationType = objectTypesToImplementationTypesMap.get(type);
-		if (null != implementationType) {
+		if (null != implementationType)
 			return makeObject(context, implementationType);
-		}
 		return null;
 	}
 
@@ -183,9 +180,8 @@ public abstract class RuntimeContextObjectProvider {
 	 */
 	public Class<?>[] getObjectTypes() throws IllegalStateException {
 		final Class<?>[] types = objectTypes;
-		if (null == types) {
+		if (null == types)
 			throw new IllegalStateException("not configured");
-		}
 		return types;
 	}
 
@@ -230,10 +226,7 @@ public abstract class RuntimeContextObjectProvider {
 	 *            the context for which the object was created
 	 */
 	public <T> void ungetObject(final T object, final IRuntimeContext context) {
-		final IRuntimeContextInjector injectionFactory = context.get(IRuntimeContextInjector.class);
-		if (null != injectionFactory) {
-			injectionFactory.uninject(object);
-		}
+		context.getInjector().uninject(object);
 	}
 
 }
