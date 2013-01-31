@@ -49,6 +49,7 @@ import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,24 +87,20 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 	 *             </ul>
 	 */
 	public static IPath sanitize(final IPath contextPath) throws IllegalArgumentException {
-		if (null == contextPath) {
+		if (null == contextPath)
 			throw new IllegalArgumentException("context path must not be null");
-		}
 
-		if (null != contextPath.getDevice()) {
+		if (null != contextPath.getDevice())
 			throw new IllegalArgumentException("invalid context path; device id must be null; " + contextPath);
-		}
 
 		// check for empty path
-		if (contextPath.isEmpty()) {
+		if (contextPath.isEmpty())
 			return Path.ROOT;
-		}
 
 		// verify segments
 		for (final String segment : contextPath.segments()) {
-			if (forbiddenPathSegments.contains(segment)) {
+			if (forbiddenPathSegments.contains(segment))
 				throw new IllegalArgumentException(NLS.bind("Segment \"{0}\" not allowed in context path \"{1}\"", segment, contextPath));
-			}
 		}
 
 		return contextPath.makeAbsolute().addTrailingSeparator();
@@ -141,9 +138,8 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 	}
 
 	private void checkClosed() throws IllegalStateException {
-		if (closed.get()) {
+		if (closed.get())
 			throw new IllegalStateException("context registry closed");
-		}
 	}
 
 	public void close() throws Exception {
@@ -295,15 +291,13 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		contextPath = sanitize(contextPath);
 
 		// the root definition is always defined
-		if (contextPath.isRoot()) {
+		if (contextPath.isRoot())
 			return getRootDefinition();
-		}
 
 		final Preferences node = getContextDefinitionStore();
 		final String name = node.get(contextPath.toString(), null);
-		if (name == null) {
+		if (name == null)
 			return null;
-		}
 		final ContextDefinition definition = new ContextDefinition(contextPath);
 		definition.setName(name);
 		return definition;
@@ -313,11 +307,10 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		checkClosed();
 		contextPath = sanitize(contextPath);
 		GyrexContextHandle contextHandle = handles.get(contextPath);
-		if (null == contextHandle) {
+		while (null == contextHandle) {
 			final ContextDefinition definition = getDefinition(contextPath);
-			if (definition == null) {
+			if (definition == null)
 				return null;
-			}
 			contextHandle = handles.putIfAbsent(contextPath, new GyrexContextHandle(contextPath, this));
 			if (null == contextHandle) {
 				contextHandle = handles.get(contextPath);
@@ -352,9 +345,8 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		readLock.lock();
 		try {
 			context = contexts.get(contextPath);
-			if (null != context) {
+			if (null != context)
 				return context;
-			}
 		} finally {
 			readLock.unlock();
 		}
@@ -369,17 +361,16 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 			checkClosed();
 
 			context = contexts.get(contextPath);
-			if (null != context) {
+			if (null != context)
 				return context;
-			}
 
 			final ContextDefinition definition = getDefinition(contextPath);
-			if (definition == null) {
+			if (definition == null)
 				throw new IllegalStateException(String.format("Context '%s' does not exists.", contextPath.toString()));
-			}
 
 			context = new GyrexContextImpl(contextPath, this);
-			contexts.put(contextPath, context);
+			if (contexts.put(contextPath, context) != null)
+				throw new IllegalStateException(String.format("Duplicate context object created for context '%s'. Please report stacktrace to the development team!", contextPath.toString()));
 
 		} finally {
 			lock.unlock();
@@ -413,9 +404,8 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		final IPath path = sanitize(contextDefinition.getPath());
 
 		// prevent root modification
-		if (path.isRoot()) {
+		if (path.isRoot())
 			throw new IllegalArgumentException("cannot remove root context");
-		}
 
 		try {
 			final Preferences node = getContextDefinitionStore();
@@ -431,9 +421,8 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		final IPath path = sanitize(contextDefinition.getPath());
 
 		// prevent root modification
-		if (path.isRoot()) {
+		if (path.isRoot())
 			throw new IllegalArgumentException("cannot modify root context");
-		}
 
 		try {
 			final Preferences node = getContextDefinitionStore();
