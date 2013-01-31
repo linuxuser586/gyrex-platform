@@ -112,7 +112,7 @@ public interface IJobManager {
 	 * @param jobId
 	 *            the job identifier
 	 * @param parameter
-	 *            the job parameter
+	 *            the job parameter (may be <code>null</code>)
 	 * @return the created job
 	 * @throws IllegalStateException
 	 *             if a job with the given jobId already exists
@@ -198,7 +198,8 @@ public interface IJobManager {
 	 * @param jobId
 	 *            the id of the job to queue
 	 * @param parameter
-	 *            the new job parameter to set prior to queuing the job
+	 *            the new job parameter to set prior to queuing the job (may be
+	 *            <code>null</code>)
 	 * @param queueId
 	 *            the id of the queue to add the job to (may be
 	 *            <code>null</code> for {@link #DEFAULT_QUEUE})

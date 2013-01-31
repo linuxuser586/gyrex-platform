@@ -635,7 +635,7 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 
 		// update job (create a copy to prevent modifications from outside)
-		job.setParameter(new HashMap<String, String>(parameter));
+		job.setParameter(parameter != null ? new HashMap<String, String>(parameter) : null);
 	}
 
 	@Override
