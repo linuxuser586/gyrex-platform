@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
 import org.eclipse.gyrex.jobs.JobState;
+import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.manager.JobHungDetectionHelper;
 import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
@@ -24,7 +25,6 @@ import org.eclipse.gyrex.jobs.internal.util.ContextHashUtil;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
@@ -40,48 +40,17 @@ import org.slf4j.LoggerFactory;
  */
 public final class CloudPreferencesCleanupJob extends Job {
 
-	static class MutexRule implements ISchedulingRule {
-
-		private final Object object;
-
-		public MutexRule(final Object object) {
-			this.object = object;
-		}
-
-		@Override
-		public boolean contains(final ISchedulingRule rule) {
-			return rule == this;
-		}
-
-		@Override
-		public boolean isConflicting(final ISchedulingRule rule) {
-			if (rule instanceof CloudPreferencesCleanupJob.MutexRule)
-				return object.equals(((CloudPreferencesCleanupJob.MutexRule) rule).object);
-			return false;
-		}
-	}
-
 	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferencesCleanupJob.class);
-	private final long maxAge;
+	private long maxAge;
 
-	/**
-	 * Creates a new instance.
-	 * 
-	 * @param context
-	 */
 	public CloudPreferencesCleanupJob() {
-		super("Gyrex Job API Garbage Collector");
+		super("Gyrex Job Cloud Garbage Collector");
 		setSystem(true);
 		setPriority(LONG);
-		setRule(new MutexRule(CloudPreferencesCleanupJob.class));
 
-		// initialize max age
-		final int maxDaysSinceLastRun = Integer.getInteger("gyrex.jobs.cleanup.maxDaysSinceLastRun", 30);
-		if (maxDaysSinceLastRun > 0) {
-			maxAge = TimeUnit.DAYS.toMillis(maxDaysSinceLastRun);
-		} else {
-			maxAge = Long.MAX_VALUE;
-		}
+		// initialize max age 
+		// (backwards compatibility; must be done in job)
+		setMaxDaysSinceLastRun(Integer.getInteger("gyrex.jobs.cleanup.maxDaysSinceLastRun", 14));
 	}
 
 	@Override
@@ -92,7 +61,7 @@ public final class CloudPreferencesCleanupJob extends Job {
 			LOG.info("Refreshing job definitions...");
 			jobsNode.sync();
 
-			LOG.info("Cleaning up old job definitions...");
+			LOG.info("Cleaning up old job definitions older than {} days...", TimeUnit.MILLISECONDS.toDays(maxAge));
 			final long now = System.currentTimeMillis();
 			final String[] childrenNames = jobsNode.childrenNames();
 			for (final String internalId : childrenNames) {
@@ -146,8 +115,16 @@ public final class CloudPreferencesCleanupJob extends Job {
 			LOG.info("Finished clean-up of old job definitions.");
 		} catch (final Exception e) {
 			LOG.warn("Unable to clean-up old job definitions. {}", ExceptionUtils.getRootCauseMessage(e));
-			return Status.CANCEL_STATUS;
+			return new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Unable to clean-up old job definitions. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
 		return Status.OK_STATUS;
+	}
+
+	public void setMaxDaysSinceLastRun(final int maxDaysSinceLastRun) {
+		if (maxDaysSinceLastRun > 0) {
+			maxAge = TimeUnit.DAYS.toMillis(maxDaysSinceLastRun);
+		} else {
+			maxAge = Long.MAX_VALUE;
+		}
 	}
 }

@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.inject.Inject;
 
@@ -36,7 +34,6 @@ import org.eclipse.gyrex.jobs.history.IJobHistory;
 import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
-import org.eclipse.gyrex.jobs.internal.storage.CloudPreferencesCleanupJob;
 import org.eclipse.gyrex.jobs.internal.storage.CloudPreferncesJobHistoryStorage;
 import org.eclipse.gyrex.jobs.internal.storage.CloudPreferncesJobStorage;
 import org.eclipse.gyrex.jobs.internal.util.ContextHashUtil;
@@ -102,7 +99,6 @@ public class JobManagerImpl implements IJobManager {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobManagerImpl.class);
 
-	private static AtomicLong lastCleanup = new AtomicLong();
 	private static final long modifyLockTimeout = Long.getLong("gyrex.jobs.modifyLock.timeout", DEFAULT_MODIFY_LOCK_TIMEOUT);
 
 	static final IJobHistory EMPTY_HISTORY = new IJobHistory() {
@@ -244,15 +240,6 @@ public class JobManagerImpl implements IJobManager {
 		job.setStatus(state);
 	}
 
-	static void triggerCleanUp() {
-		final long last = lastCleanup.get();
-		if ((System.currentTimeMillis() - last) > TimeUnit.HOURS.toMillis(3)) {
-			if (lastCleanup.compareAndSet(last, System.currentTimeMillis())) {
-				new CloudPreferencesCleanupJob().schedule();
-			}
-		}
-	}
-
 	private final IRuntimeContext context;
 	private final ContextHashUtil contextHash;
 
@@ -330,22 +317,40 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private void doQueueJob(final String jobId, Map<String, String> parameter, final String queueId, final String trigger) {
+	private void doQueueJob(final String jobTypeId, final String jobId, Map<String, String> parameter, final String queueId, final String trigger) {
 		JobImpl job = getJob(jobId);
-		if (null == job)
+
+		// if no job type is given, we are not allowed to create a job 
+		if ((null == job) && (jobTypeId == null))
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 
-		// check the job state (but ignore stuck jobs)
-		if ((job.getState() != JobState.NONE) && !isStuck(job))
-			throw new IllegalStateException(String.format("Job %s cannot be queued because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
-
+		// verify the queue exists
 		final IQueue queue = JobsActivator.getInstance().getQueueService().getQueue(null != queueId ? queueId : DEFAULT_QUEUE, null);
 		if (null == queue)
 			throw new IllegalStateException(String.format("Queue %s does not exist!", queueId));
 
 		IExclusiveLock jobLock = null;
 		try {
-			// get job modification lock
+			// create job if necessary
+			if (job == null) {
+				try {
+					final String internalId = toInternalId(jobId);
+					if (CloudPreferncesJobStorage.getJobsNode().nodeExists(internalId))
+						throw new IllegalStateException(String.format("Job '%s' is already stored", jobId));
+
+					// create preference node
+					final Preferences node = CloudPreferncesJobStorage.getJobsNode().node(internalId);
+					node.put(CloudPreferncesJobStorage.PROPERTY_TYPE, jobTypeId);
+					node.flush();
+
+					// read job
+					job = CloudPreferncesJobStorage.readJob(jobId, node);
+				} catch (final BackingStoreException e) {
+					throw new IllegalStateException(String.format("Error creating job data. %s", e.getMessage()), e);
+				}
+			}
+
+			// acquire lock
 			jobLock = acquireLock(job);
 
 			// refresh job info
@@ -356,7 +361,7 @@ public class JobManagerImpl implements IJobManager {
 			if (null == job)
 				throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 
-			// re-check the job state (inside lock) but ignore stuck jobs
+			// check the job state (inside lock) but ignore stuck jobs
 			if (job.getState() != JobState.NONE) {
 				if (!isStuck(job))
 					throw new IllegalStateException(String.format("Job %s cannot be queued because of a job state conflict (expected %s, got %s)!", jobId, JobState.NONE.toString(), job.getState().toString()));
@@ -400,9 +405,6 @@ public class JobManagerImpl implements IJobManager {
 		} finally {
 			releaseLock(jobLock, jobId);
 		}
-
-		// clean-up (if necessary)
-		triggerCleanUp();
 	}
 
 	private <T> T executeWithRetry(final Callable<T> c) throws Exception {
@@ -494,10 +496,18 @@ public class JobManagerImpl implements IJobManager {
 	public void queueJob(final String jobId, final Map<String, String> parameter, final String queueId, final String trigger) throws IllegalArgumentException, IllegalStateException {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
-		if (null == parameter)
-			throw new IllegalArgumentException("parameter must not be null");
 
-		doQueueJob(jobId, parameter, queueId, trigger);
+		doQueueJob(null, jobId, parameter, queueId, trigger);
+	}
+
+	@Override
+	public void queueJob(final String jobTypeId, final String jobId, final Map<String, String> parameter, final String queueId, final String trigger) throws IllegalArgumentException, IllegalStateException {
+		if (!IdHelper.isValidId(jobTypeId))
+			throw new IllegalArgumentException(String.format("Invalid job type id '%s'", jobTypeId));
+		if (!IdHelper.isValidId(jobId))
+			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
+
+		doQueueJob(jobTypeId, jobId, null, queueId, trigger);
 	}
 
 	@Override
@@ -505,7 +515,7 @@ public class JobManagerImpl implements IJobManager {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
-		doQueueJob(jobId, null, queueId, trigger);
+		doQueueJob(null, jobId, null, queueId, trigger);
 	}
 
 	@Override
@@ -724,6 +734,7 @@ public class JobManagerImpl implements IJobManager {
 			jobNode.putLong(CloudPreferncesJobStorage.PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);
 		}
 		jobNode.flush();
+		CloudPreferncesJobStorage.mayTriggerCleanup();
 
 		// save history
 		final IJobHistoryStorage storage = context.get(IJobHistoryStorage.class);

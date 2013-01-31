@@ -14,10 +14,15 @@ package org.eclipse.gyrex.jobs.internal.commands;
 import org.eclipse.gyrex.common.console.Command;
 import org.eclipse.gyrex.jobs.internal.storage.CloudPreferencesCleanupJob;
 
+import org.kohsuke.args4j.Option;
+
 /**
  * Performs cleanup of jobs
  */
 public class CleanupCmd extends Command {
+
+	@Option(name = "-days", aliases = "--max-days-since-last-run", usage = "the number of days worth of job history to keep")
+	Integer maxDays;
 
 	/**
 	 * Creates a new instance.
@@ -29,6 +34,9 @@ public class CleanupCmd extends Command {
 	@Override
 	protected void doExecute() throws Exception {
 		final CloudPreferencesCleanupJob job = new CloudPreferencesCleanupJob();
+		if ((maxDays != null) && (maxDays.intValue() > 0)) {
+			job.setMaxDaysSinceLastRun(maxDays.intValue());
+		}
 		job.schedule();
 		printf("Cleanup started and expected to finish asynchronously!");
 	}

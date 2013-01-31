@@ -53,4 +53,5 @@ Export-Package: org.eclipse.gyrex.jobs;version="1.0.0",
  org.eclipse.gyrex.jobs.schedules.service;version="1.0.0",
  org.eclipse.gyrex.jobs.service;version="1.0.0",
  org.eclipse.gyrex.jobs.spi.storage;version="1.0.0"
-Service-Component: OSGI-INF/console-commands.xml, OSGI-INF/context-objects.xml, OSGI-INF/job-service.xml, OSGI-INF/schedule-service.xml
+Service-Component: OSGI-INF/console-commands.xml, OSGI-INF/context-objects.xml, OSGI-INF/job-service.xml, OSGI-INF/schedule-service.xml,
+ OSGI-INF/cloud-cleanup-job-provider.xml

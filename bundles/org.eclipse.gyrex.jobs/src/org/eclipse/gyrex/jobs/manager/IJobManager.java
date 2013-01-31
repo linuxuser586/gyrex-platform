@@ -186,8 +186,8 @@ public interface IJobManager {
 	Collection<String> getJobsByState(JobState state) throws IllegalArgumentException;
 
 	/**
-	 * Queues a job to be executed by a worker engine using the specified set of
-	 * parameter.
+	 * Queues an existing job to be executed by a worker engine using the
+	 * specified set of parameter.
 	 * <p>
 	 * This method allows to update the parameter of a job and queuing it in an
 	 * atomic way. The update of the job parameter will be done as specified in
@@ -218,7 +218,46 @@ public interface IJobManager {
 	void queueJob(String jobId, Map<String, String> parameter, String queueId, String trigger) throws IllegalArgumentException, IllegalStateException;
 
 	/**
-	 * Queues a job to be executed by a worker engine.
+	 * Queues a job to be executed by a worker engine using the specified set of
+	 * parameter.
+	 * <p>
+	 * This method allows to create a job (if necessary) or update the parameter
+	 * of a job and queuing it in an atomic way. A job will be created as
+	 * specify in {@link #createJob(String, String, Map)}. An update of job
+	 * parameter will be done as specified in
+	 * {@link #setJobParameter(String, Map)}. A job will be queued as specified
+	 * in {@link #queueJob(String, String, String)}.
+	 * </p>
+	 * 
+	 * @param jobTypeId
+	 *            the job type identifier
+	 * @param jobId
+	 *            the id of the job to queue
+	 * @param parameter
+	 *            the new job parameter to set prior to queuing the job (may be
+	 *            <code>null</code>)
+	 * @param queueId
+	 *            the id of the queue to add the job to (may be
+	 *            <code>null</code> for {@link #DEFAULT_QUEUE})
+	 * @param trigger
+	 *            any free text that will be saved in the job history and
+	 *            describes who or what triggered queuing of the job (may be
+	 *            <code>null</code>)
+	 * @throws IllegalArgumentException
+	 *             if any of the arguments is invalid
+	 * @throws IllegalStateException
+	 *             if the job cannot be created, updated or queued (eg., the
+	 *             queue does not exists or any system service is missing or the
+	 *             job is already running)
+	 * @see #queueJob(String, String, String)
+	 * @see #createJob(String, String, Map)
+	 * @see #setJobParameter(String, Map)
+	 * @since 1.2
+	 */
+	void queueJob(String jobTypeId, String jobId, Map<String, String> parameter, String queueId, String trigger) throws IllegalArgumentException, IllegalStateException;
+
+	/**
+	 * Queues an existing job to be executed by a worker engine.
 	 * <p>
 	 * The job will be added to the specified queue. If no queue id is provided,
 	 * {@link #DEFAULT_QUEUE} will be used instead. It's the responsibility of a

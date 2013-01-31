@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.gyrex.jobs.system.cleanup.provider.component">
+   <implementation class="org.eclipse.gyrex.jobs.internal.storage.CloudPreferencesCleanupJobProvider"/>
+   <property name="service.vendor" type="String" value="Eclipse Gyrex"/>
+   <property name="service.description" type="String" value="Cleanup job for old history stored in the cloud."/>
+   <service>
+      <provide interface="org.eclipse.gyrex.jobs.provider.JobProvider"/>
+   </service>>
+</scr:component>

@@ -55,6 +55,14 @@ public class CloudPreferncesJobStorage {
 		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_JOBS);
 	}
 
+	/**
+	 * FIXME: This is a workaround till {@link CloudPreferncesJobStorage} is
+	 * also refactored!!!
+	 */
+	public static void mayTriggerCleanup() {
+		CloudPreferencesCleanupJobProvider.triggerCleanUp();
+	}
+
 	public static JobImpl readJob(final String jobId, final Preferences node) throws BackingStoreException {
 		// ensure the node is current (bug 360402)
 		// (note, this is really expensive, we don't perform it here)
