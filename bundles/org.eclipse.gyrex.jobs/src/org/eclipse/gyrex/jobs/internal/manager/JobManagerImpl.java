@@ -308,6 +308,9 @@ public class JobManagerImpl implements IJobManager {
 			// set initial state
 			setJobState(job, JobState.NONE, jobLock);
 
+			// trigger possible clean-up
+			CloudPreferncesJobStorage.mayTriggerCleanup();
+
 			// re-read job (this time with parameter)
 			return CloudPreferncesJobStorage.readJob(jobId, node);
 		} catch (final Exception e) {
@@ -405,6 +408,9 @@ public class JobManagerImpl implements IJobManager {
 		} finally {
 			releaseLock(jobLock, jobId);
 		}
+
+		// trigger possible clean-up
+		CloudPreferncesJobStorage.mayTriggerCleanup();
 	}
 
 	private <T> T executeWithRetry(final Callable<T> c) throws Exception {
@@ -734,7 +740,6 @@ public class JobManagerImpl implements IJobManager {
 			jobNode.putLong(CloudPreferncesJobStorage.PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);
 		}
 		jobNode.flush();
-		CloudPreferncesJobStorage.mayTriggerCleanup();
 
 		// save history
 		final IJobHistoryStorage storage = context.get(IJobHistoryStorage.class);
