@@ -409,6 +409,7 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 		try {
 			final Preferences node = getContextDefinitionStore();
+			node.sync();
 			node.remove(path.toString());
 			node.flush();
 		} catch (final BackingStoreException e) {

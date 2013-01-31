@@ -71,12 +71,19 @@ public interface IRuntimeContext extends IAdaptable {
 	 * Please have a look at {@link IModifiableRuntimeContext} for further
 	 * information regarding requirements and restrictions on working copies.
 	 * </p>
+	 * <p>
+	 * Nested modifiable contexts aren't support, i.e. you can't create a new
+	 * modifiable context from an already modifiable context.
+	 * </p>
 	 * 
 	 * @return a new modifiable working copy
 	 * @see IModifiableRuntimeContext
 	 * @since 1.2
+	 * @throws IllegalStateException
+	 *             if creation of a modifiable context is not possible (eg.,
+	 *             nested modifiable contexts)
 	 */
-	IModifiableRuntimeContext createWorkingCopy();
+	IModifiableRuntimeContext createWorkingCopy() throws IllegalStateException;
 
 	/**
 	 * Indicates if a context is equal to another context.

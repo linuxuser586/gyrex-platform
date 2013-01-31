@@ -20,10 +20,8 @@ import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
 import org.eclipse.gyrex.context.internal.di.LocalContextInjectorImpl;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
-import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
-import org.eclipse.gyrex.context.services.IRuntimeContextServiceLocator;
 
-import org.osgi.framework.BundleContext;
+import org.eclipse.core.runtime.IPath;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,29 +30,48 @@ public class LocalContext extends BaseContext implements IModifiableRuntimeConte
 
 	private static final Logger LOG = LoggerFactory.getLogger(LocalContext.class);
 
-	private final IRuntimeContext originalContext;
+	private final GyrexContextImpl contextImpl;
 	private final Map<Class<?>, Object> localObjects = new HashMap<>();
 
 	final AtomicReference<LocalContextInjectorImpl> localInjectorRef = new AtomicReference<>();
 
-	public LocalContext(final IRuntimeContext originalContext, final ContextRegistryImpl contextRegistry) {
-		super(originalContext.getContextPath(), contextRegistry);
-		this.originalContext = originalContext;
+	public LocalContext(final IPath contextPath, final ContextRegistryImpl contextRegistry) {
+		super(contextPath, contextRegistry);
+
+		// create real local context
+		contextImpl = new GyrexContextImpl(contextPath, contextRegistry) {
+			@Override
+			public IRuntimeContext getHandle() {
+				return LocalContext.this;
+			}
+
+		};
 	}
 
 	@Override
-	public IModifiableRuntimeContext createWorkingCopy() {
-		return new LocalContext(this, getContextRegistry());
+	public IModifiableRuntimeContext createWorkingCopy() throws IllegalStateException {
+		throw new IllegalStateException("Creation of nested modifiable contexts is not supported!");
 	}
 
 	@Override
 	public void dispose() {
 		localObjects.clear();
 		localInjectorRef.set(null);
+		contextImpl.dispose();
+	}
+
+	@Override
+	public GyrexContextImpl get() {
+		// note, we do not use the shared context instance here
+		// each local context creates its own object tree; there is no shared
+		// state between a local context and the original context other than
+		// the configuration data
+		return contextImpl;
 	}
 
 	@Override
 	public <T> T get(final Class<T> type) throws IllegalArgumentException {
+		// check local objects first;
 		synchronized (localObjects) {
 			if (localObjects.containsKey(type)) {
 				final T result = type.cast(localObjects.get(type));
@@ -62,7 +79,8 @@ public class LocalContext extends BaseContext implements IModifiableRuntimeConte
 				return result;
 			}
 		}
-		return originalContext.get(type);
+		// now check real context
+		return get().get(type);
 	}
 
 	@Override
@@ -112,17 +130,8 @@ public class LocalContext extends BaseContext implements IModifiableRuntimeConte
 
 	@Override
 	public IRuntimeContext getOriginalContext() {
-		return originalContext;
-	}
-
-	@Override
-	public IRuntimeContextPreferences getPreferences() {
-		return getOriginalContext().getPreferences();
-	}
-
-	@Override
-	public IRuntimeContextServiceLocator getServiceLocator(final BundleContext bundleContext) {
-		return getOriginalContext().getServiceLocator(bundleContext);
+		// simply return the global handle
+		return getContextRegistry().getHandle(getContextPath());
 	}
 
 	@Override

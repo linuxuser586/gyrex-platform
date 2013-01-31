@@ -219,9 +219,9 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	 * Returns a handle to this context which should be passed to external API
 	 * clients.
 	 * 
-	 * @return the {@link GyrexContextHandle}
+	 * @return the {@link IRuntimeContext} handle
 	 */
-	public GyrexContextHandle getHandle() {
+	public IRuntimeContext getHandle() {
 		return contextRegistry.getHandle(contextPath);
 	}
 

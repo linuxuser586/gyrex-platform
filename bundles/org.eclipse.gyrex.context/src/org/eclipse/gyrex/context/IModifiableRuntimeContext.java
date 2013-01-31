@@ -30,8 +30,22 @@ import org.osgi.framework.BundleContext;
  * its original context or any other child context of the original context.
  * </p>
  * <p>
- * Modifiable contexts must be {@link #dispose() disposed} when no longer
- * needed.
+ * There is no shared state between a modifiable context and its
+ * {@link #getOriginalContext() original context}. Each modifiable contexts
+ * instantiates its own context objects. However, configuration data (such as
+ * {@link #getPreferences() context preferences}) <strong>is not</strong>
+ * separated.
+ * <em>Modifications of context preferences apply to the original context
+ * and all created, active working copies sharing the same {@link #getContextPath() context path}!</em>
+ * </p>
+ * <p>
+ * Note, clients must be aware that they run in a dynamic system. Therefore they
+ * must not hold on a modifiable context for a longer time. A modifiable context
+ * is designed with local usage in mind.
+ * </p>
+ * <p>
+ * Modifiable contexts <strong>must</strong> be {@link #dispose() disposed} when
+ * no longer needed.
  * </p>
  * 
  * @noimplement This interface is not intended to be implemented by clients.
@@ -39,6 +53,19 @@ import org.osgi.framework.BundleContext;
  * @since 1.2
  */
 public interface IModifiableRuntimeContext extends IRuntimeContext {
+
+	/**
+	 * Fails with throwing an {@link IllegalStateException}.
+	 * <p>
+	 * Creation of nested modifiable contexts is not supported.
+	 * </p>
+	 * 
+	 * @throws IllegalStateException
+	 *             when called; creation of nested modifiable contexts is not
+	 *             supported
+	 */
+	@Override
+	public IModifiableRuntimeContext createWorkingCopy() throws IllegalStateException;
 
 	/**
 	 * Disposes this context.

@@ -305,7 +305,7 @@ public class ContextualRuntimeBlackBoxTests {
 
 			final IModifiableRuntimeContext wc = root.createWorkingCopy();
 			assertNotNull("Working copy must never be null!", wc);
-			assertSame("Object from working copy must be the same as original context!", originalObject, wc.get(DummyObject.class));
+			assertNotSame("Object from working copy must be different as original context!", originalObject, wc.get(DummyObject.class));
 
 			// override object in local context
 			wc.setLocal(DummyObject.class, new DummyObject(wc));
@@ -335,7 +335,7 @@ public class ContextualRuntimeBlackBoxTests {
 		final ContextDefinition definition = contextRegistry.getDefinition(path);
 		assertNotNull("definiton must not be null if a context exists", definition);
 		contextRegistry.removeDefinition(definition);
-		assertNotNull("definitiono must be gone after remove", contextRegistry.getDefinition(path));
+		assertNotNull("definition must be gone after remove", contextRegistry.getDefinition(path));
 
 		try {
 			context.get();
