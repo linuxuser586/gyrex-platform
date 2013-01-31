@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.internal.di.BaseContextInjector;
 import org.eclipse.gyrex.context.internal.di.GyrexContextInjectorImpl;
 import org.eclipse.gyrex.context.internal.preferences.GyrexContextPreferencesImpl;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
@@ -74,7 +75,7 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	private final AtomicBoolean disposed = new AtomicBoolean();
 	private final ContextRegistryImpl contextRegistry;
 	private final Set<IContextDisposalListener> disposables = new CopyOnWriteArraySet<IContextDisposalListener>();
-	private final GyrexContextInjectorImpl injector;
+	private final BaseContextInjector injector;
 	private final GyrexContextPreferencesImpl preferences;
 	private final AtomicLong lastAccessTime = new AtomicLong();
 	private final ConcurrentMap<Class<?>, GyrexContextObject> computedObjects = new ConcurrentHashMap<Class<?>, GyrexContextObject>();
@@ -120,7 +121,7 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 
 	}
 
-	private void checkDisposed() throws IllegalStateException {
+	protected void checkDisposed() throws IllegalStateException {
 		if (disposed.get())
 			throw new IllegalStateException("context is disposed");
 	}
@@ -228,7 +229,7 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 	/**
 	 * @see IRuntimeContext#getInjector()
 	 */
-	public GyrexContextInjectorImpl getInjector() {
+	public BaseContextInjector getInjector() {
 		checkDisposed();
 		trackAccess();
 
@@ -310,7 +311,7 @@ public class GyrexContextImpl extends PlatformObject implements BundleListener {
 		return String.format("Gyrex Context [%s (%s)]", name, contextPath);
 	}
 
-	private void trackAccess() {
+	protected void trackAccess() {
 		lastAccessTime.set(System.currentTimeMillis());
 	}
 

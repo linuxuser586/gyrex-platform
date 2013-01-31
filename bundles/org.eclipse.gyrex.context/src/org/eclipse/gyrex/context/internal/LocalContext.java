@@ -13,11 +13,10 @@ package org.eclipse.gyrex.context.internal;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.context.IModifiableRuntimeContext;
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.di.IRuntimeContextInjector;
+import org.eclipse.gyrex.context.internal.di.BaseContextInjector;
 import org.eclipse.gyrex.context.internal.di.LocalContextInjectorImpl;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 
@@ -33,18 +32,44 @@ public class LocalContext extends BaseContext implements IModifiableRuntimeConte
 	private final GyrexContextImpl contextImpl;
 	private final Map<Class<?>, Object> localObjects = new HashMap<>();
 
-	final AtomicReference<LocalContextInjectorImpl> localInjectorRef = new AtomicReference<>();
-
 	public LocalContext(final IPath contextPath, final ContextRegistryImpl contextRegistry) {
 		super(contextPath, contextRegistry);
 
 		// create real local context
 		contextImpl = new GyrexContextImpl(contextPath, contextRegistry) {
+
+			private LocalContextInjectorImpl injector;
+
+			@Override
+			public void dispose() {
+				try {
+					super.dispose();
+				} finally {
+					injector = null;
+				}
+			}
+
 			@Override
 			public IRuntimeContext getHandle() {
+				// return the WC when asked for a handle
 				return LocalContext.this;
 			}
 
+			@Override
+			public BaseContextInjector getInjector() {
+				checkDisposed();
+				trackAccess();
+
+				// create a local aware injector
+				if (injector == null) {
+					synchronized (this) {
+						if (injector == null) {
+							injector = new LocalContextInjectorImpl(this, LocalContext.this);
+						}
+					}
+				}
+				return injector;
+			}
 		};
 	}
 
@@ -55,9 +80,8 @@ public class LocalContext extends BaseContext implements IModifiableRuntimeConte
 
 	@Override
 	public void dispose() {
-		localObjects.clear();
-		localInjectorRef.set(null);
 		contextImpl.dispose();
+		localObjects.clear();
 	}
 
 	@Override
@@ -81,46 +105,6 @@ public class LocalContext extends BaseContext implements IModifiableRuntimeConte
 		}
 		// now check real context
 		return get().get(type);
-	}
-
-	@Override
-	public Object getAdapter(final Class adapter) {
-		return getOriginalContext().getAdapter(adapter);
-	}
-
-	@Override
-	public IRuntimeContextInjector getInjector() {
-		LocalContextInjectorImpl injector = localInjectorRef.get();
-		while (injector == null) {
-			final GyrexContextImpl contextImpl = get();
-			final LocalContextInjectorImpl newInjector = new LocalContextInjectorImpl(contextImpl, this);
-			if (localInjectorRef.compareAndSet(null, newInjector)) {
-				if (ContextDebug.injection) {
-					LOG.debug("Created local context injector ({}) for local context ({})", newInjector, LocalContext.this);
-				}
-				// hook disposal listener to unset local injector when context is destroyed
-				contextImpl.addDisposable(new IContextDisposalListener() {
-					@Override
-					public void contextDisposed(final IRuntimeContext runtimeContext) {
-						if (localInjectorRef.compareAndSet(newInjector, null)) {
-							if (ContextDebug.injection) {
-								LOG.debug("Destroyed local context injector ({}) for local context ({}).", newInjector, LocalContext.this);
-							}
-						} else {
-							if (ContextDebug.injection) {
-								LOG.debug("Unabled to destroy local context injector ({}), different one active for local context ({}).", newInjector, LocalContext.this);
-							}
-						}
-					}
-				});
-				// new injector was set so while loop is satisfied
-				return newInjector;
-			} else {
-				// concurrent access -> next try
-				injector = localInjectorRef.get();
-			}
-		}
-		return injector;
 	}
 
 	public <T> T getLocal(final Class<T> type) {

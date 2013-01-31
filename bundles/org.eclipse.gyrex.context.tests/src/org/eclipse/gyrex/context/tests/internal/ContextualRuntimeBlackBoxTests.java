@@ -147,7 +147,7 @@ public class ContextualRuntimeBlackBoxTests {
 	}
 
 	@Test
-	public void test0001_ContextualDefinition() {
+	public void test0001_ContextualDefinition() throws Exception {
 		final IRuntimeContext rootContext = contextRegistry.get(Path.ROOT);
 		assertNotNull("root context may never be null", rootContext);
 
@@ -330,16 +330,20 @@ public class ContextualRuntimeBlackBoxTests {
 		}
 	}
 
-	private void testRemove(final GyrexContextHandle context) {
+	private void testRemove(final GyrexContextHandle context) throws Exception {
 		final IPath path = context.getContextPath();
 		final ContextDefinition definition = contextRegistry.getDefinition(path);
 		assertNotNull("definiton must not be null if a context exists", definition);
 		contextRegistry.removeDefinition(definition);
-		assertNotNull("definition must be gone after remove", contextRegistry.getDefinition(path));
+		assertNull("definition must be gone after remove", contextRegistry.getDefinition(path));
+
+		// flush context hierarchy
+		contextRegistry.flushContextHierarchy(path);
+		Thread.sleep(250L);
 
 		try {
 			context.get();
-			fail("definition has been removed!");
+			fail("definition has been removed; exception expected");
 		} catch (final IllegalStateException e) {
 			// good
 		}

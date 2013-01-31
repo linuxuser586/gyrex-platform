@@ -32,6 +32,7 @@ public class LocalContextObjectSupplier extends BaseContextObjectSupplier {
 	@Override
 	protected void addDisposable(final IContextDisposalListener listener) {
 		// not supported for local contexts
+		throw new IllegalStateException("not support for local context suppliers; please report stack trace to the development team");
 	}
 
 	@Override
