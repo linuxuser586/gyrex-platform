@@ -38,10 +38,13 @@ public class PagableHistoryEntryCollection extends AbstractCollection<IJobHistor
 			if ((storablesIterator != null) && storablesIterator.hasNext())
 				return new StorableBackedJobHistoryEntry(storablesIterator.next());
 
-			try {
-				if (offset >= totalEntryCount)
-					throw new NoSuchElementException();
+			if (offset >= totalEntryCount)
+				throw new NoSuchElementException();
+			else {
 				offset += pageSize;
+			}
+
+			try {
 				storablesIterator = storage.find(jobId, offset, pageSize).iterator();
 				return new StorableBackedJobHistoryEntry(storablesIterator.next());
 			} catch (final Exception e) {
