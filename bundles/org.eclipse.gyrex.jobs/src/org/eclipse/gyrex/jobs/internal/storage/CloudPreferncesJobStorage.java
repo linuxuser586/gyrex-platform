@@ -30,6 +30,12 @@ import org.osgi.service.prefs.Preferences;
 
 /**
  * Store which persists job history in cloud preferences.
+ * <p>
+ * FIXME: This is a mess; we need to move job data out of the preferences and
+ * directly into ZooKeeper. Preferences are really good for configuration data
+ * that does not change often. However, they are an extra sync layer between job
+ * data and zookeeper which adds complexity and calls for trouble.
+ * </p>
  */
 public class CloudPreferncesJobStorage {
 
@@ -117,6 +123,14 @@ public class CloudPreferncesJobStorage {
 	public CloudPreferncesJobStorage(final IRuntimeContext context) {
 		this.context = context;
 		contextHash = new ContextHashUtil(context);
+	}
+
+	private String toExternalId(final String internalId) {
+		return contextHash.toExternalId(internalId);
+	}
+
+	private String toInternalId(final String id) {
+		return contextHash.toInternalId(id);
 	}
 
 }
