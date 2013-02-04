@@ -88,9 +88,9 @@ public class ZooKeeperGate {
 		}
 	}
 
-	private static final CopyOnWriteArrayList<ZooKeeperGateListener> gateListeners = new CopyOnWriteArrayList<ZooKeeperGateListener>();
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperGate.class);
 
+	private static final CopyOnWriteArrayList<ZooKeeperGateListener> gateListeners = new CopyOnWriteArrayList<ZooKeeperGateListener>();
 	private static final AtomicReference<ZooKeeperGate> instanceRef = new AtomicReference<ZooKeeperGate>();
 
 	/**
@@ -251,23 +251,40 @@ public class ZooKeeperGate {
 					// Disconnected ==> connection is down
 					LOG.info("ZooKeeper Gate is now RECOVERING (was {}). Connection lost. [{}]", oldState, ZooKeeperGate.this);
 
-					// ZK automatically tries to re-connect; however, until the connection
-					// is established again, we won't see any events from the server;
-					// we also can't expect to reliably receive a session expired event because
-					// session expiration events come from the server, too
+					// before going into recover mode, check if the connection is flapping
+					if (!keeperStateRef.isFlapping(System.currentTimeMillis() - 60000, allowedStateChangesPerMinute)) {
 
-					// schedule a job to expire the session if recovery fails
-					markSessionExpiredJob.schedule(Math.max(500L, zooKeeper.getSessionTimeout() + 500L));
+						// no flapping connection --> continue with regular recovery handling
 
-					// notify gate listeners (on state change only)
-					if (oldState != KeeperState.Disconnected) {
-						notifyGateRecovering();
-					} else {
-						if (CloudDebug.zooKeeperGateLifecycle) {
-							LOG.debug("Old state == new state, not sending any events.", oldState);
+						// ZK automatically tries to re-connect; however, until the connection
+						// is established again, we won't see any events from the server;
+						// we also can't expect to reliably receive a session expired event because
+						// session expiration events come from the server, too
+
+						// schedule a job to expire the session if recovery fails
+						markSessionExpiredJob.schedule(Math.max(500L, zooKeeper.getSessionTimeout() + 500L));
+
+						// notify gate listeners (on state change only)
+						if (oldState != KeeperState.Disconnected) {
+							notifyGateRecovering();
+						} else {
+							if (CloudDebug.zooKeeperGateLifecycle) {
+								LOG.debug("Old state == new state, not sending any events.", oldState);
+							}
 						}
+						break;
 					}
-					break;
+
+					// there have been more than the allowed number of state changes 
+					// within the last minute; this indicates a flapping connection
+					// -> don't try to recover the session
+
+					// note, this is an attempt to workaround a limitation in ZooKeeper on re-connect
+					// (see https://issues.apache.org/jira/browse/ZOOKEEPER-706)
+
+					LOG.error("There have been too many connection state changes within the last minute. ZooKeeper session will be expired. [{}]", ZooKeeperGate.this);
+
+					// there is intentionally no break here in order to fall through to EXPIRED
 
 				case Expired:
 					// set state
@@ -303,7 +320,8 @@ public class ZooKeeperGate {
 
 	};
 
-	private final AtomicReference<KeeperState> keeperStateRef = new AtomicReference<KeeperState>();
+	private static final int allowedStateChangesPerMinute = 3;
+	private final AtomicReferenceWithFlappingDetection<KeeperState> keeperStateRef = new AtomicReferenceWithFlappingDetection<>(allowedStateChangesPerMinute + 1);
 
 	private final String connectString;
 	private final int sessionTimeout;
