@@ -26,6 +26,7 @@ import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.history.IJobHistoryEntry;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.internal.manager.JobHungDetectionHelper;
 import org.eclipse.gyrex.jobs.internal.manager.JobImpl;
 import org.eclipse.gyrex.jobs.internal.manager.StorableBackedJobHistoryEntry;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
@@ -103,6 +104,14 @@ public class LsCmd extends Command {
 		return jobIds;
 	}
 
+	private String getNodeId(final String storageId) {
+		try {
+			return JobHungDetectionHelper.getProcessingNodeId(storageId, null);
+		} catch (final IllegalStateException e) {
+			return String.format("[%s]", e.getMessage());
+		}
+	}
+
 	private void printJob(final JobImpl job) throws Exception {
 		final StrBuilder info = new StrBuilder();
 		info.appendln(job.getId());
@@ -153,7 +162,7 @@ public class LsCmd extends Command {
 		for (final String storageId : storageIds) {
 			final String externalId = ContextHashUtil.getExternalId(storageId);
 			if (StringUtils.isBlank(searchString) || StringUtils.contains(storageId, searchString)) {
-				printf("%s (storage key %s)", externalId, storageId);
+				printf("%s, %s (%s)", externalId, getNodeId(storageId), storageId);
 				found = true;
 			}
 		}
