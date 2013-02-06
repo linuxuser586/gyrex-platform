@@ -280,14 +280,16 @@ public class WorkerEngine extends Job {
 			// continue with next message
 			return true;
 
-		// add state synchronizer and finish listener
+		// create job state synchronizer but defer registration 
+		// with job until the last minute
 		final JobStateSynchronizer stateSynchronizer = new JobStateSynchronizer(job, jobContext);
-		job.addJobChangeListener(stateSynchronizer);
-		job.addJobChangeListener(jobFinishedListener);
 
 		// mark the job active before removing from queue (bug 360402)
 		// (this will ensure that it's set active by JobStateSynchronizer)
-		stateSynchronizer.setJobActive();
+		if (!stateSynchronizer.setJobActive())
+			// someone else might already started processing it (bug 391743)
+			// just abort and continue with next available message
+			return true;
 
 		// delete from queue and schedule if successful
 		// (note, we intentionally only catch NoSuchElementException here)
@@ -310,7 +312,13 @@ public class WorkerEngine extends Job {
 			return true;
 		}
 
-		// only at this point we allowed the job to proceed
+		// at this point we allow the job to be scheduled
+
+		// add state synchronizer and finish listener
+		job.addJobChangeListener(stateSynchronizer);
+		job.addJobChangeListener(jobFinishedListener);
+
+		// and schedule the job
 		job.schedule();
 
 		// increment count

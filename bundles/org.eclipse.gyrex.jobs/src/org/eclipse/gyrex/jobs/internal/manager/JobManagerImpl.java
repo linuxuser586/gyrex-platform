@@ -93,13 +93,13 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private static final int MAY_RETRIES = 3;
-
-	private static final long DEFAULT_MODIFY_LOCK_TIMEOUT = 3000L;
-
 	private static final Logger LOG = LoggerFactory.getLogger(JobManagerImpl.class);
 
+	private static final long DEFAULT_MODIFY_LOCK_TIMEOUT = 3000L;
 	private static final long modifyLockTimeout = Long.getLong("gyrex.jobs.modifyLock.timeout", DEFAULT_MODIFY_LOCK_TIMEOUT);
+
+	private static final int storageMaxNumberOfRetries = Integer.getInteger("gyrex.jobs.storage.retryAttempts", 3);
+	private static final long storageRetryDelay = Math.max(Long.getLong("gyrex.jobs.storage.retryDelay", 150L), 50L);
 
 	static final IJobHistory EMPTY_HISTORY = new IJobHistory() {
 		@Override
@@ -420,11 +420,11 @@ public class JobManagerImpl implements IJobManager {
 				return c.call();
 			} catch (final ModificationConflictException e) {
 				// try up to max retries
-				if (++attempt > MAY_RETRIES)
+				if (++attempt > storageMaxNumberOfRetries)
 					throw e;
 
-				// yield thread
-				Thread.yield();
+				// wait a bit
+				Thread.sleep(storageRetryDelay);
 			}
 		}
 	}

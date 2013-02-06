@@ -32,6 +32,7 @@ import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	private IExclusiveLock lock;
 
 	public JobStateSynchronizer(final Job realJob, final JobContext jobContext) {
+		// just remember variable; never hook any listeners here
 		this.realJob = realJob;
 		this.jobContext = jobContext;
 	}
@@ -101,9 +103,8 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	}
 
 	private synchronized boolean acquireLock(final String lockId) {
-		if ((null != lock) && !lock.isValid()) {
+		if ((null != lock) && !lock.isValid())
 			return true; // consider success
-		}
 
 		if (JobsDebug.workerEngine) {
 			LOG.debug("Acquiring lock {} for job {}...", lockId, getJobId());
@@ -280,7 +281,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		}
 	}
 
-	public void setJobActive() {
+	public boolean setJobActive() {
 		try {
 			// log message
 			if (JobsDebug.workerEngine) {
@@ -290,8 +291,12 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			// set the job active
 			// (this is used by the worker engine to indicate processing is ready)
 			getJobManager().setActive(getJobId());
+
+			// success
+			return true;
 		} catch (final Exception e) {
-			LOG.error("Error updating job {}: {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
+			LOG.warn("Unable to set job active ({}): {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
+			return false;
 		}
 	}
 
@@ -305,7 +310,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			// set the job in-active
 			getJobManager().setInactive(getJobId());
 		} catch (final Exception e) {
-			LOG.error("Error updating job {}: {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
+			LOG.warn("Unable to set job inactive ({}): {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
 		}
 	}
 
