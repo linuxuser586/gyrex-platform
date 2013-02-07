@@ -11,7 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.commands;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -20,7 +22,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
+import org.eclipse.gyrex.cloud.services.queue.IMessage;
+import org.eclipse.gyrex.cloud.services.queue.IQueue;
+import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
 import org.eclipse.gyrex.common.console.Command;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.jobs.JobState;
@@ -34,6 +40,8 @@ import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.internal.storage.CloudPreferncesJobHistoryStorage;
 import org.eclipse.gyrex.jobs.internal.storage.CloudPreferncesJobStorage;
 import org.eclipse.gyrex.jobs.internal.util.ContextHashUtil;
+import org.eclipse.gyrex.jobs.internal.worker.JobInfo;
+import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.schedules.ISchedule;
 import org.eclipse.gyrex.jobs.schedules.IScheduleEntry;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleWorkingCopy;
@@ -47,11 +55,21 @@ import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang.time.DateFormatUtils;
 
 import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.Option;
 
 /**
  *
  */
 public class LsCmd extends Command {
+
+	private static String toRelativeTime(final long duration) {
+		if (duration < TimeUnit.MINUTES.toMillis(2))
+			return "a minute ago";
+		else if (duration < TimeUnit.HOURS.toMillis(2))
+			return String.format("%d minutes ago", TimeUnit.MILLISECONDS.toMinutes(duration));
+		else
+			return String.format("%d hours ago", TimeUnit.MILLISECONDS.toMinutes(duration));
+	}
 
 	@Argument(index = 0, usage = "specify what to list (schedules, jobs or providers)", required = true, metaVar = "WHAT")
 	String what;
@@ -59,11 +77,14 @@ public class LsCmd extends Command {
 	@Argument(index = 1, usage = "an optional filter string", required = false, metaVar = "FILTER")
 	String searchString;
 
+	@Option(name = "-q", aliases = { "--queue-id" }, usage = "an optional queue id", required = false, metaVar = "QUEUE-ID")
+	String queueId = IJobManager.DEFAULT_QUEUE;
+
 	/**
 	 * Creates a new instance.
 	 */
 	public LsCmd() {
-		super("<schedules|providers|running|waiting|all|job> [<filterString>] - lists schedules or jobs");
+		super("<schedules|providers|running|waiting|all|job|queue> [<filterString>] - lists schedules or jobs");
 	}
 
 	@Override
@@ -75,9 +96,7 @@ public class LsCmd extends Command {
 
 		if (StringUtils.startsWithIgnoreCase("providers", what)) {
 			printProviders();
-		} else
-
-		if (StringUtils.startsWithIgnoreCase("schedules", what)) {
+		} else if (StringUtils.startsWithIgnoreCase("schedules", what)) {
 			printSchedules();
 		} else if (StringUtils.startsWithIgnoreCase("running", what)) {
 			printJobs(JobState.RUNNING);
@@ -87,6 +106,8 @@ public class LsCmd extends Command {
 			printJobs(null);
 		} else if (StringUtils.startsWithIgnoreCase("job", what)) {
 			printJobs(null);
+		} else if (StringUtils.startsWithIgnoreCase("queues", what)) {
+			printJobsQueue();
 		}
 	}
 
@@ -174,6 +195,41 @@ public class LsCmd extends Command {
 				printf("no jobs found");
 			}
 			return;
+		}
+	}
+
+	private void printJobsQueue() {
+		if (!IdHelper.isValidId(queueId)) {
+			printf("ERROR: invalid queueId: %s", queueId);
+			return;
+		}
+
+		// get the queue
+		final IQueue queue = JobsActivator.getInstance().getQueueService().getQueue(queueId, null);
+		if (queue == null) {
+			printf("ERROR: queue not found: %s", queueId);
+			return;
+		}
+
+		// get message
+		final HashMap<String, Object> properties = new HashMap<>(2);
+		properties.put(IQueueServiceProperties.MESSAGE_RECEIVE_TIMEOUT, new Long(0));
+		final List<IMessage> message = queue.receiveMessages(500, properties);
+		if (message.isEmpty()) {
+			printf("Queue '%s' is empty!", queueId);
+			return;
+		}
+
+		printf("Found %d messages:", message.size());
+		for (final IMessage m : message) {
+			try {
+				final JobInfo jobInfo = JobInfo.parse(m);
+				if ((searchString == null) || StringUtils.containsIgnoreCase(jobInfo.getJobId(), searchString) || StringUtils.containsIgnoreCase(jobInfo.getContextPath().toString(), searchString)) {
+					printf("  %s (%s, %s, %s)", jobInfo.getJobId(), jobInfo.getContextPath(), toRelativeTime(System.currentTimeMillis() - jobInfo.getQueueTimestamp()), jobInfo.getQueueTrigger());
+				}
+			} catch (final IOException e) {
+				printf("  %s", e.getMessage());
+			}
 		}
 	}
 

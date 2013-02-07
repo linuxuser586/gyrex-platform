@@ -65,8 +65,7 @@ public class JobInfo {
 		// create bytes
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try (final DeflaterOutputStream df = new DeflaterOutputStream(out)) {
-			properties.store(out, null);
-			df.finish();
+			properties.store(df, null);
 		}
 		return out.toByteArray();
 	}
