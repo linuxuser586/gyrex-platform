@@ -27,13 +27,34 @@ import org.eclipse.core.runtime.IStatus;
  * Gyrex website</a> to stay up-to-date of possible changes.
  * </p>
  */
-public class JobHistoryEntryStorable {
+public class JobHistoryEntryStorable implements Comparable<JobHistoryEntryStorable> {
 
 	private IStatus result;
 	private long timestamp;
 	private String queuedTrigger;
 	private String cancelledTrigger;
 	private Map<String, String> parameter;
+
+	@Override
+	public int compareTo(final JobHistoryEntryStorable o) {
+
+		final long t1 = getTimestamp();
+		final long t2 = o.getTimestamp();
+		if (t2 > t1)
+			// other timestamp is greater --> t1 is older and greater
+			return 1;
+		if (t2 < t1)
+			// other timestamp is less --> t1 is newer and less
+			return -1;
+
+		// compare result message if severity is the same
+		if (o.getResult().getSeverity() == getResult().getSeverity())
+			return getResult().getMessage().compareTo(o.getResult().getMessage());
+		else
+			// severity is different
+			// a higher severity also makes this item less so that it appears earlier then others
+			return getResult().getSeverity() > o.getResult().getSeverity() ? -1 : 1;
+	}
 
 	@Override
 	public boolean equals(final Object obj) {
