@@ -19,6 +19,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
@@ -63,37 +65,38 @@ public class JobInfo {
 
 		// create bytes
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
-		properties.store(out, null);
+		try (final DeflaterOutputStream df = new DeflaterOutputStream(out)) {
+			properties.store(out, null);
+			df.finish();
+		}
 		return out.toByteArray();
 	}
 
 	public static JobInfo parse(final IMessage message) throws IOException {
 		final Properties properties = new Properties();
-		properties.load(new ByteArrayInputStream(message.getBody()));
+		try (InflaterInputStream in = new InflaterInputStream(new ByteArrayInputStream(message.getBody()))) {
+			properties.load(in);
+		}
 
 		// check version (remove key from properties)
 		final Object versionValue = properties.remove(VERSION);
-		if (!VERSION_VALUE.equals(versionValue)) {
+		if (!VERSION_VALUE.equals(versionValue))
 			throw new IOException(String.format("invalid record data: version mismatch (expected %d, found %s)", 1, String.valueOf(versionValue)));
-		}
 
 		// get id (remove key from properties as well)
 		final Object jobIdValue = properties.remove(ID);
-		if ((null == jobIdValue) || !(jobIdValue instanceof String) || !IdHelper.isValidId(((String) jobIdValue))) {
+		if ((null == jobIdValue) || !(jobIdValue instanceof String) || !IdHelper.isValidId(((String) jobIdValue)))
 			throw new IOException(String.format("invalid record data: missing/invalid job id %s", String.valueOf(jobIdValue)));
-		}
 
 		// get type (remove key from properties as well)
 		final Object jobTypeValue = properties.remove(TYPE_ID);
-		if ((null == jobTypeValue) || !(jobTypeValue instanceof String) || !IdHelper.isValidId(((String) jobTypeValue))) {
+		if ((null == jobTypeValue) || !(jobTypeValue instanceof String) || !IdHelper.isValidId(((String) jobTypeValue)))
 			throw new IOException(String.format("invalid record data: missing/invalid job id %s", String.valueOf(jobTypeValue)));
-		}
 
 		// get path (remove key from properties as well)
 		final Object contextPathValue = properties.remove(CONTEXT_PATH);
-		if ((null == contextPathValue) || !(contextPathValue instanceof String) || !Path.EMPTY.isValidPath(((String) contextPathValue))) {
+		if ((null == contextPathValue) || !(contextPathValue instanceof String) || !Path.EMPTY.isValidPath(((String) contextPathValue)))
 			throw new IOException(String.format("invalid record data: missing/invalid context path %s", String.valueOf(contextPathValue)));
-		}
 
 		// collect properties
 		final Map<String, String> jobProperties = new HashMap<String, String>();
