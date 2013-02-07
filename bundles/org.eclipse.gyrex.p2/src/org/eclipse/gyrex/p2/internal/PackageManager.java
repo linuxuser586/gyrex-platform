@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
+import org.eclipse.gyrex.p2.internal.packages.InstallState;
 import org.eclipse.gyrex.p2.internal.packages.InstallableUnitReference;
 import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
 import org.eclipse.gyrex.preferences.CloudScope;
@@ -43,38 +44,6 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class PackageManager implements IPackageManager {
-
-	private static enum InstallState {
-		ROLLOUT, REVOKE, NONE;
-
-		public static InstallState fromString(final String value) {
-			if (StringUtils.isBlank(value))
-				return NONE;
-			switch (value) {
-				case "rollout":
-					return ROLLOUT;
-				case "revoke":
-					return REVOKE;
-				default:
-					return NONE;
-			}
-		}
-
-		public static String toString(final InstallState installState) {
-			if (installState == null)
-				return null;
-
-			switch (installState) {
-				case ROLLOUT:
-					return "rollout";
-				case REVOKE:
-					return "revoke";
-				case NONE:
-				default:
-					return null;
-			}
-		}
-	}
 
 	private static final String PREF_NODE_PACKAGES = "packages";
 	private static final String PREF_NODE_COMPONENTS = "components";
@@ -194,19 +163,22 @@ public class PackageManager implements IPackageManager {
 		}
 	}
 
+	private boolean isPackageNodeAvailable(final String packageId) throws BackingStoreException {
+		final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
+		if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
+			return false;
+		return rootNode.node(PREF_NODE_PACKAGES).nodeExists(packageId);
+	}
+
 	@Override
 	public void markedForInstall(final PackageDefinition packageDefinition) {
 		try {
 			if (!IdHelper.isValidId(packageDefinition.getId()))
 				throw new IllegalArgumentException("invalid id");
-			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
-				throw new IllegalArgumentException("package does not exist");
-			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(packageDefinition.getId()))
+			if (!isPackageNodeAvailable(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
 
-			final Preferences pkgNode = node.node(packageDefinition.getId());
+			final Preferences pkgNode = getPackageNode(packageDefinition.getId());
 			pkgNode.put(PREF_KEY_INSTALL_STATE, InstallState.toString(InstallState.ROLLOUT));
 			pkgNode.putLong(PREF_KEY_INSTALL_STATE_TIMESTAMP, System.currentTimeMillis());
 
@@ -225,14 +197,10 @@ public class PackageManager implements IPackageManager {
 		try {
 			if (!IdHelper.isValidId(packageDefinition.getId()))
 				throw new IllegalArgumentException("invalid id");
-			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
-				throw new IllegalArgumentException("package does not exist");
-			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(packageDefinition.getId()))
+			if (!isPackageNodeAvailable(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
 
-			final Preferences pkgNode = node.node(packageDefinition.getId());
+			final Preferences pkgNode = getPackageNode(packageDefinition.getId());
 			pkgNode.put(PREF_KEY_INSTALL_STATE, InstallState.toString(InstallState.REVOKE));
 			pkgNode.putLong(PREF_KEY_INSTALL_STATE_TIMESTAMP, System.currentTimeMillis());
 
@@ -253,6 +221,7 @@ public class PackageManager implements IPackageManager {
 
 			final Preferences node = getPackageNode(id);
 			pkgDefinition.setNodeFilter(node.get(PREF_KEY_NODE_FILTER, null));
+			pkgDefinition.setInstallState(InstallState.fromString(node.get(PREF_KEY_INSTALL_STATE, id)));
 
 			if (node.nodeExists(PREF_NODE_COMPONENTS)) {
 				final Preferences componentsNode = node.node(PREF_NODE_COMPONENTS);
@@ -309,9 +278,12 @@ public class PackageManager implements IPackageManager {
 			if (!IdHelper.isValidId(id))
 				throw new IllegalArgumentException("invalid id");
 
-			final IStatus modifiable = verifyPackageIsModifiable(id);
-			if (!modifiable.isOK())
-				throw new IllegalStateException(modifiable.getMessage());
+			// prevent updating an existing package if it's not modifiable 
+			if (isPackageNodeAvailable(id)) {
+				final IStatus modifiable = verifyPackageIsModifiable(id);
+				if (!modifiable.isOK())
+					throw new IllegalStateException(modifiable.getMessage());
+			}
 
 			final Collection<InstallableUnitReference> componentsToInstall = packageDefinition.getComponentsToInstall();
 
@@ -351,19 +323,16 @@ public class PackageManager implements IPackageManager {
 		}
 	}
 
+	@Override
 	public IStatus verifyPackageIsModifiable(final String id) throws IllegalStateException, IllegalArgumentException {
 		if (!IdHelper.isValidId(id))
 			return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, "invalid package id");
 
 		try {
-			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
-			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
-				return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, "package does not exist");
-			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
-			if (!node.nodeExists(id))
+			if (!isPackageNodeAvailable(id))
 				return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, "package does not exist");
 
-			final Preferences pkgNode = node.node(id);
+			final Preferences pkgNode = getPackageNode(id);
 			final InstallState installState = InstallState.fromString(pkgNode.get(PREF_KEY_INSTALL_STATE, null));
 			if (installState == InstallState.ROLLOUT)
 				return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, String.format("Package '%s' is marked for rollout! Please revoke it first.", id));

@@ -36,6 +36,7 @@ public final class PackageDefinition {
 
 	private String id;
 	private String nodeFilter;
+	private InstallState installState;
 	private Set<InstallableUnitReference> componentsToInstall;
 
 	public void addComponentToInstall(final InstallableUnitReference component) {
@@ -53,9 +54,8 @@ public final class PackageDefinition {
 	 * @return the componentsToInstall
 	 */
 	public Collection<InstallableUnitReference> getComponentsToInstall() {
-		if (null != componentsToInstall) {
+		if (null != componentsToInstall)
 			return Collections.unmodifiableCollection(componentsToInstall);
-		}
 		return Collections.emptySet();
 	}
 
@@ -69,6 +69,15 @@ public final class PackageDefinition {
 	}
 
 	/**
+	 * @return the install state (never <code>null</code>)
+	 */
+	public InstallState getInstallState() {
+		if (installState != null)
+			return installState;
+		return InstallState.NONE;
+	}
+
+	/**
 	 * Returns the nodeFilter.
 	 * 
 	 * @return the nodeFilter
@@ -77,10 +86,10 @@ public final class PackageDefinition {
 		return nodeFilter;
 	}
 
-	public void removeComponentToInstall(final InstallableUnitReference component) {
-		if (null != componentsToInstall) {
-			componentsToInstall.remove(component);
-		}
+	public boolean removeComponentToInstall(final InstallableUnitReference component) {
+		if (null != componentsToInstall)
+			return componentsToInstall.remove(component);
+		return false;
 	}
 
 	/**
@@ -90,10 +99,13 @@ public final class PackageDefinition {
 	 *            the id to set
 	 */
 	public void setId(final String id) {
-		if (!IdHelper.isValidId(id)) {
+		if (!IdHelper.isValidId(id))
 			throw new IllegalArgumentException("invalid id");
-		}
 		this.id = id;
+	}
+
+	public void setInstallState(final InstallState installState) {
+		this.installState = installState;
 	}
 
 	/**

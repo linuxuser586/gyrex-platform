@@ -21,6 +21,11 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.gyrex.p2.internal.P2Activator;
+import org.eclipse.gyrex.p2.internal.packages.InstallableUnitReference;
+import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
+
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.equinox.p2.core.IProvisioningAgent;
 import org.eclipse.equinox.p2.engine.IProfile;
 import org.eclipse.equinox.p2.engine.IProfileRegistry;
@@ -33,16 +38,11 @@ import org.eclipse.equinox.p2.metadata.VersionRange;
 import org.eclipse.equinox.p2.query.IQueryResult;
 import org.eclipse.equinox.p2.query.QueryUtil;
 
-import org.eclipse.gyrex.p2.internal.P2Activator;
-import org.eclipse.gyrex.p2.internal.packages.InstallableUnitReference;
-import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
-
-import org.eclipse.core.runtime.IPath;
-
 import org.osgi.service.prefs.BackingStoreException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.CharEncoding;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
@@ -120,6 +120,12 @@ public class PackageInstallState {
 		return P2Activator.getInstance().getConfigLocation().append(P2Activator.SYMBOLIC_NAME);
 	}
 
+	public static String getPackageId(final IInstallableUnit unit) {
+		if (!Boolean.TRUE.toString().equals(unit.getProperty(IU_PROP_PACKAGE)))
+			throw new IllegalArgumentException("not a package IU");
+		return StringUtils.removeEnd(unit.getId(), ".package");
+	}
+
 	private static String getPackageUnitId(final PackageDefinition definition) {
 		return definition.getId().concat(".package");
 	}
@@ -133,13 +139,11 @@ public class PackageInstallState {
 	public static boolean isInstalled(final IProvisioningAgent agent, final PackageDefinition packageDefinition) throws BackingStoreException {
 		// check if the package IU is available in the current profile
 		final IProfileRegistry profileRegistry = (IProfileRegistry) agent.getService(IProfileRegistry.SERVICE_NAME);
-		if (null == profileRegistry) {
+		if (null == profileRegistry)
 			throw new IllegalStateException("The current system has not been provisioned using p2. Unable to acquire profile registry.");
-		}
 		final IProfile profile = profileRegistry.getProfile(IProfileRegistry.SELF);
-		if (null == profile) {
+		if (null == profile)
 			throw new IllegalStateException("The current system has not been provisioned using p2. Unable to get profile.");
-		}
 
 		final IQueryResult<IInstallableUnit> result = profile.available(QueryUtil.createIUQuery(getPackageUnitId(packageDefinition), getPackageUnitVersion(packageDefinition)), null);
 		return !result.isEmpty();
@@ -149,9 +153,8 @@ public class PackageInstallState {
 		final File sessionFile = getBaseLocation().append("sessionActive").toFile();
 		installSessionIdLock.lock();
 		try {
-			if (sessionFile.isFile() && !sessionFile.delete()) {
+			if (sessionFile.isFile() && !sessionFile.delete())
 				throw new IllegalStateException("Unable to delete active install session id. " + sessionFile.getPath());
-			}
 		} finally {
 			installSessionIdLock.unlock();
 		}
