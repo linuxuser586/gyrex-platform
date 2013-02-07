@@ -26,10 +26,15 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * ZooKeeper queue message
  */
 public class Message implements IMessage {
+
+	private static final Logger LOG = LoggerFactory.getLogger(Message.class);
 
 	private final String queueId;
 	private final byte[] body;
@@ -71,9 +76,8 @@ public class Message implements IMessage {
 
 		// serialized format version
 		final int formatVersion = din.readInt();
-		if (formatVersion != 1) {
+		if (formatVersion != 1)
 			throw new IllegalArgumentException(String.format("invalid record data: version mismatch (expected %d, found %d)", 1, formatVersion));
-		}
 
 		// timeout
 		invisibleTimeoutTS = din.readLong();
@@ -84,9 +88,8 @@ public class Message implements IMessage {
 		// body
 		body = new byte[length];
 		final int read = din.read(body);
-		if (read != length) {
+		if (read != length)
 			throw new IllegalArgumentException(String.format("invalid record data: body size mismatch (expected %d, read %d)", length, read));
-		}
 	}
 
 	/**
@@ -104,9 +107,8 @@ public class Message implements IMessage {
 	 */
 	public boolean consume(final boolean failIfDeleted) throws NoSuchElementException {
 		// receive the message with a short timeout
-		if (!receive(1000, failIfDeleted)) {
+		if (!receive(1000, failIfDeleted))
 			return false;
-		}
 		// delete
 		return delete(failIfDeleted);
 	}
@@ -142,16 +144,14 @@ public class Message implements IMessage {
 
 			// special handling if node does not exists
 			if (e instanceof KeeperException.NoNodeException) {
-				if (failIfDeleted) {
+				if (failIfDeleted)
 					throw new NoSuchElementException("Message does not exists!");
-				}
 				// the node does not exist and we must not fail
 				// therefore, we return success here
 				return true;
-			} else if (e instanceof KeeperException.BadVersionException) {
+			} else if (e instanceof KeeperException.BadVersionException)
 				// the node has been updated remotely
 				return false;
-			}
 
 			// fail operation
 			throw new QueueOperationFailedException(queueId, String.format("DELETE_MESSAGE(%s)", messageId), e);
@@ -163,6 +163,7 @@ public class Message implements IMessage {
 	 * 
 	 * @return the body
 	 */
+	@Override
 	public byte[] getBody() {
 		return body;
 	}
@@ -213,6 +214,13 @@ public class Message implements IMessage {
 	 * @throws NoSuchElementException
 	 */
 	public boolean receive(final long timeoutInMs, final boolean failIfDeleted) throws NoSuchElementException {
+		// don't do anything if the timeout is non-sense
+		if (timeoutInMs < 1000) {
+			LOG.debug("Visibility timeout of {}ms too small. ZooKeeper operation will be skipper.", timeoutInMs);
+			return true;
+		}
+
+		// calculate invisible timeout
 		invisibleTimeoutTS = timeoutInMs + System.currentTimeMillis();
 		try {
 			// update record
@@ -229,15 +237,13 @@ public class Message implements IMessage {
 
 			// special handling if node does not exists
 			if (e instanceof KeeperException.NoNodeException) {
-				if (failIfDeleted) {
+				if (failIfDeleted)
 					throw new NoSuchElementException("Message does not exists!");
-				}
 				// not received
 				return false;
-			} else if (e instanceof KeeperException.BadVersionException) {
+			} else if (e instanceof KeeperException.BadVersionException)
 				// the node has been updated remotely
 				return false;
-			}
 
 			// fail operation
 			throw new QueueOperationFailedException(queueId, String.format("RECEIVE_MESSAGE(%s)", messageId), e);
