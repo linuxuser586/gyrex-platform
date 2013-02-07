@@ -13,6 +13,8 @@ package org.eclipse.gyrex.cloud.services.locking;
 
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.core.runtime.IStatus;
+
 /**
  * A simple locking service.
  * <p>
@@ -121,6 +123,42 @@ public interface ILockService {
 	 *             if the wait timed out
 	 */
 	IExclusiveLock acquireExclusiveLock(String lockId, ILockMonitor<IExclusiveLock> callback, long timeout) throws InterruptedException, TimeoutException;
+
+	/**
+	 * Returns details status information about a durable lock.
+	 * <p>
+	 * This maybe used to get detailed information about the state of a durable
+	 * lock. The returned status will contain information such as the lock
+	 * owner, waiting clients, etc.
+	 * </p>
+	 * <p>
+	 * Note, the returned information represents a snapshot at a specific point
+	 * in time. It may already be invalid when this method returns.
+	 * </p>
+	 * 
+	 * @param lockId
+	 *            the lock identifier
+	 * @return status with detailed information about the lock
+	 */
+	IStatus getDurableLockStatus(String lockId);
+
+	/**
+	 * Returns details status information about an exclusive lock.
+	 * <p>
+	 * This maybe used to get detailed information about the state of a durable
+	 * lock. The returned status will contain information such as the lock
+	 * owner, waiting clients, etc.
+	 * </p>
+	 * <p>
+	 * Note, the returned information represents a snapshot at a specific point
+	 * in time. It may already be invalid when this method returns.
+	 * </p>
+	 * 
+	 * @param lockId
+	 *            the lock identifier
+	 * @return status with detailed information about the lock
+	 */
+	IStatus getExclusiveLockStatus(String lockId);
 
 	/**
 	 * Attempts recovery of the specified durable lock.

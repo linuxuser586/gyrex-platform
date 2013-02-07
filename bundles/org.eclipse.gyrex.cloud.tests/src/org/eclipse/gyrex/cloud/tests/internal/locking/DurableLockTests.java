@@ -36,7 +36,10 @@ import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener;
 import org.eclipse.gyrex.cloud.services.locking.IDurableLock;
 import org.eclipse.gyrex.cloud.services.locking.ILockMonitor;
 
+import org.eclipse.core.runtime.IStatus;
+
 import org.apache.commons.lang.StringUtils;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,6 +83,15 @@ public class DurableLockTests {
 
 	private ScheduledExecutorService executorService;
 
+	private void debugLockStatus(final String lockId) {
+		final DurableLockImpl lock = new DurableLockImpl(lockId, null);
+		assertFalse(lock.isValid());
+		final IStatus status = lock.getStatus();
+		assertNotNull(status);
+		assertFalse(lock.isValid());
+		LOG.debug("{}", status);
+	}
+
 	private Callable<DurableLockImpl> newAcquireLockCall(final DurableLockImpl lock, final long timeout) {
 		return new Callable<DurableLockImpl>() {
 			@Override
@@ -121,6 +133,12 @@ public class DurableLockTests {
 
 		final DurableLockImpl lock = lock1.get(15, TimeUnit.SECONDS);
 		assertNotNull(lock);
+		assertTrue(lock.isValid());
+
+		// print debug info
+		debugLockStatus(lockId);
+
+		// must still be valid after debugging
 		assertTrue(lock.isValid());
 
 		lock.release();
@@ -193,6 +211,9 @@ public class DurableLockTests {
 
 		LOG.info("Acquired lock 1: {}", lock);
 
+		// print debug info
+		debugLockStatus(lockId);
+
 		// check for recovery key
 		final String recoveryKey = lock.getRecoveryKey();
 		assertNotNull(recoveryKey);
@@ -232,6 +253,9 @@ public class DurableLockTests {
 		reconnected.await(20, TimeUnit.SECONDS);
 		LOG.info("Reconnected ZooKeeper gate");
 
+		// print debug info
+		debugLockStatus(lockId);
+
 		// must still be invalid
 		assertFalse(lock.isValid());
 
@@ -240,6 +264,9 @@ public class DurableLockTests {
 		final DurableLockImpl recoveredLock = new DurableLockImpl(lockId, null);
 		recoveredLock.recover(recoveryKey);
 		LOG.info("Durable lock recoverd: {}", recoveredLock);
+
+		// print debug info
+		debugLockStatus(lockId);
 
 		assertTrue(recoveredLock.isValid());
 		assertNotNull(recoveredLock.getRecoveryKey());
@@ -259,6 +286,9 @@ public class DurableLockTests {
 		assertTrue(lock.isValid());
 
 		LOG.info("Acquired lock: {}", lock);
+
+		// print debug info
+		debugLockStatus(lockId);
 
 		// check for recovery key
 		final String recoveryKey = lock.getRecoveryKey();
@@ -284,4 +314,5 @@ public class DurableLockTests {
 		final IDurableLock recoveredLock = new DurableLockImpl(lockId, null).recover(recoveryKey);
 		assertNull("Should not be possible to recover a killed lock", recoveredLock);
 	}
+
 }

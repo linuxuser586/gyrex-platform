@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.CloudState;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
@@ -32,6 +33,9 @@ import org.eclipse.gyrex.cloud.services.locking.ILockMonitor;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.MultiStatus;
+import org.eclipse.core.runtime.Status;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.CharEncoding;
@@ -44,6 +48,7 @@ import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,22 +135,9 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				}
 
 				// sort based on sequence numbers
-				Arrays.sort(nodeNames, new Comparator<Object>() {
-					@Override
-					public int compare(final Object o1, final Object o2) {
-						final String n1 = (String) o1;
-						final String n2 = (String) o2;
-						final int sequence1 = getSequenceNumber(n1);
-						final int sequence2 = getSequenceNumber(n2);
-						if (sequence1 == -1) {
-							return sequence2 != -1 ? 1 : n1.compareTo(n2);
-						} else {
-							return sequence2 == -1 ? -1 : sequence1 - sequence2;
-						}
-					}
-				});
+				sortLockNodeChildren(nodeNames);
 
-				// the active lock name
+				// the active lock name (first node in list)
 				activeLockName = (String) nodeNames[0];
 				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Found active lock {} for lock {}", activeLockName, lockNodePath);
@@ -166,11 +158,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 					}
 				}
 				if (precedingNodeName == null) {
-					if (recover) {
+					if (recover)
 						throw new LockAcquirationFailedException(getId(), "Impossible to recover lock. The preceding lock could not be discovered.");
-					} else {
+					else
 						throw new LockAcquirationFailedException(getId(), "Impossible to acquire lock. The preceding lock could not be discovered.");
-					}
 				}
 				if (CloudDebug.zooKeeperLockService) {
 					LOG.debug("Found preceding lock {} for lock {}", precedingNodeName, lockNodePath);
@@ -216,6 +207,7 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			// when a this point the loop
 			throw new TimeoutException(String.format("Unable to acquire lock %s within the given timeout. (%s/%s)", getId(), activeLockName, myLockName));
 		}
+
 	}
 
 	/**
@@ -256,9 +248,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		@Override
 		protected Boolean call(final ZooKeeper keeper) throws Exception {
 			final String lockName = myLockName;
-			if (lockName == null) {
+			if (lockName == null)
 				return false;
-			}
 
 			// delete path
 			try {
@@ -300,6 +291,61 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		}
 	}
 
+	private final class GetLockStatus extends ZooKeeperGateCallable<IStatus> {
+
+		@Override
+		protected IStatus call(final ZooKeeperGate zk) throws Exception {
+			// get nodes
+			Object[] nodeNames;
+			try {
+				nodeNames = zk.readChildrenNames(lockNodePath, null).toArray();
+			} catch (final NoNodeException e) {
+				nodeNames = null;
+			}
+
+			// quick check
+			if ((nodeNames == null) || (nodeNames.length == 0))
+				return info("Lock '%s' is inactive! There are no clients waiting to aquire the lock.", lockId);
+
+			// prepare status (lock is obviously active!)
+			final MultiStatus status = new MultiStatus(CloudActivator.SYMBOLIC_NAME, 0, String.format("Lock '%s' is active", lockId), null);
+
+			// sort lock nodes
+			sortLockNodeChildren(nodeNames);
+
+			// print details
+			for (int i = 0; i < nodeNames.length; i++) {
+				final String lockName = (String) nodeNames[i];
+
+				// build node path
+				final IPath nodePath = lockNodePath.append(lockName);
+
+				// get node content
+				final Stat stat = new Stat();
+				final String record = zk.readRecord(nodePath, StringUtils.EMPTY, stat);
+
+				final String[] lockData = StringUtils.splitByWholeSeparator(record, SEPARATOR);
+				if ((lockData == null) | (lockData.length < 3)) {
+					status.add(error("Invalid data for client '%s'", lockName));
+					continue;
+				}
+
+				status.add(info("%s: %s (%s, 0x%s, owner 0x%s)", i == 0 ? "OWNER" : "WAITING", lockData[0], lockData[1], StringUtils.left(lockData[2], 6), Long.toHexString(stat.getEphemeralOwner())));
+			}
+
+			return status;
+		}
+
+		private Status error(final String format, final Object... args) {
+			return new Status(IStatus.INFO, CloudActivator.SYMBOLIC_NAME, String.format(format, args));
+		}
+
+		private Status info(final String format, final Object... args) {
+			return new Status(IStatus.INFO, CloudActivator.SYMBOLIC_NAME, String.format(format, args));
+		}
+
+	}
+
 	static enum KillReason {
 		ZOOKEEPER_DISCONNECT, LOCK_DELETED, LOCK_STOLEN, REGULAR_RELEASE, ACQUIRE_FAILED, RESUME_FAILED
 	}
@@ -313,9 +359,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		private final String expectedNodeContent;
 
 		public RecoverLockNode(final String recoveryKey) {
-			if (StringUtils.isBlank(recoveryKey)) {
+			if (StringUtils.isBlank(recoveryKey))
 				throw new IllegalArgumentException("recovery key must not be empty");
-			}
 
 			// extract lock name and node content from recovery key
 			final String[] extractRecoveryKeyDetails = extractRecoveryKeyDetails(recoveryKey);
@@ -397,11 +442,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			final Object[] nodeNames = zk.readChildrenNames(lockNodePath, null).toArray();
 
 			// sanity check
-			if (nodeNames.length == 0) {
+			if (nodeNames.length == 0)
 				// all children have been removed, the lock can't be resumed
 				// (this also means that this lock node has been delete)
 				return false;
-			}
 
 			// sort based on sequence numbers
 			Arrays.sort(nodeNames, new Comparator<Object>() {
@@ -411,11 +455,10 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 					final String n2 = (String) o2;
 					final int sequence1 = getSequenceNumber(n1);
 					final int sequence2 = getSequenceNumber(n2);
-					if (sequence1 == -1) {
+					if (sequence1 == -1)
 						return sequence2 != -1 ? 1 : n1.compareTo(n2);
-					} else {
+					else
 						return sequence2 == -1 ? -1 : sequence1 - sequence2;
-					}
 				}
 			});
 
@@ -433,10 +476,9 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 
 			// check if our node is still there
 			for (int i = 0; i < nodeNames.length; i++) {
-				if (myLockName.equals(nodeNames[i])) {
+				if (myLockName.equals(nodeNames[i]))
 					// this is strange, we aren't the active lock but out node is still there
 					throw new LockAcquirationFailedException(getId(), "Impossible to resume lock. The active lock changed and conflicts with this lock.");
-				}
 			}
 
 			// we must assume that the lock has been deleted
@@ -452,9 +494,9 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		private static CountDownLatch deletionHappend = new CountDownLatch(1);
 
 		public boolean await(final long timeout) throws InterruptedException {
-			if (timeout > 0) {
+			if (timeout > 0)
 				return deletionHappend.await(timeout, TimeUnit.MILLISECONDS);
-			} else {
+			else {
 				deletionHappend.await();
 				return true;
 			}
@@ -468,8 +510,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	}
 
 	private static final String SEPARATOR = "__";
-	private static final String LOCK_NAME_PREFIX = "lock-";
 
+	private static final String LOCK_NAME_PREFIX = "lock-";
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperLock.class);
 
 	/**
@@ -490,29 +532,26 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	 */
 	public static String[] extractRecoveryKeyDetails(final String recoveryKey) {
 		final String[] keySegments = StringUtils.splitByWholeSeparator(recoveryKey, SEPARATOR);
-		if (keySegments.length < 2) {
+		if (keySegments.length < 2)
 			throw new IllegalArgumentException("invalid recovery key format");
-		}
 		final String lockName = keySegments[0];
 		final String nodeContent = StringUtils.removeStart(recoveryKey, lockName.concat(SEPARATOR));
 
-		if (StringUtils.isBlank(lockName) || StringUtils.isBlank(nodeContent)) {
+		if (StringUtils.isBlank(lockName) || StringUtils.isBlank(nodeContent))
 			throw new IllegalArgumentException("invalid recovery key format");
-		}
 		return new String[] { lockName, nodeContent };
-	};
+	}
 
 	private static int getSequenceNumber(final String nodeName) {
 		return NumberUtils.toInt(StringUtils.removeStart(nodeName, LOCK_NAME_PREFIX), -1);
-	}
+	};
 
 	final ZooKeeperMonitor killMonitor = new ZooKeeperMonitor() {
 		@Override
 		protected void pathDeleted(final String path) {
 			// only react if we are still active (ZOOKEEPER-442)
-			if (!isActiveLock() || isClosed()) {
+			if (!isActiveLock() || isClosed())
 				return;
-			}
 			LOG.warn("Lock {} has been deleted on the lock server!", getId());
 			killLock(KillReason.LOCK_DELETED);
 		};
@@ -520,9 +559,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		@Override
 		protected void recordChanged(final String path) {
 			// only react if we are still active (ZOOKEEPER-442)
-			if (!isActiveLock() || isClosed()) {
+			if (!isActiveLock() || isClosed())
 				return;
-			}
 			// the lock record has been changed remotely
 			// this means the lock was stolen
 			LOG.warn("Lock {} has been stolen!", getId());
@@ -531,15 +569,16 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	};
 
 	final String lockId;
+
 	final IPath lockNodePath;
 	final String lockNodeContent;
 	final boolean ephemeral;
 	final boolean recoverable;
-
 	private final ILockMonitor<T> lockMonitor;
-	private final AtomicBoolean suspended = new AtomicBoolean(false);
 
+	private final AtomicBoolean suspended = new AtomicBoolean(false);
 	volatile String myLockName;
+
 	volatile String myRecoveryKey;
 	volatile String activeLockName;
 
@@ -561,9 +600,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	 */
 	public ZooKeeperLock(final String lockId, final ILockMonitor<T> lockMonitor, final IPath lockNodeParentPath, final boolean ephemeral, final boolean recovarable) {
 		super(200l, 5);
-		if (!IdHelper.isValidId(lockId)) {
+		if (!IdHelper.isValidId(lockId))
 			throw new IllegalArgumentException("invalid lock id; please see IdHelper#isValidId");
-		}
 		this.lockId = lockId;
 		lockNodePath = lockNodeParentPath.append(lockId);
 		this.lockMonitor = lockMonitor;
@@ -597,17 +635,15 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 		// this must be done first in order to also count any operation preceding the acquire loop
 		final long abortTime = System.currentTimeMillis() + timeout;
 
-		if (recover && !isRecoverable()) {
+		if (recover && !isRecoverable())
 			throw new IllegalStateException("lock implementation is not recoverable");
-		}
 
 		try {
 			// create (or recover) lock node with a pathname of "_locknode_/lock-" and the sequence flag set
 			if (recover) {
-				if (!execute(new RecoverLockNode(recoveryKey))) {
+				if (!execute(new RecoverLockNode(recoveryKey)))
 					// null indicated that the lock as been removed
 					return null;
-				}
 			} else {
 				execute(new CreateLockNode());
 			}
@@ -623,13 +659,12 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			} catch (final Exception cleanUpException) {
 				LOG.error("Error during cleanup of failed lock acquisition. Please check server logs and also check lock service server. The lock may now be stalled. {}", ExceptionUtils.getRootCauseMessage(cleanUpException));
 			}
-			if (e instanceof InterruptedException) {
+			if (e instanceof InterruptedException)
 				throw (InterruptedException) e;
-			} else if (e instanceof TimeoutException) {
+			else if (e instanceof TimeoutException)
 				throw (TimeoutException) e;
-			} else {
+			else
 				throw new LockAcquirationFailedException(lockId, e);
-			}
 		}
 	}
 
@@ -666,6 +701,26 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	 */
 	public final String getMyLockName() {
 		return myLockName;
+	}
+
+	/**
+	 * Constructs and returns lock status information.
+	 * <p>
+	 * Implementation note: the lock object will be closed immediately after the
+	 * status has been built.
+	 * </p>
+	 * 
+	 * @return a lock status
+	 */
+	public IStatus getStatus() {
+		try {
+			return execute(new GetLockStatus());
+		} catch (final Exception e) {
+			return new Status(IStatus.ERROR, CloudActivator.SYMBOLIC_NAME, String.format("Unable to read lock information. %s", e.getMessage()), e);
+		} finally {
+			// close lock object
+			close();
+		}
 	}
 
 	@Override
@@ -731,9 +786,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	void killLock(final KillReason killReason) {
 		// in order to release a lock we must delete the node we created
 		// however, this might not be possible if the connection is already gone
-		if ((myLockName == null) || isClosed()) {
+		if ((myLockName == null) || isClosed())
 			return;
-		}
 
 		// immediately close in order to prevent re-entry
 		close();
@@ -759,9 +813,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 			notifyLockReleased(KillReason.ZOOKEEPER_DISCONNECT);
 		} catch (final Exception e) {
 			// fail if this is a regular release
-			if (killReason == KillReason.REGULAR_RELEASE) {
+			if (killReason == KillReason.REGULAR_RELEASE)
 				throw new IllegalStateException(String.format("Unable to remove lock node %s. Please check server logs and also ZooKeeper. If node still exists and the session is not closed it might never get released. %s", lockNodePath.append(myLockName), ExceptionUtils.getRootCauseMessage(e)), e);
-			}
 
 			// log error and continue
 			LOG.warn("Unable to remove lock node {}. Please check server logs and also ZooKeeper. If node still exists and the session is not closed it might never get released. However, it should get released automatically after the session times out on the ZooKeeper server. {}", lockNodePath.append(myLockName), ExceptionUtils.getRootCauseMessage(e));
@@ -815,9 +868,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	@Override
 	protected void reconnect() {
 		// only process event if this lock was active when suspended
-		if (!isSuspended() || !isActiveLock() || isClosed()) {
+		if (!isSuspended() || !isActiveLock() || isClosed())
 			return;
-		}
 
 		// when a ZooKeeper connection has been re-established we MUST ensure that
 		// this is still the active lock; therefore we must refresh the active lock name
@@ -850,9 +902,8 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 	 * either resumed or killed within a timeout.
 	 */
 	private void resumeOrKill() {
-		if (!isSuspended()) {
+		if (!isSuspended())
 			return;
-		}
 
 		LOG.warn("Lock {} is suspended! Waiting for resume.", getId());
 		// TODO: the timeout should be read from the ZooKeeperGateConfig
@@ -893,6 +944,23 @@ public abstract class ZooKeeperLock<T extends IDistributedLock> extends ZooKeepe
 				LOG.warn("Unhandled lock kill reason {}. Please report this issue to the developers. They should sanity check the implementation.", killReason);
 				return true;
 		}
+	}
+
+	void sortLockNodeChildren(final Object[] nodeNames) {
+		// sort based on sequence numbers
+		Arrays.sort(nodeNames, new Comparator<Object>() {
+			@Override
+			public int compare(final Object o1, final Object o2) {
+				final String n1 = (String) o1;
+				final String n2 = (String) o2;
+				final int sequence1 = getSequenceNumber(n1);
+				final int sequence2 = getSequenceNumber(n2);
+				if (sequence1 == -1)
+					return sequence2 != -1 ? 1 : n1.compareTo(n2);
+				else
+					return sequence2 == -1 ? -1 : sequence1 - sequence2;
+			}
+		});
 	}
 
 	@Override
