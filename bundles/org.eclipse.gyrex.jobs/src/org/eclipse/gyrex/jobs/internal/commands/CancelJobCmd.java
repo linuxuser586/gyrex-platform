@@ -89,6 +89,9 @@ public class CancelJobCmd extends Command {
 			if (StringUtils.equals(searchString, "*") || StringUtils.contains(jobId, searchString)) {
 				try {
 					jobManager.cancelJob(jobId, "console");
+					if (resetJobState) {
+						((JobManagerImpl) jobManager).setJobState(jobId, JobState.ABORTING, JobState.NONE, null);
+					}
 					printf("Job %s canceled.", jobId);
 				} catch (final IllegalArgumentException e) {
 					printf("Job %s not WAITING or RUNNING.", jobId);
