@@ -30,6 +30,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.StringUtils;
+
 import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
@@ -38,7 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * A Quartz job implementation that simply queues a triggered quartz job entry
+ * with the Gyrex IJobManager for distributed processing by the worker engine.
  */
 public class SchedulingJob implements Job {
 
@@ -104,14 +106,9 @@ public class SchedulingJob implements Job {
 			}
 			final JobManagerImpl jobManagerImpl = (JobManagerImpl) jobManager;
 
-			// create job if necessary
-			JobImpl job = jobManagerImpl.getJob(jobId);
-			if (job == null) {
-				job = jobManagerImpl.createJob(jobTypeId, jobId, parameter);
-			}
-
-			// check that job state is NONE (and it's not stuck)
-			if ((job.getState() != JobState.NONE) && !jobManagerImpl.isStuck(job)) {
+			// check that job state is NONE (and it's not stuck) if one exists
+			final JobImpl job = jobManagerImpl.getJob(jobId);
+			if ((job != null) && (job.getState() != JobState.NONE) && !jobManagerImpl.isStuck(job)) {
 				LOG.warn("Job {} (type {}) cannot be queued because it is already active in the system (current state {}).", new Object[] { job.getId(), job.getTypeId(), job.getState() });
 				return;
 			}
@@ -123,8 +120,8 @@ public class SchedulingJob implements Job {
 				queue = queueService.createQueue(IJobManager.DEFAULT_QUEUE, null);
 			}
 
-			// queue job
-			jobManager.queueJob(jobId, parameter, queue.getId(), String.format("Schedule '%s' entry '%s'.", scheduleId, scheduleEntryId));
+			// queue job (create it if necessary)
+			jobManager.queueJob(jobTypeId, jobId, parameter, queue.getId(), String.format("Schedule '%s' entry '%s'.", scheduleId, scheduleEntryId));
 		} catch (final Exception e) {
 			throw new JobExecutionException(String.format("Error queuing job '%s'. %s", jobId, e.getMessage()), e);
 		} finally {
