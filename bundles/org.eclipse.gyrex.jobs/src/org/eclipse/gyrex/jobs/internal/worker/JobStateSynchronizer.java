@@ -45,13 +45,15 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	private final Job realJob;
 	private final JobContext jobContext;
+	private final JobInfo info;
 
 	private IExclusiveLock lock;
 
-	public JobStateSynchronizer(final Job realJob, final JobContext jobContext) {
+	public JobStateSynchronizer(final Job realJob, final JobContext jobContext, final JobInfo info) {
 		// just remember variable; never hook any listeners here
 		this.realJob = realJob;
 		this.jobContext = jobContext;
+		this.info = info;
 	}
 
 	@Override
@@ -160,7 +162,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			updateJobState(null, JobState.NONE, null);
 
 			// update job with result
-			getJobManager().setResult(getJobId(), getJobParameter(), event.getResult(), System.currentTimeMillis());
+			getJobManager().setResult(getJobId(), getJobParameter(), event.getResult(), System.currentTimeMillis(), info.getQueueTrigger(), info.getQueueTimestamp());
 		} catch (final Exception e) {
 			LOG.error("Error updating job {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
 		} finally {

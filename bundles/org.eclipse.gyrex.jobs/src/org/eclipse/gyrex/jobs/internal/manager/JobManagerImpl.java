@@ -723,7 +723,7 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 	}
 
-	private void setJobResult(final JobImpl job, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final IExclusiveLock lock) throws BackingStoreException {
+	private void setJobResult(final JobImpl job, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final String queueTrigger, final long queueTimestamp, final IExclusiveLock lock) throws BackingStoreException {
 		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update job result of job %s due to missing or lost job lock!", job.getId()));
 		if (null == result)
@@ -752,11 +752,7 @@ public class JobManagerImpl implements IJobManager {
 			storable.setResult(result);
 			storable.setTimestamp(resultTimestamp);
 			storable.setParameter(parameter);
-			// only pass queue trigger to history if it makes sense
-			// FIXME: is logic is brittle, we need to make it part of the job message the queued and started the job
-			if (job.getLastQueued() > resultTimestamp) {
-				storable.setQueuedTrigger(String.format("not available; job already queued again (%s)", job.getLastQueuedTrigger()));
-			}
+			storable.setQueuedTrigger(queueTrigger);
 			// only pass cancellation trigger to history if it makes sense
 			// FIXME: is logic is brittle, we need to make it part of the job message the queued and started the job
 			if ((job.getLastCancelled() > job.getLastQueued()) && (job.getLastQueued() < resultTimestamp)) {
@@ -867,7 +863,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	public void setResult(final String jobId, final Map<String, String> parameter, final IStatus result, final long resultTimestamp) {
+	public void setResult(final String jobId, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final String queueTrigger, final long queueTimestamp) {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
@@ -896,7 +892,7 @@ public class JobManagerImpl implements IJobManager {
 				setJobState(job, JobState.NONE, jobLock);
 
 				// set result
-				setJobResult(job, parameter, result, resultTimestamp, jobLock);
+				setJobResult(job, parameter, result, resultTimestamp, queueTrigger, queueTimestamp, jobLock);
 			} catch (final BackingStoreException e) {
 				throw new IllegalStateException(String.format("Error setting result of job %s. %s", jobId, e.getMessage()), e);
 			}

@@ -211,7 +211,7 @@ public class WorkerEngine extends Job {
 		// set job status
 		try {
 			final JobManagerImpl jobManager = (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
-			jobManager.setResult(info.getJobId(), jobContext.getParameter(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis());
+			jobManager.setResult(info.getJobId(), jobContext.getParameter(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis(), info.getQueueTrigger(), info.getQueueTimestamp());
 		} catch (final Exception jobManagerException) {
 			LOG.error("Error updating job result for job {}: {}", new Object[] { info.getJobId(), ExceptionUtils.getRootCauseMessage(jobManagerException) });
 		}
@@ -282,7 +282,7 @@ public class WorkerEngine extends Job {
 
 		// create job state synchronizer but defer registration 
 		// with job until the last minute
-		final JobStateSynchronizer stateSynchronizer = new JobStateSynchronizer(job, jobContext);
+		final JobStateSynchronizer stateSynchronizer = new JobStateSynchronizer(job, jobContext, info);
 
 		// mark the job active before removing from queue (bug 360402)
 		// (this will ensure that it's set active by JobStateSynchronizer)
