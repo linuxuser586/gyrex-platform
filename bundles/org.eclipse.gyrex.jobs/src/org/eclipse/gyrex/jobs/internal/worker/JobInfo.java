@@ -29,6 +29,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang.math.NumberUtils;
 
 /**
  * Serialization/deserialization helper for Job queue messages.
@@ -39,6 +40,8 @@ public class JobInfo {
 	private static final String ID = PREFIX + "jobid"; //$NON-NLS-1$
 	private static final String TYPE_ID = PREFIX + "jobtype"; //$NON-NLS-1$
 	private static final String CONTEXT_PATH = PREFIX + "jobcontext"; //$NON-NLS-1$
+	private static final String QUEUE_TRIGGER = PREFIX + "queueTrigger"; //$NON-NLS-1$
+	private static final String QUEUE_TIMESTAMP = PREFIX + "queueTimestamp"; //$NON-NLS-1$
 	private static final String VERSION = PREFIX + "version"; //$NON-NLS-1$
 	private static final String VERSION_VALUE = "1"; //$NON-NLS-1$
 
@@ -51,17 +54,13 @@ public class JobInfo {
 			properties.put(entry.getKey(), entry.getValue());
 		}
 
-		// put version
+		// put properties
 		properties.put(VERSION, VERSION_VALUE);
-
-		// put id
 		properties.put(ID, info.getJobId());
-
-		// put type
 		properties.put(TYPE_ID, info.getJobTypeId());
-
-		// put type
 		properties.put(CONTEXT_PATH, info.getContextPath().toString());
+		properties.put(QUEUE_TRIGGER, info.getQueueTrigger());
+		properties.put(QUEUE_TIMESTAMP, String.valueOf(info.getQueueTimestamp()));
 
 		// create bytes
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -98,6 +97,16 @@ public class JobInfo {
 		if ((null == contextPathValue) || !(contextPathValue instanceof String) || !Path.EMPTY.isValidPath(((String) contextPathValue)))
 			throw new IOException(String.format("invalid record data: missing/invalid context path %s", String.valueOf(contextPathValue)));
 
+		// get path (remove key from properties as well)
+		final Object queueTrigger = properties.remove(QUEUE_TRIGGER);
+		if ((null != queueTrigger) && !(queueTrigger instanceof String))
+			throw new IOException(String.format("invalid record data: invalid queue trigger %s", String.valueOf(contextPathValue)));
+
+		// get path (remove key from properties as well)
+		final Object queueTimestamp = properties.remove(QUEUE_TIMESTAMP);
+		if ((null == queueTimestamp) || !(queueTimestamp instanceof String))
+			throw new IOException(String.format("invalid record data: missing/invalid queue timestamp %s", String.valueOf(contextPathValue)));
+
 		// collect properties
 		final Map<String, String> jobProperties = new HashMap<String, String>();
 		for (final Iterator<?> stream = properties.keySet().iterator(); stream.hasNext();) {
@@ -108,13 +117,15 @@ public class JobInfo {
 		}
 
 		// create job info
-		return new JobInfo((String) jobTypeValue, (String) jobIdValue, new Path((String) contextPathValue), jobProperties);
+		return new JobInfo((String) jobTypeValue, (String) jobIdValue, new Path((String) contextPathValue), jobProperties, (String) queueTrigger, NumberUtils.toLong((String) queueTimestamp));
 	}
 
 	private final String jobId;
 	private final String jobTypeId;
 	private final Map<String, String> jobProperties;
 	private final IPath contextPath;
+	private final String queueTrigger;
+	private final long queueTimestamp;
 
 	/**
 	 * Creates a new instance.
@@ -122,45 +133,36 @@ public class JobInfo {
 	 * @param jobId
 	 * @param jobProperties
 	 */
-	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties) {
+	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties, final String queueTrigger, final long queueTimestamp) {
 		this.jobId = jobId;
 		this.jobTypeId = jobTypeId;
 		this.contextPath = contextPath;
 		this.jobProperties = jobProperties;
+		this.queueTrigger = queueTrigger;
+		this.queueTimestamp = queueTimestamp;
 	}
 
-	/**
-	 * Returns the contextPath.
-	 * 
-	 * @return the contextPath
-	 */
 	public IPath getContextPath() {
 		return contextPath;
 	}
 
-	/**
-	 * Returns the jobId.
-	 * 
-	 * @return the jobId
-	 */
 	public String getJobId() {
 		return jobId;
 	}
 
-	/**
-	 * Returns the jobProperties.
-	 * 
-	 * @return the jobProperties
-	 */
 	public Map<String, String> getJobProperties() {
 		return jobProperties;
 	}
 
-	/**
-	 * @return
-	 */
 	public String getJobTypeId() {
 		return jobTypeId;
 	}
 
+	public long getQueueTimestamp() {
+		return queueTimestamp;
+	}
+
+	public String getQueueTrigger() {
+		return queueTrigger;
+	}
 }

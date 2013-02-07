@@ -386,12 +386,16 @@ public class JobManagerImpl implements IJobManager {
 				// set job state
 				setJobState(job, JobState.WAITING, jobLock);
 
+				// collect queue info
+				final String queueTrigger = null != trigger ? trigger : findCaller();
+				final long queueTimestamp = System.currentTimeMillis();
+
 				// add to queue
-				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), parameter)));
+				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), parameter, queueTrigger, queueTimestamp)));
 
 				// set queued time
 				try {
-					setJobQueued(job, System.currentTimeMillis(), null != trigger ? trigger : findCaller(), jobLock);
+					setJobQueued(job, queueTimestamp, queueTrigger, jobLock);
 				} catch (final Exception e) {
 					// we must not fail at this point, the job has been queued already
 					LOG.warn("Unable to set job queue time for job {}: {}", jobId, ExceptionUtils.getRootCauseMessage(e));
