@@ -18,7 +18,9 @@ import org.eclipse.gyrex.common.console.Command;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
+import org.eclipse.gyrex.jobs.JobState;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
+import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 
 import org.eclipse.core.runtime.IPath;
@@ -26,7 +28,9 @@ import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.Option;
 
 /**
  * Command to cancel a running/waiting job.
@@ -38,6 +42,9 @@ public class CancelJobCmd extends Command {
 
 	@Argument(index = 1, usage = "job id filter string", required = true, metaVar = "JOB-ID-FILTER")
 	String searchString;
+
+	@Option(name = "-reset", usage = "flag to force a reset of a job state (default is no)", required = false)
+	boolean resetJobState;
 
 	/**
 	 * Creates a new instance.
@@ -69,6 +76,9 @@ public class CancelJobCmd extends Command {
 		if (!StringUtils.equals(searchString, "*") && IdHelper.isValidId(searchString)) {
 			if (jobIds.contains(searchString)) {
 				jobManager.cancelJob(searchString, "console");
+				if (resetJobState) {
+					((JobManagerImpl) jobManager).setJobState(searchString, JobState.ABORTING, JobState.NONE, null);
+				}
 				printf("Job %s canceled.", searchString);
 				return;
 			}
