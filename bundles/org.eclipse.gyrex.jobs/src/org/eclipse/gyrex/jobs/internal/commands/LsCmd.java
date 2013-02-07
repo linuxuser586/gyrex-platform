@@ -111,6 +111,14 @@ public class LsCmd extends Command {
 		}
 	}
 
+	private String getActiveNodeId(final String storageId) {
+		try {
+			return JobHungDetectionHelper.getProcessingNodeId(storageId, null);
+		} catch (final IllegalStateException e) {
+			return String.format("[%s]", e.getMessage());
+		}
+	}
+
 	private SortedSet<String> getJobIds(final JobState state) throws BackingStoreException {
 		final String[] storageIds = CloudPreferncesJobStorage.getJobsNode().childrenNames();
 		if (null == state)
@@ -125,22 +133,17 @@ public class LsCmd extends Command {
 		return jobIds;
 	}
 
-	private String getNodeId(final String storageId) {
-		try {
-			return JobHungDetectionHelper.getProcessingNodeId(storageId, null);
-		} catch (final IllegalStateException e) {
-			return String.format("[%s]", e.getMessage());
-		}
-	}
-
 	private void printJob(final JobImpl job) throws Exception {
 		final StrBuilder info = new StrBuilder();
 		info.appendln(job.getId());
-		info.append("                    type: ").appendln(job.getTypeId());
-		info.append("                   state: ").appendln(job.getState());
-		info.append("         last start time: ").appendln(job.getLastStart() > -1 ? DateFormatUtils.formatUTC(job.getLastStart(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
-		info.append(" last successfull finish: ").appendln(job.getLastSuccessfulFinish() > -1 ? DateFormatUtils.formatUTC(job.getLastSuccessfulFinish(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
-		info.append("             last result: ").appendln(job.getLastResult() != null ? job.getLastResult().getMessage() : "(not available)");
+		info.appendFixedWidthPadLeft("type: ", 26, ' ').appendln(job.getTypeId());
+		info.appendFixedWidthPadLeft("state: ", 26, ' ').appendln(job.getState());
+		info.appendFixedWidthPadLeft("last start time: ", 26, ' ').appendln(job.getLastStart() > -1 ? DateFormatUtils.formatUTC(job.getLastStart(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
+		info.appendFixedWidthPadLeft("last successfull finish: ", 26, ' ').appendln(job.getLastSuccessfulFinish() > -1 ? DateFormatUtils.formatUTC(job.getLastSuccessfulFinish(), "yyyy-MM-dd 'at' HH:mm:ss z") : "never");
+		info.appendFixedWidthPadLeft("last result: ", 26, ' ').appendln(job.getLastResult() != null ? job.getLastResult().getMessage() : "(not available)");
+
+		final String activeNodeId = getActiveNodeId(job.getStorageKey());
+		info.appendFixedWidthPadLeft("active on: ", 26, ' ').appendln(null != activeNodeId ? activeNodeId : "(not active)");
 
 		final IEclipsePreferences historyNode = CloudPreferncesJobHistoryStorage.getJobsHistoryNode();
 		if (historyNode.nodeExists(job.getStorageKey())) {
@@ -183,7 +186,12 @@ public class LsCmd extends Command {
 		for (final String storageId : storageIds) {
 			final String externalId = ContextHashUtil.getExternalId(storageId);
 			if (StringUtils.isBlank(searchString) || StringUtils.contains(storageId, searchString)) {
-				printf("%s, %s (%s)", externalId, getNodeId(storageId), storageId);
+				final String activeNodeId = getActiveNodeId(storageId);
+				if (activeNodeId != null) {
+					printf("%s (active on %s, %s)", externalId, activeNodeId, storageId);
+				} else {
+					printf("%s (%s)", externalId, storageId);
+				}
 				found = true;
 			}
 		}
