@@ -26,15 +26,10 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * ZooKeeper queue message
  */
 public class Message implements IMessage {
-
-	private static final Logger LOG = LoggerFactory.getLogger(Message.class);
 
 	private final String queueId;
 	private final byte[] body;
@@ -215,10 +210,8 @@ public class Message implements IMessage {
 	 */
 	public boolean receive(final long timeoutInMs, final boolean failIfDeleted) throws NoSuchElementException {
 		// don't do anything if the timeout is non-sense
-		if (timeoutInMs < 1000) {
-			LOG.debug("Visibility timeout of {}ms too small. ZooKeeper operation will be skipper.", timeoutInMs);
+		if (timeoutInMs < 1000)
 			return true;
-		}
 
 		// calculate invisible timeout
 		invisibleTimeoutTS = timeoutInMs + System.currentTimeMillis();

@@ -31,6 +31,11 @@ public interface IQueueServiceProperties {
 	 * <p>
 	 * The property value must be of type {@link Long} or <code>long</code>.
 	 * </p>
+	 * <p>
+	 * Queue implementation providers may only support a limited range. Due to
+	 * the communication overhead with a queue service through a network it may
+	 * not make sense to use too small values.
+	 * </p>
 	 * 
 	 * @see IQueue#receiveMessages(int, java.util.Map)
 	 */
