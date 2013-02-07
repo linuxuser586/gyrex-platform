@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.p2.internal.packages.IPackageManager;
@@ -24,6 +25,8 @@ import org.eclipse.gyrex.p2.internal.packages.InstallableUnitReference;
 import org.eclipse.gyrex.p2.internal.packages.PackageDefinition;
 import org.eclipse.gyrex.preferences.CloudScope;
 
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.equinox.p2.metadata.Version;
 
@@ -41,18 +44,61 @@ import org.slf4j.LoggerFactory;
  */
 public class PackageManager implements IPackageManager {
 
+	private static enum InstallState {
+		ROLLOUT, REVOKE, NONE;
+
+		public static InstallState fromString(final String value) {
+			if (StringUtils.isBlank(value))
+				return NONE;
+			switch (value) {
+				case "rollout":
+					return ROLLOUT;
+				case "revoke":
+					return REVOKE;
+				default:
+					return NONE;
+			}
+		}
+
+		public static String toString(final InstallState installState) {
+			if (installState == null)
+				return null;
+
+			switch (installState) {
+				case ROLLOUT:
+					return "rollout";
+				case REVOKE:
+					return "revoke";
+				case NONE:
+				default:
+					return null;
+			}
+		}
+	}
+
 	private static final String PREF_NODE_PACKAGES = "packages";
 	private static final String PREF_NODE_COMPONENTS = "components";
 
 	private static final String PREF_KEY_NODE_FILTER = "nodeFilter";
-	private static final String PREF_KEY_INSTALL = "install";
-	private static final String PREF_KEY_UNINSTALL = "uninstall";
+
+	private static final String PREF_KEY_INSTALL_STATE = "installState";
+	private static final String PREF_KEY_INSTALL_STATE_TIMESTAMP = "installStateTS";
+
 	private static final String PREF_KEY_TYPE = "type";
 	private static final String PREF_KEY_VERSION = "version";
 
 	private static final String COMPONENT_TYPE_IU = "IU";
 
 	private static final Logger LOG = LoggerFactory.getLogger(PackageManager.class);
+
+	private static String toRelativeTime(final long duration) {
+		if (duration < TimeUnit.MINUTES.toMillis(2))
+			return "a minute ago";
+		else if (duration < TimeUnit.HOURS.toMillis(2))
+			return String.format("%d minutes ago", TimeUnit.MILLISECONDS.toMinutes(duration));
+		else
+			return String.format("%d hours ago", TimeUnit.MILLISECONDS.toMinutes(duration));
+	}
 
 	@Override
 	public PackageDefinition getPackage(final String id) {
@@ -109,7 +155,15 @@ public class PackageManager implements IPackageManager {
 			if (!node.nodeExists(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
 
-			return node.node(packageDefinition.getId()).getBoolean(PREF_KEY_INSTALL, false);
+			final Preferences pkgNode = node.node(packageDefinition.getId());
+			final String installState = pkgNode.get(PREF_KEY_INSTALL_STATE, null);
+
+			// support old key for backwards compatibility
+			if ((installState == null) && (null != pkgNode.get("install", null)))
+				return pkgNode.getBoolean("install", false);
+
+			return InstallState.fromString(installState) == InstallState.ROLLOUT;
+
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
@@ -127,7 +181,14 @@ public class PackageManager implements IPackageManager {
 			if (!node.nodeExists(packageDefinition.getId()))
 				throw new IllegalArgumentException("package does not exist");
 
-			return node.node(packageDefinition.getId()).getBoolean(PREF_KEY_UNINSTALL, false);
+			final Preferences pkgNode = node.node(packageDefinition.getId());
+			final String installState = pkgNode.get(PREF_KEY_INSTALL_STATE, null);
+
+			// support old key for backwards compatibility
+			if ((installState == null) && (null != pkgNode.get("uninstall", null)))
+				return pkgNode.getBoolean("uninstall", false);
+
+			return InstallState.fromString(installState) == InstallState.REVOKE;
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
 		}
@@ -146,8 +207,13 @@ public class PackageManager implements IPackageManager {
 				throw new IllegalArgumentException("package does not exist");
 
 			final Preferences pkgNode = node.node(packageDefinition.getId());
-			pkgNode.putBoolean(PREF_KEY_INSTALL, true);
-			pkgNode.putBoolean(PREF_KEY_UNINSTALL, false);
+			pkgNode.put(PREF_KEY_INSTALL_STATE, InstallState.toString(InstallState.ROLLOUT));
+			pkgNode.putLong(PREF_KEY_INSTALL_STATE_TIMESTAMP, System.currentTimeMillis());
+
+			// cleanup legacy keys
+			pkgNode.remove("install");
+			pkgNode.remove("uninstall");
+
 			pkgNode.flush();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
@@ -167,8 +233,13 @@ public class PackageManager implements IPackageManager {
 				throw new IllegalArgumentException("package does not exist");
 
 			final Preferences pkgNode = node.node(packageDefinition.getId());
-			pkgNode.putBoolean(PREF_KEY_INSTALL, false);
-			pkgNode.putBoolean(PREF_KEY_UNINSTALL, true);
+			pkgNode.put(PREF_KEY_INSTALL_STATE, InstallState.toString(InstallState.REVOKE));
+			pkgNode.putLong(PREF_KEY_INSTALL_STATE_TIMESTAMP, System.currentTimeMillis());
+
+			// cleanup legacy keys
+			pkgNode.remove("install");
+			pkgNode.remove("uninstall");
+
 			pkgNode.flush();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error reading package definition from backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
@@ -220,6 +291,10 @@ public class PackageManager implements IPackageManager {
 			if (!node.nodeExists(id))
 				return;
 
+			final IStatus modifiable = verifyPackageIsModifiable(id);
+			if (!modifiable.isOK())
+				throw new IllegalStateException(modifiable.getMessage());
+
 			node.node(id).removeNode();
 			node.flush();
 		} catch (final BackingStoreException e) {
@@ -232,7 +307,12 @@ public class PackageManager implements IPackageManager {
 		try {
 			final String id = packageDefinition.getId();
 			if (!IdHelper.isValidId(id))
-				throw new IllegalArgumentException("invalid package id");
+				throw new IllegalArgumentException("invalid id");
+
+			final IStatus modifiable = verifyPackageIsModifiable(id);
+			if (!modifiable.isOK())
+				throw new IllegalStateException(modifiable.getMessage());
+
 			final Collection<InstallableUnitReference> componentsToInstall = packageDefinition.getComponentsToInstall();
 
 			final Preferences node = getPackageNode(id);
@@ -268,6 +348,34 @@ public class PackageManager implements IPackageManager {
 			node.flush();
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException("Error saving package definition to backend store. " + ExceptionUtils.getRootCauseMessage(e), e);
+		}
+	}
+
+	public IStatus verifyPackageIsModifiable(final String id) throws IllegalStateException, IllegalArgumentException {
+		if (!IdHelper.isValidId(id))
+			return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, "invalid package id");
+
+		try {
+			final IEclipsePreferences rootNode = CloudScope.INSTANCE.getNode(P2Activator.SYMBOLIC_NAME);
+			if (!rootNode.nodeExists(PREF_NODE_PACKAGES))
+				return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, "package does not exist");
+			final Preferences node = rootNode.node(PREF_NODE_PACKAGES);
+			if (!node.nodeExists(id))
+				return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, "package does not exist");
+
+			final Preferences pkgNode = node.node(id);
+			final InstallState installState = InstallState.fromString(pkgNode.get(PREF_KEY_INSTALL_STATE, null));
+			if (installState == InstallState.ROLLOUT)
+				return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, String.format("Package '%s' is marked for rollout! Please revoke it first.", id));
+			else if (installState == InstallState.REVOKE) {
+				final long revokeDuration = System.currentTimeMillis() - pkgNode.getLong(PREF_KEY_INSTALL_STATE_TIMESTAMP, 0);
+				if (revokeDuration < TimeUnit.HOURS.toMillis(48))
+					return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, String.format("Package '%s' was revoked %s! Please wait at least 48 hours before modifying a revoked package!", id, toRelativeTime(revokeDuration)));
+			}
+
+			return Status.OK_STATUS;
+		} catch (final BackingStoreException e) {
+			return new Status(IStatus.ERROR, P2Activator.SYMBOLIC_NAME, String.format("Error accessing backend store. Unable to verify package modifiability. %s", e.getMessage()), e);
 		}
 	}
 

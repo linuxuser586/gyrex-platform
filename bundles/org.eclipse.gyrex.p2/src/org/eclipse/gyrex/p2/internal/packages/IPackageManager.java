@@ -13,6 +13,8 @@ package org.eclipse.gyrex.p2.internal.packages;
 
 import java.util.Collection;
 
+import org.eclipse.core.runtime.IStatus;
+
 /**
  * Manages the available packages that may be installed on nodes in the cloud.
  * 
@@ -21,10 +23,6 @@ import java.util.Collection;
  */
 public interface IPackageManager {
 
-	/**
-	 * @param id
-	 * @return
-	 */
 	PackageDefinition getPackage(String id);
 
 	Collection<PackageDefinition> getPackages();
@@ -37,14 +35,10 @@ public interface IPackageManager {
 
 	void markedForUninstall(PackageDefinition packageDefinition);
 
-	/**
-	 * @param id
-	 */
 	void removePackage(String id);
 
-	/**
-	 * @param packageDefinition
-	 */
 	void savePackage(PackageDefinition packageDefinition);
+
+	IStatus verifyPackageIsModifiable(String id) throws IllegalStateException, IllegalArgumentException;
 
 }
