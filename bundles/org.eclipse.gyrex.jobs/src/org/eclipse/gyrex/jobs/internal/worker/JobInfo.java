@@ -126,12 +126,6 @@ public class JobInfo {
 	private final String queueTrigger;
 	private final long queueTimestamp;
 
-	/**
-	 * Creates a new instance.
-	 * 
-	 * @param jobId
-	 * @param jobProperties
-	 */
 	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties, final String queueTrigger, final long queueTimestamp) {
 		this.jobId = jobId;
 		this.jobTypeId = jobTypeId;
