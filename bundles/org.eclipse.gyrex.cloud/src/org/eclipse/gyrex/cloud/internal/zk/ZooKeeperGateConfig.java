@@ -16,6 +16,7 @@ import org.eclipse.gyrex.cloud.internal.NodeInfo;
 import org.eclipse.gyrex.server.Platform;
 
 import org.apache.commons.lang.math.NumberUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,12 +36,10 @@ public class ZooKeeperGateConfig {
 
 	private static String getDefaultConnectString() {
 		final String connectString = System.getProperty("gyrex.zookeeper.connectString");
-		if (null != connectString) {
+		if (null != connectString)
 			return connectString;
-		}
-		if (Platform.inDevelopmentMode()) {
+		if (Platform.inDevelopmentMode())
 			return "localhost:2181";
-		}
 		return null;
 	}
 
@@ -76,13 +75,12 @@ public class ZooKeeperGateConfig {
 	private int getDefaultSessionTimeout() {
 		final String sessionTimeoutValue = System.getProperty("gyrex.zookeeper.sessionTimeout");
 		final int sessionTimeout = NumberUtils.toInt(sessionTimeoutValue, DEFAULT_SESSION_TIMEOUT);
-		if (sessionTimeout > 5000) {
+		if (sessionTimeout > 5000)
 			return sessionTimeout;
-		}
 		if (null != sessionTimeoutValue) {
-			LOG.warn("ZooKeeper session timeout of {}ms (parsed from '{}') is too low.", sessionTimeout, sessionTimeoutValue);
+			LOG.warn("ZooKeeper session timeout of {}ms (parsed from '{}') is too low. Using default {}ms.", sessionTimeout, sessionTimeoutValue, DEFAULT_SESSION_TIMEOUT);
 		} else {
-			LOG.warn("ZooKeeper session timeout of {}ms is too low.", sessionTimeout);
+			LOG.warn("ZooKeeper session timeout of {}ms is too low. Using default {}ms.", sessionTimeout, DEFAULT_SESSION_TIMEOUT);
 		}
 		return DEFAULT_SESSION_TIMEOUT;
 	}
@@ -109,15 +107,13 @@ public class ZooKeeperGateConfig {
 	public void readFromPreferences() {
 		// connect string
 		connectString = getConnectStringFromPreferences();
-		if (connectString == null) {
+		if (connectString == null)
 			throw new IllegalStateException("Connect string not configured for node " + nodeId);
-		}
 
 		// timeout
 		sessionTimeout = getSessionTimeoutFromPreferences();
-		if (sessionTimeout < 5000) {
+		if (sessionTimeout < 5000)
 			throw new IllegalStateException("Session timeout too low for node " + nodeId);
-		}
 	}
 
 	/**
