@@ -517,7 +517,7 @@ public class JobManagerImpl implements IJobManager {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
-		doQueueJob(jobTypeId, jobId, null, queueId, trigger);
+		doQueueJob(jobTypeId, jobId, parameter, queueId, trigger);
 	}
 
 	@Override
