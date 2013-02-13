@@ -31,6 +31,7 @@ import org.apache.zookeeper.KeeperException.BadVersionException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public class JobHungDetectionHelper {
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobHungDetectionHelper.class);
-	private static final IPath ACTIVE_JOBS = IZooKeeperLayout.PATH_GYREX_ROOT.append("jobs/active");
+	private static final IPath ACTIVE_JOBS = IZooKeeperLayout.PATH_JOBS_ROOT.append("active");
 
 	/**
 	 * Returns the list of active jobs.
@@ -122,9 +123,8 @@ public class JobHungDetectionHelper {
 	 */
 	public static boolean isStuck(final String jobStorageKey, final JobImpl job, final boolean logLongRunning) {
 		// jobs in state NONE are never stuck
-		if (job.getState() == JobState.NONE) {
+		if (job.getState() == JobState.NONE)
 			return false;
-		}
 
 		// check that the job has been queued
 		if (job.getLastQueued() < 0) {
@@ -221,10 +221,9 @@ public class JobHungDetectionHelper {
 					LOG.warn("Job {} active on node {} but will now be moved to this node!", jobStorageKey, processingNodeId);
 					ZooKeeperGate.get().writeRecord(path, myNodeId, stat.getVersion());
 					return;
-				} else if (StringUtils.equalsIgnoreCase(myNodeId, processingNodeId)) {
+				} else if (StringUtils.equalsIgnoreCase(myNodeId, processingNodeId))
 					// perfect
 					return;
-				}
 
 				if (JobsDebug.debug) {
 					LOG.debug("Creating ephemeral node for job {}...", jobStorageKey);
@@ -232,15 +231,13 @@ public class JobHungDetectionHelper {
 				ZooKeeperGate.get().createPath(path, CreateMode.EPHEMERAL, myNodeId);
 			} catch (final NodeExistsException e) {
 				// retry
-				if (--retries == 0) {
+				if (--retries == 0)
 					throw new IllegalStateException("Unable to activate job!", e);
-				}
 				continue;
 			} catch (final BadVersionException e) {
 				// retry
-				if (--retries == 0) {
+				if (--retries == 0)
 					throw new IllegalStateException("Unable to activate job!", e);
-				}
 				continue;
 			} catch (final Exception e) {
 				throw new IllegalStateException("Unable to set job state running!", e);
@@ -276,9 +273,8 @@ public class JobHungDetectionHelper {
 				return;
 			} catch (final BadVersionException e) {
 				// retry
-				if (--retries == 0) {
+				if (--retries == 0)
 					throw new IllegalStateException("Unable to deactivate job!", e);
-				}
 				continue;
 			} catch (final Exception e) {
 				throw new IllegalStateException("Unable to set job state stopped!", e);

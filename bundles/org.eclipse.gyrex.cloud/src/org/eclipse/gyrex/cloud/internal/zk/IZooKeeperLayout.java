@@ -77,4 +77,7 @@ public interface IZooKeeperLayout {
 
 	/** root path for locks stored in ZooKeeper */
 	public static final IPath PATH_LOCKS_DURABLE = PATH_LOCKS_ROOT.append("durable").makeAbsolute();
+
+	/** root path for job related information stored in ZooKeeper */
+	public static final IPath PATH_JOBS_ROOT = PATH_GYREX_ROOT.append("jobs").makeAbsolute();
 }
