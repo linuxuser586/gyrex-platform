@@ -87,32 +87,7 @@ public class ThroughputMetric extends BaseMetric {
 	 * the total number of time consumed processing requests (excluding failed
 	 * requests) since the last statistics reset
 	 */
-	private volatile long requestsStatsProcessingTime;
-
-	/**
-	 * the average number of time consumed processing a request (excluding
-	 * failed requests) since the last statistics reset
-	 */
-	private volatile long requestsStatsProcessingTimeAverage;
-
-	/**
-	 * the highest number of time consumed processing a request (excluding
-	 * failed requests) since the last statistics reset
-	 */
-	private volatile long requestsStatsProcessingTimeHigh;
-
-	/**
-	 * the lowest number of time consumed processing a request (excluding failed
-	 * requests) since the last statistics reset
-	 */
-	private volatile long requestsStatsProcessingTimeLow;
-
-	/**
-	 * base value for calculating variance and standard deviation of time
-	 * consumed processing requests (excluding failed requests) since the last
-	 * statistics reset
-	 */
-	private volatile long requestsStatsProcessingTimeVariance100;
+	private final Counter requestsStatsProcessingTime = new Counter();
 
 	private final TimeUnit timeUnit;
 
@@ -137,9 +112,8 @@ public class ThroughputMetric extends BaseMetric {
 	 */
 	public ThroughputMetric(final String id, final TimeUnit timeUnit) {
 		super(id);
-		if (timeUnit == null) {
+		if (timeUnit == null)
 			throw new IllegalArgumentException("no time unit specified");
-		}
 		this.timeUnit = timeUnit;
 	}
 
@@ -169,11 +143,7 @@ public class ThroughputMetric extends BaseMetric {
 		requestsStatsHigh = 0;
 		requestsStatsSize = 0;
 		requestsStatsSizeAverage = 0;
-		requestsStatsProcessingTime = 0;
-		requestsStatsProcessingTimeAverage = 0;
-		requestsStatsProcessingTimeHigh = 0;
-		requestsStatsProcessingTimeLow = 0;
-		requestsStatsProcessingTimeVariance100 = 0;
+		requestsStatsProcessingTime.reset();
 	}
 
 	@Override
@@ -310,7 +280,7 @@ public class ThroughputMetric extends BaseMetric {
 	 *         last statistics reset
 	 */
 	public long getRequestsStatsProcessingTime() {
-		return requestsStatsProcessingTime;
+		return requestsStatsProcessingTime.getValue();
 	}
 
 	/**
@@ -321,7 +291,7 @@ public class ThroughputMetric extends BaseMetric {
 	 *         the last statistics reset
 	 */
 	public long getRequestsStatsProcessingTimeAverage() {
-		return requestsStatsProcessingTimeAverage;
+		return requestsStatsProcessingTime.getAverage();
 	}
 
 	/**
@@ -332,7 +302,7 @@ public class ThroughputMetric extends BaseMetric {
 	 *         the last statistics reset
 	 */
 	public long getRequestsStatsProcessingTimeHigh() {
-		return requestsStatsProcessingTimeHigh;
+		return requestsStatsProcessingTime.getHigh();
 	}
 
 	/**
@@ -343,7 +313,7 @@ public class ThroughputMetric extends BaseMetric {
 	 *         last statistics reset
 	 */
 	public long getRequestsStatsProcessingTimeLow() {
-		return requestsStatsProcessingTimeLow;
+		return requestsStatsProcessingTime.getLow();
 	}
 
 	/**
@@ -365,20 +335,13 @@ public class ThroughputMetric extends BaseMetric {
 	 *         requests since the last statistics reset
 	 */
 	public double getRequestsStatsProcessingTimeVariance() {
-		final long requestsStatsProcessingTimeVariance100;
-		final long requestsStatsProcessed;
 		final Lock lock = getReadLock();
 		lock.lock();
 		try {
-			requestsStatsProcessingTimeVariance100 = this.requestsStatsProcessingTimeVariance100;
-			requestsStatsProcessed = this.requestsStatsProcessed;
+			return requestsStatsProcessingTime.getVariance();
 		} finally {
 			lock.unlock();
 		}
-		if (requestsStatsProcessed > 1) {
-			return (requestsStatsProcessingTimeVariance100) / 100.0 / (requestsStatsProcessed - 1);
-		}
-		return 0.0D;
 	}
 
 	/**
@@ -497,18 +460,7 @@ public class ThroughputMetric extends BaseMetric {
 			requestsStatsProcessed++;
 			requestsStatsSize += sizeUnits;
 			requestsStatsSizeAverage = requestsStatsSize / requestsStatsProcessed;
-			requestsStatsProcessingTime += processingTime;
-			requestsStatsProcessingTimeAverage = requestsStatsProcessingTime / requestsStatsProcessed;
-			if (requestsStatsProcessed > 1) {
-				requestsStatsProcessingTimeHigh = Math.max(processingTime, requestsStatsProcessingTimeHigh);
-				requestsStatsProcessingTimeLow = Math.min(processingTime, requestsStatsProcessingTimeLow);
-				final long delta10 = (processingTime * 10) - ((requestsStatsProcessingTime * 10) / requestsStatsProcessed);
-				requestsStatsProcessingTimeVariance100 += (delta10 * delta10);
-			} else {
-				requestsStatsProcessingTimeHigh = processingTime;
-				requestsStatsProcessingTimeLow = processingTime;
-				requestsStatsProcessingTimeVariance100 = 0;
-			}
+			requestsStatsProcessingTime.increment(processingTime);
 			updateHitRate();
 			updateFailureRate();
 		} finally {
