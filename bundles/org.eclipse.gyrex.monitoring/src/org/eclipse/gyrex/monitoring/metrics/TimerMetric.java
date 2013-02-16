@@ -78,7 +78,17 @@ public class TimerMetric extends BaseMetric {
 
 	@Override
 	Object[] dumpMetrics() {
-		return new Object[] { "time|time average|time high|time low|time stddev", getProcessingTime(), getProcessingTimeAverage(), getProcessingTimeHigh(), getProcessingTimeLow(), getProcessingTimeStandardDeviation() };
+		return new Object[] { "count|time|time average|time high|time low|time stddev", getProcessingCount(), getProcessingTime(), getProcessingTimeAverage(), getProcessingTimeHigh(), getProcessingTimeLow(), getProcessingTimeStandardDeviation() };
+	}
+
+	/**
+	 * Returns the number of finished processes, i.e. how often
+	 * {@link #processFinished(long)} has been called.
+	 * 
+	 * @return the number of finished processes
+	 */
+	public long getProcessingCount() {
+		return duration.getNumberOfSamples();
 	}
 
 	/**
@@ -165,6 +175,8 @@ public class TimerMetric extends BaseMetric {
 	@Override
 	void populateAttributes(final List<MetricAttribute> attributes) {
 		super.populateAttributes(attributes);
+		attributes.add(new MetricAttribute("processingCount", "the number of finished processed since the last statistics reset", Long.class));
+		attributes.add(new MetricAttribute("processingTime", "the total number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("processingTime", "the total number of time consumed processing requests (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("processingTimeAverage", "the average number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
 		attributes.add(new MetricAttribute("processingTimeHigh", "the highest number of time consumed processing a request (excluding failed requests) since the last statistics reset", Long.class));
@@ -176,6 +188,7 @@ public class TimerMetric extends BaseMetric {
 	@Override
 	void populateAttributeValues(final Map<String, Object> values) {
 		super.populateAttributeValues(values);
+		values.put("processingCount", getProcessingCount());
 		values.put("processingTime", getProcessingTime());
 		values.put("processingTimeAverage", getProcessingTimeAverage());
 		values.put("processingTimeHigh", getProcessingTimeHigh());
