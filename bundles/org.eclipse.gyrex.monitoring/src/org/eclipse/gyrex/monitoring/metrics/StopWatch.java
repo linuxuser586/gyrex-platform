@@ -23,8 +23,10 @@ import java.util.concurrent.TimeUnit;
  * The results of this stop watch are undefined if {@link #start()} and
  * {@link #stop()} are called out-of-order or multiple times.
  * </p>
+ * 
+ * @since 1.2
  */
-public class StopWatch {
+public final class StopWatch {
 
 	public static interface StopCallback {
 		void stopped(StopWatch stopWatch);

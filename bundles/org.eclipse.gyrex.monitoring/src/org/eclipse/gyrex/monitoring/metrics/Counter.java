@@ -18,6 +18,8 @@ package org.eclipse.gyrex.monitoring.metrics;
  * Note, this class is not thread safe. Concurrent access to any of the methods
  * in this class must be coordinated by the caller.
  * </p>
+ * 
+ * @since 1.2
  */
 public final class Counter {
 

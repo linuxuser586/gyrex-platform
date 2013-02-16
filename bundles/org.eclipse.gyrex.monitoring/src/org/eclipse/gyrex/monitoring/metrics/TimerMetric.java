@@ -30,6 +30,7 @@ import org.eclipse.gyrex.monitoring.metrics.StopWatch.StopCallback;
  * allowed to be subclassed outside the monitoring framework.
  * </p>
  * 
+ * @since 1.2
  * @noextend This class is not intended to be subclassed by clients.
  */
 public class TimerMetric extends BaseMetric {
