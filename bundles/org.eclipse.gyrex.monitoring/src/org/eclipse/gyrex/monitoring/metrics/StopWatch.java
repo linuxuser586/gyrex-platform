@@ -16,17 +16,22 @@ import java.util.concurrent.TimeUnit;
 /**
  * A stop watch may be used to track measured times (eg., durations).
  * <p>
- * Note, this class is not thread safe. Concurrent access to any of the methods
- * in this class must be coordinated by the caller.
- * </p>
- * <p>
  * The results of this stop watch are undefined if {@link #start()} and
  * {@link #stop()} are called out-of-order or multiple times.
  * </p>
+ * <p>
+ * This class is not thread safe. Concurrent access to any of the methods in
+ * this class must be coordinated by the caller.
+ * </p>
+ * <p>
+ * Note, although this class is not marked <strong>final</strong> it is not
+ * allowed to be subclassed outside the monitoring framework.
+ * </p>
  * 
+ * @noextend This class is not intended to be subclassed by clients.
  * @since 1.2
  */
-public final class StopWatch {
+public class StopWatch {
 
 	public static interface StopCallback {
 		void stopped(StopWatch stopWatch);

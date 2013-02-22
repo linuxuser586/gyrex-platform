@@ -15,13 +15,18 @@ package org.eclipse.gyrex.monitoring.metrics;
  * A counter that may be used to track events that increment a value (eg.,
  * durations, invocations).
  * <p>
- * Note, this class is not thread safe. Concurrent access to any of the methods
- * in this class must be coordinated by the caller.
+ * This class is not thread safe. Concurrent access to any of the methods in
+ * this class must be coordinated by the caller.
+ * </p>
+ * <p>
+ * Note, although this class is not marked <strong>final</strong> it is not
+ * allowed to be subclassed outside the monitoring framework.
  * </p>
  * 
+ * @noextend This class is not intended to be subclassed by clients.
  * @since 1.2
  */
-public final class Counter {
+public class Counter {
 
 	/** total value of all submitted amounts */
 	private volatile long value;
