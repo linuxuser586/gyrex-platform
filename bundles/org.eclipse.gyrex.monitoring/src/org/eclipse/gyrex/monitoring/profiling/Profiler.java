@@ -16,6 +16,28 @@ package org.eclipse.gyrex.monitoring.profiling;
  */
 public class Profiler {
 
+	private static final ThreadLocal<Transaction> currentThreadTransaction = new ThreadLocal<Transaction>();
+
+	/**
+	 * Returns the transaction associated with the current thread.
+	 * 
+	 * @return the transaction for the current thread (maybe <code>null</code>
+	 *         if none is available).
+	 */
+	public static Transaction getTransaction() {
+		return currentThreadTransaction.get();
+	}
+
+	/**
+	 * Sets the transaction for the current thread.
+	 * 
+	 * @param transaction
+	 *            the transaction to set
+	 */
+	public static void setTransaction(final Transaction transaction) {
+		currentThreadTransaction.set(transaction);
+	}
+
 	private Profiler() {
 		// empty;
 	}

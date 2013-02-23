@@ -35,6 +35,42 @@ import org.eclipse.gyrex.monitoring.metrics.StopWatch.StopCallback;
  */
 public class TimerMetric extends BaseMetric {
 
+	/**
+	 * Factory for creating time metrics
+	 */
+	public static final class TimerMetricFactory implements MetricFactory<TimerMetric> {
+
+		/** shared instance using {@link TimeUnit#MILLISECONDS} */
+		public static final TimerMetricFactory MILLISECONDS = new TimerMetricFactory();
+		/** shared instance using {@link TimeUnit#NANOSECONDS} */
+		public static final TimerMetricFactory NANOSECONDS = new TimerMetricFactory(TimeUnit.NANOSECONDS);
+
+		private final TimeUnit timeUnit;
+
+		/**
+		 * Creates a new timer metric factory using time unit
+		 * {@link TimeUnit#MILLISECONDS}.
+		 */
+		public TimerMetricFactory() {
+			this(TimeUnit.MILLISECONDS);
+		}
+
+		/**
+		 * Creates a new timer metric factory.
+		 * 
+		 * @param timeUnit
+		 *            the time unit used in the metric
+		 */
+		public TimerMetricFactory(final TimeUnit timeUnit) {
+			this.timeUnit = timeUnit;
+		}
+
+		@Override
+		public TimerMetric create(final String id) {
+			return new TimerMetric(id, timeUnit);
+		}
+	}
+
 	private final TimeUnit timeUnit;
 	private final Counter duration = new Counter();
 	private final StopCallback stopCallback = new StopCallback() {

@@ -45,6 +45,19 @@ import org.apache.commons.lang.StringUtils;
  */
 public abstract class BaseMetric {
 
+	/**
+	 * Factory for creating metrics.
+	 * 
+	 * @param <T>
+	 *            the metric type
+	 * @noextend This interface is not intended to be extended by clients.
+	 * @noimplement This interface is not intended to be implemented by clients.
+	 * @since 1.2
+	 */
+	public static interface MetricFactory<T extends BaseMetric> {
+		T create(String id);
+	}
+
 	/** char set of allowed id chars */
 	static final CharSet ALLOWED_ID_CHARS = CharSet.getInstance(new String[] { "a-z", "A-Z", "0-9", ".", "-", "_" });
 
@@ -80,15 +93,13 @@ public abstract class BaseMetric {
 	 */
 	public static boolean isValidId(final String id) {
 		// not null or blank
-		if (StringUtils.isBlank(id)) {
+		if (StringUtils.isBlank(id))
 			return false;
-		}
 
 		// scan for invalid chars
 		for (final char c : id.toCharArray()) {
-			if (!ALLOWED_ID_CHARS.contains(c)) {
+			if (!ALLOWED_ID_CHARS.contains(c))
 				return false;
-			}
 		}
 
 		return true;
@@ -111,9 +122,8 @@ public abstract class BaseMetric {
 	 *            {@link #isValidId(String)})
 	 */
 	BaseMetric(final String id) {
-		if (!isValidId(id)) {
+		if (!isValidId(id))
 			throw new IllegalArgumentException("id is invalid (see BaseMetric#isValidId): " + id);
-		}
 		this.id = id;
 
 		// note, we do not invoke resetStats here because calling non-private

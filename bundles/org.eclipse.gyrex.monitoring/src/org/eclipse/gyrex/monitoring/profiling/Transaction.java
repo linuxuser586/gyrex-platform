@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.monitoring.metrics.BaseMetric;
+import org.eclipse.gyrex.monitoring.metrics.BaseMetric.MetricFactory;
 
 /**
  * A transaction is the central class for profiling an operation such as a
@@ -56,9 +57,12 @@ public class Transaction {
 
 	private final String id;
 	private final long created;
-	private final long currentThreadCpuTime;
+	private final long threadCpuTimeStart;
 	private final TimeUnit timeUnit;
 	private final Map<String, BaseMetric> metricsById;
+
+	private volatile long duration;
+	private volatile long consumedThreadCpuTime;
 
 	/**
 	 * Creates a new transaction.
@@ -86,9 +90,9 @@ public class Transaction {
 		metricsById = new HashMap<String, BaseMetric>(5);
 
 		if (((hints & COLLECT_THREAD_CPU_TIME) != 0) && ManagementFactory.getThreadMXBean().isCurrentThreadCpuTimeSupported()) {
-			currentThreadCpuTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
+			threadCpuTimeStart = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
 		} else {
-			currentThreadCpuTime = 0L;
+			threadCpuTimeStart = 0L;
 		}
 
 		// mark creation time
@@ -105,6 +109,16 @@ public class Transaction {
 	 */
 	public boolean containsMetric(final String id) {
 		return metricsById.containsKey(id);
+	}
+
+	/**
+	 * Marks a transaction finished.
+	 */
+	public void finished() {
+		duration = System.currentTimeMillis() - created;
+		if (threadCpuTimeStart > 0L) {
+			consumedThreadCpuTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime() - threadCpuTimeStart;
+		}
 	}
 
 	/**
@@ -135,20 +149,13 @@ public class Transaction {
 	}
 
 	/**
-	 * Returns the total CPU time for the current thread.
-	 * <p>
-	 * The time is collected from {@link ThreadMXBean#getCurrentThreadCpuTime()}
-	 * .
-	 * </p>
+	 * Returns the measured duration of the transaction.
 	 * 
-	 * @return the total CPU time for the current thread or 0L if tracking of
-	 *         CPU is not enabled or is not possible
-	 * @see ThreadMXBean#getCurrentThreadCpuTime()
+	 * @return the transaction duration (maybe 0 if {@link #finished()} hasn't
+	 *         been called yet)
 	 */
-	public long getCurrentThreadCpuTime() {
-		if (currentThreadCpuTime < 0L)
-			return 0L;
-		return timeUnit.convert(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime() - currentThreadCpuTime, TimeUnit.NANOSECONDS);
+	public long getDurationTime() {
+		return timeUnit.convert(duration, TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -182,6 +189,60 @@ public class Transaction {
 	@SuppressWarnings("unchecked")
 	public <T extends BaseMetric> T getMetric(final String id) {
 		return (T) metricsById.get(id);
+	}
+
+	/**
+	 * Convenience method which create a new metric if no metric is available in
+	 * the underlying map.
+	 * 
+	 * @param id
+	 *            the id of the metric to retrieve
+	 * @param factory
+	 *            the metric factory
+	 * @param <T>
+	 *            the expected type of the metric; no type verification will be
+	 *            done but an unchecked cast
+	 * @return the metric (casted to <code>T</code>)
+	 */
+	@SuppressWarnings("unchecked")
+	public <T extends BaseMetric> T getOrCreateMetric(final String id, final MetricFactory<T> factory) {
+		BaseMetric metric = metricsById.get(id);
+		if (metric == null) {
+			metricsById.put(id, metric = factory.create(id));
+		}
+		return (T) metric;
+	}
+
+	/**
+	 * Returns the total CPU time consumed by the transaction thread.
+	 * <p>
+	 * The time is collected from {@link ThreadMXBean#getCurrentThreadCpuTime()}
+	 * .
+	 * </p>
+	 * 
+	 * @return the total CPU time consumed by the transaction thread or 0L if
+	 *         tracking of CPU is not enabled or is not possible
+	 * @see ThreadMXBean#getCurrentThreadCpuTime()
+	 */
+	public long getThreadCpuTimeConsumed() {
+		if (threadCpuTimeStart <= 0L)
+			return 0L;
+		return timeUnit.convert(consumedThreadCpuTime, TimeUnit.NANOSECONDS);
+	}
+
+	/**
+	 * Computes and returns the average CPU utilization of the transaction
+	 * thread.
+	 * <p>
+	 * A return value of 1.0 means 100%; 0 means 0%.
+	 * </p>
+	 * 
+	 * @return the average CPU utilization of the transaction thread
+	 */
+	public double getThreadCpuUtilizationAverage() {
+		if ((threadCpuTimeStart <= 0L) || (duration <= 0L))
+			return 0;
+		return (double) TimeUnit.NANOSECONDS.toMillis(consumedThreadCpuTime) / (double) duration;
 	}
 
 	/**
