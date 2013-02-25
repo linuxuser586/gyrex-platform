@@ -13,8 +13,13 @@ package org.eclipse.gyrex.monitoring.profiling;
 
 /**
  * A manager for accessing {@link Transaction transactions}.
+ * <p>
+ * Warning: This is part of a new API that has not been finalized yet. Please
+ * get in touch with the Gyrex developments if you intend to use it and this
+ * warning is still present.
+ * </p>
  */
-public class Profiler {
+public final class Profiler {
 
 	private static final ThreadLocal<Transaction> currentThreadTransaction = new ThreadLocal<Transaction>();
 

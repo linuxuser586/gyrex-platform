@@ -41,6 +41,11 @@ import org.eclipse.gyrex.monitoring.metrics.BaseMetric.MetricFactory;
  * Note, although this class is not marked <strong>final</strong> it is not
  * allowed to be subclassed outside the monitoring framework.
  * </p>
+ * <p>
+ * Warning: This is part of a new API that has not been finalized yet. Please
+ * get in touch with the Gyrex developments if you intend to use it and this
+ * warning is still present.
+ * </p>
  * 
  * @noextend This class is not intended to be subclassed by clients.
  */
