@@ -62,6 +62,12 @@ public class AtomicReferenceWithFlappingDetection<V> {
 		return old;
 	}
 
+	public long getLastStateChangeTimestamp() {
+		if (lastStates.isEmpty())
+			return 0L;
+		return lastStates.getFirst().timestamp;
+	}
+
 	public boolean isFlapping(final long since, final int allowedChanges) {
 		if (allowedChanges > historyCapacity)
 			throw new IllegalArgumentException("number of allowed changes must be below history capacity");

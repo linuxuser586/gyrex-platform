@@ -93,6 +93,8 @@ public class ZooKeeperGate {
 	private static final CopyOnWriteArrayList<ZooKeeperGateListener> gateListeners = new CopyOnWriteArrayList<ZooKeeperGateListener>();
 	private static final AtomicReference<ZooKeeperGate> instanceRef = new AtomicReference<ZooKeeperGate>();
 
+	private static final int allowedStateChangesPerMinute = 3;
+
 	/**
 	 * Adds a connection monitor.
 	 * <p>
@@ -167,13 +169,14 @@ public class ZooKeeperGate {
 	}
 
 	private final DebuggableZooKeeper zooKeeper;
-	private final ZooKeeperGateListener reconnectMonitor;
 
+	private final ZooKeeperGateListener reconnectMonitor;
 	/**
 	 * a job that triggers when the recovery time expires and a session should
 	 * be closed
 	 */
 	private final Job markSessionExpiredJob;
+
 	{
 		markSessionExpiredJob = new Job("ZooKeeper Gate Session Timout") {
 			@Override
@@ -252,7 +255,7 @@ public class ZooKeeperGate {
 					LOG.info("ZooKeeper Gate is now RECOVERING (was {}). Connection lost. [{}]", oldState, ZooKeeperGate.this);
 
 					// before going into recover mode, check if the connection is flapping
-					if (!keeperStateRef.isFlapping(System.currentTimeMillis() - 60000, allowedStateChangesPerMinute)) {
+					if (!isConnectionFlapping()) {
 
 						// no flapping connection --> continue with regular recovery handling
 
@@ -317,13 +320,11 @@ public class ZooKeeperGate {
 					break;
 			}
 		}
-
 	};
 
-	private static final int allowedStateChangesPerMinute = 3;
 	private final AtomicReferenceWithFlappingDetection<KeeperState> keeperStateRef = new AtomicReferenceWithFlappingDetection<>(allowedStateChangesPerMinute + 1);
-
 	private final String connectString;
+
 	private final int sessionTimeout;
 
 	ZooKeeperGate(final ZooKeeperGateConfig config, final ZooKeeperGateListener reconnectMonitor) throws IOException {
@@ -584,6 +585,10 @@ public class ZooKeeperGate {
 		return connectString;
 	}
 
+	long getLastStateChangeTimestamp() {
+		return keeperStateRef.getLastStateChangeTimestamp();
+	}
+
 	/**
 	 * Returns the id of the current ZooKeeper session.
 	 * <p>
@@ -625,6 +630,10 @@ public class ZooKeeperGate {
 		LOG.error("Removing bogous connection listener {} due to exception ({}).", new Object[] { listener, ExceptionUtils.getMessage(t), t });
 		// remove listener directly
 		gateListeners.remove(listener);
+	}
+
+	boolean isConnectionFlapping() {
+		return keeperStateRef.isFlapping(System.currentTimeMillis() - 60000, allowedStateChangesPerMinute);
 	}
 
 	void notifyGateDown() {
@@ -906,6 +915,9 @@ public class ZooKeeperGate {
 			builder.append("CURRENT ");
 		}
 		builder.append(keeperStateRef.get()).append(' ');
+		if (isConnectionFlapping()) {
+			builder.append("FLAPPING ");
+		}
 		builder.append("[").append(zooKeeper).append("]");
 		return builder.toString();
 	}

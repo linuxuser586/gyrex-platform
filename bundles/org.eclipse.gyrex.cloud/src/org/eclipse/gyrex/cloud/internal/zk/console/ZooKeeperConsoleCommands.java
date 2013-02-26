@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.cloud.internal.zk.console;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.cloud.internal.zk.GateStatusCmd;
 import org.eclipse.gyrex.common.console.BaseCommandProvider;
 
 import org.eclipse.osgi.framework.console.CommandInterpreter;
@@ -30,6 +31,7 @@ public class ZooKeeperConsoleCommands extends BaseCommandProvider {
 		registerCommand("stat", StatCmd.class);
 		registerCommand("sync", SyncCmd.class);
 		registerCommand("reconnect", ReconnectGateCmd.class);
+		registerCommand("status", GateStatusCmd.class);
 	}
 
 	public void _zk(final CommandInterpreter ci) throws Exception {
