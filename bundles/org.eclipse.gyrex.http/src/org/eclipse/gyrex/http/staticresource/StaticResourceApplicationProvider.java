@@ -66,9 +66,6 @@ public class StaticResourceApplicationProvider extends ApplicationProvider {
 		devModeDocRootEnvVar = (String) context.getProperties().get("resource.devModeDocRootEnvVar");
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.provider.ApplicationProvider#createApplication(java.lang.String, org.eclipse.gyrex.context.IRuntimeContext)
-	 */
 	@Override
 	public Application createApplication(final String applicationId, final IRuntimeContext context) throws Exception {
 		return new StaticResourceApplication(applicationId, context, bundleContext.getBundle(), bundleResourcePath, devModeDocRootEnvVar);

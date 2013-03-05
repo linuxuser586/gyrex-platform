@@ -22,6 +22,7 @@ import org.eclipse.gyrex.http.application.context.IResourceProvider;
 import org.eclipse.gyrex.server.Platform;
 
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 
 import org.osgi.framework.Bundle;
 
@@ -67,9 +68,6 @@ public class StaticResourceApplication extends Application {
 		this.devModeDocRootEnvVar = devModeDocRootEnvVar;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.gyrex.http.application.Application#doInit()
-	 */
 	@Override
 	protected void doInit() throws IllegalStateException, Exception {
 
@@ -95,5 +93,16 @@ public class StaticResourceApplication extends Application {
 				return null;
 			}
 		});
+	}
+
+	@Override
+	public Object getAdapter(final Class adapter) {
+		if (adapter == org.eclipse.jetty.server.handler.ErrorHandler.class) {
+			final ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
+			errorHandler.addErrorPage(404, "/error/404.html");
+			errorHandler.addErrorPage(ErrorPageErrorHandler.GLOBAL_ERROR_PAGE, "/error/error.html");
+			return errorHandler;
+		}
+		return super.getAdapter(adapter);
 	}
 }

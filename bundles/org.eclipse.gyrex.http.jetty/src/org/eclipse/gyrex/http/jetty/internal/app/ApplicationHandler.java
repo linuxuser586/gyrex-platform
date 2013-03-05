@@ -40,6 +40,7 @@ import org.eclipse.jetty.http.PathMap.MappedEntry;
 import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -285,7 +286,8 @@ public class ApplicationHandler extends ServletContextHandler {
 				}
 			} else {
 				// calculate paths for forwarded requests
-				if (DispatcherType.FORWARD.equals(dispatch) && target.startsWith(URIUtil.SLASH)) {
+				// (note, handle error dispatches like forwards for custom error handler support)
+				if ((DispatcherType.FORWARD.equals(dispatch) || DispatcherType.ERROR.equals(dispatch)) && target.startsWith(URIUtil.SLASH)) {
 					pathInfo = target;
 				}
 			}
@@ -589,6 +591,12 @@ public class ApplicationHandler extends ServletContextHandler {
 		// set important attributes
 		setAttribute(IApplicationContext.SERVLET_CONTEXT_ATTRIBUTE_APPLICATION, application);
 		setAttribute(IApplicationContext.SERVLET_CONTEXT_ATTRIBUTE_CONTEXT, application.getContext());
+
+		// initialize custom error handler if available
+		final Object errorHandler = application.getAdapter(ErrorHandler.class);
+		if (errorHandler instanceof ErrorHandler) {
+			setErrorHandler((ErrorHandler) errorHandler);
+		}
 
 		// perform super initialization
 		super.startContext();
