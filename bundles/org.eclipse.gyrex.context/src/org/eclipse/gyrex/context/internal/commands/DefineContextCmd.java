@@ -12,8 +12,8 @@
 package org.eclipse.gyrex.context.internal.commands;
 
 import org.eclipse.gyrex.common.console.Command;
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
 import org.eclipse.gyrex.context.internal.ContextActivator;
-import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 
 import org.eclipse.core.runtime.Path;

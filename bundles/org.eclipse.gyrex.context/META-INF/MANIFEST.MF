@@ -25,6 +25,7 @@ Import-Package: javax.annotation,
  org.osgi.util.tracker;version="[1.4.2,2.0.0)",
  org.slf4j;version="[1.6.0,2.0.0)"
 Export-Package: org.eclipse.gyrex.context;version="1.2.0",
+ org.eclipse.gyrex.context.definitions;version="1.0.0",
  org.eclipse.gyrex.context.di;version="1.0.0",
  org.eclipse.gyrex.context.internal;x-friends:="org.eclipse.gyrex.context.tests,org.eclipse.gyrex.admin.ui.context",
  org.eclipse.gyrex.context.internal.commands;x-friends:="org.eclipse.gyrex.context.tests",

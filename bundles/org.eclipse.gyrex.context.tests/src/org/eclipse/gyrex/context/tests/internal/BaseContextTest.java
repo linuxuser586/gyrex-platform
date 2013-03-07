@@ -14,8 +14,8 @@ package org.eclipse.gyrex.context.tests.internal;
 import static junit.framework.Assert.assertNotNull;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
-import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.manager.IRuntimeContextManager;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;

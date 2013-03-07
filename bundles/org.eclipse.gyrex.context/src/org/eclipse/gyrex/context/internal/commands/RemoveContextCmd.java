@@ -11,7 +11,7 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.commands;
 
-import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
 
 /**
  *

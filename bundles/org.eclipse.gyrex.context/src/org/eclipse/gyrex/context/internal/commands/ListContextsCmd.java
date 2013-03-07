@@ -16,8 +16,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.eclipse.gyrex.common.console.Command;
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
 import org.eclipse.gyrex.context.internal.ContextActivator;
-import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 
 /**
  *

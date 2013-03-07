@@ -17,9 +17,9 @@ import static junit.framework.Assert.assertNotNull;
 import java.util.UUID;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
-import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 

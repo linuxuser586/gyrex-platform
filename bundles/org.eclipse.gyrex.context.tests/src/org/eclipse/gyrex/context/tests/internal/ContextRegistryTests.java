@@ -19,9 +19,9 @@ import static junit.framework.Assert.fail;
 import java.util.Collection;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
 import org.eclipse.gyrex.context.internal.BaseContext;
 import org.eclipse.gyrex.context.internal.ContextActivator;
-import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
 
 import org.eclipse.core.runtime.IPath;

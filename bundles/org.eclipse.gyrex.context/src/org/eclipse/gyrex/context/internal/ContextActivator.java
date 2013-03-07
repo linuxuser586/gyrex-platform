@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.runtime.BaseBundleActivator;
 import org.eclipse.gyrex.common.services.IServiceProxy;
+import org.eclipse.gyrex.context.definitions.IRuntimeContextDefinitionManager;
 import org.eclipse.gyrex.context.internal.manager.ContextManagerImpl;
 import org.eclipse.gyrex.context.internal.provider.ObjectProviderRegistry;
 import org.eclipse.gyrex.context.internal.registry.ContextRegistryImpl;
@@ -35,9 +36,8 @@ public class ContextActivator extends BaseBundleActivator {
 
 	public static ContextActivator getInstance() {
 		final ContextActivator contextActivator = instanceRef.get();
-		if (null == contextActivator) {
+		if (null == contextActivator)
 			throw new IllegalStateException(NLS.bind("The Gyrex contextual runtime bundle {0} is inactive.", SYMBOLIC_NAME));
-		}
 		return contextActivator;
 	}
 
@@ -63,8 +63,9 @@ public class ContextActivator extends BaseBundleActivator {
 		objectProviderRegistry.start(context);
 		addShutdownParticipant(objectProviderRegistry);
 
+		// start the context registry
 		final ContextRegistryImpl contextRegistry = new ContextRegistryImpl(objectProviderRegistry);
-		getServiceHelper().registerService(IRuntimeContextRegistry.class.getName(), contextRegistry, "Eclipse.org Gyrex", "Eclipse Gyrex Contextual Runtime Registry", null, null);
+		getServiceHelper().registerService(new String[] { IRuntimeContextRegistry.class.getName(), IRuntimeContextDefinitionManager.class.getName() }, contextRegistry, "Eclipse.org Gyrex", "Eclipse Gyrex Contextual Runtime Registry & Definition Manager", null, null);
 		contextRegistryRef.set(contextRegistry);
 
 		// start the context manager
@@ -99,9 +100,8 @@ public class ContextActivator extends BaseBundleActivator {
 
 	public IPreferencesService getPreferencesService() {
 		final IServiceProxy<IPreferencesService> serviceProxy = preferencesServiceProxyRef.get();
-		if (null == serviceProxy) {
+		if (null == serviceProxy)
 			throw createBundleInactiveException();
-		}
 		return serviceProxy.getService();
 	}
 }

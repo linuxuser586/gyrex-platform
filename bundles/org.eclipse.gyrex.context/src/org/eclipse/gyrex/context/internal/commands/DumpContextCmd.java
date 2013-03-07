@@ -11,9 +11,9 @@
  *******************************************************************************/
 package org.eclipse.gyrex.context.internal.commands;
 
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.GyrexContextImpl;
-import org.eclipse.gyrex.context.internal.registry.ContextDefinition;
 
 import org.apache.commons.lang.text.StrBuilder;
 

@@ -12,7 +12,6 @@
 package org.eclipse.gyrex.context.internal.registry;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +27,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
+import org.eclipse.gyrex.context.definitions.ContextDefinition;
+import org.eclipse.gyrex.context.definitions.IRuntimeContextDefinitionManager;
 import org.eclipse.gyrex.context.internal.ContextActivator;
 import org.eclipse.gyrex.context.internal.ContextDebug;
 import org.eclipse.gyrex.context.internal.GyrexContextHandle;
@@ -48,6 +49,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.UnhandledException;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import org.slf4j.Logger;
@@ -57,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * The {@link IRuntimeContextRegistry} implementation.
  */
 //TODO: this should be a ServiceFactory which knows about the bundle requesting the manager for context access permission checks
-public class ContextRegistryImpl implements IRuntimeContextRegistry {
+public class ContextRegistryImpl implements IRuntimeContextRegistry, IRuntimeContextDefinitionManager {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ContextRegistryImpl.class);
 
@@ -268,7 +270,8 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(ContextActivator.SYMBOLIC_NAME).node("contextFlushes");
 	}
 
-	public Collection<ContextDefinition> getDefinedContexts() {
+	@Override
+	public List<ContextDefinition> getDefinedContexts() {
 		checkClosed();
 		try {
 			final Preferences node = getContextDefinitionStore();
@@ -286,6 +289,7 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		}
 	}
 
+	@Override
 	public ContextDefinition getDefinition(IPath contextPath) {
 		checkClosed();
 		contextPath = sanitize(contextPath);
@@ -401,7 +405,19 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 
 	public void removeDefinition(final ContextDefinition contextDefinition) {
 		checkClosed();
-		final IPath path = sanitize(contextDefinition.getPath());
+		try {
+			removeDefinition(contextDefinition.getPath());
+		} catch (final RuntimeException e) {
+			throw e;
+		} catch (final Exception e) {
+			throw new UnhandledException(e);
+		}
+	}
+
+	@Override
+	public void removeDefinition(final IPath contextPath) throws Exception {
+		checkClosed();
+		final IPath path = sanitize(contextPath);
 
 		// prevent root modification
 		if (path.isRoot())
@@ -417,6 +433,7 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry {
 		}
 	}
 
+	@Override
 	public void saveDefinition(final ContextDefinition contextDefinition) {
 		checkClosed();
 		final IPath path = sanitize(contextDefinition.getPath());
