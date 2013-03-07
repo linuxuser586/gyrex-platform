@@ -56,6 +56,13 @@ public interface IScheduleManager {
 	 */
 	IScheduleWorkingCopy createWorkingCopy(String id);
 
+	/**
+	 * Returns the schedule using the specified id.
+	 * 
+	 * @param id
+	 *            the schedule id
+	 * @return the schedule (maybe <code>null</code> if no such schedule exist)
+	 */
 	ISchedule getSchedule(String id);
 
 	/**
