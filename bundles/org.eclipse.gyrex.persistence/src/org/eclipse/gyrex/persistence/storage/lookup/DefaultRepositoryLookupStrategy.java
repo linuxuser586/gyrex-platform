@@ -147,7 +147,21 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		return PersistenceActivator.getInstance().getRepositoriesManager().getRepository(repositoryId);
 	}
 
-	private String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) throws BackingStoreException {
+	/**
+	 * Returns the configured repository id.
+	 * 
+	 * @param context
+	 *            the context to lookup the repository from (may not be
+	 *            <code>null</code>)
+	 * @param contentType
+	 *            the content type that should be stored in the repository (may
+	 *            not be <code>null</code>)
+	 * @return the repository id (may be <code>null</code>)
+	 * @throws BackingStoreException
+	 *             if no suitable repository is available
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) throws BackingStoreException {
 		/*
 		 * the lookup is simple, we simply walk up the context path until a matching key is found
 		 */
