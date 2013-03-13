@@ -13,7 +13,6 @@ package org.eclipse.gyrex.persistence.storage.lookup;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
-import org.eclipse.gyrex.context.preferences.IRuntimeContextPreferences;
 import org.eclipse.gyrex.persistence.internal.PersistenceActivator;
 import org.eclipse.gyrex.persistence.storage.Repository;
 import org.eclipse.gyrex.persistence.storage.content.RepositoryContentType;
@@ -23,7 +22,6 @@ import org.eclipse.gyrex.preferences.CloudScope;
 
 import org.eclipse.core.runtime.IPath;
 
-import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
@@ -80,8 +78,10 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 * @return a map with runtime context path as key and assigned content types
 	 *         as value (modifications will not be reflected into assignment
 	 *         changes)
+	 * @throws Exception
+	 *             if an error occurred accessing the configuration data store.
 	 */
-	public RepositoryContentTypeAssignments getContentTypeAssignments(final String repositoryId) {
+	public RepositoryContentTypeAssignments getContentTypeAssignments(final String repositoryId) throws Exception {
 		if (!IdHelper.isValidId(repositoryId))
 			throw new IllegalArgumentException("repositoryId is invalid");
 
@@ -90,22 +90,18 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		 */
 		final RepositoryContentTypeAssignments assignments = new RepositoryContentTypeAssignments(repositoryId);
 
-		try {
-			final Preferences assignmentsNode = getAssignmentsNode();
-			for (final String mediaTypeType : assignmentsNode.childrenNames()) {
-				final Preferences mediaTypeNode = assignmentsNode.node(mediaTypeType);
-				for (final String mediaTypeSubtype : mediaTypeNode.childrenNames()) {
-					final Preferences contentTypeNode = mediaTypeNode.node(mediaTypeSubtype);
-					for (final String contextPath : contentTypeNode.keys()) {
-						final String assignedRepoId = contentTypeNode.get(contextPath, null);
-						if (StringUtils.equals(repositoryId, assignedRepoId)) {
-							assignments.add(contextPath, mediaTypeType, mediaTypeSubtype);
-						}
+		final Preferences assignmentsNode = getAssignmentsNode();
+		for (final String mediaTypeType : assignmentsNode.childrenNames()) {
+			final Preferences mediaTypeNode = assignmentsNode.node(mediaTypeType);
+			for (final String mediaTypeSubtype : mediaTypeNode.childrenNames()) {
+				final Preferences contentTypeNode = mediaTypeNode.node(mediaTypeSubtype);
+				for (final String contextPath : contentTypeNode.keys()) {
+					final String assignedRepoId = contentTypeNode.get(contextPath, null);
+					if (StringUtils.equals(repositoryId, assignedRepoId)) {
+						assignments.add(contextPath, mediaTypeType, mediaTypeSubtype);
 					}
 				}
 			}
-		} catch (final BackingStoreException e) {
-			throw new ResourceFailureException(String.format("Error reading repository content type assignments for repository '%s'. %s", repositoryId, e.getMessage()), e);
 		}
 		return assignments;
 	}
@@ -121,7 +117,7 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 		final String repositoryId;
 		try {
 			repositoryId = getRepositoryId(context, contentType);
-		} catch (final BackingStoreException e) {
+		} catch (final Exception e) {
 			throw new ResourceFailureException(String.format("Error reading repository content type assignments for content type '%s' in context '%s'. %s", contentType.getMediaType(), context.getContextPath(), e.getMessage()), e);
 		}
 
@@ -148,7 +144,14 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	}
 
 	/**
-	 * Returns the configured repository id.
+	 * Returns the configured repository id for the specified context and
+	 * content type.
+	 * <p>
+	 * If a repository is configured directly for the content type in the
+	 * specified context it will be returned. Otherwise all parent contexts will
+	 * be checked up to the root context. If no assignment is available,
+	 * <code>null</code> will be returned.
+	 * </p>
 	 * 
 	 * @param context
 	 *            the context to lookup the repository from (may not be
@@ -157,11 +160,10 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 *            the content type that should be stored in the repository (may
 	 *            not be <code>null</code>)
 	 * @return the repository id (may be <code>null</code>)
-	 * @throws BackingStoreException
-	 *             if no suitable repository is available
-	 * @noreference This method is not intended to be referenced by clients.
+	 * @throws Exception
+	 *             if an error occurred accessing the configuration data store.
 	 */
-	public String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) throws BackingStoreException {
+	public String getRepositoryId(final IRuntimeContext context, final RepositoryContentType contentType) throws Exception {
 		/*
 		 * the lookup is simple, we simply walk up the context path until a matching key is found
 		 */
@@ -191,16 +193,15 @@ public final class DefaultRepositoryLookupStrategy implements IRepositoryLookupS
 	 * context
 	 * 
 	 * @param context
-	 *            the context to set the repository in
+	 *            the context to set or unset the repository in
 	 * @param contentType
-	 *            the content type to set the repository for
+	 *            the content type to set or unset the repository for
 	 * @param repositoryId
 	 *            the repository id to set (maybe <code>null</code> to unset)
-	 * @throws BackingStoreException
-	 *             when thrown by
-	 *             {@link IRuntimeContextPreferences#flush(String)}
+	 * @throws Exception
+	 *             if an error occurred accessing the configuration data store.
 	 */
-	public void setRepository(final IRuntimeContext context, final RepositoryContentType contentType, final String repositoryId) throws BackingStoreException {
+	public void setRepository(final IRuntimeContext context, final RepositoryContentType contentType, final String repositoryId) throws Exception {
 		if (context == null)
 			throw new IllegalArgumentException("context must not be null");
 		if (contentType == null)
