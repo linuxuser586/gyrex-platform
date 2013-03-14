@@ -220,7 +220,7 @@ public class JettyEngineApplication implements IApplication {
 				LOG.error("Jetty NPN not loaded via boot class loader. Falling back to non-SPDY setup. Please check your server setup (see http://wiki.eclipse.org/Jetty/Feature/NPN for details)! ({})", npnClass.getClassLoader());
 			}
 		} catch (AssertionError | LinkageError | ClassNotFoundException e) {
-			LOG.debug("Jetty SPDY environment not available: {}", e.getMessage(), e);
+			LOG.debug("Jetty SPDY environment not available: {}", ExceptionUtils.getRootCauseMessage(e), e);
 		} catch (final Exception e) {
 			LOG.error("Error loading the Jetty SPDY implementation. {}", ExceptionUtils.getRootCauseMessage(e), e);
 		}
