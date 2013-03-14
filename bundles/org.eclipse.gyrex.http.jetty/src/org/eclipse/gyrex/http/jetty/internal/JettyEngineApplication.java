@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.http.jetty.internal;
 
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -186,7 +187,7 @@ public class JettyEngineApplication implements IApplication {
 				}
 			}
 
-			final ServerConnector connector = new ServerConnector(server, sslFactory, new HttpConnectionFactory(httpConfig));
+			final ServerConnector connector = createJettyConnector(server, sslFactory, httpConfig);
 			connector.setPort(channel.getPort());
 			connector.setIdleTimeout(200000);
 			// TODO: (Jetty9?) connector.setAcceptors(2);
@@ -201,6 +202,30 @@ public class JettyEngineApplication implements IApplication {
 		} catch (final Exception e) {
 			LOG.warn("Error configuring channel {}. Please check the channel configuration. {}", channel.getId(), ExceptionUtils.getRootCauseMessage(e));
 		}
+	}
+
+	private ServerConnector createJettyConnector(final Server server, final SslContextFactory sslFactory, final HttpConfiguration httpConfig) {
+		try {
+			// use SPDY if NPN is available
+			final Class<?> npnClass = HttpJettyActivator.getInstance().getBundle().loadClass("org.eclipse.jetty.npn.NextProtoNego");
+			if (npnClass.getClassLoader() == null) {
+				// NPN is available; try loading the SPDY connector
+				// note, we still use reflection because SPDY is optional
+				final Class<?> spdyConnectorClass = HttpJettyActivator.getInstance().getBundle().loadClass("org.eclipse.jetty.spdy.server.http.HTTPSPDYServerConnector");
+				// HTTPSPDYServerConnector(Server server, HttpConfiguration config, SslContextFactory sslContextFactory, Map<Short, PushStrategy> pushStrategies)
+				final Constructor<?> constructor = spdyConnectorClass.getConstructor(Server.class, HttpConfiguration.class, SslContextFactory.class, Map.class);
+				return (ServerConnector) constructor.newInstance(server, httpConfig, sslFactory, null);
+			} else {
+				// log error and fall through; will force standard connector belog
+				LOG.error("Jetty NPN not loaded via boot class loader. Falling back to non-SPDY setup. Please check your server setup (see http://wiki.eclipse.org/Jetty/Feature/NPN for details)! ({})", npnClass.getClassLoader());
+			}
+		} catch (AssertionError | LinkageError | ClassNotFoundException e) {
+			LOG.debug("Jetty SPDY environment not available: {}", e.getMessage(), e);
+		} catch (final Exception e) {
+			LOG.error("Error loading the Jetty SPDY implementation. {}", ExceptionUtils.getRootCauseMessage(e), e);
+		}
+		LOG.info("Jetty SPDY environment not available. Using non SPDY implementation.");
+		return new ServerConnector(server, sslFactory, new HttpConnectionFactory(httpConfig));
 	}
 
 	private Map<String, Object> getNodeProperties() {
