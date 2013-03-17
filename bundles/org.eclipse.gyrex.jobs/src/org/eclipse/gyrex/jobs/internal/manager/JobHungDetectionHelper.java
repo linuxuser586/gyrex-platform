@@ -74,6 +74,20 @@ public class JobHungDetectionHelper {
 	}
 
 	/**
+	 * @return the number of active jobs
+	 * @throws IllegalStateException
+	 */
+	public static int getNumberOfActiveJobs() throws IllegalStateException {
+		try {
+			return ZooKeeperGate.get().readChildrenNames(ACTIVE_JOBS, null).size();
+		} catch (final NoNodeException e) {
+			return 0;
+		} catch (final Exception e) {
+			throw new IllegalStateException("Unable to read job run info!", e);
+		}
+	}
+
+	/**
 	 * Returns the processing node id of the active job.
 	 * 
 	 * @param jobStorageKey

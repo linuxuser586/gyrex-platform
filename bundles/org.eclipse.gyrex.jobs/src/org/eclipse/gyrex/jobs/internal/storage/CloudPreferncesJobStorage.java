@@ -11,7 +11,11 @@
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.storage;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -27,6 +31,8 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Store which persists job history in cloud preferences.
@@ -56,6 +62,24 @@ public class CloudPreferncesJobStorage {
 	public static final String PROPERTY_ACTIVE = "active";
 
 	private static final String NODE_JOBS = "jobs";
+
+	public static Collection<String> getAllJobStorageKeysByState(final JobState state) {
+		if (null == state)
+			throw new IllegalArgumentException("Status must not be null");
+
+		try {
+			final String[] storageIds = CloudPreferncesJobStorage.getJobsNode().childrenNames();
+			final List<String> jobIds = new ArrayList<String>(storageIds.length);
+			for (final String internalId : storageIds) {
+				if (StringUtils.equals(CloudPreferncesJobStorage.getJobsNode().node(internalId).get(CloudPreferncesJobStorage.PROPERTY_STATUS, null), state.name())) {
+					jobIds.add(internalId);
+				}
+			}
+			return Collections.unmodifiableCollection(jobIds);
+		} catch (final BackingStoreException e) {
+			throw new IllegalStateException(String.format("Error reading job data. %s", e.getMessage()), e);
+		}
+	}
 
 	public static IEclipsePreferences getJobsNode() {
 		return (IEclipsePreferences) CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_JOBS);
