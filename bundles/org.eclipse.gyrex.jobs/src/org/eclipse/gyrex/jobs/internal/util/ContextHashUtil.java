@@ -15,6 +15,8 @@ import java.io.UnsupportedEncodingException;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 
+import org.eclipse.core.runtime.IPath;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.CharEncoding;
 import org.apache.commons.lang.StringUtils;
@@ -33,9 +35,9 @@ public class ContextHashUtil {
 		return internalId.substring(i + 1);
 	}
 
-	private static String getInternalIdPrefix(final IRuntimeContext context) {
+	private static String getInternalIdPrefix(final IPath contextPath) {
 		try {
-			return DigestUtils.shaHex(context.getContextPath().toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
+			return DigestUtils.shaHex(contextPath.toString().getBytes(CharEncoding.UTF_8)) + SEPARATOR;
 		} catch (final UnsupportedEncodingException e) {
 			throw new IllegalStateException("Please use a JVM that supports UTF-8.");
 		}
@@ -46,8 +48,15 @@ public class ContextHashUtil {
 	/**
 	 * Creates a new instance.
 	 */
+	public ContextHashUtil(final IPath contextPath) {
+		internalIdPrefix = getInternalIdPrefix(contextPath);
+	}
+
+	/**
+	 * Creates a new instance.
+	 */
 	public ContextHashUtil(final IRuntimeContext context) {
-		internalIdPrefix = getInternalIdPrefix(context);
+		internalIdPrefix = getInternalIdPrefix(context.getContextPath());
 	}
 
 	/**
