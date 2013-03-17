@@ -29,6 +29,7 @@ import org.eclipse.gyrex.jobs.IJobContext;
 import org.eclipse.gyrex.jobs.internal.JobsActivator;
 import org.eclipse.gyrex.jobs.internal.JobsDebug;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
+import org.eclipse.gyrex.jobs.internal.scheduler.SchedulingJob;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.provider.JobProvider;
 import org.eclipse.gyrex.preferences.CloudScope;
@@ -44,6 +45,7 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import org.slf4j.Logger;
@@ -317,6 +319,12 @@ public class WorkerEngine extends Job {
 		// add state synchronizer and finish listener
 		job.addJobChangeListener(stateSynchronizer);
 		job.addJobChangeListener(jobFinishedListener);
+
+		// add trigger for dependent jobs
+		final String[] scheduleInfo = StringUtils.split(info.getScheduleInfo(), SchedulingJob.SEPARATOR_CHAR);
+		if ((scheduleInfo != null) && (scheduleInfo.length > 2)) {
+			job.addJobChangeListener(new TriggerScheduleEntriesWhenDone(scheduleInfo, jobContext));
+		}
 
 		// and schedule the job
 		job.schedule();

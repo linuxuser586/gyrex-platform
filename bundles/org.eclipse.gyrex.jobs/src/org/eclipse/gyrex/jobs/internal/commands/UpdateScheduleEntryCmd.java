@@ -20,6 +20,7 @@ import org.eclipse.gyrex.jobs.internal.schedules.ScheduleStore;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleEntryWorkingCopy;
 
 import org.apache.commons.lang.StringUtils;
+
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 
@@ -28,8 +29,20 @@ public class UpdateScheduleEntryCmd extends BaseScheduleStoreCmd {
 	@Argument(index = 1, usage = "the entry id", required = true, metaVar = "ENTRYID")
 	String entryId;
 
+	@Option(name = "--queue-id", aliases = { "-queue" }, usage = "updates the queue id", metaVar = "QUEUEID")
+	String queueId;
+
+	@Option(name = "--reset-queue-id", aliases = { "-noqueue" }, usage = "unsets an entry specific queue id")
+	Boolean removeQueueId;
+
 	@Option(name = "--cron-expression", aliases = { "-cron" }, usage = "updates the cron expression", metaVar = "EXPR")
 	String cronExpression;
+
+	@Option(name = "--add-preceding-entry", aliases = { "-preceding" }, usage = "sets a dependency on another schedule entry id ", multiValued = true, metaVar = "OTHERENTRYID")
+	List<String> precedingEntries;
+
+	@Option(name = "--remove-all-preceding-entries", aliases = { "-nopreceding" }, usage = "unsets all dependencies on other schedule entries")
+	Boolean resetPrecedingEntries;
 
 	@Option(name = "--enable", aliases = { "-on" }, usage = "enables the schedule entry")
 	Boolean enable;
@@ -59,9 +72,8 @@ public class UpdateScheduleEntryCmd extends BaseScheduleStoreCmd {
 			return;
 		}
 
-		if (!IdHelper.isValidId(entryId)) {
+		if (!IdHelper.isValidId(entryId))
 			throw new IllegalArgumentException("invalid entry id");
-		}
 
 		final IScheduleEntryWorkingCopy entry = schedule.getEntry(entryId);
 
@@ -78,6 +90,13 @@ public class UpdateScheduleEntryCmd extends BaseScheduleStoreCmd {
 			// update
 			action = "Updated";
 
+			// queue id
+			if (null != queueId) {
+				entry.setQueueId(queueId);
+			} else if ((null != removeQueueId) && removeQueueId) {
+				entry.setQueueId(null);
+			}
+
 			// cron
 			if (null != cronExpression) {
 				try {
@@ -92,9 +111,8 @@ public class UpdateScheduleEntryCmd extends BaseScheduleStoreCmd {
 			if (null != parameterToSet) {
 				for (final String param : parameterToSet) {
 					final String[] args = StringUtils.split(param, "=", 2);
-					if ((null == args) || (args.length != 2)) {
+					if ((null == args) || (args.length != 2))
 						throw new IllegalArgumentException(String.format("cannot parse parameter to set: %s; please check syntax", param));
-					}
 					newParameter.put(args[0], args[1]);
 				}
 				entry.setJobParameter(newParameter);
@@ -104,6 +122,14 @@ public class UpdateScheduleEntryCmd extends BaseScheduleStoreCmd {
 					newParameter.remove(key);
 				}
 				entry.setJobParameter(newParameter);
+			}
+
+			// trigger after
+			if (null != precedingEntries) {
+				entry.setPrecedingEntries(precedingEntries.toArray(new String[precedingEntries.size()]));
+			}
+			if ((null != resetPrecedingEntries) && resetPrecedingEntries.booleanValue()) {
+				entry.setPrecedingEntries(new String[0]);
 			}
 		}
 

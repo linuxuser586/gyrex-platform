@@ -92,12 +92,12 @@ public class Schedule implements IPreferenceChangeListener {
 	}
 
 	private final DeferredActivationJob deferredActivationJob = new DeferredActivationJob();
-
 	private final String scheduleStoreStorageKey;
-	private final ScheduleMetrics metrics;
 
+	private final ScheduleMetrics metrics;
 	private ServiceRegistration<MetricSet> metricsRegistration;
 	private ScheduleImpl scheduleData;
+
 	private org.quartz.Scheduler quartzScheduler;
 
 	/**
@@ -296,24 +296,25 @@ public class Schedule implements IPreferenceChangeListener {
 			}
 		}
 
-		// populate with configured jobs
-		// (note, it's important that we pass false here in order to prevent the #sync call on the preference node)
+		// get configured jobs
+		// (note, it's important that we pass false here to ensureScheduleData in order to prevent the #sync call on the preference node)
 		// (otherwise a in-flight preference change event will be reverted)
 		// FIXME: this is another case where the preference store is problematic
-		final List<IScheduleEntry> entries = ensureScheduleData(Boolean.FALSE).getEntries();
-		for (final IScheduleEntry entry : entries) {
-			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
-			detail.getJobDataMap().putAll(entry.getJobParameter());
-			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_TYPE_ID, entry.getJobTypeId());
-			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_ID, entry.getJobId());
-			detail.getJobDataMap().put(SchedulingJob.PROP_ENABLED, entry.isEnabled());
-			detail.getJobDataMap().put(SchedulingJob.PROP_JOB_CONTEXT_PATH, ensureScheduleData(Boolean.FALSE).getContextPath().toString());
-			detail.getJobDataMap().put(SchedulingJob.PROP_SCHEDULE_ID, ensureScheduleData(Boolean.FALSE).getId());
-			detail.getJobDataMap().put(SchedulingJob.PROP_SCHEDULE_ENTRY_ID, entry.getId());
+		final ScheduleImpl schedule = ensureScheduleData(false);
+		final List<IScheduleEntry> entries = schedule.getEntries();
 
+		// schedule entries with cron expression if available
+		for (final IScheduleEntry entry : entries) {
 			final String cronExpression = entry.getCronExpression();
+			if (StringUtils.isBlank(cronExpression)) {
+				continue;
+			}
+
+			final JobDetail detail = new JobDetail(entry.getId(), SchedulingJob.class);
+			SchedulingJob.populateJobDataMap(detail.getJobDataMap(), entry, schedule);
+
 			final CronTrigger trigger = new CronTrigger(entry.getId());
-			trigger.setTimeZone(ensureScheduleData(Boolean.FALSE).getTimeZone());
+			trigger.setTimeZone(schedule.getTimeZone());
 			try {
 				trigger.setCronExpression(asQuartzCronExpression(cronExpression));
 			} catch (final ParseException e) {

@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -39,6 +41,9 @@ import org.osgi.service.prefs.Preferences;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  *
  */
@@ -50,14 +55,31 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	public static final String QUEUE_ID = "queueId";
 	public static final String CONTEXT_PATH = "contextPath";
 
+	public static void checkExecutionSequenceForLoops(final IScheduleEntry entry, final LinkedList<String> executionSequence, final Collection<String> precedingEntries) throws IllegalArgumentException {
+		for (final String precedingEntryId : precedingEntries) {
+			if (executionSequence.contains(precedingEntryId))
+				throw new IllegalArgumentException(String.format("Found loop in schedule %s for preceding entry %s of entry %s in execution sequence %s.", entry.getSchedule().getId(), precedingEntryId, entry.getId(), StringUtils.join(executionSequence.descendingIterator(), "->")));
+			else {
+				// no loop, add to sequence and continue check with the entry
+				executionSequence.add(precedingEntryId);
+				final ScheduleEntryImpl precedingEntry = ((ScheduleImpl) entry.getSchedule()).getEntry(precedingEntryId);
+				checkExecutionSequenceForLoops(precedingEntry, executionSequence, precedingEntry.getPrecedingEntries());
+			}
+		}
+	}
+
 	private final IEclipsePreferences node;
 	private final String id;
-	private IPath contextPath;
 
+	private IPath contextPath;
 	private String queueId;
 	private boolean enabled;
 	private TimeZone timeZone;
 	private Map<String, ScheduleEntryImpl> entriesById;
+
+	private Map<String, Collection<String>> entriesToTriggerByPrecedingEntryId;
+
+	private static final Logger LOG = LoggerFactory.getLogger(ScheduleImpl.class);
 
 	/**
 	 * Creates a new instance.
@@ -74,19 +96,16 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	@Override
 	public ScheduleEntryImpl createEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
 
-		if (isEnabled()) {
+		if (isEnabled())
 			throw new IllegalStateException("schedule must not be enabled");
-		}
 
-		if (!IdHelper.isValidId(entryId)) {
+		if (!IdHelper.isValidId(entryId))
 			throw new IllegalArgumentException("invalid id: " + id);
-		}
 
 		if (null == entriesById) {
 			entriesById = new HashMap<String, ScheduleEntryImpl>(4);
-		} else if (entriesById.containsKey(entryId)) {
+		} else if (entriesById.containsKey(entryId))
 			throw new IllegalStateException(String.format("entry '%s' already exists", entryId));
-		}
 
 		final ScheduleEntryImpl entry = new ScheduleEntryImpl(entryId, this);
 		entriesById.put(entryId, entry);
@@ -100,9 +119,8 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	 */
 	public IPath getContextPath() {
 		final IPath path = contextPath;
-		if (null == path) {
+		if (null == path)
 			throw new IllegalStateException(String.format("Schedule %s is invalid. Its context path is missing! Please delete and re-create schedule.", id));
-		}
 
 		return path;
 	}
@@ -114,25 +132,37 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 			final List<IScheduleEntry> entries = new ArrayList<IScheduleEntry>(values.size());
 			entries.addAll(values);
 			return Collections.unmodifiableList(entries);
-		} else {
+		} else
 			return Collections.emptyList();
-		}
 	}
 
 	private Preferences getEntriesNode() {
 		return node.node(JOBS);
 	}
 
+	/**
+	 * Returns the entries to trigger after the specified entry.
+	 * 
+	 * @param precedingEntryId
+	 *            the preceding entry id
+	 * @return an unmodifable list of entries to trigger
+	 */
+	public Collection<String> getEntriesToTriggerAfter(final String precedingEntryId) {
+		final Map<String, Collection<String>> map = entriesToTriggerByPrecedingEntryId;
+		if ((map == null) || (null == map.get(precedingEntryId)))
+			return Collections.emptyList();
+
+		return Collections.unmodifiableCollection(map.get(precedingEntryId));
+	}
+
 	@Override
 	public ScheduleEntryImpl getEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
-		if (!IdHelper.isValidId(entryId)) {
+		if (!IdHelper.isValidId(entryId))
 			throw new IllegalArgumentException("invalid id: " + id);
-		}
 
 		final ScheduleEntryImpl entry = null != entriesById ? entriesById.get(entryId) : null;
-		if (null == entry) {
+		if (null == entry)
 			throw new IllegalStateException(String.format("entry '%s' does not exist", entryId));
-		}
 
 		return entry;
 	}
@@ -179,9 +209,8 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		enabled = node.getBoolean(ENABLED, false);
 		if (null != node.get(CONTEXT_PATH, null)) {
 			contextPath = new Path(node.get(CONTEXT_PATH, null));
-		} else {
+		} else
 			throw new IllegalStateException(String.format("Schedule %s is invalid. Its context path is missing! Please delete and re-create.", id));
-		}
 		timeZone = TimeZone.getTimeZone(node.get(TIME_ZONE, "GMT"));
 
 		final Preferences entries = getEntriesNode();
@@ -193,23 +222,55 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 			entriesById.put(entryId, entryImpl);
 		}
 
+		refreshDependenciesMap();
+
 		return this;
+	}
+
+	private void refreshDependenciesMap() {
+		// build new dependency map
+		final Map<String, Collection<String>> entriesToTriggerByPrecedingEntryId = new HashMap<String, Collection<String>>();
+		for (final IScheduleEntry entry : entriesById.values()) {
+			final Collection<String> precedingEntries = entry.getPrecedingEntries();
+			if (precedingEntries.isEmpty()) {
+				continue;
+			}
+
+			// build execution sequence and detect loops
+			final LinkedList<String> executionSequence = new LinkedList<>();
+			executionSequence.add(entry.getId());
+			try {
+				checkExecutionSequenceForLoops(entry, executionSequence, precedingEntries);
+			} catch (final IllegalArgumentException e) {
+				// log warning and skip whole execution chain
+				LOG.warn(e.getMessage());
+				continue;
+			}
+
+			// no loop found; add to map and continue
+			for (final String precedingEntryId : precedingEntries) {
+				if (!entriesToTriggerByPrecedingEntryId.containsKey(precedingEntries)) {
+					entriesToTriggerByPrecedingEntryId.put(precedingEntryId, new HashSet<String>(2));
+				}
+				entriesToTriggerByPrecedingEntryId.get(precedingEntryId).add(entry.getId());
+			}
+		}
+
+		// set map
+		this.entriesToTriggerByPrecedingEntryId = entriesToTriggerByPrecedingEntryId;
 	}
 
 	@Override
 	public void removeEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
 
-		if (isEnabled()) {
+		if (isEnabled())
 			throw new IllegalStateException("schedule must not be enabled");
-		}
 
-		if (null == entriesById) {
+		if (null == entriesById)
 			throw new IllegalStateException("schedule isn't initialized properly");
-		}
 
-		if (!entriesById.containsKey(entryId)) {
+		if (!entriesById.containsKey(entryId))
 			throw new IllegalArgumentException(String.format("schedule dosn't contain entry '%s'", entryId));
-		}
 
 		final ScheduleEntryImpl entry = getEntry(entryId);
 		final IRuntimeContext context = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class).get(getContextPath());
@@ -217,6 +278,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		jobManager.removeJob(entry.getJobId());
 
 		entriesById.remove(entryId);
+		entry.setSchedule(null);
 	}
 
 	public void save() throws BackingStoreException {
@@ -260,9 +322,8 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	 *            the contextPath to set
 	 */
 	public void setContextPath(final IPath contextPath) {
-		if (null == contextPath) {
+		if (null == contextPath)
 			throw new IllegalArgumentException("Context path must not be null!");
-		}
 		this.contextPath = contextPath;
 	}
 

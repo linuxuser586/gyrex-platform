@@ -46,6 +46,14 @@ public interface IJobManager {
 	String DEFAULT_QUEUE = "gyrex.jobs.queue.default";
 
 	/**
+	 * a priority queue for queuing jobs; jobs submitted to this queue may be
+	 * executed before jobs submitted to the {@link #DEFAULT_QUEUE}
+	 * 
+	 * @since 1.2
+	 */
+	String PRIORITY_QUEUE = "gyrex.jobs.queue.priority";
+
+	/**
 	 * Job parameter which specifies the id of an {@link IExclusiveLock
 	 * exclusive lock} that must be acquired by the worker engine prior to
 	 * running this job.

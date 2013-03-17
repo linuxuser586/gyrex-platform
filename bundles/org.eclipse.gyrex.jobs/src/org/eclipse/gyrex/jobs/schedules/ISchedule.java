@@ -57,8 +57,12 @@ public interface ISchedule {
 
 	/**
 	 * Returns the id of the queue that will be used for scheduling jobs.
+	 * <p>
+	 * This defines a default queue for a schedule. It's still possible to
+	 * define individual queues per schedule.
+	 * </p>
 	 * 
-	 * @return the queue id
+	 * @return the queue id (may be <code>null</code>)
 	 */
 	String getQueueId();
 

@@ -23,10 +23,7 @@ public class CreateScheduleEntryCmd extends BaseScheduleStoreCmd {
 	@Argument(index = 1, usage = "the id for the entry to add", required = true, metaVar = "ID")
 	String entryId;
 
-	@Argument(index = 2, usage = "a cron expression", required = true, metaVar = "EXPR")
-	String cronExpression;
-
-	@Argument(index = 3, usage = "the job type identifier", required = true, metaVar = "JOBTYPE")
+	@Argument(index = 2, usage = "the job type identifier", required = true, metaVar = "JOBTYPE")
 	String jobTypeId;
 
 	/**
@@ -45,18 +42,13 @@ public class CreateScheduleEntryCmd extends BaseScheduleStoreCmd {
 			return;
 		}
 
-		if (null == JobsActivator.getInstance().getJobProviderRegistry().getProvider(jobTypeId)) {
+		if (null == JobsActivator.getInstance().getJobProviderRegistry().getProvider(jobTypeId))
 			throw new IllegalArgumentException(String.format("no provider for job type %s found", jobTypeId));
-		}
 
 		final IScheduleEntryWorkingCopy entry = schedule.createEntry(entryId);
 
 		entry.setJobTypeId(jobTypeId);
-		try {
-			entry.setCronExpression(cronExpression);
-		} catch (final Exception e) {
-			throw new IllegalArgumentException("invalid cron expression, please see http://en.wikipedia.org/wiki/Cron#CRON_expression", e);
-		}
+		entry.setEnabled(false);
 
 		ScheduleStore.flush(storageId, schedule);
 		printf("Entry added to schedule %s!", scheduleId);

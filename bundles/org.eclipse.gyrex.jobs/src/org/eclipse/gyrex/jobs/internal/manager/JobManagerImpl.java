@@ -320,7 +320,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	private void doQueueJob(final String jobTypeId, final String jobId, Map<String, String> parameter, final String queueId, final String trigger) {
+	private void doQueueJob(final String jobTypeId, final String jobId, Map<String, String> parameter, final String queueId, final String trigger, final String scheduleInfo) {
 		JobImpl job = getJob(jobId);
 
 		// if no job type is given, we are not allowed to create a job 
@@ -391,7 +391,7 @@ public class JobManagerImpl implements IJobManager {
 				final long queueTimestamp = System.currentTimeMillis();
 
 				// add to queue
-				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), parameter, queueTrigger, queueTimestamp)));
+				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), parameter, queueTrigger, queueTimestamp, scheduleInfo)));
 
 				// set queued time
 				try {
@@ -507,7 +507,7 @@ public class JobManagerImpl implements IJobManager {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
-		doQueueJob(null, jobId, parameter, queueId, trigger);
+		doQueueJob(null, jobId, parameter, queueId, trigger, null);
 	}
 
 	@Override
@@ -517,7 +517,19 @@ public class JobManagerImpl implements IJobManager {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
-		doQueueJob(jobTypeId, jobId, parameter, queueId, trigger);
+		doQueueJob(jobTypeId, jobId, parameter, queueId, trigger, null);
+	}
+
+	/**
+	 * @noreference This method is not intended to be referenced by clients.
+	 */
+	public void queueJob(final String jobTypeId, final String jobId, final Map<String, String> parameter, final String queueId, final String trigger, final String scheduleInfo) throws IllegalArgumentException, IllegalStateException {
+		if (!IdHelper.isValidId(jobTypeId))
+			throw new IllegalArgumentException(String.format("Invalid job type id '%s'", jobTypeId));
+		if (!IdHelper.isValidId(jobId))
+			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
+
+		doQueueJob(jobTypeId, jobId, parameter, queueId, trigger, scheduleInfo);
 	}
 
 	@Override
@@ -525,7 +537,7 @@ public class JobManagerImpl implements IJobManager {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
-		doQueueJob(null, jobId, null, queueId, trigger);
+		doQueueJob(null, jobId, null, queueId, trigger, null);
 	}
 
 	@Override

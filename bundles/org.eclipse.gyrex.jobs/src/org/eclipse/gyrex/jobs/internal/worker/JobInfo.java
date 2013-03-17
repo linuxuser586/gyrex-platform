@@ -44,6 +44,7 @@ public class JobInfo {
 	private static final String QUEUE_TIMESTAMP = PREFIX + "queueTimestamp"; //$NON-NLS-1$
 	private static final String VERSION = PREFIX + "version"; //$NON-NLS-1$
 	private static final String VERSION_VALUE = "1"; //$NON-NLS-1$
+	private static final String SCHEDULE_INFO = PREFIX + "scheduleInfo"; //$NON-NLS-1$
 
 	public static byte[] asMessage(final JobInfo info) throws IOException {
 		final Properties properties = new Properties();
@@ -61,6 +62,7 @@ public class JobInfo {
 		properties.put(CONTEXT_PATH, info.getContextPath().toString());
 		properties.put(QUEUE_TRIGGER, info.getQueueTrigger());
 		properties.put(QUEUE_TIMESTAMP, String.valueOf(info.getQueueTimestamp()));
+		properties.put(SCHEDULE_INFO, info.getScheduleInfo());
 
 		// create bytes
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -79,7 +81,7 @@ public class JobInfo {
 		// check version (remove key from properties)
 		final Object versionValue = properties.remove(VERSION);
 		if (!VERSION_VALUE.equals(versionValue))
-			throw new IOException(String.format("invalid record data: version mismatch (expected %d, found %s)", 1, String.valueOf(versionValue)));
+			throw new IOException(String.format("invalid record data: version mismatch (expected %s, found %s)", VERSION_VALUE, String.valueOf(versionValue)));
 
 		// get id (remove key from properties as well)
 		final Object jobIdValue = properties.remove(ID);
@@ -96,15 +98,20 @@ public class JobInfo {
 		if ((null == contextPathValue) || !(contextPathValue instanceof String) || !Path.EMPTY.isValidPath(((String) contextPathValue)))
 			throw new IOException(String.format("invalid record data: missing/invalid context path %s", String.valueOf(contextPathValue)));
 
-		// get path (remove key from properties as well)
+		// get queue trigger (remove key from properties as well)
 		final Object queueTrigger = properties.remove(QUEUE_TRIGGER);
 		if ((null != queueTrigger) && !(queueTrigger instanceof String))
 			throw new IOException(String.format("invalid record data: invalid queue trigger %s", String.valueOf(contextPathValue)));
 
-		// get path (remove key from properties as well)
+		// get queue timestamp (remove key from properties as well)
 		final Object queueTimestamp = properties.remove(QUEUE_TIMESTAMP);
 		if ((null == queueTimestamp) || !(queueTimestamp instanceof String))
 			throw new IOException(String.format("invalid record data: missing/invalid queue timestamp %s", String.valueOf(contextPathValue)));
+
+		// get schedule info (remove key from properties as well)
+		final Object scheduleInfo = properties.remove(SCHEDULE_INFO);
+		if ((null != scheduleInfo) && !(scheduleInfo instanceof String))
+			throw new IOException(String.format("invalid record data: invalid schedule info %s", String.valueOf(contextPathValue)));
 
 		// collect properties
 		final Map<String, String> jobProperties = new HashMap<String, String>();
@@ -116,7 +123,7 @@ public class JobInfo {
 		}
 
 		// create job info
-		return new JobInfo((String) jobTypeValue, (String) jobIdValue, new Path((String) contextPathValue), jobProperties, (String) queueTrigger, NumberUtils.toLong((String) queueTimestamp));
+		return new JobInfo((String) jobTypeValue, (String) jobIdValue, new Path((String) contextPathValue), jobProperties, (String) queueTrigger, NumberUtils.toLong((String) queueTimestamp), (String) scheduleInfo);
 	}
 
 	private final String jobId;
@@ -125,14 +132,16 @@ public class JobInfo {
 	private final IPath contextPath;
 	private final String queueTrigger;
 	private final long queueTimestamp;
+	private final String scheduleInfo;
 
-	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties, final String queueTrigger, final long queueTimestamp) {
+	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties, final String queueTrigger, final long queueTimestamp, final String scheduleInfo) {
 		this.jobId = jobId;
 		this.jobTypeId = jobTypeId;
 		this.contextPath = contextPath;
 		this.jobProperties = jobProperties;
 		this.queueTrigger = queueTrigger;
 		this.queueTimestamp = queueTimestamp;
+		this.scheduleInfo = scheduleInfo;
 	}
 
 	public IPath getContextPath() {
@@ -157,5 +166,9 @@ public class JobInfo {
 
 	public String getQueueTrigger() {
 		return queueTrigger;
+	}
+
+	public String getScheduleInfo() {
+		return scheduleInfo;
 	}
 }

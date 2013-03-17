@@ -13,8 +13,11 @@
 package org.eclipse.gyrex.jobs.internal.schedules;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.eclipse.gyrex.common.identifiers.IdHelper;
@@ -26,6 +29,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
+
 import org.quartz.CronExpression;
 
 /**
@@ -33,20 +37,33 @@ import org.quartz.CronExpression;
  */
 public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingCopy {
 
+	private static final char SEPARATOR_CHAR = ',';
+
 	private static final String PARAMETER = "parameter";
 
 	private static final String JOB_TYPE_ID = "jobTypeId";
 	private static final String CRON_EXPRESSION = "cronExpression";
 	private static final String ENABLED = "enabled";
+	private static final String PRECEDING_ENTRIES = "precedingEntries";
+	private static final String QUEUE_ID = "queueId";
+
+	private static void setIfNotNullOrRemoveIfNull(final Preferences node, final String key, final String value) {
+		if (value != null) {
+			node.put(key, value);
+		} else {
+			node.remove(key);
+		}
+	}
 
 	private final String id;
-	private final ScheduleImpl schedule;
 
+	private ScheduleImpl schedule;
 	private boolean enabled;
-
 	private String cronExpression;
 	private String jobTypeId;
 	private Map<String, String> jobParamater;
+	private String queueId;
+	private Collection<String> precedingEntries;
 
 	/**
 	 * Creates a new instance.
@@ -56,9 +73,8 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	 */
 	public ScheduleEntryImpl(final String id, final ScheduleImpl schedule) {
 		this.schedule = schedule;
-		if (!IdHelper.isValidId(id)) {
+		if (!IdHelper.isValidId(id))
 			throw new IllegalArgumentException("invalid entry id");
-		}
 		this.id = id;
 		enabled = true; // default is enabled (backwards compatibility)
 	}
@@ -80,9 +96,8 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	@Override
 	public Map<String, String> getJobParameter() {
-		if (null != jobParamater) {
+		if (null != jobParamater)
 			return Collections.unmodifiableMap(jobParamater);
-		}
 		return Collections.emptyMap();
 	}
 
@@ -91,6 +106,21 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		return jobTypeId;
 	}
 
+	@Override
+	public Collection<String> getPrecedingEntries() {
+		final Collection<String> ids = precedingEntries;
+		if (ids == null)
+			return Collections.emptyList();
+
+		return Collections.unmodifiableCollection(ids);
+	}
+
+	@Override
+	public String getQueueId() {
+		return queueId;
+	}
+
+	@Override
 	public ScheduleImpl getSchedule() {
 		return schedule;
 	}
@@ -102,7 +132,6 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	void load(final Preferences node) throws BackingStoreException {
 		try {
-			setCronExpression(node.get(CRON_EXPRESSION, null));
 			setJobTypeId(node.get(JOB_TYPE_ID, null));
 			setEnabled(node.getBoolean(ENABLED, true /* default true (backwards compatibility) */));
 			if (node.nodeExists(PARAMETER)) {
@@ -113,6 +142,12 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 					jobParamater.put(key, paramNode.get(key, null));
 				}
 			}
+			final String expression = node.get(CRON_EXPRESSION, null);
+			if (expression != null) {
+				setCronExpression(expression);
+			}
+			setQueueId(node.get(QUEUE_ID, null));
+			setPrecedingEntries(StringUtils.split(node.get(PRECEDING_ENTRIES, null), SEPARATOR_CHAR));
 		} catch (final IllegalArgumentException e) {
 			throw new BackingStoreException(String.format("Unable to load entry '%s'. %s", id, e.getMessage()), e);
 		}
@@ -121,9 +156,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	void saveWithoutFlush(final Preferences node) throws BackingStoreException {
 		// ensure required values are set
 		setJobTypeId(jobTypeId);
-		setCronExpression(cronExpression);
 
-		node.put(CRON_EXPRESSION, cronExpression);
 		node.put(JOB_TYPE_ID, jobTypeId);
 		node.putBoolean(ENABLED, enabled);
 
@@ -145,6 +178,16 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		} else if (node.nodeExists(PARAMETER)) {
 			node.node(PARAMETER).removeNode();
 		}
+
+		if (cronExpression != null) {
+			node.put(CRON_EXPRESSION, cronExpression);
+		} else {
+			node.remove(CRON_EXPRESSION);
+		}
+
+		setIfNotNullOrRemoveIfNull(node, CRON_EXPRESSION, cronExpression);
+		setIfNotNullOrRemoveIfNull(node, QUEUE_ID, queueId);
+		setIfNotNullOrRemoveIfNull(node, PRECEDING_ENTRIES, StringUtils.join(precedingEntries, SEPARATOR_CHAR));
 	}
 
 	@Override
@@ -181,10 +224,44 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	@Override
 	public void setJobTypeId(final String jobTypeId) {
-		if (!IdHelper.isValidId(jobTypeId)) {
+		if (!IdHelper.isValidId(jobTypeId))
 			throw new IllegalArgumentException("invalid type id");
-		}
 		this.jobTypeId = jobTypeId;
+	}
+
+	@Override
+	public void setPrecedingEntries(final String... scheduleEntryIds) throws IllegalArgumentException {
+		if ((scheduleEntryIds == null) || (scheduleEntryIds.length == 0)) {
+			precedingEntries = null;
+		} else {
+			final ArrayList<String> list = new ArrayList<>(scheduleEntryIds.length);
+
+			for (int i = 0; i < scheduleEntryIds.length; i++) {
+				if (IdHelper.isValidId(scheduleEntryIds[i]))
+					throw new IllegalArgumentException("invalid schedule entry id at index " + i + ": " + scheduleEntryIds[i]);
+				list.add(scheduleEntryIds[i]);
+			}
+			// check for loops
+			final LinkedList<String> sequence = new LinkedList<>();
+			sequence.add(id);
+			ScheduleImpl.checkExecutionSequenceForLoops(this, sequence, list);
+
+			// set
+			precedingEntries = list;
+		}
+
+	}
+
+	@Override
+	public void setQueueId(final String queueId) throws IllegalArgumentException {
+		if ((queueId != null) && !IdHelper.isValidId(queueId))
+			throw new IllegalArgumentException("invalide queue id: " + queueId);
+		this.queueId = queueId;
+
+	}
+
+	public void setSchedule(final ScheduleImpl schedule) {
+		this.schedule = schedule;
 	}
 
 	@Override
