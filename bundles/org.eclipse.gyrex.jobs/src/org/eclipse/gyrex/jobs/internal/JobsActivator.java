@@ -102,9 +102,8 @@ public class JobsActivator extends BaseBundleActivator {
 	 */
 	public IQueueService getQueueService() {
 		final IServiceProxy<IQueueService> proxy = queueServiceProxy;
-		if (proxy == null) {
-			createBundleInactiveException();
-		}
+		if (proxy == null)
+			throw createBundleInactiveException();
 		return proxy.getService();
 	}
 

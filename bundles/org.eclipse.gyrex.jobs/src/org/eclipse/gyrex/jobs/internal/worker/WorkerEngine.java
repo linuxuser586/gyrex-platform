@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.cloud.services.queue.IQueue;
@@ -88,17 +89,14 @@ public class WorkerEngine extends Job {
 
 	private long engineSleepTime = DEFAULT_IDLE_SLEEP_TIME;
 
-	private volatile int scheduledJobsCount;
+	private final AtomicInteger scheduledJobsCount = new AtomicInteger();
 
 	private final IJobChangeListener jobFinishedListener = new JobChangeAdapter() {
 		@Override
 		public void done(final IJobChangeEvent event) {
 			// decrease scheduled jobs count
-			scheduledJobsCount--;
-			// make sure the values make sense
-			if (scheduledJobsCount < 0) {
-				scheduledJobsCount = 0;
-			}
+			scheduledJobsCount.decrementAndGet();
+
 			// update metric
 			metrics.getCapacity().channelFinished();
 		};
@@ -244,7 +242,7 @@ public class WorkerEngine extends Job {
 			throw new IllegalStateException("No queue available for reading scheduled jobs to execute. Please check engine configuration.");
 
 		// don't process any jobs if we are over the limit
-		if (scheduledJobsCount > maxConcurrentJobs) {
+		if (scheduledJobsCount.get() > maxConcurrentJobs) {
 			// we return false here in order to allow this node to breath a bit
 			if (JobsDebug.workerEngine) {
 				LOG.debug("There are currently {} jobs scheduled. Won't schedule more at this time.", scheduledJobsCount);
@@ -330,7 +328,7 @@ public class WorkerEngine extends Job {
 		job.schedule();
 
 		// increment count
-		scheduledJobsCount++;
+		scheduledJobsCount.incrementAndGet();
 
 		// done, but return "true" to indicate that the queue might still contain jobs
 		return true;

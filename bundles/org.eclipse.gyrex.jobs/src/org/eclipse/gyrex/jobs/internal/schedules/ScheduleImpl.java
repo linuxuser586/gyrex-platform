@@ -249,7 +249,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 
 			// no loop found; add to map and continue
 			for (final String precedingEntryId : precedingEntries) {
-				if (!entriesToTriggerByPrecedingEntryId.containsKey(precedingEntries)) {
+				if (!entriesToTriggerByPrecedingEntryId.containsKey(precedingEntryId)) {
 					entriesToTriggerByPrecedingEntryId.put(precedingEntryId, new HashSet<String>(2));
 				}
 				entriesToTriggerByPrecedingEntryId.get(precedingEntryId).add(entry.getId());

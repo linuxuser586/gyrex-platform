@@ -127,14 +127,15 @@ public class JobManagerImpl implements IJobManager {
 
 	public static void cancel(JobImpl job, final String trigger) {
 		IExclusiveLock jobLock = null;
+		final String jobId = job.getId();
 		try {
 			// get job modification lock
 			jobLock = acquireLock(job);
 
 			// re-read job status (inside lock)
-			job = getJob(job.getId(), job.getStorageKey());
+			job = getJob(jobId, job.getStorageKey());
 			if (null == job)
-				throw new IllegalStateException(String.format("Job %s does not exist!", job.getId()));
+				throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 
 			// re-check job status (inside lock)
 			if ((job.getState() != JobState.WAITING) && (job.getState() != JobState.RUNNING))
@@ -148,10 +149,10 @@ public class JobManagerImpl implements IJobManager {
 				// add cancellation note
 				setJobCancelled(job, System.currentTimeMillis(), null != trigger ? trigger : findCaller(), jobLock);
 			} catch (final BackingStoreException e) {
-				throw new IllegalStateException(String.format("Error canceling job %s. %s", job.getId(), e.getMessage()), e);
+				throw new IllegalStateException(String.format("Error canceling job %s. %s", jobId, e.getMessage()), e);
 			}
 		} finally {
-			releaseLock(jobLock, job.getId());
+			releaseLock(jobLock, jobId);
 		}
 	}
 
@@ -165,7 +166,7 @@ public class JobManagerImpl implements IJobManager {
 			if (StringUtils.startsWith(trace[i].getClassName(), JobManagerImpl.class.getName())) {
 				continue;
 			}
-			return trace.toString();
+			return trace[i].toString();
 		}
 
 		return StringUtils.EMPTY;
