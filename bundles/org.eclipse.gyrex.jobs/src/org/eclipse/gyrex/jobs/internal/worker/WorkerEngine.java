@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.gyrex.cloud.services.queue.IMessage;
 import org.eclipse.gyrex.cloud.services.queue.IQueue;
-import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.cloud.services.queue.IQueueServiceProperties;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.context.registry.IRuntimeContextRegistry;
@@ -48,6 +47,7 @@ import org.osgi.service.prefs.Preferences;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.math.RandomUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +57,9 @@ import org.slf4j.LoggerFactory;
  */
 public class WorkerEngine extends Job {
 
-	private static final long DEFAULT_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(20);
-	private static final long DEFAULT_NON_IDLE_SLEEP_TIME = TimeUnit.SECONDS.toMillis(3);
-	private static final long DEFAULT_MAX_SLEEP_TIME = TimeUnit.MINUTES.toMillis(5);
+	private static final int DEFAULT_IDLE_SLEEP_TIME = 20000;
+	private static final int DEFAULT_NON_IDLE_SLEEP_TIME = 3000;
+	private static final int DEFAULT_MAX_SLEEP_TIME = 30000;
 
 	private static final String NODE_WORKER_ENGINE = "workerEngine";
 	private static final String PREF_KEY_SUSPENDED = "suspended";
@@ -84,8 +84,10 @@ public class WorkerEngine extends Job {
 
 	private final WorkerEngineMetrics metrics;
 	private final int maxConcurrentJobs;
-	private final long idleSleepTime;
-	private final long nonIdleSleepTime;
+	private final int idleSleepTime;
+	private final int nonIdleSleepTime;
+	private final String queueId;
+	private final boolean skipPriorityQueue;
 
 	private long engineSleepTime = DEFAULT_IDLE_SLEEP_TIME;
 
@@ -116,9 +118,11 @@ public class WorkerEngine extends Job {
 		this.metrics = metrics;
 		setSystem(true);
 		setPriority(LONG);
-		idleSleepTime = Long.getLong("gyrex.jobs.workerEngine.idleSleepTime", DEFAULT_IDLE_SLEEP_TIME);
-		nonIdleSleepTime = Long.getLong("gyrex.jobs.workerEngine.nonIdleSleepTime", DEFAULT_NON_IDLE_SLEEP_TIME);
+		idleSleepTime = Integer.getInteger("gyrex.jobs.workerEngine.idleSleepTimeMs", DEFAULT_IDLE_SLEEP_TIME);
+		nonIdleSleepTime = Integer.getInteger("gyrex.jobs.workerEngine.nonIdleSleepTimeMs", DEFAULT_NON_IDLE_SLEEP_TIME);
 		maxConcurrentJobs = Integer.getInteger("gyrex.jobs.workerEngine.maxConcurrentScheduledJobs", Runtime.getRuntime().availableProcessors());
+		queueId = System.getProperty("gyrex.jobs.workerEngine.queueId", IJobManager.DEFAULT_QUEUE);
+		skipPriorityQueue = Boolean.getBoolean("gyrex.jobs.workerEngine.doNotCheckPriorityQueue");
 	}
 
 	private JobContext createContext(final JobInfo info) {
@@ -172,20 +176,8 @@ public class WorkerEngine extends Job {
 		}
 	}
 
-	/**
-	 * Returns the queue with scheduled jobs.
-	 * 
-	 * @return
-	 */
-	protected IQueue getDefaultQueue() {
-		final IQueueService queueService = JobsActivator.getInstance().getQueueService();
-
-		final IQueue queue = queueService.getQueue(IJobManager.DEFAULT_QUEUE, null);
-		if (null == queue) {
-			queueService.createQueue(IJobManager.DEFAULT_QUEUE, null);
-		}
-
-		return queueService.getQueue(IJobManager.DEFAULT_QUEUE, null);
+	private IQueue getQueue(final String queueId) {
+		return JobsActivator.getInstance().getQueueService().getQueue(queueId, null);
 	}
 
 	/**
@@ -236,11 +228,7 @@ public class WorkerEngine extends Job {
 	 * @return <code>true</code> if additional jobs might be available in the
 	 *         queue, <code>false</code> if the queue is empty
 	 */
-	private boolean processNextJobFromQueue() {
-		final IQueue queue = getDefaultQueue(); // TODO how to get messages from other queues?
-		if (queue == null)
-			throw new IllegalStateException("No queue available for reading scheduled jobs to execute. Please check engine configuration.");
-
+	private boolean processNextJobFromAnyQueue() {
 		// don't process any jobs if we are over the limit
 		if (scheduledJobsCount.get() > maxConcurrentJobs) {
 			// we return false here in order to allow this node to breath a bit
@@ -252,6 +240,33 @@ public class WorkerEngine extends Job {
 			return false;
 		}
 
+		// check priority queue first
+		IQueue queue = getQueue(IJobManager.PRIORITY_QUEUE);
+		if ((queue != null) && !skipPriorityQueue) {
+			LOG.debug("Checking priority queue.");
+			if (processNextJobFromQueue(queue))
+				return true;
+		}
+
+		// no job processed from priority queue
+		// check default queue
+		queue = getQueue(queueId);
+		if (queue == null) {
+			LOG.debug("Queue {} does not exists. Nothing to work one.", queueId);
+			return false;
+		}
+
+		return processNextJobFromQueue(queue);
+	}
+
+	/**
+	 * Fetches the next job from the specified queue and schedules it for
+	 * execution.
+	 * 
+	 * @return <code>true</code> if additional jobs might be available in the
+	 *         queue, <code>false</code> if the queue is empty
+	 */
+	private boolean processNextJobFromQueue(final IQueue queue) {
 		metrics.setStatus("PROCESSING", "processing next job from queue");
 
 		// set receive timeout
@@ -350,14 +365,15 @@ public class WorkerEngine extends Job {
 			metrics.getCapacity().setChannelsCapacity(maxConcurrentJobs);
 
 			// process next job from queue
-			final boolean moreJobsAvailable = processNextJobFromQueue();
+			final boolean moreJobsAvailable = processNextJobFromAnyQueue();
 
 			// reset sleep time
 			// even if there are still jobs in the queue we don't just go on processing them
 			// instead we wait a few seconds to let other worker engines pick up jobs from the queue
 			// otherwise this node might just over-schedule itself
-			// TODO: there is room for improving the distribution of jobs among worker engines with a better algorithm
-			engineSleepTime = moreJobsAvailable ? nonIdleSleepTime : idleSleepTime;
+			// note, there is room for improving the distribution of jobs among 
+			// worker engines with a better algorithm; but this should be good meanwhile
+			engineSleepTime = RandomUtils.nextInt(moreJobsAvailable ? nonIdleSleepTime : idleSleepTime);
 
 			// done
 			if (!monitor.isCanceled()) {
