@@ -243,7 +243,9 @@ public class WorkerEngine extends Job {
 		// check priority queue first
 		IQueue queue = getQueue(IJobManager.PRIORITY_QUEUE);
 		if ((queue != null) && !skipPriorityQueue) {
-			LOG.debug("Checking priority queue.");
+			if (JobsDebug.workerEngine) {
+				LOG.debug("Checking priority queue.");
+			}
 			if (processNextJobFromQueue(queue))
 				return true;
 		}
@@ -252,7 +254,9 @@ public class WorkerEngine extends Job {
 		// check default queue
 		queue = getQueue(queueId);
 		if (queue == null) {
-			LOG.debug("Queue {} does not exists. Nothing to work one.", queueId);
+			if (JobsDebug.workerEngine) {
+				LOG.debug("Queue {} does not exists. Nothing to work one.", queueId);
+			}
 			return false;
 		}
 
@@ -295,7 +299,7 @@ public class WorkerEngine extends Job {
 			// continue with next message
 			return true;
 
-		// create job state synchronizer but defer registration 
+		// create job state synchronizer but defer registration
 		// with job until the last minute
 		final JobStateSynchronizer stateSynchronizer = new JobStateSynchronizer(job, jobContext, info);
 
@@ -328,6 +332,9 @@ public class WorkerEngine extends Job {
 		}
 
 		// at this point we allow the job to be scheduled
+		if (JobsDebug.workerEngine) {
+			LOG.debug("Scheduling job {} from queue {}", info.getJobId(), queue.getId());
+		}
 
 		// add state synchronizer and finish listener
 		job.addJobChangeListener(stateSynchronizer);
@@ -371,7 +378,7 @@ public class WorkerEngine extends Job {
 			// even if there are still jobs in the queue we don't just go on processing them
 			// instead we wait a few seconds to let other worker engines pick up jobs from the queue
 			// otherwise this node might just over-schedule itself
-			// note, there is room for improving the distribution of jobs among 
+			// note, there is room for improving the distribution of jobs among
 			// worker engines with a better algorithm; but this should be good meanwhile
 			engineSleepTime = RandomUtils.nextInt(moreJobsAvailable ? nonIdleSleepTime : idleSleepTime);
 
