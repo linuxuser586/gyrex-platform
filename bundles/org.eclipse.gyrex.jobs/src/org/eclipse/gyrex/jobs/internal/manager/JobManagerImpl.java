@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
 import org.eclipse.gyrex.cloud.services.locking.ILockService;
 import org.eclipse.gyrex.cloud.services.queue.IQueue;
+import org.eclipse.gyrex.cloud.services.queue.IQueueService;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.IJob;
@@ -324,12 +325,12 @@ public class JobManagerImpl implements IJobManager {
 	private void doQueueJob(final String jobTypeId, final String jobId, Map<String, String> parameter, final String queueId, final String trigger, final String scheduleInfo) {
 		JobImpl job = getJob(jobId);
 
-		// if no job type is given, we are not allowed to create a job 
+		// if no job type is given, we are not allowed to create a job
 		if ((null == job) && (jobTypeId == null))
 			throw new IllegalStateException(String.format("Job %s does not exist!", jobId));
 
 		// verify the queue exists
-		final IQueue queue = JobsActivator.getInstance().getQueueService().getQueue(null != queueId ? queueId : DEFAULT_QUEUE, null);
+		final IQueue queue = getOrCreateQueue(StringUtils.isNotBlank(queueId) ? queueId : DEFAULT_QUEUE);
 		if (null == queue)
 			throw new IllegalStateException(String.format("Queue %s does not exist!", queueId));
 
@@ -496,6 +497,15 @@ public class JobManagerImpl implements IJobManager {
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Error reading job data. %s", e.getMessage()), e);
 		}
+	}
+
+	private IQueue getOrCreateQueue(final String queueId) {
+		final IQueueService queueService = JobsActivator.getInstance().getQueueService();
+		IQueue queue = queueService.getQueue(queueId, null);
+		if (queue == null) {
+			queue = queueService.createQueue(queueId, null);
+		}
+		return queue;
 	}
 
 	public boolean isStuck(final JobImpl job) {
