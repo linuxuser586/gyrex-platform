@@ -127,12 +127,15 @@ public interface IJob {
 	 * Returns the milliseconds from the Java epoch of
 	 * <code>1970-01-01T00:00:00Z</code> when the job last finished
 	 * successfully.
+	 * <p>
+	 * A job execution is considered successful if the result severity is
+	 * neither {@link IStatus#ERROR} nor {@link IStatus#CANCEL}.
+	 * </p>
 	 * 
 	 * @return the milliseconds from the Java epoch of
 	 *         <code>1970-01-01T00:00:00Z</code> of the last successful finish
-	 *         (execution finished with {@link IStatus#OK}) of the job, or
-	 *         <code>-1</code> if the job never finished it's execution until
-	 *         now
+	 *         of the job, or <code>-1</code> if the job never finished it's
+	 *         execution until now
 	 */
 	long getLastSuccessfulFinish();
 
