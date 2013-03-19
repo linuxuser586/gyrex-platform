@@ -29,6 +29,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 
 /**
@@ -63,8 +64,10 @@ public class JobInfo {
 		properties.put(CONTEXT_PATH, info.getContextPath().toString());
 		properties.put(QUEUE_TRIGGER, info.getQueueTrigger());
 		properties.put(QUEUE_TIMESTAMP, String.valueOf(info.getQueueTimestamp()));
-		properties.put(SCHEDULE_INFO, info.getScheduleInfo());
 		properties.put(LAST_SUCCESSFUL_START, String.valueOf(info.getLastSuccessfulStart()));
+		if (StringUtils.isNotBlank(info.getScheduleInfo())) {
+			properties.put(SCHEDULE_INFO, info.getScheduleInfo());
+		}
 
 		// create bytes
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
