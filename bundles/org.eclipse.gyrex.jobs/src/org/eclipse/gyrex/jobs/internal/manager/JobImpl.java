@@ -37,6 +37,7 @@ public class JobImpl implements IJob {
 	private long lastStart;
 	private long lastCancelled;
 
+	private long lastSuccessfulStart;
 	private long lastSuccessfulFinish;
 
 	private JobState state;
@@ -53,7 +54,7 @@ public class JobImpl implements IJob {
 	 */
 	public JobImpl(final String storageKey) {
 		this.storageKey = storageKey;
-		lastStart = lastSuccessfulFinish = -1;
+		lastStart = lastSuccessfulStart = lastSuccessfulFinish = -1;
 	}
 
 	/**
@@ -71,6 +72,7 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the lastCancelled
 	 */
+	@Override
 	public long getLastCancelled() {
 		return lastCancelled;
 	}
@@ -80,6 +82,7 @@ public class JobImpl implements IJob {
 	 * 
 	 * @return the lastCancelledTrigger
 	 */
+	@Override
 	public String getLastCancelledTrigger() {
 		return lastCancelledTrigger;
 	}
@@ -133,6 +136,11 @@ public class JobImpl implements IJob {
 		return lastSuccessfulFinish;
 	}
 
+	@Override
+	public long getLastSuccessfulStart() {
+		return lastSuccessfulStart;
+	}
+
 	/**
 	 * Returns the jobParameter.
 	 * 
@@ -141,9 +149,8 @@ public class JobImpl implements IJob {
 	@Override
 	public Map<String, String> getParameter() {
 		final Map<String, String> map = parameter;
-		if (null == map) {
+		if (null == map)
 			return Collections.emptyMap();
-		}
 		return Collections.unmodifiableMap(map);
 	}
 
@@ -155,9 +162,8 @@ public class JobImpl implements IJob {
 	@Override
 	public JobState getState() {
 		final JobState jobState = state;
-		if (null == jobState) {
+		if (null == jobState)
 			return JobState.NONE;
-		}
 
 		return state;
 	}
@@ -271,6 +277,10 @@ public class JobImpl implements IJob {
 	 */
 	public void setLastSuccessfulFinish(final long lastSuccessfullFinish) {
 		lastSuccessfulFinish = lastSuccessfullFinish;
+	}
+
+	public void setLastSuccessfulStart(final long lastSuccessfulStart) {
+		this.lastSuccessfulStart = lastSuccessfulStart;
 	}
 
 	/**

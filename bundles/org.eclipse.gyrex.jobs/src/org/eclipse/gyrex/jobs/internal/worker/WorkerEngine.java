@@ -202,8 +202,9 @@ public class WorkerEngine extends Job {
 
 		// set job status
 		try {
+			final long timestamp = System.currentTimeMillis();
 			final JobManagerImpl jobManager = (JobManagerImpl) jobContext.getContext().get(IJobManager.class);
-			jobManager.setResult(info.getJobId(), jobContext.getParameter(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), System.currentTimeMillis(), info.getQueueTrigger(), info.getQueueTimestamp());
+			jobManager.setResult(info.getJobId(), jobContext.getParameter(), new Status(IStatus.ERROR, JobsActivator.SYMBOLIC_NAME, String.format("Error creating job: %s", e.getMessage()), e), timestamp, timestamp, info.getQueueTrigger(), info.getQueueTimestamp());
 		} catch (final Exception jobManagerException) {
 			LOG.error("Error updating job result for job {}: {}", new Object[] { info.getJobId(), ExceptionUtils.getRootCauseMessage(jobManagerException) });
 		}

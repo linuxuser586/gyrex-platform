@@ -24,7 +24,7 @@ public class JobContext implements IJobContext {
 
 	private final Map<String, String> jobProperties;
 	private final IRuntimeContext context;
-	private final String jobId;
+	private final JobInfo info;
 
 	/**
 	 * Creates a new instance.
@@ -34,7 +34,7 @@ public class JobContext implements IJobContext {
 	 */
 	public JobContext(final IRuntimeContext context, final JobInfo info) {
 		this.context = context;
-		jobId = info.getJobId();
+		this.info = info;
 		jobProperties = Collections.unmodifiableMap(info.getJobProperties());
 	}
 
@@ -45,7 +45,12 @@ public class JobContext implements IJobContext {
 
 	@Override
 	public String getJobId() {
-		return jobId;
+		return info.getJobId();
+	}
+
+	@Override
+	public long getLastSuccessfulStart() {
+		return info.getLastSuccessfulStart();
 	}
 
 	@Override

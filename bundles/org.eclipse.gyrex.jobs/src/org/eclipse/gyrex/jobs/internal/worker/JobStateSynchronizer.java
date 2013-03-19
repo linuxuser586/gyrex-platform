@@ -49,6 +49,8 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	private IExclusiveLock lock;
 
+	private long startTimestamp;
+
 	public JobStateSynchronizer(final Job realJob, final JobContext jobContext, final JobInfo info) {
 		// just remember variable; never hook any listeners here
 		this.realJob = realJob;
@@ -159,10 +161,10 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			getJobManager().setInactive(getJobId());
 
 			// update job state (but do not expect a current state, may be RUNNING or ABORTING)
-			updateJobState(null, JobState.NONE, null);
+			updateJobState(null, JobState.NONE, null, System.currentTimeMillis());
 
 			// update job with result
-			getJobManager().setResult(getJobId(), getJobParameter(), event.getResult(), System.currentTimeMillis(), info.getQueueTrigger(), info.getQueueTimestamp());
+			getJobManager().setResult(getJobId(), getJobParameter(), event.getResult(), System.currentTimeMillis(), startTimestamp, info.getQueueTrigger(), info.getQueueTimestamp());
 		} catch (final Exception e) {
 			LOG.error("Error updating job {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
 		} finally {
@@ -257,8 +259,11 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			// however, we don't clear it in this method so that the Job implementation also benefits from the MDC
 			JobLogHelper.setupMdc(jobContext);
 
+			// remember start time
+			startTimestamp = System.currentTimeMillis();
+
 			// set job state running
-			updateJobState(JobState.WAITING, JobState.RUNNING, this);
+			updateJobState(JobState.WAITING, JobState.RUNNING, this, startTimestamp);
 		} catch (final Exception e) {
 			LOG.error("Error updating job state {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
 		}
@@ -274,7 +279,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			getJobManager().setActive(getJobId());
 
 			// update job state (it is now WAITING)
-			updateJobState(null, JobState.WAITING, null);
+			updateJobState(null, JobState.WAITING, null, System.currentTimeMillis());
 		} catch (final Exception e) {
 			LOG.error("Error updating job {}: {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
 		} finally {
@@ -321,9 +326,9 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		// nothing to do (for now)
 	}
 
-	private void updateJobState(final JobState expected, final JobState state, final IJobStateWatch jobStateWatch) {
+	private void updateJobState(final JobState expected, final JobState state, final IJobStateWatch jobStateWatch, final long stateTimestamp) {
 		try {
-			if (!getJobManager().setJobState(getJobId(), expected, state, jobStateWatch)) {
+			if (!getJobManager().setJobState(getJobId(), expected, state, jobStateWatch, stateTimestamp)) {
 				final JobImpl job = getJobManager().getJob(getJobId());
 				if (null != job) {
 					if (job.getState() != state) {
@@ -335,5 +340,4 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			LOG.error("Error updating job {} from {} to {}: {}", new Object[] { getJobId(), null != expected ? "state " + expected : "any state", state, ExceptionUtils.getRootCauseMessage(e), e });
 		}
 	}
-
 }

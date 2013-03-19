@@ -393,7 +393,7 @@ public class JobManagerImpl implements IJobManager {
 				final long queueTimestamp = System.currentTimeMillis();
 
 				// add to queue
-				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), parameter, queueTrigger, queueTimestamp, scheduleInfo)));
+				queue.sendMessage(JobInfo.asMessage(new JobInfo(job.getTypeId(), jobId, context.getContextPath(), parameter, queueTrigger, queueTimestamp, scheduleInfo, job.getLastSuccessfulStart())));
 
 				// set queued time
 				try {
@@ -746,7 +746,7 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 	}
 
-	private void setJobResult(final JobImpl job, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final String queueTrigger, final long queueTimestamp, final IExclusiveLock lock) throws BackingStoreException {
+	private void setJobResult(final JobImpl job, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final long startTimestamp, final String queueTrigger, final long queueTimestamp, final IExclusiveLock lock) throws BackingStoreException {
 		if ((null == lock) || !lock.isValid())
 			throw new IllegalStateException(String.format("Unable to update job result of job %s due to missing or lost job lock!", job.getId()));
 		if (null == result)
@@ -765,6 +765,7 @@ public class JobManagerImpl implements IJobManager {
 		if (!result.matches(IStatus.CANCEL | IStatus.ERROR)) {
 			// every run that does not result in ERROR or CANCEL is considered successful
 			jobNode.putLong(CloudPreferncesJobStorage.PROPERTY_LAST_SUCCESSFUL_FINISH, resultTimestamp);
+			jobNode.putLong(CloudPreferncesJobStorage.PROPERTY_LAST_SUCCESSFUL_START, startTimestamp);
 		}
 		jobNode.flush();
 
@@ -777,7 +778,7 @@ public class JobManagerImpl implements IJobManager {
 			storable.setParameter(parameter);
 			storable.setQueuedTrigger(queueTrigger);
 			// only pass cancellation trigger to history if it makes sense
-			// FIXME: is logic is brittle, we need to make it part of the job message the queued and started the job
+			// (is there a more reliable way to pass the cancel trigger to the history?)
 			if ((job.getLastCancelled() > job.getLastQueued()) && (job.getLastQueued() < resultTimestamp)) {
 				storable.setCancelledTrigger(job.getLastCancelledTrigger());
 			}
@@ -820,6 +821,8 @@ public class JobManagerImpl implements IJobManager {
 	 *            the new state
 	 * @param stateWatch
 	 *            a watch to add
+	 * @param stateTimestamp
+	 *            a timestamp to associate with the state change
 	 * @return <code>true</code> if and only if the job state was changed to the
 	 *         given state successfully
 	 * @throws IllegalArgumentException
@@ -828,7 +831,7 @@ public class JobManagerImpl implements IJobManager {
 	 *             if the job does not exist or an error occured updating the
 	 *             job
 	 */
-	public boolean setJobState(final String jobId, final JobState expected, final JobState state, final IJobStateWatch stateWatch) throws IllegalArgumentException, IllegalStateException {
+	public boolean setJobState(final String jobId, final JobState expected, final JobState state, final IJobStateWatch stateWatch, final long stateTimestamp) throws IllegalArgumentException, IllegalStateException {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 		if (null == state)
@@ -868,7 +871,7 @@ public class JobManagerImpl implements IJobManager {
 				// update last run time if new state is RUNNING
 				if (state == JobState.RUNNING) {
 					// set start time
-					setJobStartTime(job, System.currentTimeMillis(), jobLock);
+					setJobStartTime(job, stateTimestamp, jobLock);
 				}
 
 				// add watch
@@ -886,7 +889,7 @@ public class JobManagerImpl implements IJobManager {
 		}
 	}
 
-	public void setResult(final String jobId, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final String queueTrigger, final long queueTimestamp) {
+	public void setResult(final String jobId, final Map<String, String> parameter, final IStatus result, final long resultTimestamp, final long startTimestamp, final String queueTrigger, final long queueTimestamp) {
 		if (!IdHelper.isValidId(jobId))
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
@@ -915,7 +918,7 @@ public class JobManagerImpl implements IJobManager {
 				setJobState(job, JobState.NONE, jobLock);
 
 				// set result
-				setJobResult(job, parameter, result, resultTimestamp, queueTrigger, queueTimestamp, jobLock);
+				setJobResult(job, parameter, result, resultTimestamp, startTimestamp, queueTrigger, queueTimestamp, jobLock);
 			} catch (final BackingStoreException e) {
 				throw new IllegalStateException(String.format("Error setting result of job %s. %s", jobId, e.getMessage()), e);
 			}

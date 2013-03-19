@@ -15,6 +15,8 @@ import java.util.Map;
 
 import org.eclipse.gyrex.context.IRuntimeContext;
 
+import org.eclipse.core.runtime.IStatus;
+
 /**
  * The context of a job execution.
  * <p>
@@ -42,6 +44,23 @@ public interface IJobContext {
 	String getJobId();
 
 	/**
+	 * Returns the milliseconds from the Java epoch of
+	 * <code>1970-01-01T00:00:00Z</code> when the job last started and finished
+	 * successfully.
+	 * <p>
+	 * A job execution is considered successful if the result severity is
+	 * neither {@link IStatus#ERROR} nor {@link IStatus#CANCEL}.
+	 * </p>
+	 * 
+	 * @return the milliseconds from the Java epoch of
+	 *         <code>1970-01-01T00:00:00Z</code> of the last start resulting in
+	 *         a successful finish of the job, or <code>-1</code> if the job
+	 *         never finished it's execution until now
+	 * @since 1.2
+	 */
+	long getLastSuccessfulStart();
+
+	/**
 	 * Returns {@link IJob#getParameter() the job parameter} for the current
 	 * execution.
 	 * 
@@ -49,4 +68,5 @@ public interface IJobContext {
 	 *         defined).
 	 */
 	Map<String, String> getParameter();
+
 }

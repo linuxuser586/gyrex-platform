@@ -77,7 +77,7 @@ public class CancelJobCmd extends Command {
 			if (jobIds.contains(searchString)) {
 				jobManager.cancelJob(searchString, "console");
 				if (resetJobState) {
-					((JobManagerImpl) jobManager).setJobState(searchString, JobState.ABORTING, JobState.NONE, null);
+					((JobManagerImpl) jobManager).setJobState(searchString, JobState.ABORTING, JobState.NONE, null, System.currentTimeMillis());
 				}
 				printf("Job %s canceled.", searchString);
 				return;
@@ -90,7 +90,7 @@ public class CancelJobCmd extends Command {
 				try {
 					jobManager.cancelJob(jobId, "console");
 					if (resetJobState) {
-						((JobManagerImpl) jobManager).setJobState(jobId, JobState.ABORTING, JobState.NONE, null);
+						((JobManagerImpl) jobManager).setJobState(jobId, JobState.ABORTING, JobState.NONE, null, System.currentTimeMillis());
 					}
 					printf("Job %s canceled.", jobId);
 				} catch (final IllegalArgumentException e) {

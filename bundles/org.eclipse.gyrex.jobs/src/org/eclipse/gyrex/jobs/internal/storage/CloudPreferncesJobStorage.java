@@ -55,6 +55,7 @@ public class CloudPreferncesJobStorage {
 	public static final String PROPERTY_LAST_QUEUED_TRIGGER = "lastQueuedTrigger";
 	public static final String PROPERTY_LAST_CANCELLED = "lastCancelled";
 	public static final String PROPERTY_LAST_CANCELLED_TRIGGER = "lastCancelledTrigger";
+	public static final String PROPERTY_LAST_SUCCESSFUL_START = "lastSuccessfulStart";
 	public static final String PROPERTY_LAST_SUCCESSFUL_FINISH = "lastSuccessfulFinish";
 	public static final String PROPERTY_LAST_RESULT_MESSAGE = "lastResultMessage";
 	public static final String PROPERTY_LAST_RESULT_SEVERITY = "lastResultSeverity";
@@ -108,6 +109,7 @@ public class CloudPreferncesJobStorage {
 		job.setStatus(JobState.toState(node.get(PROPERTY_STATUS, null)));
 		job.setActive(node.getBoolean(PROPERTY_ACTIVE, false));
 		job.setLastStart(node.getLong(PROPERTY_LAST_START, -1));
+		job.setLastSuccessfulStart(node.getLong(PROPERTY_LAST_SUCCESSFUL_START, -1));
 		job.setLastSuccessfulFinish(node.getLong(PROPERTY_LAST_SUCCESSFUL_FINISH, -1));
 		final long lastResultTimestamp = node.getLong(PROPERTY_LAST_RESULT, -1);
 		if (lastResultTimestamp > -1) {

@@ -45,6 +45,7 @@ public class JobInfo {
 	private static final String VERSION = PREFIX + "version"; //$NON-NLS-1$
 	private static final String VERSION_VALUE = "1"; //$NON-NLS-1$
 	private static final String SCHEDULE_INFO = PREFIX + "scheduleInfo"; //$NON-NLS-1$
+	private static final String LAST_SUCCESSFUL_START = PREFIX + "lastSuccessfulStart"; //$NON-NLS-1$
 
 	public static byte[] asMessage(final JobInfo info) throws IOException {
 		final Properties properties = new Properties();
@@ -63,6 +64,7 @@ public class JobInfo {
 		properties.put(QUEUE_TRIGGER, info.getQueueTrigger());
 		properties.put(QUEUE_TIMESTAMP, String.valueOf(info.getQueueTimestamp()));
 		properties.put(SCHEDULE_INFO, info.getScheduleInfo());
+		properties.put(LAST_SUCCESSFUL_START, String.valueOf(info.getLastSuccessfulStart()));
 
 		// create bytes
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -101,17 +103,22 @@ public class JobInfo {
 		// get queue trigger (remove key from properties as well)
 		final Object queueTrigger = properties.remove(QUEUE_TRIGGER);
 		if ((null != queueTrigger) && !(queueTrigger instanceof String))
-			throw new IOException(String.format("invalid record data: invalid queue trigger %s", String.valueOf(contextPathValue)));
+			throw new IOException(String.format("invalid record data: invalid queue trigger %s", String.valueOf(queueTrigger)));
 
 		// get queue timestamp (remove key from properties as well)
 		final Object queueTimestamp = properties.remove(QUEUE_TIMESTAMP);
 		if ((null == queueTimestamp) || !(queueTimestamp instanceof String))
-			throw new IOException(String.format("invalid record data: missing/invalid queue timestamp %s", String.valueOf(contextPathValue)));
+			throw new IOException(String.format("invalid record data: missing/invalid queue timestamp %s", String.valueOf(queueTimestamp)));
 
 		// get schedule info (remove key from properties as well)
 		final Object scheduleInfo = properties.remove(SCHEDULE_INFO);
 		if ((null != scheduleInfo) && !(scheduleInfo instanceof String))
-			throw new IOException(String.format("invalid record data: invalid schedule info %s", String.valueOf(contextPathValue)));
+			throw new IOException(String.format("invalid record data: invalid schedule info %s", String.valueOf(scheduleInfo)));
+
+		// get last successful finish timestamp (remove key from properties as well)
+		final Object lastSuccessfulStart = properties.remove(LAST_SUCCESSFUL_START);
+		if ((null == lastSuccessfulStart) || !(lastSuccessfulStart instanceof String))
+			throw new IOException(String.format("invalid record data: missing/invalid last successful finish timestamp %s", String.valueOf(lastSuccessfulStart)));
 
 		// collect properties
 		final Map<String, String> jobProperties = new HashMap<String, String>();
@@ -123,7 +130,7 @@ public class JobInfo {
 		}
 
 		// create job info
-		return new JobInfo((String) jobTypeValue, (String) jobIdValue, new Path((String) contextPathValue), jobProperties, (String) queueTrigger, NumberUtils.toLong((String) queueTimestamp), (String) scheduleInfo);
+		return new JobInfo((String) jobTypeValue, (String) jobIdValue, new Path((String) contextPathValue), jobProperties, (String) queueTrigger, NumberUtils.toLong((String) queueTimestamp), (String) scheduleInfo, NumberUtils.toLong((String) lastSuccessfulStart));
 	}
 
 	private final String jobId;
@@ -133,8 +140,9 @@ public class JobInfo {
 	private final String queueTrigger;
 	private final long queueTimestamp;
 	private final String scheduleInfo;
+	private final long lastSuccessfulStart;
 
-	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties, final String queueTrigger, final long queueTimestamp, final String scheduleInfo) {
+	public JobInfo(final String jobTypeId, final String jobId, final IPath contextPath, final Map<String, String> jobProperties, final String queueTrigger, final long queueTimestamp, final String scheduleInfo, final long lastSuccessfulStart) {
 		this.jobId = jobId;
 		this.jobTypeId = jobTypeId;
 		this.contextPath = contextPath;
@@ -142,6 +150,7 @@ public class JobInfo {
 		this.queueTrigger = queueTrigger;
 		this.queueTimestamp = queueTimestamp;
 		this.scheduleInfo = scheduleInfo;
+		this.lastSuccessfulStart = lastSuccessfulStart;
 	}
 
 	public IPath getContextPath() {
@@ -158,6 +167,10 @@ public class JobInfo {
 
 	public String getJobTypeId() {
 		return jobTypeId;
+	}
+
+	public long getLastSuccessfulStart() {
+		return lastSuccessfulStart;
 	}
 
 	public long getQueueTimestamp() {
