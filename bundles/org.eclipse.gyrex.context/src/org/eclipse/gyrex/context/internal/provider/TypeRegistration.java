@@ -73,9 +73,8 @@ public class TypeRegistration {
 	}
 
 	void add(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference serviceReference) {
-		if (!typeName.equals(type.getName())) {
+		if (!typeName.equals(type.getName()))
 			throw new IllegalArgumentException("manager class name should be " + typeName);
-		}
 
 		final ProviderRegistration providerRegistration = providersByReference.putIfAbsent(serviceReference, new ProviderRegistration(type, provider, serviceReference));
 		if (null != providerRegistration) {
@@ -94,7 +93,7 @@ public class TypeRegistration {
 	}
 
 	public void addReference(final TypeRegistrationReference reference) {
-		referencesLock.tryLock();
+		referencesLock.lock();
 		try {
 			references.add(reference);
 		} finally {
@@ -104,7 +103,7 @@ public class TypeRegistration {
 
 	void flushFromContexts() {
 		Object[] currentRefs;
-		referencesLock.tryLock();
+		referencesLock.lock();
 		try {
 			currentRefs = references.toArray();
 		} finally {
@@ -131,9 +130,8 @@ public class TypeRegistration {
 		// the providers with a higher service ranking first
 
 		// return all if no filter specified
-		if (null == filter) {
+		if (null == filter)
 			return providersByReference.values().toArray(new ProviderRegistration[0]);
-		}
 
 		// perform matching
 		final List<ProviderRegistration> providers = new ArrayList<ProviderRegistration>(3);
@@ -157,9 +155,8 @@ public class TypeRegistration {
 	}
 
 	void remove(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference reference) {
-		if (!typeName.equals(type.getName())) {
+		if (!typeName.equals(type.getName()))
 			throw new IllegalArgumentException("type class name should be " + typeName);
-		}
 
 		final ProviderRegistration providerRegistration = providersByReference.remove(reference);
 		if (null != providerRegistration) {
@@ -180,7 +177,7 @@ public class TypeRegistration {
 	}
 
 	public void removeReference(final TypeRegistrationReference reference) {
-		referencesLock.tryLock();
+		referencesLock.lock();
 		try {
 			references.remove(reference);
 		} finally {
@@ -196,9 +193,8 @@ public class TypeRegistration {
 	}
 
 	void update(final Class<?> type, final RuntimeContextObjectProvider provider, final ServiceReference reference) {
-		if (!typeName.equals(type.getName())) {
+		if (!typeName.equals(type.getName()))
 			throw new IllegalArgumentException("type class name should be " + typeName);
-		}
 
 		final ProviderRegistration providerRegistration = providersByReference.get(reference);
 		if (null != providerRegistration) {

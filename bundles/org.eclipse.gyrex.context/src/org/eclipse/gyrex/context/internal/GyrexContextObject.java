@@ -71,7 +71,7 @@ final class GyrexContextObject implements IContextDisposalListener, ProviderRegi
 
 		Object object;
 		ProviderRegistration provider;
-		objectCreationLock.tryLock();
+		objectCreationLock.lock();
 		try {
 			if (!isComputed)
 				return;

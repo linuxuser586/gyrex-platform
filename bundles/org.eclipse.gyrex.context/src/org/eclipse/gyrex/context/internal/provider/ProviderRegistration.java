@@ -87,15 +87,12 @@ public class ProviderRegistration {
 	 */
 	@Override
 	public boolean equals(final Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 
 		// the instances must be the same
 		final ProviderRegistration other = (ProviderRegistration) obj;
@@ -140,9 +137,8 @@ public class ProviderRegistration {
 	 */
 	public Dictionary<String, Object> getProperties() {
 		Dictionary<String, Object> properties = cachedPropertiesRef.get();
-		if (null != properties) {
+		if (null != properties)
 			return properties;
-		}
 
 		// calculate properties
 		final ServiceReference serviceReference = getServiceReference();
@@ -227,9 +223,8 @@ public class ProviderRegistration {
 	 *         was <code>null</code>, <code>false</code> otherwise
 	 */
 	public boolean match(final Filter filter) {
-		if (null == filter) {
+		if (null == filter)
 			return true;
-		}
 		return filter.match(getProperties());
 	}
 
@@ -240,7 +235,7 @@ public class ProviderRegistration {
 	 *            the reference to remove
 	 */
 	public void removeReference(final ProviderRegistrationReference reference) {
-		referencesLock.tryLock();
+		referencesLock.lock();
 		try {
 			contextReferences.remove(reference);
 		} finally {
