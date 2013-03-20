@@ -131,12 +131,9 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry, IRuntimeCon
 	private final AtomicBoolean closed = new AtomicBoolean();
 	private final ReadWriteLock contextRegistryLock = new ReentrantReadWriteLock();
 
-	private final ObjectProviderRegistry objectProviderRegistry;
-
-	public ContextRegistryImpl(final ObjectProviderRegistry objectProviderRegistry) {
+	public ContextRegistryImpl() {
 		contexts = new HashMap<IPath, GyrexContextImpl>();
 		handles = new ConcurrentHashMap<IPath, GyrexContextHandle>();
-		this.objectProviderRegistry = objectProviderRegistry;
 	}
 
 	private void checkClosed() throws IllegalStateException {
@@ -323,13 +320,9 @@ public class ContextRegistryImpl implements IRuntimeContextRegistry, IRuntimeCon
 		return contextHandle;
 	}
 
-	/**
-	 * Returns the objectProviderRegistry.
-	 * 
-	 * @return the objectProviderRegistry
-	 */
 	public ObjectProviderRegistry getObjectProviderRegistry() {
-		return objectProviderRegistry;
+		// get from activator (may initialize lazily)
+		return ContextActivator.getInstance().getObjectProviderRegistry();
 	}
 
 	/**

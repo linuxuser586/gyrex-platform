@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.gyrex.common.lifecycle.IShutdownParticipant;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 
 import org.osgi.framework.BundleContext;
@@ -25,7 +24,7 @@ import org.osgi.util.tracker.ServiceTracker;
 /**
  * The internal object provider registry.
  */
-public class ObjectProviderRegistry implements IShutdownParticipant {
+public class ObjectProviderRegistry {
 
 	/**
 	 * service tracker
@@ -68,6 +67,15 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	private final AtomicReference<BundleContext> contextRef = new AtomicReference<BundleContext>();
 	private ServiceTracker objectProviderTracker;
 
+	public void close() throws Exception {
+		final BundleContext context = contextRef.getAndSet(null);
+		if (null == context)
+			return;
+
+		objectProviderTracker.close();
+		objectProviderTracker = null;
+	}
+
 	/**
 	 * Flushes any cached properties of a provider.
 	 * 
@@ -102,9 +110,8 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	 *            the service reference
 	 */
 	void registerProvider(final RuntimeContextObjectProvider provider, final ServiceReference reference) {
-		if (null == reference) {
+		if (null == reference)
 			return;
-		}
 
 		for (final Class<?> type : provider.getObjectTypes()) {
 			TypeRegistration registration = registrations.putIfAbsent(type.getName(), new TypeRegistration(type.getName()));
@@ -119,17 +126,6 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 
 	}
 
-	@Override
-	public void shutdown() throws Exception {
-		final BundleContext context = contextRef.getAndSet(null);
-		if (null == context) {
-			return;
-		}
-
-		objectProviderTracker.close();
-		objectProviderTracker = null;
-	}
-
 	/**
 	 * Starts the object provider registry.
 	 * 
@@ -138,9 +134,8 @@ public class ObjectProviderRegistry implements IShutdownParticipant {
 	 *             if already started
 	 */
 	public void start(final BundleContext context) throws IllegalStateException {
-		if (!contextRef.compareAndSet(null, context)) {
+		if (!contextRef.compareAndSet(null, context))
 			throw new IllegalStateException("already (still?) active");
-		}
 
 		objectProviderTracker = new RuntimeContextObjectProviderTracker(context);
 		objectProviderTracker.open();
