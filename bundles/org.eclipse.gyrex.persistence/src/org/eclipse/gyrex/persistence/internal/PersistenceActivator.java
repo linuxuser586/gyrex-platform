@@ -41,9 +41,8 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 */
 	public static PersistenceActivator getInstance() {
 		final PersistenceActivator instance = sharedInstance;
-		if (null == instance) {
+		if (null == instance)
 			throw new IllegalStateException("The Persistence bundle has not been started.");
-		}
 
 		return instance;
 	}
@@ -72,21 +71,13 @@ public class PersistenceActivator extends BaseBundleActivator {
 	protected void doStart(final BundleContext context) throws Exception {
 		sharedInstance = this;
 
-		// track content type
-		contentTypeTracker = new ContentTypeTracker(context);
-		contentTypeTracker.open();
-
-		// register the type registry
-		repositoryProviderRegistry = new RepositoryProviderRegistry();
-		repositoryProviderRegistry.start(context);
-
 		// start the repository registry
 		repositoryRegistry = new RepositoryRegistry(context);
 		repositoryRegistryRegistration = getServiceHelper().registerService(IRepositoryRegistry.class.getName(), repositoryRegistry, "Eclipse.org", "Gyrex Repository Registry", null, null);
 	}
 
 	@Override
-	protected void doStop(final BundleContext context) throws Exception {
+	protected synchronized void doStop(final BundleContext context) throws Exception {
 		sharedInstance = null;
 
 		// unregister & stop repository registry
@@ -96,12 +87,16 @@ public class PersistenceActivator extends BaseBundleActivator {
 		repositoryRegistry = null;
 
 		// stop the type registry
-		repositoryProviderRegistry.close();
-		repositoryProviderRegistry = null;
+		if (repositoryProviderRegistry != null) {
+			repositoryProviderRegistry.close();
+			repositoryProviderRegistry = null;
+		}
 
 		// un-track content types
-		contentTypeTracker.close();
-		contentTypeTracker = null;
+		if (contentTypeTracker != null) {
+			contentTypeTracker.close();
+			contentTypeTracker = null;
+		}
 	}
 
 	/**
@@ -110,9 +105,19 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 * @return the contentTypeTracker
 	 */
 	public ContentTypeTracker getContentTypeTracker() {
-		final ContentTypeTracker tracker = contentTypeTracker;
+		ContentTypeTracker tracker = contentTypeTracker;
 		if (null == tracker) {
-			throw createBundleInactiveException();
+			synchronized (this) {
+				if (null != contentTypeTracker)
+					return contentTypeTracker;
+
+				if (!isActive())
+					throw createBundleInactiveException();
+
+				// create track
+				tracker = contentTypeTracker = new ContentTypeTracker(getBundle().getBundleContext());
+				tracker.open();
+			}
 		}
 		return tracker;
 	}
@@ -124,9 +129,8 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 */
 	public RepositoryRegistry getRepositoriesManager() {
 		final RepositoryRegistry registry = repositoryRegistry;
-		if (null == registry) {
+		if (null == registry)
 			throw createBundleInactiveException();
-		}
 
 		return registry;
 	}
@@ -137,11 +141,19 @@ public class PersistenceActivator extends BaseBundleActivator {
 	 * @return the repository type registry
 	 */
 	public RepositoryProviderRegistry getRepositoryProviderRegistry() {
-		final RepositoryProviderRegistry registry = repositoryProviderRegistry;
+		RepositoryProviderRegistry registry = repositoryProviderRegistry;
 		if (null == registry) {
-			throw createBundleInactiveException();
-		}
+			synchronized (this) {
+				if (repositoryProviderRegistry != null)
+					return repositoryProviderRegistry;
 
+				if (!isActive())
+					throw createBundleInactiveException();
+
+				registry = repositoryProviderRegistry = new RepositoryProviderRegistry();
+				registry.start(getBundle().getBundleContext());
+			}
+		}
 		return registry;
 	}
 

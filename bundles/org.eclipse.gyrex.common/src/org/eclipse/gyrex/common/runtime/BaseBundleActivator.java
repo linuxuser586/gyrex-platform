@@ -12,6 +12,7 @@
 package org.eclipse.gyrex.common.runtime;
 
 import java.text.MessageFormat;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.gyrex.common.debug.BundleDebugOptions;
@@ -28,6 +29,7 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.Version;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +72,9 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	/** the service helper */
 	private final AtomicReference<BundleServiceHelper> serviceHelper = new AtomicReference<BundleServiceHelper>();
 
+	/** track the bundle started state as active */
+	private final AtomicBoolean active = new AtomicBoolean(false);
+
 	/**
 	 * Creates a new instance.
 	 * <p>
@@ -110,9 +115,8 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 *             if the bundle is inactive
 	 */
 	protected final void checkActive() throws IllegalStateException {
-		if (null == bundle) {
+		if (null == bundle)
 			throw createBundleInactiveException();
-		}
 	}
 
 	/**
@@ -194,17 +198,14 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 */
 	public final Version getBundleVersion() {
 		final Version bundleVersion = this.bundleVersion.get();
-		if (null != bundleVersion) {
+		if (null != bundleVersion)
 			return bundleVersion;
-		}
 		final Bundle bundle = this.bundle.get();
-		if (null == bundle) {
+		if (null == bundle)
 			return Version.emptyVersion;
-		}
 		final String version = bundle.getHeaders().get(Constants.BUNDLE_VERSION);
-		if (null == version) {
+		if (null == version)
 			return Version.emptyVersion;
-		}
 
 		// remember
 		this.bundleVersion.set(Version.parseVersion(version));
@@ -260,9 +261,8 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	 */
 	public final BundleServiceHelper getServiceHelper() throws IllegalStateException {
 		final BundleServiceHelper bundleServiceHelper = serviceHelper.get();
-		if (null == bundleServiceHelper) {
+		if (null == bundleServiceHelper)
 			throw createBundleInactiveException();
-		}
 		return bundleServiceHelper;
 	}
 
@@ -279,6 +279,22 @@ public abstract class BaseBundleActivator implements BundleActivator {
 	}
 
 	/**
+	 * Indicates if the bundle is active.
+	 * <p>
+	 * A bundle is marked active when it finished activating via
+	 * {@link #start(BundleContext)}. It is marked inactive as soon as
+	 * {@link #stop(BundleContext)} has been called by the OSGi framework.
+	 * </p>
+	 * 
+	 * @return <code>true</code> if the bundle is active, <code>false</code>
+	 *         otherwise
+	 * @since 1.2
+	 */
+	public final boolean isActive() {
+		return active.get();
+	}
+
+	/**
 	 * Removes a shutdown participant. This method has no effect if the same
 	 * participant (based on object identity) was not registered.
 	 * 
@@ -289,11 +305,7 @@ public abstract class BaseBundleActivator implements BundleActivator {
 		shutdownParticipants.remove(shutdownParticipant);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
-	 */
+	@Override
 	public final void start(final BundleContext context) throws Exception {
 		// check id
 		if (!context.getBundle().getSymbolicName().equals(getSymbolicName())) {
@@ -317,14 +329,16 @@ public abstract class BaseBundleActivator implements BundleActivator {
 
 		// do start
 		doStart(context);
+
+		// mark started
+		active.set(true);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
-	 */
+	@Override
 	public final void stop(final BundleContext context) throws Exception {
+		// mark stopped
+		active.set(false);
+
 		try {
 			// notify shutdown participants
 			final Object[] participants = shutdownParticipants.getListeners();
