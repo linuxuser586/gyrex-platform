@@ -192,7 +192,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	@Override
 	public void setCronExpression(final String cronExpression) {
-		if (!CronExpression.isValidExpression(Schedule.asQuartzCronExpression(cronExpression))) {
+		if (StringUtils.isNotBlank(cronExpression) && !CronExpression.isValidExpression(Schedule.asQuartzCronExpression(cronExpression))) {
 			try {
 				new CronExpression(Schedule.asQuartzCronExpression(cronExpression));
 				// no exception but still invalid

@@ -32,6 +32,7 @@ public interface IScheduleEntryWorkingCopy extends IScheduleEntry {
 	 * the next time.
 	 * 
 	 * @param cronExpression
+	 *            the cron expression to set (maybe <code>null</code> to unset)
 	 * @see http://en.wikipedia.org/wiki/Cron
 	 * @throws IllegalArgumentException
 	 *             when the given cronExpression is invalid

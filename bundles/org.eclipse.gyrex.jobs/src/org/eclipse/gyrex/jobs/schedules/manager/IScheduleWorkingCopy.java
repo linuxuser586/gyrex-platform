@@ -25,6 +25,10 @@ public interface IScheduleWorkingCopy extends ISchedule {
 	/**
 	 * Creates a new {@link IScheduleEntryWorkingCopy schedule entry} which is
 	 * {@link IScheduleEntry#isEnabled() enabled} per default.
+	 * <p>
+	 * Note, if a schedule entry if the same id already exists, it will be
+	 * overridden by the new one.
+	 * </p>
 	 * 
 	 * @param entryId
 	 * @return an modifiable {@link IScheduleEntryWorkingCopy schedule entry}
