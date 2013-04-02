@@ -65,16 +65,15 @@ public abstract class JobProvider extends PlatformObject {
 	 *            empty, will be {@link IdHelper#isValidId(String) validated})
 	 */
 	protected JobProvider(final Collection<String> providedTypeIds) {
-		if ((null == providedTypeIds) || (providedTypeIds.isEmpty())) {
+		if ((null == providedTypeIds) || (providedTypeIds.isEmpty()))
 			throw new IllegalArgumentException("job types must not be null or empty");
-		}
 
 		// validate & save
 		this.providedTypeIds = new ArrayList<String>(providedTypeIds.size());
 		for (final String id : providedTypeIds) {
-			if (!IdHelper.isValidId(id)) {
+			if (!IdHelper.isValidId(id))
 				throw new IllegalArgumentException(String.format("type id \"%s\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
-			} else {
+			else {
 				this.providedTypeIds.add(id);
 			}
 		}
@@ -104,6 +103,23 @@ public abstract class JobProvider extends PlatformObject {
 	 *             if an error occurred creating the job
 	 */
 	public abstract Job createJob(String typeId, IJobContext context) throws Exception;
+
+	/**
+	 * Returns a human readable name of the specified job type.
+	 * <p>
+	 * The default implementation returns <code>null</code> for backwards
+	 * compatibility which triggers a fallback of the UI the name is displayed
+	 * in. Subclasses may override and return a specific name for the specified
+	 * type id. If the type is unknown, <code>null</code> should be returned.
+	 * </p>
+	 * 
+	 * @param typeId
+	 *            the job type identifier
+	 * @return the type name (maybe <code>null</code>)
+	 */
+	public String getName(final String typeId) {
+		return null;
+	}
 
 	/**
 	 * Returns a list of provided job type identifiers.
