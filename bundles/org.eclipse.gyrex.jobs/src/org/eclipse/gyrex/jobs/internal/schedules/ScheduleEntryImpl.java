@@ -55,14 +55,28 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 		}
 	}
 
-	private final String id;
+	public static void validateCronExpression(final String expression) throws IllegalArgumentException {
+		if (CronExpression.isValidExpression(Schedule.asQuartzCronExpression(expression)))
+			return;
 
+		try {
+			new CronExpression(Schedule.asQuartzCronExpression(expression));
+
+			// no exception but still invalid
+			throw new IllegalArgumentException("invalid cron expression: " + expression);
+		} catch (final ParseException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+	}
+
+	private final String id;
 	private ScheduleImpl schedule;
 	private boolean enabled;
 	private String cronExpression;
 	private String jobTypeId;
 	private Map<String, String> jobParamater;
 	private String queueId;
+
 	private Collection<String> precedingEntries;
 
 	/**
@@ -192,14 +206,8 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 
 	@Override
 	public void setCronExpression(final String cronExpression) {
-		if (StringUtils.isNotBlank(cronExpression) && !CronExpression.isValidExpression(Schedule.asQuartzCronExpression(cronExpression))) {
-			try {
-				new CronExpression(Schedule.asQuartzCronExpression(cronExpression));
-				// no exception but still invalid
-				throw new IllegalArgumentException("invalid cron expression");
-			} catch (final ParseException e) {
-				throw new IllegalArgumentException("error parsing cron expression: " + e.getMessage(), e);
-			}
+		if (StringUtils.isNotBlank(cronExpression)) {
+			validateCronExpression(cronExpression);
 		}
 
 		this.cronExpression = cronExpression;
