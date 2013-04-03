@@ -195,6 +195,10 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		return timeZone != null ? timeZone : DateUtils.UTC_TIME_ZONE;
 	}
 
+	public boolean hasEntry(final String id) {
+		return entriesById.containsKey(id);
+	}
+
 	@Override
 	public boolean isEnabled() {
 		return enabled;
