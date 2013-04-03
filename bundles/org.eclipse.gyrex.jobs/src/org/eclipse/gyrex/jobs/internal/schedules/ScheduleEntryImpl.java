@@ -56,6 +56,10 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 	}
 
 	public static void validateCronExpression(final String expression) throws IllegalArgumentException {
+		final String[] tokens = StringUtils.split(expression);
+		if ((tokens.length < 5) || (tokens.length > 6))
+			throw new IllegalArgumentException("A cron expression must consist of five to six tokens (<Minute> <Hour> <Day_of_the_Month> <Month_of_the_Year> <Day_of_the_Week> <Year>).");
+
 		if (CronExpression.isValidExpression(Schedule.asQuartzCronExpression(expression)))
 			return;
 
