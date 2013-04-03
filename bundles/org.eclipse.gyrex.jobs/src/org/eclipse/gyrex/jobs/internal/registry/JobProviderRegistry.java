@@ -23,6 +23,7 @@ import org.eclipse.gyrex.jobs.provider.JobProvider;
 import org.eclipse.core.runtime.IExtensionRegistry;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 
@@ -36,13 +37,9 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobProviderRegistry.class);
 	private final ConcurrentMap<String, JobProvider> providerById = new ConcurrentHashMap<String, JobProvider>();
+	private final ConcurrentMap<String, String> nameById = new ConcurrentHashMap<String, String>();
 	private JobProviderExtensionReader extensionReader;
 
-	/**
-	 * Creates a new instance.
-	 * 
-	 * @param context
-	 */
 	public JobProviderRegistry(final BundleContext context) {
 		super(context, JobProvider.class, null);
 	}
@@ -50,11 +47,12 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 	@Override
 	public JobProvider addingService(final ServiceReference<JobProvider> reference) {
 		final JobProvider service = super.addingService(reference);
-		addJobProvider(service);
+		final Object defaultName = reference.getProperty(Constants.SERVICE_DESCRIPTION);
+		addJobProvider(service, defaultName instanceof String ? (String) defaultName : null);
 		return service;
 	}
 
-	void addJobProvider(final JobProvider provider) {
+	void addJobProvider(final JobProvider provider, final String defaultName) {
 		if (JobsDebug.providerRegistry) {
 			LOG.debug("Adding job provider: {}", provider);
 		}
@@ -63,6 +61,9 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 			final JobProvider existing = providerById.putIfAbsent(id, provider);
 			if (existing != null) {
 				LOG.warn("Job provider with id {} already registered. Registration of job provider {} ignored.", id, provider);
+			} else {
+				final String name = provider.getName(id);
+				nameById.putIfAbsent(id, name != null ? name : defaultName);
 			}
 		}
 	}
@@ -74,6 +75,13 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 
 		// super
 		super.close();
+	}
+
+	public String getName(final String jobTypeId) {
+		if (!nameById.containsKey(jobTypeId)) {
+
+		}
+		return nameById.get(jobTypeId);
 	}
 
 	public JobProvider getProvider(final String id) {
@@ -107,6 +115,7 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 		final Collection<String> ids = provider.getProvidedTypeIds();
 		for (final String id : ids) {
 			providerById.remove(id, provider);
+			nameById.remove(id);
 		}
 	}
 }

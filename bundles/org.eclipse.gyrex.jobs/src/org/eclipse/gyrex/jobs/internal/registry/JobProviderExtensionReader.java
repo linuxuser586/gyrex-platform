@@ -44,9 +44,8 @@ public class JobProviderExtensionReader implements IExtensionChangeHandler {
 	public JobProviderExtensionReader(final JobProviderRegistry providerRegistry, final IExtensionRegistry extensionRegistry) {
 		this.providerRegistry = providerRegistry;
 		final IExtensionPoint extensionPoint = extensionRegistry.getExtensionPoint("org.eclipse.gyrex.jobs.providers");
-		if (extensionPoint == null) {
+		if (extensionPoint == null)
 			throw new IllegalStateException("providers extension point not found; please check bundle deployment");
-		}
 		extensionTracker = new ExtensionTracker(extensionRegistry);
 		extensionTracker.registerHandler(this, ExtensionTracker.createExtensionPointFilter(extensionPoint));
 		for (final IExtension extension : extensionPoint.getExtensions()) {
@@ -65,7 +64,7 @@ public class JobProviderExtensionReader implements IExtensionChangeHandler {
 				}
 				final RegistryJobProvider provider = new RegistryJobProvider(id, element);
 				tracker.registerObject(extension, provider, IExtensionTracker.REF_STRONG);
-				providerRegistry.addJobProvider(provider);
+				providerRegistry.addJobProvider(provider, id);
 			}
 		}
 	}
