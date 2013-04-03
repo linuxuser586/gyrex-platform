@@ -40,6 +40,8 @@ public class ExternalProcessJobProvider extends JobProvider {
 	public static final String PARAM_CLEAR_ENVIRONMENT = "clearEnvironment";
 	public static final String PARAM_COMMAND = "command";
 
+	public static final String ENV_VALUE_INHERIT = "!INHERIT!";
+
 	public static final String JOB_TYPE_ID = "org.eclipse.gyrex.jobs.system.externalprocess";
 
 	public ExternalProcessJobProvider() {
@@ -63,25 +65,30 @@ public class ExternalProcessJobProvider extends JobProvider {
 			}
 		});
 		for (final Entry<String, String> e : context.getParameter().entrySet()) {
+			String value = e.getValue();
 			switch (e.getKey()) {
 				case PARAM_COMMAND:
-					command = e.getValue();
+					command = value;
 					break;
 				case PARAM_CLEAR_ENVIRONMENT:
-					clearEnvironment = BooleanUtils.toBooleanObject(e.getValue());
+					clearEnvironment = BooleanUtils.toBooleanObject(value);
 					break;
 				case PARAM_EXPECTED_RETURN_CODE:
-					expectedReturnCode = NumberUtils.toInt(e.getValue());
+					expectedReturnCode = NumberUtils.toInt(value);
 					break;
 				case PARAM_WORKING_DIR:
-					workingDir = e.getValue();
+					workingDir = value;
 					break;
 
 				default:
 					if (e.getKey().startsWith(PARAM_PREFIX_ENV)) {
-						environment.put(e.getKey().substring(PARAM_PREFIX_ENV.length()), e.getValue());
+						final String name = e.getKey().substring(PARAM_PREFIX_ENV.length());
+						if (StringUtils.equals(ENV_VALUE_INHERIT, value)) {
+							value = System.getenv(name);
+						}
+						environment.put(name, value);
 					} else if (e.getKey().startsWith(PARAM_PREFIX_ARG)) {
-						arguments.put(e.getKey().substring(PARAM_PREFIX_ARG.length()), e.getValue());
+						arguments.put(e.getKey().substring(PARAM_PREFIX_ARG.length()), value);
 					}
 					break;
 			}
