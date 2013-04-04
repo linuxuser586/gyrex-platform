@@ -64,18 +64,18 @@ public class JobsActivator extends BaseBundleActivator {
 	protected void doStart(final BundleContext context) throws Exception {
 		instanceRef.set(this);
 		queueServiceProxy = getServiceHelper().trackService(IQueueService.class);
-		jobProviderRegistry = new JobProviderRegistry(context);
-		jobProviderRegistry.open();
 	}
 
 	@Override
-	protected void doStop(final BundleContext context) throws Exception {
+	protected synchronized void doStop(final BundleContext context) throws Exception {
 		instanceRef.set(null);
 
 		queueServiceProxy = null;
 
-		jobProviderRegistry.close();
-		jobProviderRegistry = null;
+		if (jobProviderRegistry != null) {
+			jobProviderRegistry.close();
+			jobProviderRegistry = null;
+		}
 	}
 
 	@Override
@@ -83,16 +83,22 @@ public class JobsActivator extends BaseBundleActivator {
 		return JobsDebug.class;
 	}
 
-	/**
-	 * Returns the jobProviderRegistry.
-	 * 
-	 * @return the jobProviderRegistry
-	 */
 	public JobProviderRegistry getJobProviderRegistry() {
-		final JobProviderRegistry providerRegistry = jobProviderRegistry;
-		if (null == providerRegistry)
-			throw createBundleInactiveException();
-		return providerRegistry;
+		JobProviderRegistry registry = jobProviderRegistry;
+		if (null == registry) {
+			synchronized (this) {
+				if (jobProviderRegistry != null)
+					return jobProviderRegistry;
+
+				if (!isActive())
+					throw createBundleInactiveException();
+
+				// start the object provider registry
+				registry = jobProviderRegistry = new JobProviderRegistry(getBundle().getBundleContext());
+				registry.open();
+			}
+		}
+		return registry;
 	}
 
 	/**
