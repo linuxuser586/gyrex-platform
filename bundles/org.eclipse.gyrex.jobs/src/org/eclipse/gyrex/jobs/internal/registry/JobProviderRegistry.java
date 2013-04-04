@@ -63,7 +63,7 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 				LOG.warn("Job provider with id {} already registered. Registration of job provider {} ignored.", id, provider);
 			} else {
 				final String name = provider.getName(id);
-				nameById.putIfAbsent(id, name != null ? name : defaultName);
+				nameById.putIfAbsent(id, name != null ? name : null != defaultName ? defaultName : id);
 			}
 		}
 	}
@@ -78,9 +78,6 @@ public class JobProviderRegistry extends ServiceTracker<JobProvider, JobProvider
 	}
 
 	public String getName(final String jobTypeId) {
-		if (!nameById.containsKey(jobTypeId)) {
-
-		}
 		return nameById.get(jobTypeId);
 	}
 
