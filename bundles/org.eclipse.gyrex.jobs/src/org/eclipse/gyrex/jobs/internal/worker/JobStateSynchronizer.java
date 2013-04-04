@@ -48,8 +48,8 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	private final JobInfo info;
 
 	private IExclusiveLock lock;
-
 	private long startTimestamp;
+	private String oldThreadName;
 
 	public JobStateSynchronizer(final Job realJob, final JobContext jobContext, final JobInfo info) {
 		// just remember variable; never hook any listeners here
@@ -168,6 +168,16 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		} catch (final Exception e) {
 			LOG.error("Error updating job {} (with result {}): {}", new Object[] { getJobId(), event.getResult(), ExceptionUtils.getRootCauseMessage(e), e });
 		} finally {
+			// reset thread name
+			if (oldThreadName != null) {
+				try {
+					Thread.currentThread().setName(oldThreadName);
+				} catch (final Exception e) {
+					// ignored
+				}
+				oldThreadName = null;
+			}
+
 			// clear the MDC (as the last thing to do)
 			JobLogHelper.clearMdc();
 		}
@@ -258,6 +268,14 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			// setup MDC first (in order to have proper MDC in case of exceptions)
 			// however, we don't clear it in this method so that the Job implementation also benefits from the MDC
 			JobLogHelper.setupMdc(jobContext);
+
+			// update thread name with job id
+			try {
+				oldThreadName = Thread.currentThread().getName();
+				Thread.currentThread().setName(String.format("%s [%s])", oldThreadName, getJobId()));
+			} catch (final Exception e) {
+				// ignore
+			}
 
 			// remember start time
 			startTimestamp = System.currentTimeMillis();
