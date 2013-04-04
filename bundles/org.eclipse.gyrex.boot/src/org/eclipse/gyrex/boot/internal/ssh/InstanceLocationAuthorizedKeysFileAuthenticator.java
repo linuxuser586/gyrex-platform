@@ -13,9 +13,12 @@ package org.eclipse.gyrex.boot.internal.ssh;
 
 import org.eclipse.gyrex.server.Platform;
 
+import org.eclipse.equinox.console.internal.ssh.AuthorizedKeysFileAuthenticator;
+
 /**
  * Instance location based authorized keys file authenticator.
  */
+@SuppressWarnings("restriction")
 public class InstanceLocationAuthorizedKeysFileAuthenticator extends AuthorizedKeysFileAuthenticator {
 
 	@Override

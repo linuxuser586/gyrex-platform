@@ -38,6 +38,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.UnhandledException;
 import org.apache.commons.lang.WordUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,9 +113,8 @@ public class ServerApplication extends BaseApplication {
 	 */
 	public static void restart() {
 		final ServerApplication application = singletonInstance.get();
-		if (null == application) {
+		if (null == application)
 			throw new IllegalStateException("Platform not started.");
-		}
 
 		if (BootDebug.debug) {
 			LOG.debug("Relaunch request received!");
@@ -133,9 +133,8 @@ public class ServerApplication extends BaseApplication {
 	 */
 	public static void shutdown(final Throwable cause) {
 		final ServerApplication application = singletonInstance.get();
-		if (null == application) {
+		if (null == application)
 			throw new IllegalStateException("Platform not started.");
-		}
 
 		// don't restart
 		application.restart = false;
@@ -187,10 +186,9 @@ public class ServerApplication extends BaseApplication {
 
 		// lock the location
 		try {
-			if (instanceLocation.lock()) {
+			if (instanceLocation.lock())
 				// great
 				return;
-			}
 
 			// we failed to create the directory.
 			// Two possibilities:
@@ -234,9 +232,8 @@ public class ServerApplication extends BaseApplication {
 	protected void doStart(final Map arguments) throws Exception {
 		final String[] args = getApplicationArguments(arguments);
 
-		if (!singletonInstance.compareAndSet(null, this)) {
+		if (!singletonInstance.compareAndSet(null, this))
 			throw new IllegalStateException("server application already running");
-		}
 
 		// get instance location
 		try {
@@ -334,13 +331,11 @@ public class ServerApplication extends BaseApplication {
 			final String arg = arguments[i];
 			if ("-roles".equalsIgnoreCase(arg)) {
 				ignoreDefaultRoles = true;
-				if (++i >= arguments.length) {
+				if (++i >= arguments.length)
 					throw new IllegalArgumentException("The argument '-roles' requires a following argument with the server roles to start.");
-				}
 				final String[] specifiedRoles = StringUtils.split(arguments[i], ',');
-				if ((null == specifiedRoles) || (specifiedRoles.length == 0)) {
+				if ((null == specifiedRoles) || (specifiedRoles.length == 0))
 					throw new IllegalArgumentException("The specified server roles could not be identified. Please specify at least one role. You may specify multiple rows using a comma separated list.");
-				}
 				for (final String role : specifiedRoles) {
 					if (StringUtils.isNotBlank(role)) {
 						if (!roleIds.contains(role)) {
@@ -381,11 +376,10 @@ public class ServerApplication extends BaseApplication {
 		final String[] args = BootActivator.getEnvironmentInfo().getFrameworkArgs();
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-console")) {
-				if (((i + 1) < args.length) && args[i + 1].equals("none")) {
+				if (((i + 1) < args.length) && args[i + 1].equals("none"))
 					return false;
-				} else {
+				else
 					return true;
-				}
 			}
 		}
 		return false;
@@ -432,7 +426,12 @@ public class ServerApplication extends BaseApplication {
 		// TODO: might want to use ConfigAdmin?
 		final EnvironmentInfo environmentInfo = BootActivator.getEnvironmentInfo();
 		if (null == environmentInfo.getProperty("osgi.console.ssh")) {
+			// set default ssh port
 			environmentInfo.setProperty("osgi.console.ssh", String.valueOf(Platform.getInstancePort(3122)));
+		}
+		if (null == environmentInfo.getProperty("ssh.custom.publickeys.auth")) {
+			// enable custom ssh authentication
+			environmentInfo.setProperty("ssh.custom.publickeys.auth", "true");
 		}
 		if (startBundle(BSN_EQUINOX_CONSOLE_SSH, false)) {
 			try {
