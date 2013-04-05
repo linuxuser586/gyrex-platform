@@ -296,7 +296,11 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	}
 
 	public void save() throws BackingStoreException {
-		checkModifiable();
+		if (enabled) {
+			// note: only check if the new state is also enabled
+			// (must always be possible to disable an enable schedule)
+			checkModifiable();
+		}
 
 		if (StringUtils.isNotBlank(queueId)) {
 			node.put(QUEUE_ID, queueId);
