@@ -15,6 +15,8 @@ import org.eclipse.gyrex.jobs.IJobContext;
 
 import org.eclipse.core.runtime.IPath;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
@@ -28,6 +30,10 @@ public class JobLogHelper {
 	public static void clearMdc() {
 		MDC.remove(MDC_KEY_JOB_ID);
 		MDC.remove(MDC_KEY_CONTEXT_PATH);
+	}
+
+	public static Logger getLogger(final String jobTypeId, final String jobId) {
+		return LoggerFactory.getLogger("job." + jobTypeId + "." + jobId);
 	}
 
 	public static void setupMdc(final IJobContext jobContext) {

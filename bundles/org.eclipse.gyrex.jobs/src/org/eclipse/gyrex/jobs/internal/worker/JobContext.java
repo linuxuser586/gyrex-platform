@@ -17,6 +17,8 @@ import java.util.Map;
 import org.eclipse.gyrex.context.IRuntimeContext;
 import org.eclipse.gyrex.jobs.IJobContext;
 
+import org.slf4j.Logger;
+
 /**
  *
  */
@@ -54,8 +56,12 @@ public class JobContext implements IJobContext {
 	}
 
 	@Override
+	public Logger getLogger() {
+		return JobLogHelper.getLogger(info.getJobTypeId(), info.getJobId());
+	}
+
+	@Override
 	public Map<String, String> getParameter() {
 		return jobProperties;
 	}
-
 }
