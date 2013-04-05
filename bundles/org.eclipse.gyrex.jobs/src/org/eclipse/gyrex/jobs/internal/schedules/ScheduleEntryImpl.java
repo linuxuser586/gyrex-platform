@@ -249,7 +249,7 @@ public class ScheduleEntryImpl implements IScheduleEntry, IScheduleEntryWorkingC
 			final ArrayList<String> list = new ArrayList<>(scheduleEntryIds.length);
 
 			for (int i = 0; i < scheduleEntryIds.length; i++) {
-				if (IdHelper.isValidId(scheduleEntryIds[i]))
+				if (!IdHelper.isValidId(scheduleEntryIds[i]))
 					throw new IllegalArgumentException("invalid schedule entry id at index " + i + ": " + scheduleEntryIds[i]);
 				list.add(scheduleEntryIds[i]);
 			}
