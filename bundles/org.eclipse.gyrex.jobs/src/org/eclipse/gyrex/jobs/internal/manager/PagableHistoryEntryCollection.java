@@ -35,17 +35,19 @@ public class PagableHistoryEntryCollection extends AbstractCollection<IJobHistor
 
 		@Override
 		public IJobHistoryEntry next() {
+			// return from current slice if possible
 			if ((storablesIterator != null) && storablesIterator.hasNext())
 				return new StorableBackedJobHistoryEntry(storablesIterator.next());
 
+			// check if more is available
 			if (offset >= totalEntryCount)
 				throw new NoSuchElementException();
-			else {
-				offset += pageSize;
-			}
 
 			try {
+				// fetch new slice
 				storablesIterator = storage.find(jobId, offset, pageSize).iterator();
+				// increase offset (after fetch) for next slice
+				offset += pageSize;
 				return new StorableBackedJobHistoryEntry(storablesIterator.next());
 			} catch (final Exception e) {
 				throw new IllegalStateException("Error accessing job history store.", e);
