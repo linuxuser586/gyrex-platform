@@ -16,10 +16,8 @@ import java.util.HashMap;
 import org.eclipse.gyrex.context.provider.RuntimeContextObjectProvider;
 import org.eclipse.gyrex.jobs.internal.manager.JobManagerImpl;
 import org.eclipse.gyrex.jobs.internal.schedules.ScheduleManagerImpl;
-import org.eclipse.gyrex.jobs.internal.storage.CloudPreferncesJobHistoryStorage;
 import org.eclipse.gyrex.jobs.manager.IJobManager;
 import org.eclipse.gyrex.jobs.schedules.manager.IScheduleManager;
-import org.eclipse.gyrex.jobs.spi.storage.IJobHistoryStorage;
 
 /**
  * The Job API context objects.
@@ -33,7 +31,6 @@ public class JobContextObjectsComponent extends RuntimeContextObjectProvider {
 		final HashMap<Class<?>, Class<?>> typesConfiguration = new HashMap<Class<?>, Class<?>>(2);
 		typesConfiguration.put(IJobManager.class, JobManagerImpl.class);
 		typesConfiguration.put(IScheduleManager.class, ScheduleManagerImpl.class);
-		typesConfiguration.put(IJobHistoryStorage.class, CloudPreferncesJobHistoryStorage.class);
 		configureObjectTypes(typesConfiguration);
 	}
 

@@ -244,6 +244,7 @@ public class JobManagerImpl implements IJobManager {
 
 	private final IRuntimeContext context;
 	private final ContextHashUtil contextHash;
+	private final CloudPreferncesJobHistoryStorage cloudHistoryStore;
 
 	/**
 	 * Creates a new instance.
@@ -252,6 +253,7 @@ public class JobManagerImpl implements IJobManager {
 	public JobManagerImpl(final IRuntimeContext context) {
 		this.context = context;
 		contextHash = new ContextHashUtil(context);
+		cloudHistoryStore = new CloudPreferncesJobHistoryStorage(context);
 	}
 
 	@Override
@@ -441,7 +443,7 @@ public class JobManagerImpl implements IJobManager {
 		if (null == job)
 			throw new IllegalStateException(String.format("Job '%s' does not exist.", jobId));
 
-		final IJobHistoryStorage storage = context.get(IJobHistoryStorage.class);
+		final IJobHistoryStorage storage = getJobHistoryStore();
 		if (storage == null)
 			return EMPTY_HISTORY;
 
@@ -462,6 +464,15 @@ public class JobManagerImpl implements IJobManager {
 			throw new IllegalArgumentException(String.format("Invalid id '%s'", jobId));
 
 		return getJob(jobId, toInternalId(jobId));
+	}
+
+	public IJobHistoryStorage getJobHistoryStore() {
+		final IJobHistoryStorage historyStorage = context.get(IJobHistoryStorage.class);
+		if (historyStorage != null)
+			return historyStorage;
+
+		// fallback to cloud history store for backwards compatibility
+		return cloudHistoryStore;
 	}
 
 	@Override
@@ -770,7 +781,7 @@ public class JobManagerImpl implements IJobManager {
 		jobNode.flush();
 
 		// save history
-		final IJobHistoryStorage storage = context.get(IJobHistoryStorage.class);
+		final IJobHistoryStorage storage = getJobHistoryStore();
 		if (storage != null) {
 			final JobHistoryEntryStorable storable = new JobHistoryEntryStorable();
 			storable.setResult(result);
