@@ -48,7 +48,7 @@ public final class CloudPreferencesCleanupJob extends Job {
 		setSystem(true);
 		setPriority(LONG);
 
-		// initialize max age 
+		// initialize max age
 		// (backwards compatibility; must be done in job)
 		setMaxDaysSinceLastRun(Integer.getInteger("gyrex.jobs.cleanup.maxDaysSinceLastRun", 14));
 	}
@@ -56,6 +56,7 @@ public final class CloudPreferencesCleanupJob extends Job {
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
 		final IEclipsePreferences jobsNode = CloudPreferncesJobStorage.getJobsNode();
+		final IEclipsePreferences jobsHistoryNode = CloudPreferncesJobHistoryStorage.getJobsHistoryNode();
 		try {
 			// ensure the preference tree is current (bug 360402)
 			LOG.info("Refreshing job definitions...");
@@ -104,6 +105,10 @@ public final class CloudPreferencesCleanupJob extends Job {
 					}
 
 					LOG.info("Removing job {}.", externalId);
+					if (jobsHistoryNode.nodeExists(internalId)) {
+						jobsHistoryNode.node(internalId).removeNode();
+						jobsHistoryNode.flush();
+					}
 					if (jobsNode.nodeExists(internalId)) {
 						jobsNode.node(internalId).removeNode();
 						jobsNode.flush();
