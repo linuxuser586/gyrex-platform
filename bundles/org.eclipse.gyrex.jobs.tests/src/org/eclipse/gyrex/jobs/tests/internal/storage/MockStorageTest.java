@@ -1,21 +1,21 @@
 /*******************************************************************************
  * Copyright (c) 2013 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.tests.internal.storage;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -33,17 +33,18 @@ import org.eclipse.gyrex.jobs.spi.storage.IJobHistoryStorage;
 import org.eclipse.gyrex.jobs.spi.storage.JobHistoryEntryStorable;
 import org.eclipse.gyrex.jobs.tests.internal.JobsTestsActivator;
 import org.eclipse.gyrex.jobs.tests.internal.TestJobsProvider;
+import org.eclipse.gyrex.junit.GyrexServerResource;
 
 import org.eclipse.core.runtime.Path;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
-/**
- * 
- */
 public class MockStorageTest {
+	@ClassRule
+	public static final GyrexServerResource server = new GyrexServerResource();
 
 	private IRuntimeContextRegistry contextRegistry;
 	private IModifiableRuntimeContext testContext;

@@ -48,7 +48,7 @@ public class CloudPreferncesJobHistoryStorage implements IJobHistoryStorage {
 	private static final String KEY_TIMESTAMP = "timestamp";
 	private static final String KEY_QUEUED_TRIGGER = "queuedTrigger";
 	private static final String KEY_CANCELLED_TRIGGER = "canceledTrigger";
-	private static final int MAX_HISTORY_SIZE = 120;
+	public static final int MAX_HISTORY_SIZE = 10;
 	public static final int MAX_RESULT_MESSAGE_SIZE = Integer.getInteger("gyrex.jobs.history.maxMessageLength", 4096); // ~4K
 
 	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferncesJobHistoryStorage.class);
@@ -171,11 +171,11 @@ public class CloudPreferncesJobHistoryStorage implements IJobHistoryStorage {
 		}
 
 		// remove entries over size limit
-		for (final String entryId : historyNode.childrenNames()) {
+		NEXT: for (final String entryId : historyNode.childrenNames()) {
 			// check if there is en entry for the node
 			for (final JobHistoryEntryStorable entry : entries) {
 				if (entryId.equals(String.valueOf(entry.getTimestamp()))) {
-					continue;
+					continue NEXT;
 				}
 			}
 			historyNode.node(entryId).removeNode();
