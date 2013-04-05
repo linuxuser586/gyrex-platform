@@ -93,11 +93,23 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 		this.node = (IEclipsePreferences) node;
 	}
 
+	void checkModifiable() throws IllegalStateException {
+		// note: we cannot rely on #isEnabled()
+		// check the real node
+		boolean notModifiable;
+		try {
+			notModifiable = (node != null) && node.nodeExists("") && node.getBoolean(ENABLED, false);
+		} catch (final BackingStoreException e) {
+			// treat as not modifiable
+			notModifiable = true;
+		}
+		if (notModifiable)
+			throw new IllegalStateException("A schedule must not be modified while it is enabled!");
+	}
+
 	@Override
 	public ScheduleEntryImpl createEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
-
-		if (isEnabled())
-			throw new IllegalStateException("schedule must not be enabled");
+		checkModifiable();
 
 		if (!IdHelper.isValidId(entryId))
 			throw new IllegalArgumentException("invalid id: " + id);
@@ -266,9 +278,7 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 
 	@Override
 	public void removeEntry(final String entryId) throws IllegalArgumentException, IllegalStateException {
-
-		if (isEnabled())
-			throw new IllegalStateException("schedule must not be enabled");
+		checkModifiable();
 
 		if (null == entriesById)
 			throw new IllegalStateException("schedule isn't initialized properly");
@@ -286,6 +296,8 @@ public class ScheduleImpl implements ISchedule, IScheduleWorkingCopy {
 	}
 
 	public void save() throws BackingStoreException {
+		checkModifiable();
+
 		if (StringUtils.isNotBlank(queueId)) {
 			node.put(QUEUE_ID, queueId);
 		} else {
