@@ -93,7 +93,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 					// again, as stated previously, we rely on the Eclipse Jobs API
 					// calling #done for proper state clean-up
 
-					// only re-schedule of thread wasn't interrupted
+					// only re-schedule if thread wasn't interrupted
 					if (!Thread.interrupted()) {
 						// (note, scheduling the job will trigger #scheduled again after triggering #done)
 						realJob.schedule(10000L);
