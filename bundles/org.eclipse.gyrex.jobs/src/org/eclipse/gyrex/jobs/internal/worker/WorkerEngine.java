@@ -70,6 +70,10 @@ public class WorkerEngine extends Job {
 		return CloudScope.INSTANCE.getNode(JobsActivator.SYMBOLIC_NAME).node(NODE_WORKER_ENGINE);
 	}
 
+	public static boolean isSuspended() {
+		return getWorkerEnginePreferences().getBoolean(PREF_KEY_SUSPENDED, false);
+	}
+
 	public static void resume() throws BackingStoreException {
 		final Preferences preferences = getWorkerEnginePreferences();
 		preferences.remove(PREF_KEY_SUSPENDED);
@@ -87,6 +91,7 @@ public class WorkerEngine extends Job {
 	private final int idleSleepTime;
 	private final int nonIdleSleepTime;
 	private final String queueId;
+
 	private final boolean skipPriorityQueue;
 
 	private long engineSleepTime = DEFAULT_IDLE_SLEEP_TIME;
@@ -361,7 +366,7 @@ public class WorkerEngine extends Job {
 	protected IStatus run(final IProgressMonitor monitor) {
 		try {
 			// check if suspended
-			if (getWorkerEnginePreferences().getBoolean(PREF_KEY_SUSPENDED, false)) {
+			if (isSuspended()) {
 				if (JobsDebug.workerEngine) {
 					LOG.debug("Worker engine is suspended.");
 				}
