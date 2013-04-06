@@ -171,4 +171,23 @@ public interface IQueue {
 	 *             cloud queue service) prevented the requests
 	 */
 	void sendMessage(byte[] messageBody) throws IllegalArgumentException, IllegalStateException, SecurityException;
+
+	/**
+	 * Returns the queue size.
+	 * <p>
+	 * Note, this is an optional method. Queue service implementors might not
+	 * support the calculation of an exact queue size. They might return
+	 * <code>-1</code> then.
+	 * </p>
+	 * 
+	 * @return number of message in the queue
+	 * @throws IllegalStateException
+	 *             if the cloud queue service is unavailable
+	 * @throws SecurityException
+	 *             if security restrictions (either in the system or on the
+	 *             cloud queue service) prevented the requests
+	 * @since 1.2
+	 */
+	int size() throws IllegalStateException, SecurityException;
+
 }

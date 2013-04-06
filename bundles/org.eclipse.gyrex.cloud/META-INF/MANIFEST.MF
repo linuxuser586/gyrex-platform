@@ -64,6 +64,6 @@ Export-Package: org.eclipse.gyrex.cloud.admin;version="1.0.0";
    org.eclipse.gyrex.jobs",
  org.eclipse.gyrex.cloud.internal.zk.console;x-friends:="org.eclipse.gyrex.cloud.tests",
  org.eclipse.gyrex.cloud.services.locking;version="1.0.0",
- org.eclipse.gyrex.cloud.services.queue;version="1.0.0",
+ org.eclipse.gyrex.cloud.services.queue;version="1.2.0",
  org.eclipse.gyrex.cloud.services.state;version="1.0.0",
  org.eclipse.gyrex.cloud.services.state.query;version="1.0.0"
