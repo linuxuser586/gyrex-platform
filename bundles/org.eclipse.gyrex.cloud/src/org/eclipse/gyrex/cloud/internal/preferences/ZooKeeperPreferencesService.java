@@ -123,22 +123,21 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 		}
 
 		void processEventsLoop() {
-			// make sure a connection is available
-			if (CloudDebug.zooKeeperPreferences && !isConnected() && !isClosed()) {
-				LOG.debug("Waiting for ZooKeeper connection.");
-			}
-			while (!isConnected() && !isClosed()) {
-				try {
-					Thread.sleep(250L);
-				} catch (final InterruptedException e) {
-					// set interrupt flag and abort
-					Thread.currentThread().interrupt();
-					return;
-				}
-			}
-
 			// as long as the service is not closed
 			while (!isClosed()) {
+				// make sure a connection is available
+				if (CloudDebug.zooKeeperPreferences && !isConnected()) {
+					LOG.debug("Waiting for ZooKeeper connection.");
+				}
+				while (!isConnected() && !isClosed()) {
+					try {
+						Thread.sleep(250L);
+					} catch (final InterruptedException e) {
+						// set interrupt flag and abort
+						Thread.currentThread().interrupt();
+						return;
+					}
+				}
 
 				// now start fetching events
 				if (CloudDebug.zooKeeperPreferences) {
@@ -263,7 +262,7 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 				LOG.debug("Loading node {} at {}.", new Object[] { node, path });
 			}
 
-			// check if path exists 
+			// check if path exists
 			// (also set monitor to wait for its creation or deletion)
 			// TODO: we might need to make this configurable per requests to prevent exist watches for properly propagated deletes
 			if (null == keeper.exists(path, monitor)) {
@@ -711,8 +710,8 @@ public class ZooKeeperPreferencesService extends ZooKeeperBasedService {
 			// ---> ZooKeeper WATCHES <---
 			//
 			// As a general rule no watches are set on WRITE calls!
-			// The policy is that any call which *loads* data will register watches which 
-			// will be triggered when data is written and thus set again by refresh/load calls 
+			// The policy is that any call which *loads* data will register watches which
+			// will be triggered when data is written and thus set again by refresh/load calls
 			// (which happens because of the trigger-fresh-cycle).
 			//
 
