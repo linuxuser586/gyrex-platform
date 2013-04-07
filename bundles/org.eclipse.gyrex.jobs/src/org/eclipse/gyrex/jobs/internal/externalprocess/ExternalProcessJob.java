@@ -102,8 +102,8 @@ public class ExternalProcessJob extends Job {
 		AsyncLoggingInputStreamReader inputStreamReader = null, errorStreamReader = null;
 		try {
 			final Process p = builder.start();
-			inputStreamReader = new AsyncLoggingInputStreamReader(jobId + "[OUT Reader]", p.getInputStream(), log, Level.INFO);
-			errorStreamReader = new AsyncLoggingInputStreamReader(jobId + "[ERR Reader]", p.getErrorStream(), log, Level.ERROR);
+			inputStreamReader = new AsyncLoggingInputStreamReader(jobId + " [OUT Reader]", p.getInputStream(), log, Level.INFO);
+			errorStreamReader = new AsyncLoggingInputStreamReader(jobId + " [ERR Reader]", p.getErrorStream(), log, Level.ERROR);
 
 			final int result = p.waitFor();
 			if (result != exitValue)
