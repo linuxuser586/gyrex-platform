@@ -472,7 +472,7 @@ public class JobManagerImpl implements IJobManager {
 			if (historyStorage != null)
 				return historyStorage;
 		} catch (Exception | LinkageError | AssertionError e) {
-			LOG.warn("Error accessing job history storage provider (context {}). Fallback to cloud based store. {}", context.getContextPath(), ExceptionUtils.getRootCauseMessage(e), e);
+			LOG.error("Error accessing job history storage provider (context {}). Fallback to cloud based store. {}", context.getContextPath(), ExceptionUtils.getRootCauseMessage(e), e);
 		}
 
 		// fallback to cloud history store for backwards compatibility
