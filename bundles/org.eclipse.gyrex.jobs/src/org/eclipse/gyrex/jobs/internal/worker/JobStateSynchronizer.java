@@ -203,6 +203,15 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		return jobContext.getContext();
 	}
 
+	boolean isJobMarkedAborting() {
+		try {
+			return getJobManager().getJob(getJobId()).getState() == JobState.ABORTING;
+		} catch (final Exception e) {
+			LOG.warn("Unable read job state ({}): {}", new Object[] { getJobId(), ExceptionUtils.getRootCauseMessage(e), e });
+			return false;
+		}
+	}
+
 	@Override
 	public void jobStateChanged(final String jobId) {
 		final IJob job = getJobManager().getJob(getJobId());
@@ -304,6 +313,11 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			// clear the MDC (as the last thing to do)
 			JobLogHelper.clearMdc();
 		}
+	}
+
+	void setJobAborted() {
+		// update job state (but do not expect a current state, may be ABORTING)
+		updateJobState(JobState.ABORTING, JobState.NONE, null, System.currentTimeMillis());
 	}
 
 	public boolean setJobActive() {

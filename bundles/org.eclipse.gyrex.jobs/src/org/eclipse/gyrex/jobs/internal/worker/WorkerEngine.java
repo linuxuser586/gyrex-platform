@@ -130,6 +130,27 @@ public class WorkerEngine extends Job {
 		skipPriorityQueue = Boolean.getBoolean("gyrex.jobs.workerEngine.doNotCheckPriorityQueue");
 	}
 
+	private void abortJob(final JobStateSynchronizer stateSynchronizer, final IQueue queue, final IMessage message) {
+		// delete from queue
+		// (note, we intentionally only catch NoSuchElementException here)
+		try {
+			queue.deleteMessage(message);
+		} catch (final NoSuchElementException e) {
+			// abort job
+			stateSynchronizer.setJobInactive();
+		}
+
+		// abort job
+		stateSynchronizer.setJobAborted();
+	}
+
+	private void addTriggerForDependentJobs(final Job job, final JobInfo info, final JobContext jobContext) {
+		final String[] scheduleInfo = StringUtils.split(info.getScheduleInfo(), SchedulingJob.SEPARATOR_CHAR);
+		if ((scheduleInfo != null) && (scheduleInfo.length > 2)) {
+			job.addJobChangeListener(new TriggerScheduleEntriesWhenDone(scheduleInfo, jobContext));
+		}
+	}
+
 	private JobContext createContext(final JobInfo info) {
 		final IRuntimeContextRegistry contextRegistry = JobsActivator.getInstance().getService(IRuntimeContextRegistry.class);
 		final IRuntimeContext context = contextRegistry.get(info.getContextPath());
@@ -254,6 +275,7 @@ public class WorkerEngine extends Job {
 			}
 			if (processNextJobFromQueue(queue))
 				return true;
+			// else: no job in queue ... continue processing from default queue
 		}
 
 		// no job processed from priority queue
@@ -309,54 +331,13 @@ public class WorkerEngine extends Job {
 		// with job until the last minute
 		final JobStateSynchronizer stateSynchronizer = new JobStateSynchronizer(job, jobContext, info);
 
-		// mark the job active before removing from queue (bug 360402)
-		// (this will ensure that it's set active by JobStateSynchronizer)
-		if (!stateSynchronizer.setJobActive())
-			// someone else might already started processing it (bug 391743)
-			// just abort and continue with next available message
-			return true;
-
-		// delete from queue and schedule if successful
-		// (note, we intentionally only catch NoSuchElementException here)
-		try {
-			if (!queue.deleteMessage(message)) {
-				// abort job
-				stateSynchronizer.setJobInactive();
-
-				// someone else might already processed it
-				// just continue with next available message
-				return true;
-			}
-		} catch (final NoSuchElementException e) {
-			// abort job
-			stateSynchronizer.setJobInactive();
-
-			// not too bad
-			// someone else might already processed it
-			// just continue with next available message
-			return true;
+		if (stateSynchronizer.isJobMarkedAborting()) {
+			// job has been cancelled; abort it, remove message and that's it
+			abortJob(stateSynchronizer, queue, message);
+		} else {
+			// job is not marked aborting; continue with scheduling
+			scheduleJob(job, info, jobContext, stateSynchronizer, queue, message);
 		}
-
-		// at this point we allow the job to be scheduled
-		if (JobsDebug.workerEngine) {
-			LOG.debug("Scheduling job {} from queue {}", info.getJobId(), queue.getId());
-		}
-
-		// add state synchronizer and finish listener
-		job.addJobChangeListener(stateSynchronizer);
-		job.addJobChangeListener(jobFinishedListener);
-
-		// add trigger for dependent jobs
-		final String[] scheduleInfo = StringUtils.split(info.getScheduleInfo(), SchedulingJob.SEPARATOR_CHAR);
-		if ((scheduleInfo != null) && (scheduleInfo.length > 2)) {
-			job.addJobChangeListener(new TriggerScheduleEntriesWhenDone(scheduleInfo, jobContext));
-		}
-
-		// and schedule the job
-		job.schedule();
-
-		// increment count
-		scheduledJobsCount.incrementAndGet();
 
 		// done, but return "true" to indicate that the queue might still contain jobs
 		return true;
@@ -415,5 +396,53 @@ public class WorkerEngine extends Job {
 				schedule(engineSleepTime);
 			}
 		}
+	}
+
+	private void scheduleJob(final Job job, final JobInfo info, final JobContext jobContext, final JobStateSynchronizer stateSynchronizer, final IQueue queue, final IMessage message) {
+		// mark the job active before removing from queue (bug 360402)
+		// (this will ensure that it's set active by JobStateSynchronizer)
+		if (!stateSynchronizer.setJobActive())
+			// someone else might already started processing it (bug 391743)
+			// just abort and continue with next available message
+			return;
+
+		// delete from queue and schedule if successful
+		// (note, we intentionally only catch NoSuchElementException here)
+		try {
+			if (!queue.deleteMessage(message)) {
+				// abort job
+				stateSynchronizer.setJobInactive();
+
+				// someone else might already processed it
+				// just continue with next available message
+				return;
+			}
+		} catch (final NoSuchElementException e) {
+			// abort job
+			stateSynchronizer.setJobInactive();
+
+			// not too bad
+			// someone else might already processed it
+			// just continue with next available message
+			return;
+		}
+
+		// at this point we allow the job to be scheduled
+		if (JobsDebug.workerEngine) {
+			LOG.debug("Scheduling job {} from queue {}", info.getJobId(), queue.getId());
+		}
+
+		// add state synchronizer and finish listener
+		job.addJobChangeListener(stateSynchronizer);
+		job.addJobChangeListener(jobFinishedListener);
+
+		// add trigger for dependent jobs
+		addTriggerForDependentJobs(job, info, jobContext);
+
+		// and schedule the job
+		job.schedule();
+
+		// increment count
+		scheduledJobsCount.incrementAndGet();
 	}
 }
