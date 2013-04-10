@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.logback.config.internal.model;
+package org.eclipse.gyrex.logback.config.model;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,9 +27,15 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.jul.LevelChangePropagator;
 
 /**
- * Logback configuration which is persisted to the cloud preferences.
+ * Model object representing an entire Logback configuration which can be used
+ * to generate the Logback XML.
+ * <p>
+ * Note, for simplicity the generation of the XML is tightly coupled to the
+ * model. This might be an anti-pattern. Contributions to separate this are
+ * welcome!
+ * </p>
  */
-public class LogbackConfig {
+public final class LogbackConfig extends LobackConfigElement {
 
 	static void writeProperty(final XMLStreamWriter writer, final String name, final String value) throws XMLStreamException {
 		writer.writeEmptyElement("property");
@@ -44,24 +50,21 @@ public class LogbackConfig {
 	private List<String> defaultAppenders;
 
 	public void addAppender(final Appender appender) {
-		if (StringUtils.isBlank(appender.getName())) {
+		if (StringUtils.isBlank(appender.getName()))
 			throw new IllegalArgumentException("appender name must not be blank");
-		}
 		getAppenders().put(appender.getName(), appender);
 	}
 
 	private String addExceptionPattern(final String pattern) {
-		if (isShortenStackTraces()) {
+		if (isShortenStackTraces())
 			return pattern + "%rootException{6}";
-		} else {
+		else
 			return pattern + "%rootException";
-		}
 	}
 
-	public void addLogger(final org.eclipse.gyrex.logback.config.internal.model.Logger logger) {
-		if (StringUtils.isBlank(logger.getName())) {
+	public void addLogger(final org.eclipse.gyrex.logback.config.model.Logger logger) {
+		if (StringUtils.isBlank(logger.getName()))
 			throw new IllegalArgumentException("logger name must not be blank");
-		}
 		getLoggers().put(logger.getName(), logger);
 	}
 
@@ -85,9 +88,8 @@ public class LogbackConfig {
 	 * @return the defaultLevel
 	 */
 	public Level getDefaultLevel() {
-		if (null == defaultLevel) {
+		if (null == defaultLevel)
 			return Level.INFO;
-		}
 		return defaultLevel;
 	}
 
@@ -130,10 +132,17 @@ public class LogbackConfig {
 
 	/**
 	 * Serializes the Logback configuration to the specified XML writer.
+	 * <p>
+	 * The XML is expected to be readable by Logback. As such, it depends
+	 * heavily on Logback and may be bound to different evolution/compatibility
+	 * rules.
+	 * </p>
 	 * 
 	 * @param writer
+	 *            the stream writer
 	 * @throws XMLStreamException
 	 */
+	@Override
 	public void toXml(final XMLStreamWriter writer) throws XMLStreamException {
 		writer.writeStartDocument();
 

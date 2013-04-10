@@ -14,11 +14,9 @@ package org.eclipse.gyrex.logback.config.internal;
 import java.io.File;
 import java.util.Map;
 
-import org.eclipse.equinox.app.IApplication;
-
 import org.eclipse.gyrex.boot.internal.logback.LogbackConfigurator;
 import org.eclipse.gyrex.common.internal.applications.BaseApplication;
-import org.eclipse.gyrex.logback.config.internal.model.LogbackConfig;
+import org.eclipse.gyrex.logback.config.model.LogbackConfig;
 import org.eclipse.gyrex.preferences.CloudScope;
 import org.eclipse.gyrex.server.Platform;
 
@@ -29,11 +27,11 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-
-import org.osgi.service.prefs.BackingStoreException;
+import org.eclipse.equinox.app.IApplication;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,11 +70,10 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 		return new LogbackConfigGenerator(getLastModified(), getParentFolder(), config).generateConfig();
 	}
 
-	private LogbackConfig getConfig() throws BackingStoreException {
+	private LogbackConfig getConfig() throws Exception {
 		final IEclipsePreferences node = CloudScope.INSTANCE.getNode(LogbackConfigActivator.SYMBOLIC_NAME);
-		if (node.nodeExists(PREF_NODE_CONFIG)) {
+		if (node.nodeExists(PREF_NODE_CONFIG))
 			return new PreferenceBasedLogbackConfigStore().loadConfig(node.node(PREF_NODE_CONFIG));
-		}
 		return null;
 	}
 
@@ -131,7 +128,7 @@ public class LogbackConfigApplication extends BaseApplication implements IApplic
 				LOG.debug("Disabling cloud Logback configuration due to missing appenders.");
 				configFile = null;
 			}
-		} catch (final Exception e) {
+		} catch (final Exception | LinkageError | AssertionError e) {
 			LOG.error("Exception while generating new Logback configuration. Aborting re-configuration. {}", ExceptionUtils.getRootCause(e), e);
 			return;
 		}

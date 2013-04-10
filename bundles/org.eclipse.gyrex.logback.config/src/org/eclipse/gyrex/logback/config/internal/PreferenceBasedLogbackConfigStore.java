@@ -14,12 +14,13 @@ package org.eclipse.gyrex.logback.config.internal;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.gyrex.logback.config.internal.model.Appender;
-import org.eclipse.gyrex.logback.config.internal.model.ConsoleAppender;
-import org.eclipse.gyrex.logback.config.internal.model.FileAppender;
-import org.eclipse.gyrex.logback.config.internal.model.FileAppender.RotationPolicy;
-import org.eclipse.gyrex.logback.config.internal.model.LogbackConfig;
-import org.eclipse.gyrex.logback.config.internal.model.Logger;
+import org.eclipse.gyrex.logback.config.model.Appender;
+import org.eclipse.gyrex.logback.config.model.ConsoleAppender;
+import org.eclipse.gyrex.logback.config.model.FileAppender;
+import org.eclipse.gyrex.logback.config.model.LogbackConfig;
+import org.eclipse.gyrex.logback.config.model.Logger;
+import org.eclipse.gyrex.logback.config.model.FileAppender.RotationPolicy;
+import org.eclipse.gyrex.logback.config.spi.AppenderProvider;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
@@ -49,17 +50,25 @@ public class PreferenceBasedLogbackConfigStore {
 	private static final String DEFAULT_APPENDER_REFS = "defaultAppenderRefs";
 	private static final String DEFAULT_LEVEL = "defaultLevel";
 
-	private Appender loadAppender(final String name, final Preferences node) throws BackingStoreException {
+	private Appender loadAppender(final String name, final Preferences node) throws Exception {
 		final String type = node.get(TYPE, null);
-		if (StringUtils.equals(type, FILE)) {
+		if (StringUtils.equals(type, FILE))
 			return loadFileAppender(name, node);
-		} else if (StringUtils.equals(type, CONSOLE)) {
+		else if (StringUtils.equals(type, CONSOLE))
 			return loadConsoleAppender(name, node);
+		else {
+			final AppenderProvider provider = LogbackConfigActivator.getInstance().getAppenderProviderRegistry().getProvider(type);
+			if (provider != null) {
+				final Appender appender = provider.loadAppender(node);
+				if (appender != null)
+					return appender;
+			}
 		}
+		// TODO can we support a generic appender?
 		throw new IllegalArgumentException(String.format("unknown appender type '%s' (appender '%s')", type, name));
 	}
 
-	public LogbackConfig loadConfig(final Preferences node) throws BackingStoreException {
+	public LogbackConfig loadConfig(final Preferences node) throws Exception {
 		final LogbackConfig config = new LogbackConfig();
 
 		final String defaultLevel = node.get(DEFAULT_LEVEL, null);
@@ -129,15 +138,20 @@ public class PreferenceBasedLogbackConfigStore {
 		return logger;
 	}
 
-	private void saveAppender(final Appender appender, final Preferences node) throws BackingStoreException {
-		if (appender instanceof ConsoleAppender) {
+	private void saveAppender(final Appender appender, final Preferences node) throws Exception {
+		if (appender.getClass() == ConsoleAppender.class) {
 			node.put(TYPE, CONSOLE);
 			saveConsoleAppender((ConsoleAppender) appender, node);
-		} else if (appender instanceof FileAppender) {
+		} else if (appender.getClass() == FileAppender.class) {
 			node.put(TYPE, FILE);
 			saveFileAppender((FileAppender) appender, node);
 		} else {
-			throw new IllegalArgumentException(String.format("unknown appender type '%s' (appender '%s')", appender.getClass().getSimpleName(), appender.getName()));
+			final AppenderProvider provider = LogbackConfigActivator.getInstance().getAppenderProviderRegistry().getProvider(appender.getTypeId());
+			if (provider != null) {
+				provider.writeAppender(appender, node);
+				node.put(TYPE, appender.getTypeId());
+			} else
+				throw new IllegalArgumentException(String.format("unknown appender type '%s' (appender '%s')", appender.getClass().getSimpleName(), appender.getName()));
 		}
 	}
 
@@ -156,7 +170,7 @@ public class PreferenceBasedLogbackConfigStore {
 		}
 	}
 
-	public void saveConfig(final LogbackConfig config, final Preferences node) throws BackingStoreException {
+	public void saveConfig(final LogbackConfig config, final Preferences node) throws Exception {
 		if (config.getDefaultLevel() != Level.INFO) {
 			node.put(DEFAULT_LEVEL, config.getDefaultLevel().toString());
 		} else {

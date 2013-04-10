@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.logback.config.internal.model;
+package org.eclipse.gyrex.logback.config.model;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -35,6 +35,13 @@ public class FileAppender extends Appender {
 	private String maxFileSize; // only used when rotationPolicy==SIZE
 	private String maxHistory; // only used when rotationPolicy!=SIZE
 	private boolean compressRotatedLogs;
+
+	/**
+	 * Creates a new instance.
+	 */
+	public FileAppender() {
+		super("file");
+	}
 
 	@Override
 	public final boolean canSift() {
@@ -96,9 +103,8 @@ public class FileAppender extends Appender {
 
 	private void writeRotation(final XMLStreamWriter writer) throws XMLStreamException {
 		final RotationPolicy policy = getRotationPolicy();
-		if (null == policy) {
+		if (null == policy)
 			return;
-		}
 
 		switch (policy) {
 			case SIZE:

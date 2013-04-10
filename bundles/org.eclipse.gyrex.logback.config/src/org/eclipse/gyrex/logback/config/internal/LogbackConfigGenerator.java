@@ -22,7 +22,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.eclipse.gyrex.logback.config.internal.model.LogbackConfig;
+import org.eclipse.gyrex.logback.config.model.LogbackConfig;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;

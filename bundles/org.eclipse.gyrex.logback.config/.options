@@ -1,0 +1,6 @@
+# global debug option
+org.eclipse.gyrex.logback.config/debug=true
+
+# debug appender provider registry
+org.eclipse.gyrex.logback.config/providerRegistry=true
+

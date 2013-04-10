@@ -9,10 +9,13 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.logback.config.internal.model;
+package org.eclipse.gyrex.logback.config.model;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
+
+import org.eclipse.gyrex.common.identifiers.IdHelper;
+import org.eclipse.gyrex.logback.config.spi.AppenderProvider;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -21,15 +24,28 @@ import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.sift.MDCBasedDiscriminator;
 import ch.qos.logback.classic.sift.SiftingAppender;
 
-public abstract class Appender {
+/**
+ * Base class for Logback Appender elements in the Logback configuration.
+ */
+public abstract class Appender extends LobackConfigElement {
+
+	private final String typeId;
 
 	private String name;
 	private String pattern;
 	private Level threshold;
 
 	private String siftingMdcPropertyName;
-
 	private String siftingMdcPropertyDefaultValue;
+
+	/**
+	 * Creates a new instance.
+	 */
+	public Appender(final String typeId) {
+		if (!IdHelper.isValidId(typeId))
+			throw new IllegalArgumentException("invalid type id: " + typeId);
+		this.typeId = typeId;
+	}
 
 	/**
 	 * Indicates if the appender can be wrapped into a sifting appender.
@@ -94,6 +110,19 @@ public abstract class Appender {
 	 */
 	public Level getThreshold() {
 		return threshold;
+	}
+
+	/**
+	 * Returns the appender type id.
+	 * <p>
+	 * The id will be used to identify the {@link AppenderProvider} responsible
+	 * for reading and writing the appender.
+	 * </p>
+	 * 
+	 * @return the type id
+	 */
+	public final String getTypeId() {
+		return typeId;
 	}
 
 	/**
@@ -167,6 +196,7 @@ public abstract class Appender {
 		this.threshold = threshold;
 	}
 
+	@Override
 	public void toXml(final XMLStreamWriter writer) throws XMLStreamException {
 		final boolean wrapIntoSiftingAppender = canSift() && isSeparateLogOutputsPerMdcProperty();
 

@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.logback.config.internal.model;
+package org.eclipse.gyrex.logback.config.model;
 
 /**
  * A simple appender which writes to the console.
@@ -20,6 +20,7 @@ public class ConsoleAppender extends Appender {
 	 * Creates a new instance.
 	 */
 	public ConsoleAppender() {
+		super("console");
 		setName("console");
 	}
 

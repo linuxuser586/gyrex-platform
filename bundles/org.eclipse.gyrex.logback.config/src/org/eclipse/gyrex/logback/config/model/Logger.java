@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  */
-package org.eclipse.gyrex.logback.config.internal.model;
+package org.eclipse.gyrex.logback.config.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +19,10 @@ import javax.xml.stream.XMLStreamWriter;
 
 import ch.qos.logback.classic.Level;
 
-public class Logger {
+/**
+ * Represents a Logback Logger element in the Logback configuration.
+ */
+public final class Logger extends LobackConfigElement {
 
 	private String name;
 	private Level level;
@@ -105,6 +108,7 @@ public class Logger {
 		this.name = name;
 	}
 
+	@Override
 	public void toXml(final XMLStreamWriter writer) throws XMLStreamException {
 		final List<String> appenderRefs = getAppenderReferences();
 		if (appenderRefs.isEmpty()) {
