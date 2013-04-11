@@ -15,57 +15,36 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.gyrex.logback.config.model.Appender;
-import org.eclipse.gyrex.logback.config.model.ConsoleAppender;
-import org.eclipse.gyrex.logback.config.model.FileAppender;
 import org.eclipse.gyrex.logback.config.model.LogbackConfig;
 import org.eclipse.gyrex.logback.config.model.Logger;
-import org.eclipse.gyrex.logback.config.model.FileAppender.RotationPolicy;
 import org.eclipse.gyrex.logback.config.spi.AppenderProvider;
 
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
-import org.apache.commons.lang.StringUtils;
-
 import ch.qos.logback.classic.Level;
 
 public class PreferenceBasedLogbackConfigStore {
 
-	private static final String ROTATION_POLICY = "rotationPolicy";
-	private static final String SIFTING_MDC_PROPERTYDEFAULT_VALUE = "siftingMdcPropertydefaultValue";
-	private static final String SIFTING_MDC_PROPERTY_NAME = "siftingMdcPropertyName";
-	private static final String CONSOLE = "console";
-	private static final String FILE = "file";
 	private static final String TYPE = "type";
 	private static final String LEVEL = "level";
 	private static final String INHERIT_OTHER_APPENDERS = "inheritOtherAppenders";
 	private static final String APPENDER_REFS = "appenderRefs";
-	private static final String COMPRESS_ROTATED_LOGS = "compressRotatedLogs";
-	private static final String MAX_FILE_SIZE = "maxFileSize";
-	private static final String MAX_HISTORY = "maxHistory";
-	private static final String FILE_NAME = "fileName";
-	private static final String PATTERN = "pattern";
 	private static final String LOGGERS = "loggers";
 	private static final String APPENDERS = "appenders";
 	private static final String DEFAULT_APPENDER_REFS = "defaultAppenderRefs";
 	private static final String DEFAULT_LEVEL = "defaultLevel";
 
-	private Appender loadAppender(final String name, final Preferences node) throws Exception {
-		final String type = node.get(TYPE, null);
-		if (StringUtils.equals(type, FILE))
-			return loadFileAppender(name, node);
-		else if (StringUtils.equals(type, CONSOLE))
-			return loadConsoleAppender(name, node);
-		else {
-			final AppenderProvider provider = LogbackConfigActivator.getInstance().getAppenderProviderRegistry().getProvider(type);
-			if (provider != null) {
-				final Appender appender = provider.loadAppender(node);
-				if (appender != null)
-					return appender;
-			}
+	private Appender loadAppender(final Preferences node) throws Exception {
+		final String typeId = node.get(TYPE, null);
+		final AppenderProvider provider = LogbackConfigActivator.getInstance().getAppenderProviderRegistry().getProvider(typeId);
+		if (provider != null) {
+			final Appender appender = provider.loadAppender(typeId, node);
+			if (appender != null)
+				return appender;
 		}
 		// TODO can we support a generic appender?
-		throw new IllegalArgumentException(String.format("unknown appender type '%s' (appender '%s')", type, name));
+		throw new IllegalArgumentException(String.format("unknown appender type '%s' (appender '%s')", typeId, node.name()));
 	}
 
 	public LogbackConfig loadConfig(final Preferences node) throws Exception {
@@ -81,7 +60,7 @@ public class PreferenceBasedLogbackConfigStore {
 
 		final String[] appenders = node.node(APPENDERS).childrenNames();
 		for (final String appender : appenders) {
-			config.addAppender(loadAppender(appender, node.node(APPENDERS).node(appender)));
+			config.addAppender(loadAppender(node.node(APPENDERS).node(appender)));
 		}
 
 		final String[] loggers = node.node(LOGGERS).childrenNames();
@@ -90,37 +69,6 @@ public class PreferenceBasedLogbackConfigStore {
 		}
 
 		return config;
-	}
-
-	private Appender loadConsoleAppender(final String name, final Preferences node) throws BackingStoreException {
-		final ConsoleAppender appender = new ConsoleAppender();
-		appender.setName(name);
-		appender.setPattern(node.get(PATTERN, null));
-		return appender;
-	}
-
-	private Appender loadFileAppender(final String name, final Preferences node) throws BackingStoreException {
-		final FileAppender fileAppender = new FileAppender();
-		fileAppender.setName(name);
-		fileAppender.setPattern(node.get(PATTERN, null));
-		fileAppender.setFileName(node.get(FILE_NAME, null));
-		try {
-			fileAppender.setRotationPolicy(RotationPolicy.valueOf(node.get(ROTATION_POLICY, null)));
-			fileAppender.setMaxHistory(node.get(MAX_HISTORY, null));
-			fileAppender.setMaxFileSize(node.get(MAX_FILE_SIZE, null));
-			if (null != node.get(COMPRESS_ROTATED_LOGS, null)) {
-				fileAppender.setCompressRotatedLogs(node.getBoolean(COMPRESS_ROTATED_LOGS, true));
-			}
-		} catch (final IllegalArgumentException e) {
-			fileAppender.setRotationPolicy(null);
-		}
-		if (null != node.get(SIFTING_MDC_PROPERTY_NAME, null)) {
-			fileAppender.setSiftingMdcPropertyName(node.get(SIFTING_MDC_PROPERTY_NAME, null));
-			if (null != node.get(SIFTING_MDC_PROPERTYDEFAULT_VALUE, null)) {
-				fileAppender.setSiftingMdcPropertyDefaultValue(node.get(SIFTING_MDC_PROPERTYDEFAULT_VALUE, null));
-			}
-		}
-		return fileAppender;
 	}
 
 	private Logger loadLogger(final String name, final Preferences node) throws BackingStoreException {
@@ -139,20 +87,12 @@ public class PreferenceBasedLogbackConfigStore {
 	}
 
 	private void saveAppender(final Appender appender, final Preferences node) throws Exception {
-		if (appender.getClass() == ConsoleAppender.class) {
-			node.put(TYPE, CONSOLE);
-			saveConsoleAppender((ConsoleAppender) appender, node);
-		} else if (appender.getClass() == FileAppender.class) {
-			node.put(TYPE, FILE);
-			saveFileAppender((FileAppender) appender, node);
-		} else {
-			final AppenderProvider provider = LogbackConfigActivator.getInstance().getAppenderProviderRegistry().getProvider(appender.getTypeId());
-			if (provider != null) {
-				provider.writeAppender(appender, node);
-				node.put(TYPE, appender.getTypeId());
-			} else
-				throw new IllegalArgumentException(String.format("unknown appender type '%s' (appender '%s')", appender.getClass().getSimpleName(), appender.getName()));
-		}
+		final AppenderProvider provider = LogbackConfigActivator.getInstance().getAppenderProviderRegistry().getProvider(appender.getTypeId());
+		if (provider != null) {
+			provider.writeAppender(appender, node);
+			node.put(TYPE, appender.getTypeId());
+		} else
+			throw new IllegalArgumentException(String.format("unknown appender type '%s' (appender '%s')", appender.getClass().getSimpleName(), appender.getName()));
 	}
 
 	private void saveAppenderRefs(final List<String> appenderRefs, final Preferences appenderRefsNode) throws BackingStoreException {
@@ -202,54 +142,6 @@ public class PreferenceBasedLogbackConfigStore {
 		}
 
 		node.flush();
-	}
-
-	private void saveConsoleAppender(final ConsoleAppender appender, final Preferences node) {
-		if (null != appender.getPattern()) {
-			node.put(PATTERN, appender.getPattern());
-		} else {
-			node.remove(PATTERN);
-		}
-	}
-
-	private void saveFileAppender(final FileAppender appender, final Preferences node) {
-		if (null != appender.getPattern()) {
-			node.put(PATTERN, appender.getPattern());
-		} else {
-			node.remove(PATTERN);
-		}
-		if (null != appender.getFileName()) {
-			node.put(FILE_NAME, appender.getFileName());
-		} else {
-			node.remove(FILE_NAME);
-		}
-		if (null != appender.getRotationPolicy()) {
-			node.put(ROTATION_POLICY, appender.getRotationPolicy().name());
-		} else {
-			node.remove(ROTATION_POLICY);
-		}
-		if (null != appender.getMaxHistory()) {
-			node.put(MAX_HISTORY, appender.getMaxHistory());
-		} else {
-			node.remove(MAX_HISTORY);
-		}
-		if (null != appender.getMaxFileSize()) {
-			node.put(MAX_FILE_SIZE, appender.getMaxFileSize());
-		} else {
-			node.remove(MAX_FILE_SIZE);
-		}
-		if (appender.isSeparateLogOutputsPerMdcProperty()) {
-			node.put(SIFTING_MDC_PROPERTY_NAME, appender.getSiftingMdcPropertyName());
-			node.put(SIFTING_MDC_PROPERTYDEFAULT_VALUE, StringUtils.trimToEmpty(appender.getSiftingMdcPropertyDefaultValue()));
-		} else {
-			node.remove(SIFTING_MDC_PROPERTY_NAME);
-			node.remove(SIFTING_MDC_PROPERTYDEFAULT_VALUE);
-		}
-		if (!appender.isCompressRotatedLogs()) {
-			node.putBoolean(COMPRESS_ROTATED_LOGS, false);
-		} else {
-			node.remove(COMPRESS_ROTATED_LOGS);
-		}
 	}
 
 	private void saveLogger(final Logger logger, final Preferences node) throws BackingStoreException {

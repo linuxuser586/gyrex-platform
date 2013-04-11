@@ -61,12 +61,12 @@ public abstract class AppenderProvider extends PlatformObject {
 	 *            <code>null</code> or empty, will be
 	 *            {@link IdHelper#isValidId(String) validated})
 	 */
-	protected AppenderProvider(final Collection<String> providedTypeIds) {
-		if ((null == providedTypeIds) || (providedTypeIds.isEmpty()))
+	protected AppenderProvider(final String... providedTypeIds) {
+		if ((null == providedTypeIds) || (providedTypeIds.length == 0))
 			throw new IllegalArgumentException("appender types must not be null or empty");
 
 		// validate & save
-		this.providedTypeIds = new ArrayList<String>(providedTypeIds.size());
+		this.providedTypeIds = new ArrayList<String>(providedTypeIds.length);
 		for (final String id : providedTypeIds) {
 			if (!IdHelper.isValidId(id))
 				throw new IllegalArgumentException(String.format("type id \"%s\" is invalid; valid chars are US-ASCII a-z / A-Z / 0-9 / '.' / '-' / '_'", id));
@@ -75,6 +75,15 @@ public abstract class AppenderProvider extends PlatformObject {
 			}
 		}
 	}
+
+	/**
+	 * Creates and returns a new appender object of the specified type.
+	 * 
+	 * @param typeId
+	 *            the appender type id
+	 * @return the appender configuration
+	 */
+	public abstract Appender createAppender(String typeId) throws Exception;
 
 	/**
 	 * Returns a human readable name of the specified appender type.
@@ -105,11 +114,13 @@ public abstract class AppenderProvider extends PlatformObject {
 	/**
 	 * Reads and returns an appender configuration from a preference node.
 	 * 
+	 * @param typeId
+	 *            the appender type id
 	 * @param node
 	 *            the preference node
 	 * @return the appender configuration
 	 */
-	public abstract Appender loadAppender(final Preferences node) throws Exception;
+	public abstract Appender loadAppender(String typeId, final Preferences node) throws Exception;
 
 	/**
 	 * Returns a string containing a concise, human-readable description of the
@@ -137,4 +148,5 @@ public abstract class AppenderProvider extends PlatformObject {
 	 *            the node to write the appender configuration to
 	 */
 	public abstract void writeAppender(Appender appender, Preferences node) throws Exception;
+
 }

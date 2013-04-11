@@ -32,3 +32,4 @@ Require-Bundle: org.eclipse.gyrex.boot;bundle-version="1.0.0",
 Export-Package: org.eclipse.gyrex.logback.config.internal;x-friends:="org.eclipse.gyrex.admin.ui.logback",
  org.eclipse.gyrex.logback.config.model;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.logback,org.eclipse.gyrex.logback.config",
  org.eclipse.gyrex.logback.config.spi;version="1.0.0";x-friends:="org.eclipse.gyrex.admin.ui.logback,org.eclipse.gyrex.logback.config"
+Service-Component: OSGI-INF/logback-appenders.xml
