@@ -92,8 +92,8 @@ public class SchedulerApplication extends BaseApplication {
 
 			if (!scheduler.cancel()) {
 				try {
-					final int timeoutInSeconds = 30;
-					LOG.info("Waiting {}s for scheduler engine to finish...", timeoutInSeconds);
+					final int timeoutInSeconds = 60;
+					LOG.info("Waiting up to {}s for scheduler engine to finish...", timeoutInSeconds);
 					final CountDownLatch wait = new CountDownLatch(1);
 					final Job job = new WaitForJobToFinishJob("Scheduler Engine Shutdown Job", scheduler, wait);
 					job.schedule();

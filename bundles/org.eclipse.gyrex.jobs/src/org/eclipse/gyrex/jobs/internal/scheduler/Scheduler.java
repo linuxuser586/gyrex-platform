@@ -37,6 +37,7 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences.NodeChangeEvent;
 import org.osgi.service.prefs.BackingStoreException;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.math.RandomUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,8 +141,9 @@ public class Scheduler extends Job implements INodeChangeListener {
 				// try to acquire lock
 				// (note, we cannot wait forever because we must check for cancelation regularly)
 				// (however, checking very often is too expensive; we need to make a tradeoff here)
+				// (randomizing might be a good strategy here; modifying the time here should also cause updates to the shutdown timeout in SchedulerApplication)
 				try {
-					schedulerEngineLock = lockService.acquireExclusiveLock(SCHEDULER_LOCK, null, 2000L);
+					schedulerEngineLock = lockService.acquireExclusiveLock(SCHEDULER_LOCK, null, 10000 + RandomUtils.nextInt(50000));
 				} catch (final TimeoutException e) {
 					// timeout waiting for lock
 					// we simply keep on going as long as we aren't canceled
