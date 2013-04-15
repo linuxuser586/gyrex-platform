@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2013 AGETO Service GmbH and others.
  * All rights reserved.
- *  
- * This program and the accompanying materials are made available under the 
+ *
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html.
- * 
+ *
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
+ *
  */
 public class CloudPreferencesCleanupJobProvider extends JobProvider {
 
@@ -45,8 +45,11 @@ public class CloudPreferencesCleanupJobProvider extends JobProvider {
 	private static final Logger LOG = LoggerFactory.getLogger(CloudPreferencesCleanupJobProvider.class);
 
 	private static AtomicLong lastCleanup = new AtomicLong();
+	private static boolean preventAutomaticCleanup = Boolean.getBoolean("gyrex.jobs.cleanup.autotrigger.disabled");
 
 	static void triggerCleanUp() {
+		if (preventAutomaticCleanup)
+			return;
 		final long last = lastCleanup.get();
 		if ((System.currentTimeMillis() - last) > TimeUnit.HOURS.toMillis(3)) {
 			if (lastCleanup.compareAndSet(last, System.currentTimeMillis())) {
