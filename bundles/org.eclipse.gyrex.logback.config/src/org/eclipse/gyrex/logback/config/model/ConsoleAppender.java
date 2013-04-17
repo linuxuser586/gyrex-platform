@@ -11,10 +11,14 @@
  */
 package org.eclipse.gyrex.logback.config.model;
 
+import ch.qos.logback.core.joran.spi.ConsoleTarget;
+
 /**
  * A simple appender which writes to the console.
  */
 public class ConsoleAppender extends Appender {
+
+	ConsoleTarget target;
 
 	/**
 	 * Creates a new instance.
@@ -29,8 +33,27 @@ public class ConsoleAppender extends Appender {
 		return ch.qos.logback.core.ConsoleAppender.class.getName();
 	}
 
+	/**
+	 * Returns the target.
+	 * 
+	 * @return the target
+	 */
+	public ConsoleTarget getTarget() {
+		return target;
+	}
+
 	@Override
 	protected boolean preferShortPattern() {
 		return true;
+	}
+
+	/**
+	 * Sets the target.
+	 * 
+	 * @param target
+	 *            the target to set
+	 */
+	public void setTarget(final ConsoleTarget target) {
+		this.target = target;
 	}
 }
