@@ -58,15 +58,20 @@ public class JobInfo {
 		}
 
 		// put properties
-		properties.put(VERSION, VERSION_VALUE);
-		properties.put(ID, info.getJobId());
-		properties.put(TYPE_ID, info.getJobTypeId());
-		properties.put(CONTEXT_PATH, info.getContextPath().toString());
-		properties.put(QUEUE_TRIGGER, info.getQueueTrigger());
-		properties.put(QUEUE_TIMESTAMP, String.valueOf(info.getQueueTimestamp()));
-		properties.put(LAST_SUCCESSFUL_START, String.valueOf(info.getLastSuccessfulStart()));
-		if (StringUtils.isNotBlank(info.getScheduleInfo())) {
-			properties.put(SCHEDULE_INFO, info.getScheduleInfo());
+		try {
+			properties.put(VERSION, VERSION_VALUE);
+			properties.put(ID, info.getJobId());
+			properties.put(TYPE_ID, info.getJobTypeId());
+			properties.put(CONTEXT_PATH, info.getContextPath().toString());
+			properties.put(QUEUE_TRIGGER, info.getQueueTrigger());
+			properties.put(QUEUE_TIMESTAMP, String.valueOf(info.getQueueTimestamp()));
+			properties.put(LAST_SUCCESSFUL_START, String.valueOf(info.getLastSuccessfulStart()));
+			if (StringUtils.isNotBlank(info.getScheduleInfo())) {
+				properties.put(SCHEDULE_INFO, info.getScheduleInfo());
+			}
+		} catch (final NullPointerException e) {
+			// we tried to put null into the properties map
+			throw new IllegalArgumentException(String.format("Invalid job info: %s", info));
 		}
 
 		// create bytes
@@ -137,6 +142,7 @@ public class JobInfo {
 	}
 
 	private final String jobId;
+
 	private final String jobTypeId;
 	private final Map<String, String> jobProperties;
 	private final IPath contextPath;
@@ -186,5 +192,12 @@ public class JobInfo {
 
 	public String getScheduleInfo() {
 		return scheduleInfo;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("JobInfo [jobId=").append(jobId).append(", jobTypeId=").append(jobTypeId).append(", contextPath=").append(contextPath).append(", queueTrigger=").append(queueTrigger).append(", queueTimestamp=").append(queueTimestamp).append(", scheduleInfo=").append(scheduleInfo).append(", lastSuccessfulStart=").append(lastSuccessfulStart).append(", jobProperties=").append(jobProperties).append("]");
+		return builder.toString();
 	}
 }
