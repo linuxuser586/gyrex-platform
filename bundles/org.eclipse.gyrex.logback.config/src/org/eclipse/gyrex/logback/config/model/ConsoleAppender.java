@@ -11,6 +11,9 @@
  */
 package org.eclipse.gyrex.logback.config.model;
 
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+
 import ch.qos.logback.core.joran.spi.ConsoleTarget;
 
 /**
@@ -56,4 +59,17 @@ public class ConsoleAppender extends Appender {
 	public void setTarget(final ConsoleTarget target) {
 		this.target = target;
 	}
+
+	@Override
+	protected void writeAppenderContent(final XMLStreamWriter writer) throws XMLStreamException {
+		final ConsoleTarget consoleTarget = getTarget();
+
+		// only write console target SystemErr; SystemOut is default
+		if (consoleTarget == ConsoleTarget.SystemErr) {
+			writer.writeStartElement("target");
+			writer.writeCharacters(ConsoleTarget.SystemErr.getName());
+			writer.writeEndElement();
+		}
+	}
+
 }
