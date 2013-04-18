@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2012 AGETO Service GmbH and others.
+ * Copyright (c) 2011, 2013 AGETO Service GmbH and others.
  * All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -9,6 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *     Mike Tschierschke - improvements due working on https://bugs.eclipse.org/bugs/show_bug.cgi?id=344467
+ *     Michael Soedel - fix for https://bugs.eclipse.org/405910
  *******************************************************************************/
 package org.eclipse.gyrex.jobs.internal.schedules;
 
