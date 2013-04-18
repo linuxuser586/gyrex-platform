@@ -44,9 +44,8 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 	public static String getExternalId(final String internalId) {
 		final int i = internalId.indexOf(SEPARATOR);
-		if (i < 0) {
+		if (i < 0)
 			return internalId;
-		}
 		return internalId.substring(i + 1);
 	}
 
@@ -68,9 +67,8 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 	@Override
 	public IScheduleWorkingCopy createSchedule(final String id) {
-		if (!IdHelper.isValidId(id)) {
+		if (!IdHelper.isValidId(id))
 			throw new IllegalArgumentException("invalid id: " + id);
-		}
 
 		final String internalId = toInternalId(id);
 		try {
@@ -83,9 +81,8 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 	@Override
 	public IScheduleWorkingCopy createWorkingCopy(final String id) {
-		if (!IdHelper.isValidId(id)) {
+		if (!IdHelper.isValidId(id))
 			throw new IllegalArgumentException("invalid id: " + id);
-		}
 
 		final String internalId = toInternalId(id);
 		try {
@@ -97,9 +94,8 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 	@Override
 	public ISchedule getSchedule(final String id) {
-		if (!IdHelper.isValidId(id)) {
+		if (!IdHelper.isValidId(id))
 			throw new IllegalArgumentException("invalid id: " + id);
-		}
 
 		final String internalId = toInternalId(id);
 		try {
@@ -127,14 +123,12 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 	@Override
 	public void removeSchedule(final String id) {
-		if (!IdHelper.isValidId(id)) {
+		if (!IdHelper.isValidId(id))
 			throw new IllegalArgumentException("invalid id: " + id);
-		}
 
 		final ISchedule schedule = getSchedule(id);
-		if (schedule == null) {
+		if (schedule == null)
 			throw new IllegalStateException(String.format("schedule '%s' does not exist", id));
-		}
 
 		// remove jobs
 		final IJobManager jobManager = context.get(IJobManager.class);
@@ -146,7 +140,7 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 		final String internalId = toInternalId(id);
 		try {
-			ScheduleStore.remove(id, internalId);
+			ScheduleStore.remove(internalId, id);
 		} catch (final BackingStoreException e) {
 			throw new IllegalStateException(String.format("Unable to access schedule store. %s", ExceptionUtils.getRootCauseMessage(e)), e);
 		}
@@ -162,9 +156,8 @@ public class ScheduleManagerImpl implements IScheduleManager {
 
 	@Override
 	public void updateSchedule(final IScheduleWorkingCopy copy) {
-		if (!(copy instanceof ScheduleImpl)) {
+		if (!(copy instanceof ScheduleImpl))
 			throw new IllegalArgumentException("invalid working copy, must be obtained from this manager");
-		}
 
 		final ScheduleImpl scheduleImpl = (ScheduleImpl) copy;
 		final String internalId = toInternalId(scheduleImpl.getId());
