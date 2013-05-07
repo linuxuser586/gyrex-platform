@@ -107,8 +107,12 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 	}
 
 	private synchronized boolean acquireLock(final String lockId) {
-		if ((null != lock) && lock.isValid())
+		if ((null != lock) && lock.isValid()) {
+			if (JobsDebug.workerEngine) {
+				LOG.debug("Reusing acquired lock ({}) for job {}...", lock, getJobId());
+			}
 			return true; // consider success
+		}
 
 		if (JobsDebug.workerEngine) {
 			LOG.debug("Acquiring lock {} for job {}...", lockId, getJobId());
