@@ -12,6 +12,9 @@
 package org.eclipse.gyrex.jobs.internal.worker;
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.gyrex.cloud.services.locking.IExclusiveLock;
@@ -43,6 +46,15 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	private static final Logger LOG = LoggerFactory.getLogger(JobStateSynchronizer.class);
 
+	private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactory() {
+		@Override
+		public Thread newThread(final Runnable r) {
+			final Thread t = new Thread(r);
+			t.setDaemon(true);
+			return t;
+		}
+	});
+
 	private final Job realJob;
 	private final JobContext jobContext;
 	private final JobInfo info;
@@ -73,7 +85,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			// if the job state is not waiting, we cancel it
 			if ((job.getState() != JobState.WAITING)) {
 				// cancel Eclipse Job
-				cancelRealJob();
+				doCancelRealJob();
 				// abort execution now (so that no lock will be acquired)
 				// note, we do not cleanup any state here because
 				// the Eclipse Jobs API will actually call #done
@@ -84,20 +96,19 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			// check if a lock should be acquired
 			final String lockId = getJobParameter().get(IJobManager.LOCK_ID);
 			if (null != lockId) {
-				if (!acquireLock(lockId)) {
+				if (!acquireLock(lockId, 1000L)) {
 					LOG.warn("Failed acquiring lock {} for job {}. Job execution will be delayed.", lockId, getJobId());
 
-					// cancel any running job
-					cancelRealJob();
+					// put the job into sleep
+					doSleepRealJob();
 
-					// again, as stated previously, we rely on the Eclipse Jobs API
-					// calling #done for proper state clean-up
-
-					// only re-schedule if thread wasn't interrupted
-					if (!Thread.interrupted()) {
-						// (note, scheduling the job will trigger #scheduled again after triggering #done)
-						realJob.schedule(10000L);
-					}
+					// spin a thread that waits lock becomes available
+					executorService.submit(new Runnable() {
+						@Override
+						public void run() {
+							spinAcquireLockLoop(lockId);
+						}
+					});
 				}
 			}
 		} finally {
@@ -106,7 +117,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		}
 	}
 
-	private synchronized boolean acquireLock(final String lockId) {
+	private synchronized boolean acquireLock(final String lockId, final long timeout) {
 		if ((null != lock) && lock.isValid()) {
 			if (JobsDebug.workerEngine) {
 				LOG.debug("Reusing acquired lock ({}) for job {}...", lock, getJobId());
@@ -118,8 +129,8 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 			LOG.debug("Acquiring lock {} for job {}...", lockId, getJobId());
 		}
 		try {
-			lock = getLockService().acquireExclusiveLock(lockId, this, 2000L);
-			return true; // got lock, ok to proceed
+			lock = getLockService().acquireExclusiveLock(lockId, this, timeout);
+			return lock.isValid(); // got lock, ok to proceed
 		} catch (final InterruptedException e) {
 			// set interrupted flag
 			Thread.currentThread().interrupt();
@@ -135,10 +146,10 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void awake(final IJobChangeEvent event) {
-		// nothing to do (for now)
+		LOG.debug("Job {} is awake.", getJobId());
 	}
 
-	private void cancelRealJob() {
+	private void doCancelRealJob() {
 		// cancel Eclipse job
 		if (realJob.cancel()) {
 			// log message
@@ -182,12 +193,25 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 				oldThreadName = null;
 			}
 
+			// shutdown executor
+			executorService.shutdownNow();
+
 			// clear the MDC (as the last thing to do)
 			JobLogHelper.clearMdc();
 		}
 	}
 
-	private String getJobId() {
+	private void doSleepRealJob() {
+		LOG.debug("Put job {} to sleep.", getJobId());
+		realJob.sleep();
+	}
+
+	private void doWakeUpRealJob() {
+		LOG.debug("Waking up job {}.", getJobId());
+		realJob.wakeUp();
+	}
+
+	public String getJobId() {
 		return jobContext.getJobId();
 	}
 
@@ -224,7 +248,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		// handle aborting changes
 		if (state == JobState.ABORTING) {
 			// cancel Eclipse Job
-			cancelRealJob();
+			doCancelRealJob();
 
 			// again, as stated previously, we rely on the Eclipse Jobs API
 			// calling #done for proper state clean-up; this is also very
@@ -245,7 +269,7 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 		LOG.warn("Lost lock {} for job {}. An attempt will be made to cancel a running job instance.", lock.getId(), getJobId());
 
 		// abort the job
-		cancelRealJob();
+		doCancelRealJob();
 
 		// again, as stated previously, we rely on the Eclipse Jobs API
 		// calling #done for proper state clean-up
@@ -359,7 +383,26 @@ public final class JobStateSynchronizer implements IJobChangeListener, IJobState
 
 	@Override
 	public void sleeping(final IJobChangeEvent event) {
-		// nothing to do (for now)
+		LOG.debug("Job {} is sleeping.", getJobId());
+	}
+
+	void spinAcquireLockLoop(final String lockId) {
+		try {
+			// setup MDC so that any output is routed properly
+			JobLogHelper.setupMdc(jobContext);
+
+			// acquire lock
+			if (acquireLock(lockId, 0L)) {
+				// resume job
+				doWakeUpRealJob();
+			} else {
+				// cancel job
+				doCancelRealJob();
+			}
+		} finally {
+			// clear the MDC (must be set again in #running)
+			JobLogHelper.clearMdc();
+		}
 	}
 
 	private void updateJobState(final JobState expected, final JobState state, final IJobStateWatch jobStateWatch, final long stateTimestamp) {
