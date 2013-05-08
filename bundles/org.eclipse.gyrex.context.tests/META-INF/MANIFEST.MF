@@ -4,7 +4,7 @@ Bundle-Name: Gyrex Context Tests
 Bundle-SymbolicName: org.eclipse.gyrex.context.tests
 Bundle-Version: 1.2.0.qualifier
 Bundle-Activator: org.eclipse.gyrex.context.tests.internal.Activator
-Bundle-Vendor: Eclipse.org
+Bundle-Vendor: Eclipse Gyrex
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Import-Package: javax.inject;version="1.0.0",
  junit.framework;version="4.5.0",
