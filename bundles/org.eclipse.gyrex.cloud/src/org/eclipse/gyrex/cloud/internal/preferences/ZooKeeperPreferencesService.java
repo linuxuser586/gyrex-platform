@@ -23,9 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperBasedService;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperHelper;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
+import org.eclipse.gyrex.cloud.services.zookeeper.ZooKeeperBasedService;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.IPath;

@@ -25,11 +25,12 @@ import org.eclipse.gyrex.cloud.internal.CloudActivator;
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
 import org.eclipse.gyrex.cloud.internal.CloudState;
 import org.eclipse.gyrex.cloud.internal.NodeInfo;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperBasedService;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateCallable;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperMonitor;
 import org.eclipse.gyrex.cloud.services.locking.IDistributedLock;
 import org.eclipse.gyrex.cloud.services.locking.ILockMonitor;
+import org.eclipse.gyrex.cloud.services.zookeeper.ZooKeeperBasedService;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.IPath;

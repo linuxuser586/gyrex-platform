@@ -39,6 +39,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -278,7 +278,7 @@ public class ZooKeeperGate {
 						break;
 					}
 
-					// there have been more than the allowed number of state changes 
+					// there have been more than the allowed number of state changes
 					// within the last minute; this indicates a flapping connection
 					// -> don't try to recover the session
 
@@ -618,7 +618,11 @@ public class ZooKeeperGate {
 		return sessionTimeout;
 	}
 
-	final ZooKeeper getZooKeeper() {
+	/**
+	 * @noreference This method is not intended to be referenced by clients.
+	 * @return the internal {@link ZooKeeper} instance
+	 */
+	public final ZooKeeper getZooKeeper() {
 		// note, we don't perform any checks here but simply return what we have
 		// this is essential because downstream code should rely on KeeperException
 		// as thrown by ZooKeeper itself instead of also handling our custom logic

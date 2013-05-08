@@ -13,6 +13,7 @@ package org.eclipse.gyrex.cloud.internal.zk;
 
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -23,10 +23,11 @@ import java.util.TreeSet;
 
 import org.eclipse.gyrex.cloud.internal.zk.GateDownException;
 import org.eclipse.gyrex.cloud.internal.zk.IZooKeeperLayout;
-import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperBasedService;
 import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateCallable;
 import org.eclipse.gyrex.cloud.services.state.INodeState;
 import org.eclipse.gyrex.cloud.services.state.query.INodeStateInfo;
+import org.eclipse.gyrex.cloud.services.zookeeper.ZooKeeperBasedService;
 import org.eclipse.gyrex.common.identifiers.IdHelper;
 
 import org.eclipse.core.runtime.IPath;
@@ -41,6 +42,7 @@ import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,9 +97,8 @@ public class ZooKeeperNodeStatePublisher extends ZooKeeperBasedService {
 				return Collections.emptyList();
 			}
 
-			if (childNames.isEmpty()) {
+			if (childNames.isEmpty())
 				return Collections.emptyList();
-			}
 
 			final List<INodeStateInfo> infos = new ArrayList<INodeStateInfo>(childNames.size());
 			for (final String childName : childNames) {
@@ -171,9 +172,8 @@ public class ZooKeeperNodeStatePublisher extends ZooKeeperBasedService {
 	}
 
 	public List<? extends INodeStateInfo> findByNodeId(final String nodeId) {
-		if (!IdHelper.isValidId(nodeId)) {
+		if (!IdHelper.isValidId(nodeId))
 			throw new IllegalArgumentException("Invalid Node ID");
-		}
 
 		try {
 			return execute(new ReadAllForNodeId(nodeId));
@@ -190,9 +190,8 @@ public class ZooKeeperNodeStatePublisher extends ZooKeeperBasedService {
 	}
 
 	public List<? extends INodeStateInfo> findByServicePid(final String servicePid) {
-		if (!IdHelper.isValidId(servicePid)) {
+		if (!IdHelper.isValidId(servicePid))
 			throw new IllegalArgumentException("Invalid Service PID");
-		}
 
 		try {
 			return execute(new ReadAllForServicePid(servicePid));
@@ -214,9 +213,8 @@ public class ZooKeeperNodeStatePublisher extends ZooKeeperBasedService {
 	}
 
 	public void publish(final String pid, final ServiceReference<INodeState> reference) {
-		if (!IdHelper.isValidId(pid)) {
+		if (!IdHelper.isValidId(pid))
 			throw new IllegalArgumentException("Invalid PID");
-		}
 		try {
 			execute(new ZooKeeperGateCallable<Boolean>() {
 
@@ -225,9 +223,8 @@ public class ZooKeeperNodeStatePublisher extends ZooKeeperBasedService {
 
 					// create data to save
 					final Properties props = getStateData(reference);
-					if (props.isEmpty()) {
+					if (props.isEmpty())
 						return Boolean.FALSE;
-					}
 
 					// serialize service properties
 					final ByteArrayOutputStream out = new ByteArrayOutputStream();

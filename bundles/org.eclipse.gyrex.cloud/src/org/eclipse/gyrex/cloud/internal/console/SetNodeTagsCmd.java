@@ -21,6 +21,7 @@ import org.eclipse.gyrex.common.console.Command;
 import org.eclipse.core.runtime.IStatus;
 
 import org.apache.commons.lang.StringUtils;
+
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 

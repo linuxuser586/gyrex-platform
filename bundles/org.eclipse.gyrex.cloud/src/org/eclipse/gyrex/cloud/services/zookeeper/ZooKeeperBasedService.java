@@ -9,7 +9,7 @@
  * Contributors:
  *     Gunnar Wagenknecht - initial API and implementation
  *******************************************************************************/
-package org.eclipse.gyrex.cloud.internal.zk;
+package org.eclipse.gyrex.cloud.services.zookeeper;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.Callable;
@@ -20,6 +20,9 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.gyrex.cloud.internal.CloudDebug;
+import org.eclipse.gyrex.cloud.internal.zk.GateDownException;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGate;
+import org.eclipse.gyrex.cloud.internal.zk.ZooKeeperGateListener;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.zookeeper.KeeperException;
@@ -30,36 +33,33 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Base class for ZooKeeper based service implementations.
+ * <p>
+ * This class provides the following convenience infrastructure for working with
+ * {@link ZooKeeper} in Gyrex.
+ * <ul>
+ * <li>Automatic retry handling via {@link #execute(Callable)}</li>
+ * <li>Access to the {@link ZooKeeper} via {@link ZooKeeperCallable}</li>
+ * <li>Life-cycle control using {@link #activate()} and {@link #close()}</li>
+ * <li>Connection handling via {@link #suspend()}, {@link #reconnect()} and
+ * {@link #disconnect()}</li>
+ * </ul>
+ * </p>
  */
 public abstract class ZooKeeperBasedService {
 
 	/**
-	 * Convenience {@link Callable} that provides direct access to ZooKeeper.
+	 * Convenience {@link Callable} that provides direct access to
+	 * {@link ZooKeeper}.
 	 * 
 	 * @param <V>
 	 */
 	protected static abstract class ZooKeeperCallable<V> implements Callable<V> {
 		@Override
-		public V call() throws Exception {
+		public final V call() throws Exception {
 			return call(ZooKeeperGate.get().getZooKeeper());
 		}
 
 		protected abstract V call(ZooKeeper keeper) throws Exception;
-	}
-
-	/**
-	 * Convenience {@link Callable} that provides access to
-	 * {@link ZooKeeperGate}.
-	 * 
-	 * @param <V>
-	 */
-	protected static abstract class ZooKeeperGateCallable<V> implements Callable<V> {
-		@Override
-		public V call() throws Exception {
-			return call(ZooKeeperGate.get());
-		}
-
-		protected abstract V call(ZooKeeperGate gate) throws Exception;
 	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperBasedService.class);
@@ -98,12 +98,15 @@ public abstract class ZooKeeperBasedService {
 		};
 	};
 
-	private final long retryDelay;
+	private final long retryDelayInMs;
 	private final int retryCount;
 	private final ExecutorService executor;
 
 	/**
-	 * Creates a new instance.
+	 * Creates a new instance using a default retry delay of 250ms and a retry
+	 * count of 8.
+	 * 
+	 * @see ZooKeeperBasedService#ZooKeeperBasedService(long, int)
 	 */
 	public ZooKeeperBasedService() {
 		this(250l, 8);
@@ -111,13 +114,26 @@ public abstract class ZooKeeperBasedService {
 
 	/**
 	 * Creates a new instance.
+	 * <p>
+	 * Note, this will not activate the service. Sub-classes must activate the
+	 * service by calling {@link #activate()} when appropriate. This can happen
+	 * from within the constructor (after calling this constructor using
+	 * <code>super(...)</code>) or lazily when active connection traction
+	 * becomes necessary.
+	 * </p>
+	 * 
+	 * @param retryDelayInMs
+	 *            the retry delay in milliseconds (must be greater than or equal
+	 *            to 50)
+	 * @param retryCount
+	 *            the number of retries to perform
 	 */
-	public ZooKeeperBasedService(final long retryDelay, final int retryCount) {
-		if (retryDelay < 50)
+	public ZooKeeperBasedService(final long retryDelayInMs, final int retryCount) {
+		if (retryDelayInMs < 50)
 			throw new IllegalArgumentException("retry delay to low");
 		if (retryCount < 1)
 			throw new IllegalArgumentException("retry count to low");
-		this.retryDelay = retryDelay;
+		this.retryDelayInMs = retryDelayInMs;
 		this.retryCount = retryCount;
 		executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
 			@Override
@@ -138,8 +154,9 @@ public abstract class ZooKeeperBasedService {
 	/**
 	 * Activates the service.
 	 * <p>
-	 * This must be called when the service is ready in order to register the
-	 * listener with the ZooKeeper gate.
+	 * This must be called when the service is ready in order to register
+	 * necessary listener with the ZooKeeper client for proper connection
+	 * tracking.
 	 * </p>
 	 */
 	protected final void activate() {
@@ -259,8 +276,13 @@ public abstract class ZooKeeperBasedService {
 
 	/**
 	 * Returns detail information for {@link #toString()}.
+	 * <p>
+	 * This method is called from {@link #toString()} in order to build a more
+	 * detailed {@link #toString()} info. Sub-classes must implemented and
+	 * should return additional details.
+	 * </p>
 	 * 
-	 * @return
+	 * @return detail information for {@link #toString()}.
 	 */
 	protected abstract String getToStringDetails();
 
@@ -300,7 +322,7 @@ public abstract class ZooKeeperBasedService {
 	protected final void sleep(final int attemptCount) {
 		if (attemptCount > 0) {
 			try {
-				final long sleepTime = attemptCount * retryDelay;
+				final long sleepTime = attemptCount * retryDelayInMs;
 				if (CloudDebug.debug) {
 					LOG.debug("Will sleep for {}ms.", sleepTime);
 				}
