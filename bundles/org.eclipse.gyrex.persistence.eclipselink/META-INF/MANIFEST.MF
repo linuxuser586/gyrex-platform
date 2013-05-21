@@ -6,7 +6,7 @@ Bundle-Version: 1.2.0.qualifier
 Bundle-Activator: org.eclipse.gyrex.persistence.eclipselink.internal.EclipseLinkActivator
 Bundle-Vendor: Eclipse Gyrex
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
-Import-Package: javax.persistence;jpa="2.0";version="1.1.0",
+Import-Package: javax.persistence;jpa="2.1";version="1.1.0",
  javax.sql,
  org.apache.commons.lang;version="2.4.0",
  org.eclipse.persistence.config;version="2.4.0",
