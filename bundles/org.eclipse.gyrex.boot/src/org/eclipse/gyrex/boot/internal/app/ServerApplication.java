@@ -313,8 +313,9 @@ public class ServerApplication extends BaseApplication {
 	 * <p>
 	 * Possible arguments:
 	 * <ul>
-	 * <li><code>-roles &lt;role1,role2,...,roleN&gt;</code></li>
-	 * <li><code>-ignoreConfiguredRoles</code></li>
+	 * <li><code>-roles &lt;role1,role2,...,roleN&gt;</code> ... roles to start</li>
+	 * <li><code>-skipDefaultRolesAtBoot</code> ... skip start of default roles
+	 * at boot</li>
 	 * </ul>
 	 * </p>
 	 * 
@@ -329,8 +330,9 @@ public class ServerApplication extends BaseApplication {
 		final List<String> roleIds = new ArrayList<String>();
 		for (int i = 0; i < arguments.length; i++) {
 			final String arg = arguments[i];
-			if ("-roles".equalsIgnoreCase(arg)) {
+			if ("-skipDefaultRolesAtBoot".equalsIgnoreCase(arg)) {
 				ignoreDefaultRoles = true;
+			} else if ("-roles".equalsIgnoreCase(arg)) {
 				if (++i >= arguments.length)
 					throw new IllegalArgumentException("The argument '-roles' requires a following argument with the server roles to start.");
 				final String[] specifiedRoles = StringUtils.split(arguments[i], ',');
